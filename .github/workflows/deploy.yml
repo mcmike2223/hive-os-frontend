@@ -49,16 +49,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
-            NEXT_PUBLIC_CENTRAL_DOMAINS=${{ secrets.NEXT_PUBLIC_CENTRAL_DOMAINS }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || 'https://hive-backend.gulfingot.com/api/v1' }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL || 'https://hive.gulfingot.com' }}
+            NEXT_PUBLIC_CENTRAL_DOMAINS=${{ secrets.NEXT_PUBLIC_CENTRAL_DOMAINS || 'hive.gulfingot.com,hive-backend.gulfingot.com' }}
             NEXT_PUBLIC_ROOT_DOMAIN=${{ secrets.NEXT_PUBLIC_ROOT_DOMAIN || 'gulfingot.com' }}
-            NEXT_PUBLIC_SERVER_IP=${{ secrets.NEXT_PUBLIC_SERVER_IP }}
+            NEXT_PUBLIC_SERVER_IP=${{ secrets.NEXT_PUBLIC_SERVER_IP || '49.13.211.106' }}
             NEXT_PUBLIC_FRONTEND_DOMAIN=${{ secrets.NEXT_PUBLIC_FRONTEND_DOMAIN || 'hive.gulfingot.com' }}
             NEXT_PUBLIC_BACKEND_DOMAIN=${{ secrets.NEXT_PUBLIC_BACKEND_DOMAIN || 'hive-backend.gulfingot.com' }}
             NEXT_PUBLIC_REVERB_DOMAIN=${{ secrets.NEXT_PUBLIC_REVERB_DOMAIN || 'hive-ws.gulfingot.com' }}
-            NEXT_PUBLIC_REVERB_APP_KEY=${{ secrets.NEXT_PUBLIC_REVERB_APP_KEY }}
-            NEXT_PUBLIC_REVERB_HOST=${{ secrets.NEXT_PUBLIC_REVERB_HOST || 'reverb' }}
+            NEXT_PUBLIC_REVERB_APP_KEY=${{ secrets.NEXT_PUBLIC_REVERB_APP_KEY || 'reverb_key_a1b2c3d4e5f6' }}
+            NEXT_PUBLIC_REVERB_HOST=${{ secrets.NEXT_PUBLIC_REVERB_HOST || 'hive-ws.gulfingot.com' }}
             NEXT_PUBLIC_REVERB_PORT=${{ secrets.NEXT_PUBLIC_REVERB_PORT || '443' }}
             NEXT_PUBLIC_REVERB_SCHEME=${{ secrets.NEXT_PUBLIC_REVERB_SCHEME || 'https' }}
             INTERNAL_API_URL=${{ secrets.INTERNAL_API_URL || 'http://backend:8000/api/v1' }}
