@@ -345,6 +345,13 @@ export default function DashboardHome() {
                                 <Plus className="w-4 h-4 mr-2" /> Provision Node
                             </Button>
                         )}
+                        {isCentral && canProvisionTenants && (
+                            <a href="https://hive-monitor.gulfingot.com" target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="sm" className="rounded-full bg-background/50 backdrop-blur-md text-muted-foreground hover:text-foreground">
+                                    <Activity className="w-4 h-4 mr-2 text-rose-500" /> {t('dashboard.system_monitor', 'System Monitor')}
+                                </Button>
+                            </a>
+                        )}
                         {canInviteUsers && (
                             <Button onClick={() => router.push('/dashboard/security')} variant="outline" size="sm" className="rounded-full bg-background/50 backdrop-blur-md disabled:opacity-50" disabled={isImpersonating}>
                                 <UserPlus className="w-4 h-4 mr-2 text-emerald-500" /> {t('dashboard.invite_operator', 'Invite Operator')}
@@ -549,7 +556,12 @@ export default function DashboardHome() {
                             <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
                                 <HardDrive className="h-4 w-4 text-indigo-500" /> {t('dashboard.cluster_health', 'Cluster Health')}
                             </div>
-                            <span className="relative flex h-2 w-2"><span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-emerald-500"></span></span>
+                            <div className="flex items-center gap-3">
+                                <a href="https://hive-monitor.gulfingot.com" target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold font-mono uppercase tracking-wider text-muted-foreground hover:text-rose-500 transition-colors flex items-center gap-1">
+                                    Metrics <ChevronRight className="w-3 h-3" />
+                                </a>
+                                <span className="relative flex h-2 w-2"><span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-emerald-500"></span></span>
+                            </div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 sm:gap-4">
                             <div className="flex flex-col items-center justify-center p-2 sm:p-3 bg-background/50 rounded-xl sm:rounded-2xl border border-border/40">
