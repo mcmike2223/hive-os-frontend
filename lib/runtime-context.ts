@@ -236,6 +236,18 @@ export const getBackendApiRoot = (): string => {
   }
 
   const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const onTenantHost = typeof window !== "undefined" && isTenantHost(window.location.hostname);
+
+  if (configured && onTenantHost) {
+    try {
+      const url = new URL(configured);
+      url.protocol = window.location.protocol;
+      url.hostname = window.location.hostname;
+      return normalizeApiRoot(url.toString());
+    } catch {
+      // Fallback
+    }
+  }
 
   if (configured) {
     return normalizeApiRoot(configured);
