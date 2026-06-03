@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, Circle, Loader2, MessageSquare, Mail, AlertCircle, ClipboardCheck } from "lucide-react";
+import { Bell, Check, Circle, Loader2, MessageSquare, Mail, AlertCircle, ClipboardCheck, Database } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -167,6 +167,22 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
             (incoming.category === 'workflow' && isWorkflowPage)
         ) {
             // Silently update the count and list (handled above) but no toast
+        } else if (incoming.category === 'backup') {
+            toast.success(incoming.title || "Backup Completed", {
+                description: incoming.body,
+                action: incoming.url ? {
+                    label: "View",
+                    onClick: () => router.push(incoming.url!)
+                } : undefined
+            });
+        } else if (incoming.category === 'backup_failed') {
+            toast.error(incoming.title || "Backup Failed", {
+                description: incoming.body,
+                action: incoming.url ? {
+                    label: "View",
+                    onClick: () => router.push(incoming.url!)
+                } : undefined
+            });
         } else {
             toast.info(incoming.title || "New notification", {
                 description: incoming.body,
@@ -284,12 +300,16 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
                       notification.category === 'mail' ? "bg-amber-50 border-amber-100 text-amber-600" :
                       notification.category === 'workflow' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
                       notification.category === 'demo' ? "bg-purple-50 border-purple-100 text-purple-600" :
+                      notification.category === 'backup' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
+                      notification.category === 'backup_failed' ? "bg-rose-50 border-rose-100 text-rose-600" :
                       "bg-slate-50 border-slate-100 text-slate-600"
                     )}>
                       {notification.category === 'chat' ? <MessageSquare className="h-4 w-4" /> :
                         notification.category === 'mail' ? <Mail className="h-4 w-4" /> :
                         notification.category === 'workflow' ? <ClipboardCheck className="h-4 w-4" /> :
                         notification.category === 'demo' ? <Bell className="h-4 w-4" /> :
+                        notification.category === 'backup' ? <Database className="h-4 w-4" /> :
+                        notification.category === 'backup_failed' ? <AlertCircle className="h-4 w-4" /> :
                         <AlertCircle className="h-4 w-4" />}
                     </div>
                   
