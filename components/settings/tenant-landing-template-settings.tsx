@@ -254,7 +254,7 @@ export function TenantLandingTemplateSettings() {
 
       const nextVariant = resolveTemplateVariant(
         nextBusinessType,
-        nextBusinessType.default_template_key,
+        selectedTemplateKey || nextBusinessType.default_template_key,
       );
 
       setSelectedBusinessTypeKey(nextBusinessType.key);
@@ -274,7 +274,7 @@ export function TenantLandingTemplateSettings() {
 
       const firstVariant = resolveTemplateVariant(
         firstBusinessType,
-        firstBusinessType.default_template_key,
+        selectedTemplateKey || firstBusinessType.default_template_key,
       );
 
       setSelectedBusinessTypeKey(firstBusinessType.key);
@@ -282,7 +282,8 @@ export function TenantLandingTemplateSettings() {
       setTemplateFiles(createTemplateFiles(formatLandingTemplateJson(firstVariant.template)));
       setJsonError(null);
     }
-  }, [data, selectedBusinessTypeKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   const businessTypeMap = React.useMemo(
     () => Object.fromEntries(catalog.map((item) => [item.key, item])),
