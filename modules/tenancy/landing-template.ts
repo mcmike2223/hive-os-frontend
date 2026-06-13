@@ -88,9 +88,56 @@ export type TenantLandingServiceCard = {
   image?: string;
 };
 
+export type TenantLandingServicesSection = {
+  eyebrow?: string;
+  title?: string;
+};
+
 export type TenantLandingFaq = {
   question: string;
   answer: string;
+};
+
+export type TenantLandingGallery = {
+  eyebrow?: string;
+  title?: string;
+  images?: string[];
+};
+
+export type TenantLandingCellarItem = {
+  title: string;
+  description: string;
+};
+
+export type TenantLandingCellar = {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  items?: TenantLandingCellarItem[];
+};
+
+export type TenantLandingExperience = {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  featured_badge?: string;
+  featured_title?: string;
+  featured_description?: string;
+};
+
+export type TenantLandingLocationInfo = {
+  hours?: string[];
+  address?: string[];
+  phone?: string;
+};
+
+export type TenantLandingGuestlist = {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  cta?: string;
 };
 
 export type TenantLandingTemplateMeta = {
@@ -114,8 +161,15 @@ export type TenantLandingTemplate = {
   final_cta: TenantLandingFinalCta;
   rendering: TenantLandingRendering;
   menus?: TenantLandingMenus;
+  marquee?: string[];
   services?: TenantLandingServiceCard[];
+  services_section?: TenantLandingServicesSection;
   faqs?: TenantLandingFaq[];
+  gallery?: TenantLandingGallery;
+  cellar?: TenantLandingCellar;
+  experience?: TenantLandingExperience;
+  location_info?: TenantLandingLocationInfo;
+  guestlist?: TenantLandingGuestlist;
 };
 
 export type TenantLandingTemplateVariant = {
@@ -333,12 +387,74 @@ export const resolveLandingTemplate = (
           image: item?.image ? String(item.image) : undefined,
         }))
       : fallback.services,
+    services_section: candidate.services_section && typeof candidate.services_section === "object"
+      ? {
+          eyebrow: typeof candidate.services_section.eyebrow === "string" ? candidate.services_section.eyebrow : undefined,
+          title: typeof candidate.services_section.title === "string" ? candidate.services_section.title : undefined,
+        }
+      : fallback.services_section,
     faqs: Array.isArray(candidate.faqs) && candidate.faqs.length > 0
       ? candidate.faqs.map((item) => ({
           question: String(item?.question ?? ""),
           answer: String(item?.answer ?? ""),
         }))
       : fallback.faqs,
+    marquee: Array.isArray(candidate.marquee)
+      ? candidate.marquee.map((m) => String(m ?? "")).filter(Boolean)
+      : fallback.marquee,
+    gallery: candidate.gallery && typeof candidate.gallery === "object"
+      ? {
+          eyebrow: typeof candidate.gallery.eyebrow === "string" ? candidate.gallery.eyebrow : undefined,
+          title: typeof candidate.gallery.title === "string" ? candidate.gallery.title : undefined,
+          images: Array.isArray(candidate.gallery.images)
+            ? candidate.gallery.images.map((img) => String(img ?? "")).filter(Boolean)
+            : undefined,
+        }
+      : fallback.gallery,
+    cellar: candidate.cellar && typeof candidate.cellar === "object"
+      ? {
+          eyebrow: typeof candidate.cellar.eyebrow === "string" ? candidate.cellar.eyebrow : undefined,
+          title: typeof candidate.cellar.title === "string" ? candidate.cellar.title : undefined,
+          description: typeof candidate.cellar.description === "string" ? candidate.cellar.description : undefined,
+          image: candidate.cellar.image ? String(candidate.cellar.image) : undefined,
+          items: Array.isArray(candidate.cellar.items)
+            ? candidate.cellar.items.map((item) => ({
+                title: String(item?.title ?? ""),
+                description: String(item?.description ?? ""),
+              }))
+            : undefined,
+        }
+      : fallback.cellar,
+    experience: candidate.experience && typeof candidate.experience === "object"
+      ? {
+          eyebrow: typeof candidate.experience.eyebrow === "string" ? candidate.experience.eyebrow : undefined,
+          title: typeof candidate.experience.title === "string" ? candidate.experience.title : undefined,
+          description: typeof candidate.experience.description === "string" ? candidate.experience.description : undefined,
+          image: candidate.experience.image ? String(candidate.experience.image) : undefined,
+          featured_badge: typeof candidate.experience.featured_badge === "string" ? candidate.experience.featured_badge : undefined,
+          featured_title: typeof candidate.experience.featured_title === "string" ? candidate.experience.featured_title : undefined,
+          featured_description: typeof candidate.experience.featured_description === "string" ? candidate.experience.featured_description : undefined,
+        }
+      : fallback.experience,
+    location_info: candidate.location_info && typeof candidate.location_info === "object"
+      ? {
+          hours: Array.isArray(candidate.location_info.hours)
+            ? candidate.location_info.hours.map((line) => String(line ?? "")).filter(Boolean)
+            : undefined,
+          address: Array.isArray(candidate.location_info.address)
+            ? candidate.location_info.address.map((line) => String(line ?? "")).filter(Boolean)
+            : undefined,
+          phone: typeof candidate.location_info.phone === "string" ? candidate.location_info.phone : undefined,
+        }
+      : fallback.location_info,
+    guestlist: candidate.guestlist && typeof candidate.guestlist === "object"
+      ? {
+          eyebrow: typeof candidate.guestlist.eyebrow === "string" ? candidate.guestlist.eyebrow : undefined,
+          title: typeof candidate.guestlist.title === "string" ? candidate.guestlist.title : undefined,
+          description: typeof candidate.guestlist.description === "string" ? candidate.guestlist.description : undefined,
+          cta: typeof candidate.guestlist.cta === "string" ? candidate.guestlist.cta : undefined,
+        }
+      : fallback.guestlist,
   };
 };
 

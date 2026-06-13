@@ -23,6 +23,10 @@ import {
   Quote,
   HelpCircle,
   ConciergeBell,
+  Images,
+  Wine,
+  Sofa,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,7 +59,13 @@ import {
   type TenantLandingStat,
   type TenantLandingTestimonial,
   type TenantLandingServiceCard,
+  type TenantLandingServicesSection,
   type TenantLandingFaq,
+  type TenantLandingGallery,
+  type TenantLandingCellar,
+  type TenantLandingExperience,
+  type TenantLandingLocationInfo,
+  type TenantLandingGuestlist,
 } from "@/modules/tenancy/landing-template";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -305,7 +315,35 @@ export default function HeroSliderPage() {
 
   // ── highlights/specialties state ──
   const [highlights, setHighlights] = useState<TenantLandingCard[]>([]);
+
+  // ── active tab, persisted across reloads (URL ?tab= wins, then localStorage) ──
+  const VALID_TABS = ["slider", "stats", "specialties", "menus", "services", "gallery", "cellar", "experience", "testimonials", "faqs", "location"];
   const [activeTab, setActiveTab] = useState("slider");
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("tab");
+    const stored = window.localStorage.getItem("hero-slider-active-tab");
+    const initial =
+      fromUrl && VALID_TABS.includes(fromUrl)
+        ? fromUrl
+        : stored && VALID_TABS.includes(stored)
+          ? stored
+          : "slider";
+    setActiveTab(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    try {
+      window.localStorage.setItem("hero-slider-active-tab", tab);
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tab);
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* non-blocking */
+    }
+  };
 
   // ── menus section state ──
   const [menus, setMenus] = useState<TenantLandingMenus>({
@@ -316,6 +354,23 @@ export default function HeroSliderPage() {
   });
 
   // ── new dynamic sections state ──
+  const [marquee, setMarquee] = useState<string[]>([]);
+  const DEFAULT_MARQUEE = ["Live DJ Sets", "Craft Cocktails", "Late Nights", "VIP Lounge", "Signature Flavors", "Private Events", "Bottle Service"];
+  const [servicesSection, setServicesSection] = useState<TenantLandingServicesSection>({ eyebrow: "", title: "" });
+  const [gallery, setGallery] = useState<TenantLandingGallery>({ eyebrow: "", title: "", images: [] });
+  const [cellar, setCellar] = useState<TenantLandingCellar>({ eyebrow: "", title: "", description: "", image: "", items: [] });
+  const [experience, setExperience] = useState<TenantLandingExperience>({});
+  const [locationInfo, setLocationInfo] = useState<TenantLandingLocationInfo>({ hours: [], address: [], phone: "" });
+  const [guestlist, setGuestlist] = useState<TenantLandingGuestlist>({});
+  const [finalCta, setFinalCta] = useState<{ title: string; description: string }>({ title: "", description: "" });
+
+  const DEFAULT_CELLAR_ITEMS = [
+    { title: "Rare Vintages", description: "Exquisite wines from the world's most prestigious vineyards." },
+    { title: "Bespoke Spirits", description: "Hard-to-find single malts, small-batch bourbons, and fine cognacs." },
+    { title: "Private Tastings", description: "Curated wine and spirit tasting sessions led by our sommelier." },
+    { title: "Exclusive Sourcing", description: "Request rare bottles directly through our concierge service." },
+  ];
+
   const [stats, setStats] = useState<TenantLandingStat[]>([]);
   const [testimonials, setTestimonials] = useState<TenantLandingTestimonial[]>([]);
   const [services, setServices] = useState<TenantLandingServiceCard[]>([]);
@@ -522,6 +577,39 @@ export default function HeroSliderPage() {
         ? template.services.slice(0, 3)
         : DEFAULT_SERVICES,
     );
+    setMarquee(
+      Array.isArray(template.marquee) && template.marquee.length > 0 ? template.marquee : DEFAULT_MARQUEE,
+    );
+    setServicesSection({
+      eyebrow: template.services_section?.eyebrow || "",
+      title: template.services_section?.title || "",
+    });
+    setGallery({
+      eyebrow: template.gallery?.eyebrow || "",
+      title: template.gallery?.title || "",
+      images: Array.isArray(template.gallery?.images) ? template.gallery.images : [],
+    });
+    setCellar({
+      eyebrow: template.cellar?.eyebrow || "",
+      title: template.cellar?.title || "",
+      description: template.cellar?.description || "",
+      image: template.cellar?.image || "",
+      items:
+        Array.isArray(template.cellar?.items) && template.cellar.items.length > 0
+          ? template.cellar.items.slice(0, 4)
+          : DEFAULT_CELLAR_ITEMS,
+    });
+    setExperience(template.experience ?? {});
+    setLocationInfo({
+      hours: template.location_info?.hours ?? [],
+      address: template.location_info?.address ?? [],
+      phone: template.location_info?.phone || "",
+    });
+    setGuestlist(template.guestlist ?? {});
+    setFinalCta({
+      title: template.final_cta?.title || "",
+      description: template.final_cta?.description || "",
+    });
     setFaqs(
       Array.isArray(template.faqs) && template.faqs.length > 0
         ? template.faqs
@@ -533,27 +621,62 @@ export default function HeroSliderPage() {
 
   // ── save mutation ──
   const saveMutation = useMutation({
-    mutationFn: async (payload: {
-      nextSlides: TenantLandingHeroSlide[];
-      nextHighlights: TenantLandingCard[];
-      nextMenus: TenantLandingMenus;
-      nextStats: TenantLandingStat[];
-      nextTestimonials: TenantLandingTestimonial[];
-      nextServices: TenantLandingServiceCard[];
-      nextFaqs: TenantLandingFaq[];
-    }) => {
+    // Reads the latest tab states directly — call with saveMutation.mutate()
+    mutationFn: async () => {
       const nextTemplate = {
         ...currentTemplate,
         hero: {
           ...currentTemplate?.hero,
-          slides: payload.nextSlides,
+          slides,
         },
-        highlights: payload.nextHighlights,
-        menus: payload.nextMenus,
-        stats: payload.nextStats.filter((s) => s.value.trim() && s.label.trim()),
-        testimonials: payload.nextTestimonials.filter((tst) => tst.quote.trim() && tst.author.trim()),
-        services: payload.nextServices.filter((s) => s.title.trim()),
-        faqs: payload.nextFaqs.filter((f) => f.question.trim() && f.answer.trim()),
+        highlights,
+        menus,
+        marquee: marquee.map((m) => m.trim()).filter(Boolean),
+        stats: stats.filter((s) => s.value.trim() && s.label.trim()),
+        testimonials: testimonials.filter((tst) => tst.quote.trim() && tst.author.trim()),
+        services: services.filter((s) => s.title.trim()),
+        services_section: {
+          eyebrow: servicesSection.eyebrow?.trim() || "",
+          title: servicesSection.title?.trim() || "",
+        },
+        faqs: faqs.filter((f) => f.question.trim() && f.answer.trim()),
+        gallery: {
+          eyebrow: gallery.eyebrow?.trim() || "",
+          title: gallery.title?.trim() || "",
+          images: (gallery.images ?? []).filter((img) => img && img.trim()),
+        },
+        cellar: {
+          eyebrow: cellar.eyebrow?.trim() || "",
+          title: cellar.title?.trim() || "",
+          description: cellar.description?.trim() || "",
+          image: cellar.image || "",
+          items: (cellar.items ?? []).filter((i) => i.title.trim()),
+        },
+        experience: {
+          eyebrow: experience.eyebrow?.trim() || "",
+          title: experience.title?.trim() || "",
+          description: experience.description?.trim() || "",
+          image: experience.image || "",
+          featured_badge: experience.featured_badge?.trim() || "",
+          featured_title: experience.featured_title?.trim() || "",
+          featured_description: experience.featured_description?.trim() || "",
+        },
+        location_info: {
+          hours: (locationInfo.hours ?? []).map((l) => l.trim()).filter(Boolean),
+          address: (locationInfo.address ?? []).map((l) => l.trim()).filter(Boolean),
+          phone: locationInfo.phone?.trim() || "",
+        },
+        guestlist: {
+          eyebrow: guestlist.eyebrow?.trim() || "",
+          title: guestlist.title?.trim() || "",
+          description: guestlist.description?.trim() || "",
+          cta: guestlist.cta?.trim() || "",
+        },
+        final_cta: {
+          ...currentTemplate?.final_cta,
+          title: finalCta.title.trim(),
+          description: finalCta.description.trim(),
+        },
       };
 
       return apiFetch("/settings/landing", {
@@ -584,6 +707,39 @@ export default function HeroSliderPage() {
       if (Array.isArray(updatedTemplate.services) && updatedTemplate.services.length > 0) {
         setServices(updatedTemplate.services.slice(0, 3));
       }
+      if (Array.isArray(updatedTemplate.marquee) && updatedTemplate.marquee.length > 0) {
+        setMarquee(updatedTemplate.marquee);
+      }
+      setServicesSection({
+        eyebrow: updatedTemplate.services_section?.eyebrow || "",
+        title: updatedTemplate.services_section?.title || "",
+      });
+      setGallery({
+        eyebrow: updatedTemplate.gallery?.eyebrow || "",
+        title: updatedTemplate.gallery?.title || "",
+        images: Array.isArray(updatedTemplate.gallery?.images) ? updatedTemplate.gallery.images : [],
+      });
+      setCellar({
+        eyebrow: updatedTemplate.cellar?.eyebrow || "",
+        title: updatedTemplate.cellar?.title || "",
+        description: updatedTemplate.cellar?.description || "",
+        image: updatedTemplate.cellar?.image || "",
+        items:
+          Array.isArray(updatedTemplate.cellar?.items) && updatedTemplate.cellar.items.length > 0
+            ? updatedTemplate.cellar.items.slice(0, 4)
+            : DEFAULT_CELLAR_ITEMS,
+      });
+      setExperience(updatedTemplate.experience ?? {});
+      setLocationInfo({
+        hours: updatedTemplate.location_info?.hours ?? [],
+        address: updatedTemplate.location_info?.address ?? [],
+        phone: updatedTemplate.location_info?.phone || "",
+      });
+      setGuestlist(updatedTemplate.guestlist ?? {});
+      setFinalCta({
+        title: updatedTemplate.final_cta?.title || "",
+        description: updatedTemplate.final_cta?.description || "",
+      });
       if (Array.isArray(updatedTemplate.faqs) && updatedTemplate.faqs.length > 0) {
         setFaqs(updatedTemplate.faqs);
       }
@@ -683,6 +839,27 @@ export default function HeroSliderPage() {
       setMenus((prev) => ({ ...prev, model_3d_url: url }));
       setIsDirty(true);
       toast.success("3D model selected for menus section");
+    } else if (mediaPickerTarget === "gallery_add") {
+      setGallery((prev) => ({ ...prev, images: [...(prev.images ?? []), url] }));
+      setIsDirty(true);
+      toast.success("Image added to gallery");
+    } else if (typeof mediaPickerTarget === "string" && mediaPickerTarget.startsWith("gallery_image_")) {
+      const idx = Number(mediaPickerTarget.replace("gallery_image_", ""));
+      setGallery((prev) => {
+        const images = [...(prev.images ?? [])];
+        if (idx >= 0 && idx < images.length) images[idx] = url;
+        return { ...prev, images };
+      });
+      setIsDirty(true);
+      toast.success("Gallery image replaced");
+    } else if (mediaPickerTarget === "cellar_image") {
+      setCellar((prev) => ({ ...prev, image: url }));
+      setIsDirty(true);
+      toast.success("Image selected for cellar section");
+    } else if (mediaPickerTarget === "experience_image") {
+      setExperience((prev) => ({ ...prev, image: url }));
+      setIsDirty(true);
+      toast.success("Image selected for experience section");
     } else if (typeof mediaPickerTarget === "string" && mediaPickerTarget.startsWith("service_image_")) {
       const idx = Number(mediaPickerTarget.replace("service_image_", ""));
       setServices((prev) => {
@@ -760,7 +937,7 @@ export default function HeroSliderPage() {
             View Live
           </a>
           <Button
-            onClick={() => saveMutation.mutate({ nextSlides: slides, nextHighlights: highlights, nextMenus: menus, nextStats: stats, nextTestimonials: testimonials, nextServices: services, nextFaqs: faqs })}
+            onClick={() => saveMutation.mutate()}
             disabled={!isDirty || saveMutation.isPending}
             className="rounded-full px-6 gap-2 bg-gradient-to-r from-[#FF1A43] to-[#7B16D9] hover:from-[#e0173a] hover:to-[#6912be] text-white shadow-lg shadow-[#FF1A43]/25 disabled:opacity-50 transition-all"
           >
@@ -792,15 +969,20 @@ export default function HeroSliderPage() {
       )}
 
       {/* ── Tabs Container ── */}
-      <Tabs defaultValue="slider" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs defaultValue="slider" value={activeTab} onValueChange={handleTabChange} className="w-full">
+        {/* Tabs are ordered top-to-bottom to match the order sections appear on the landing page */}
         <TabsList className="flex w-full flex-wrap h-auto gap-1 mb-6 justify-start">
-          <TabsTrigger value="slider" className="gap-1.5"><GalleryHorizontalEnd className="h-3.5 w-3.5" /> Hero Slides</TabsTrigger>
-          <TabsTrigger value="specialties" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Specialties</TabsTrigger>
-          <TabsTrigger value="menus" className="gap-1.5"><Box className="h-3.5 w-3.5" /> Menus</TabsTrigger>
-          <TabsTrigger value="stats" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Stats</TabsTrigger>
-          <TabsTrigger value="services" className="gap-1.5"><ConciergeBell className="h-3.5 w-3.5" /> Services</TabsTrigger>
-          <TabsTrigger value="testimonials" className="gap-1.5"><Quote className="h-3.5 w-3.5" /> Testimonials</TabsTrigger>
-          <TabsTrigger value="faqs" className="gap-1.5"><HelpCircle className="h-3.5 w-3.5" /> FAQs</TabsTrigger>
+          <TabsTrigger value="slider" className="gap-1.5"><GalleryHorizontalEnd className="h-3.5 w-3.5" /> 1. Hero Slides</TabsTrigger>
+          <TabsTrigger value="stats" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> 2. Stats</TabsTrigger>
+          <TabsTrigger value="specialties" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" /> 3. Specialties</TabsTrigger>
+          <TabsTrigger value="menus" className="gap-1.5"><Box className="h-3.5 w-3.5" /> 4. Menus</TabsTrigger>
+          <TabsTrigger value="services" className="gap-1.5"><ConciergeBell className="h-3.5 w-3.5" /> 5. Services</TabsTrigger>
+          <TabsTrigger value="gallery" className="gap-1.5"><Images className="h-3.5 w-3.5" /> 6. Gallery</TabsTrigger>
+          <TabsTrigger value="cellar" className="gap-1.5"><Wine className="h-3.5 w-3.5" /> 7. Cellar</TabsTrigger>
+          <TabsTrigger value="experience" className="gap-1.5"><Sofa className="h-3.5 w-3.5" /> 8. Experience</TabsTrigger>
+          <TabsTrigger value="testimonials" className="gap-1.5"><Quote className="h-3.5 w-3.5" /> 9. Testimonials</TabsTrigger>
+          <TabsTrigger value="faqs" className="gap-1.5"><HelpCircle className="h-3.5 w-3.5" /> 10. FAQs</TabsTrigger>
+          <TabsTrigger value="location" className="gap-1.5"><MapPin className="h-3.5 w-3.5" /> 11. Location &amp; CTA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="slider" className="outline-none">
@@ -933,6 +1115,70 @@ export default function HeroSliderPage() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Scrolling tagline marquee (the neon band right under the hero) */}
+          <div className="mt-8 rounded-2xl border bg-card p-6 shadow-sm space-y-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-foreground">Scrolling Tagline Strip</h2>
+                <p className="text-muted-foreground text-xs">
+                  The animated neon band that loops right under the hero. Add short punchy phrases (e.g. &ldquo;Live DJ Sets&rdquo;, &ldquo;Bottle Service&rdquo;).
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={marquee.length >= 10}
+                onClick={() => { setMarquee((prev) => [...prev, ""]); setIsDirty(true); }}
+                className="rounded-full gap-1.5 bg-gradient-to-r from-[#FF1A43] to-[#7B16D9] text-white border-none shadow-md shadow-[#FF1A43]/20"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Phrase {marquee.length >= 10 ? "(max 10)" : ""}
+              </Button>
+            </div>
+
+            {/* live preview of the strip */}
+            {marquee.filter((m) => m.trim()).length > 0 && (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-[#0a0612] border border-white/10 px-4 py-3">
+                {marquee.filter((m) => m.trim()).map((m, i) => (
+                  <span key={i} className="flex items-center gap-5">
+                    <span className="bg-gradient-to-r from-[#FF1A43] via-[#D31A9B] to-[#7B16D9] bg-clip-text text-sm font-black uppercase tracking-[0.15em] text-transparent">
+                      {m}
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-[#FF1A43]" />
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {marquee.map((phrase, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Input
+                    placeholder={`Phrase ${idx + 1}`}
+                    value={phrase}
+                    onChange={(e) => {
+                      const next = [...marquee];
+                      next[idx] = e.target.value;
+                      setMarquee(next);
+                      setIsDirty(true);
+                    }}
+                    maxLength={40}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setMarquee((prev) => prev.filter((_, i) => i !== idx)); setIsDirty(true); }}
+                    className="h-9 w-9 shrink-0 p-0 text-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100 dark:text-rose-400 dark:border-rose-800 dark:bg-rose-950/40 rounded-lg"
+                    title="Remove phrase"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </TabsContent>
 
@@ -1494,6 +1740,43 @@ export default function HeroSliderPage() {
                 The three big image cards in the &ldquo;What We Offer&rdquo; section. Each card&apos;s &ldquo;Inquire Now&rdquo; button opens the booking form.
               </p>
             </div>
+
+            {/* Section heading (the big title + outlined background word) */}
+            <div className="grid gap-4 md:grid-cols-2 p-5 border rounded-xl bg-background/50">
+              <div className="space-y-2">
+                <Label htmlFor="services-section-title" className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+                  Section Title
+                </Label>
+                <Input
+                  id="services-section-title"
+                  placeholder="e.g. Exclusive Services"
+                  value={servicesSection.title || ""}
+                  onChange={(e) => {
+                    setServicesSection((prev) => ({ ...prev, title: e.target.value }));
+                    setIsDirty(true);
+                  }}
+                  maxLength={60}
+                />
+                <p className="text-[10px] text-muted-foreground">The gradient heading of the section.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="services-section-eyebrow" className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+                  Background Word
+                </Label>
+                <Input
+                  id="services-section-eyebrow"
+                  placeholder="e.g. Services"
+                  value={servicesSection.eyebrow || ""}
+                  onChange={(e) => {
+                    setServicesSection((prev) => ({ ...prev, eyebrow: e.target.value }));
+                    setIsDirty(true);
+                  }}
+                  maxLength={20}
+                />
+                <p className="text-[10px] text-muted-foreground">The huge outlined word behind the title — keep it to one short word.</p>
+              </div>
+            </div>
+
             <div className="grid gap-6 md:grid-cols-3">
               {[0, 1, 2].map((idx) => (
                 <div key={idx} className="border rounded-xl bg-background/50 overflow-hidden">
@@ -1737,6 +2020,328 @@ export default function HeroSliderPage() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ── GALLERY TAB ── */}
+        <TabsContent value="gallery" className="space-y-6 outline-none">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-foreground">The Vibe — Photo Gallery</h2>
+                <p className="text-muted-foreground text-xs">
+                  Photos shown in the gallery mosaic with the fullscreen lightbox. If you add none, the landing page falls back to your hero slide images.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={(gallery.images ?? []).length >= 8}
+                onClick={() => setMediaPickerTarget("gallery_add")}
+                className="rounded-full gap-1.5 bg-gradient-to-r from-[#FF1A43] to-[#7B16D9] text-white border-none shadow-md shadow-[#FF1A43]/20"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Photo {(gallery.images ?? []).length >= 8 ? "(max 8)" : ""}
+              </Button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Section Title</Label>
+                <Input
+                  placeholder="e.g. The Vibe"
+                  value={gallery.title || ""}
+                  onChange={(e) => {
+                    setGallery((prev) => ({ ...prev, title: e.target.value }));
+                    setIsDirty(true);
+                  }}
+                  maxLength={40}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Background Word</Label>
+                <Input
+                  placeholder="e.g. Gallery"
+                  value={gallery.eyebrow || ""}
+                  onChange={(e) => {
+                    setGallery((prev) => ({ ...prev, eyebrow: e.target.value }));
+                    setIsDirty(true);
+                  }}
+                  maxLength={20}
+                />
+              </div>
+            </div>
+
+            {(gallery.images ?? []).length === 0 ? (
+              <button
+                type="button"
+                onClick={() => setMediaPickerTarget("gallery_add")}
+                className="w-full flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 h-40 gap-2 text-muted-foreground/50 hover:border-[#FF1A43]/40 hover:text-[#FF1A43] transition-all cursor-pointer"
+              >
+                <Images className="h-8 w-8" />
+                <p className="text-sm font-medium">No photos yet — using hero slide images as fallback. Click to add.</p>
+              </button>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {(gallery.images ?? []).map((img, idx) => (
+                  <div key={`${img}-${idx}`} className="group relative h-40 rounded-xl overflow-hidden border bg-gradient-to-br from-[#120820] to-[#1a0a30]">
+                    <SecureAssetImage src={img} alt={`Gallery photo ${idx + 1}`} className="w-full h-full object-cover object-center" />
+                    <div className="absolute top-2 left-2 h-6 w-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white font-black text-[10px] border border-white/20">
+                      {idx + 1}
+                    </div>
+                    <div className="absolute inset-0 bg-black/45 flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        type="button" variant="secondary" size="sm"
+                        onClick={() => setMediaPickerTarget(`gallery_image_${idx}`)}
+                        className="rounded-full text-[10px] h-7 px-3 shadow-lg"
+                      >
+                        Replace
+                      </Button>
+                      <Button
+                        type="button" variant="destructive" size="sm"
+                        onClick={() => {
+                          setGallery((prev) => ({ ...prev, images: (prev.images ?? []).filter((_, i) => i !== idx) }));
+                          setIsDirty(true);
+                        }}
+                        className="rounded-full text-[10px] h-7 px-3 shadow-lg"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── CELLAR TAB ── */}
+        <TabsContent value="cellar" className="space-y-6 outline-none">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">The Cellar Section</h2>
+              <p className="text-muted-foreground text-xs">The gold-accented spirits &amp; wine showcase.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Eyebrow</Label>
+                <Input
+                  placeholder="e.g. The Liquor Boutique"
+                  value={cellar.eyebrow || ""}
+                  onChange={(e) => { setCellar((p) => ({ ...p, eyebrow: e.target.value })); setIsDirty(true); }}
+                  maxLength={50}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Title</Label>
+                <Input
+                  placeholder="e.g. Savory Spirits & Wine Cellar"
+                  value={cellar.title || ""}
+                  onChange={(e) => { setCellar((p) => ({ ...p, title: e.target.value })); setIsDirty(true); }}
+                  maxLength={70}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Description</Label>
+              <Textarea
+                rows={3}
+                placeholder="Describe your cellar collection…"
+                value={cellar.description || ""}
+                onChange={(e) => { setCellar((p) => ({ ...p, description: e.target.value })); setIsDirty(true); }}
+                maxLength={400}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Section Image</Label>
+              <div className="relative h-52 max-w-sm rounded-xl overflow-hidden border bg-gradient-to-br from-[#120820] to-[#1a0a30] group">
+                {cellar.image ? (
+                  <>
+                    <SecureAssetImage src={cellar.image} alt="Cellar preview" className="w-full h-full object-cover object-center" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button type="button" variant="secondary" size="sm" onClick={() => setMediaPickerTarget("cellar_image")} className="rounded-full text-xs shadow-lg">Change</Button>
+                      <Button type="button" variant="destructive" size="sm" onClick={() => { setCellar((p) => ({ ...p, image: "" })); setIsDirty(true); }} className="rounded-full text-xs shadow-lg">Remove</Button>
+                    </div>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => setMediaPickerTarget("cellar_image")} className="w-full h-full flex flex-col items-center justify-center gap-2 text-white/30 hover:text-white/60 transition-colors">
+                    <ImageIcon className="h-7 w-7" />
+                    <span className="text-xs font-medium">Choose image (default: liquor shelf)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {[0, 1, 2, 3].map((idx) => (
+                <div key={idx} className="p-4 border rounded-xl bg-background/50 space-y-3">
+                  <Badge variant="outline" className="font-bold text-xs uppercase tracking-widest text-yellow-600 bg-yellow-500/5 border-yellow-500/20">
+                    Highlight 0{idx + 1}
+                  </Badge>
+                  <Input
+                    placeholder="Title (e.g. Rare Vintages)"
+                    value={cellar.items?.[idx]?.title || ""}
+                    onChange={(e) => {
+                      setCellar((p) => {
+                        const items = [...(p.items ?? [])];
+                        if (!items[idx]) items[idx] = { title: "", description: "" };
+                        items[idx] = { ...items[idx], title: e.target.value };
+                        return { ...p, items };
+                      });
+                      setIsDirty(true);
+                    }}
+                    maxLength={40}
+                  />
+                  <Textarea
+                    rows={2}
+                    placeholder="Short description…"
+                    value={cellar.items?.[idx]?.description || ""}
+                    onChange={(e) => {
+                      setCellar((p) => {
+                        const items = [...(p.items ?? [])];
+                        if (!items[idx]) items[idx] = { title: "", description: "" };
+                        items[idx] = { ...items[idx], description: e.target.value };
+                        return { ...p, items };
+                      });
+                      setIsDirty(true);
+                    }}
+                    maxLength={150}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── EXPERIENCE TAB ── */}
+        <TabsContent value="experience" className="space-y-6 outline-none">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">Experience / Ambiance Section</h2>
+              <p className="text-muted-foreground text-xs">The full-width atmosphere banner with the featured space card.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Eyebrow</Label>
+                <Input placeholder="e.g. The Ambiance" value={experience.eyebrow || ""} onChange={(e) => { setExperience((p) => ({ ...p, eyebrow: e.target.value })); setIsDirty(true); }} maxLength={40} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Title</Label>
+                <Input placeholder="e.g. An atmosphere that elevates every moment." value={experience.title || ""} onChange={(e) => { setExperience((p) => ({ ...p, title: e.target.value })); setIsDirty(true); }} maxLength={80} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Description</Label>
+              <Textarea rows={2} placeholder="Set the scene…" value={experience.description || ""} onChange={(e) => { setExperience((p) => ({ ...p, description: e.target.value })); setIsDirty(true); }} maxLength={300} />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-[320px_1fr] items-start">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Banner Image</Label>
+                <div className="relative h-48 rounded-xl overflow-hidden border bg-gradient-to-br from-[#120820] to-[#1a0a30] group">
+                  {experience.image ? (
+                    <>
+                      <SecureAssetImage src={experience.image} alt="Experience preview" className="w-full h-full object-cover object-center" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button type="button" variant="secondary" size="sm" onClick={() => setMediaPickerTarget("experience_image")} className="rounded-full text-xs shadow-lg">Change</Button>
+                        <Button type="button" variant="destructive" size="sm" onClick={() => { setExperience((p) => ({ ...p, image: "" })); setIsDirty(true); }} className="rounded-full text-xs shadow-lg">Remove</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => setMediaPickerTarget("experience_image")} className="w-full h-full flex flex-col items-center justify-center gap-2 text-white/30 hover:text-white/60 transition-colors">
+                      <ImageIcon className="h-7 w-7" />
+                      <span className="text-xs font-medium">Choose banner image</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="p-5 border rounded-xl bg-background/50 space-y-4">
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Featured Space Card (overlay)</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground">Badge</Label>
+                    <Input placeholder="e.g. Featured Space" value={experience.featured_badge || ""} onChange={(e) => { setExperience((p) => ({ ...p, featured_badge: e.target.value })); setIsDirty(true); }} maxLength={30} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground">Space Name</Label>
+                    <Input placeholder="e.g. The Garden Terrace" value={experience.featured_title || ""} onChange={(e) => { setExperience((p) => ({ ...p, featured_title: e.target.value })); setIsDirty(true); }} maxLength={50} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-muted-foreground">Space Description</Label>
+                  <Textarea rows={2} placeholder="Describe the featured space…" value={experience.featured_description || ""} onChange={(e) => { setExperience((p) => ({ ...p, featured_description: e.target.value })); setIsDirty(true); }} maxLength={220} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── LOCATION & CTA TAB ── */}
+        <TabsContent value="location" className="space-y-6 outline-none">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">Final Call-To-Action</h2>
+              <p className="text-muted-foreground text-xs">The big closing section with hours and location.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">CTA Title</Label>
+                <Input placeholder="e.g. Ready to join us?" value={finalCta.title} onChange={(e) => { setFinalCta((p) => ({ ...p, title: e.target.value })); setIsDirty(true); }} maxLength={60} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">CTA Description</Label>
+                <Input placeholder="e.g. Reserve your table today…" value={finalCta.description} onChange={(e) => { setFinalCta((p) => ({ ...p, description: e.target.value })); setIsDirty(true); }} maxLength={160} />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Opening Hours <span className="normal-case font-normal opacity-60">(one per line)</span></Label>
+                <Textarea
+                  rows={4}
+                  placeholder={"Mon-Thu: 11am - 10pm\nFri-Sat: 11am - 11pm\nSunday: 10am - 9pm"}
+                  value={(locationInfo.hours ?? []).join("\n")}
+                  onChange={(e) => { setLocationInfo((p) => ({ ...p, hours: e.target.value.split("\n") })); setIsDirty(true); }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Address <span className="normal-case font-normal opacity-60">(one per line)</span></Label>
+                <Textarea
+                  rows={4}
+                  placeholder={"Bole Road, Friendship Tower\nAddis Ababa"}
+                  value={(locationInfo.address ?? []).join("\n")}
+                  onChange={(e) => { setLocationInfo((p) => ({ ...p, address: e.target.value.split("\n") })); setIsDirty(true); }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Phone</Label>
+                <Input placeholder="e.g. +251 911 123 456" value={locationInfo.phone || ""} onChange={(e) => { setLocationInfo((p) => ({ ...p, phone: e.target.value })); setIsDirty(true); }} maxLength={30} />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">Guest List Strip</h2>
+              <p className="text-muted-foreground text-xs">The neon &ldquo;skip the line&rdquo; band above the final CTA. Its button opens the booking form pre-set to Guest List Entry.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Eyebrow</Label>
+                <Input placeholder="e.g. Skip the line" value={guestlist.eyebrow || ""} onChange={(e) => { setGuestlist((p) => ({ ...p, eyebrow: e.target.value })); setIsDirty(true); }} maxLength={40} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Title</Label>
+                <Input placeholder="e.g. Get on the Guest List" value={guestlist.title || ""} onChange={(e) => { setGuestlist((p) => ({ ...p, title: e.target.value })); setIsDirty(true); }} maxLength={60} />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Description</Label>
+                <Input placeholder="e.g. Priority entry, a welcome drink…" value={guestlist.description || ""} onChange={(e) => { setGuestlist((p) => ({ ...p, description: e.target.value })); setIsDirty(true); }} maxLength={160} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Button Label</Label>
+                <Input placeholder="e.g. Join Tonight" value={guestlist.cta || ""} onChange={(e) => { setGuestlist((p) => ({ ...p, cta: e.target.value })); setIsDirty(true); }} maxLength={30} />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* ── Edit / Add Dialog ── */}
@@ -1902,6 +2507,12 @@ export default function HeroSliderPage() {
                   ? "Select a main image for the specialties section"
                   : typeof mediaPickerTarget === "string" && mediaPickerTarget.startsWith("service_image_")
                   ? "Select a showcase image for this service card"
+                  : mediaPickerTarget === "gallery_add" || (typeof mediaPickerTarget === "string" && mediaPickerTarget.startsWith("gallery_image_"))
+                  ? "Select a photo for the gallery"
+                  : mediaPickerTarget === "cellar_image"
+                  ? "Select an image for the cellar section"
+                  : mediaPickerTarget === "experience_image"
+                  ? "Select a banner image for the experience section"
                   : mediaPickerTarget === "menus_image"
                   ? "Select a showcase image for the menus section"
                   : mediaPickerTarget === "menus_model"

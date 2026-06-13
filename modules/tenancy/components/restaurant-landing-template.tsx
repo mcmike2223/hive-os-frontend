@@ -260,6 +260,14 @@ export function RestaurantLandingTemplate({
   const [openFaq, setOpenFaq] = React.useState<number | null>(0);
   const [isNavScrolled, setIsNavScrolled] = React.useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
+
+  // Theme Nights slider
+  const eventsSliderRef = React.useRef<HTMLDivElement>(null);
+  const scrollEvents = (dir: "left" | "right") => {
+    const el = eventsSliderRef.current;
+    if (!el) return;
+    el.scrollBy({ left: (dir === "left" ? -1 : 1) * el.clientWidth * 0.9, behavior: "smooth" });
+  };
   const [activeSection, setActiveSection] = React.useState<string>("");
 
   // Scroll-spy: highlight the nav link of the section currently in view
@@ -448,6 +456,72 @@ export function RestaurantLandingTemplate({
     }
   };
 
+  // Cellar — dashboard-configurable via template.cellar
+  const cellarItemsFromTemplate = (template?.cellar?.items ?? []).filter((i) => i?.title?.trim());
+  const cellarContent = {
+    eyebrow: template?.cellar?.eyebrow?.trim() || t("landing.cellar.eyebrow", "The Liquor Boutique"),
+    title: template?.cellar?.title?.trim() || t("landing.cellar.title", "Savory Spirits & Wine Cellar"),
+    description:
+      template?.cellar?.description?.trim() ||
+      t("landing.cellar.description", "Step into a sanctuary of taste. From rare single-malt scotches and vintage champagnes to bespoke local spirits, our cellar offers an curated selection for the refined palate."),
+    image: template?.cellar?.image
+      ? (getPublicServeUrl(template.cellar.image) ?? template.cellar.image)
+      : "/landing/liquor.png",
+    items:
+      cellarItemsFromTemplate.length >= 2
+        ? cellarItemsFromTemplate.slice(0, 4).map((i) => ({ title: i.title, desc: i.description }))
+        : [
+            { title: "Rare Vintages", desc: "Exquisite wines from the world's most prestigious vineyards." },
+            { title: "Bespoke Spirits", desc: "Hard-to-find single malts, small-batch bourbons, and fine cognacs." },
+            { title: "Private Tastings", desc: "Curated wine and spirit tasting sessions led by our sommelier." },
+            { title: "Exclusive Sourcing", desc: "Request rare bottles directly through our concierge service." },
+          ],
+  };
+
+  // Experience / Ambiance — dashboard-configurable via template.experience
+  const experienceContent = {
+    eyebrow: template?.experience?.eyebrow?.trim() || t("landing.ambiance.eyebrow", "The Ambiance"),
+    title: template?.experience?.title?.trim() || t("landing.ambiance.title", "An atmosphere that elevates every moment."),
+    description:
+      template?.experience?.description?.trim() ||
+      t("landing.ambiance.description", "Whether it's a romantic dinner, a family celebration, or a business lunch, our dining spaces are designed to provide the perfect backdrop."),
+    image: template?.experience?.image
+      ? (getPublicServeUrl(template.experience.image) ?? template.experience.image)
+      : "/landing/dining.png",
+    featuredBadge: template?.experience?.featured_badge?.trim() || "Featured Space",
+    featuredTitle: template?.experience?.featured_title?.trim() || "The Garden Terrace",
+    featuredDescription:
+      template?.experience?.featured_description?.trim() ||
+      "Experience alfresco dining surrounded by lush greenery and ambient lighting. Perfect for evening sunsets and starry nights.",
+  };
+
+  // Location / hours / final CTA — dashboard-configurable
+  const locationContent = {
+    ctaTitle: template?.final_cta?.title?.trim() || t("landing.footer.cta", "Ready to join us?"),
+    ctaDescription:
+      template?.final_cta?.description?.trim() ||
+      t("landing.footer.description", "Reserve your table today and let us treat you to an unforgettable dining experience."),
+    hours:
+      (template?.location_info?.hours ?? []).length > 0
+        ? (template!.location_info!.hours as string[])
+        : ["Mon-Thu: 11am - 10pm", "Fri-Sat: 11am - 11pm", "Sunday: 10am - 9pm"],
+    address:
+      (template?.location_info?.address ?? []).length > 0
+        ? (template!.location_info!.address as string[])
+        : ["123 Culinary Blvd", "Metropolis, NY 10001"],
+    phone: template?.location_info?.phone?.trim() || "(555) 123-4567",
+  };
+
+  // Guest list strip — dashboard-configurable via template.guestlist
+  const guestlistContent = {
+    eyebrow: template?.guestlist?.eyebrow?.trim() || t("landing.guestlist.eyebrow", "Skip the line"),
+    title: template?.guestlist?.title?.trim() || t("landing.guestlist.title", "Get on the Guest List"),
+    description:
+      template?.guestlist?.description?.trim() ||
+      t("landing.guestlist.description", "Priority entry, a welcome drink, and first pick of the lounge — confirmed in minutes."),
+    cta: template?.guestlist?.cta?.trim() || t("landing.guestlist.cta", "Join Tonight"),
+  };
+
   // Single source of truth for nav links (desktop pill + mobile dropdown)
   const navLinks = [
     { id: "specialties", label: t("landing.nav.specialties", "Specialties") },
@@ -479,14 +553,22 @@ export function RestaurantLandingTemplate({
           { value: "120+", label: t("landing.stats.events", "Nights Hosted a Year") },
         ];
 
-  // Gallery — hero slides first (dashboard-managed), padded with house imagery
+  // Gallery — dashboard-configurable via template.gallery.images; otherwise hero
+  // slides padded with house imagery.
+  const templateGalleryImages = template?.gallery?.images;
   const galleryImages = React.useMemo(() => {
+    const fromTemplate = (Array.isArray(templateGalleryImages) ? templateGalleryImages : [])
+      .map((img) => getPublicServeUrl(img) ?? img)
+      .filter(Boolean) as string[];
+    if (fromTemplate.length > 0) {
+      return Array.from(new Set(fromTemplate)).slice(0, 8);
+    }
     const fromSlides = heroSlides
       .map((s) => getPublicServeUrl(s.image) ?? s.image)
       .filter(Boolean) as string[];
     const fallbacks = ["/landing/hero.png", "/landing/dining.png", "/landing/liquor.png", "/landing/hero_3.png", "/landing/dish.png", "/landing/coffee.png"];
     return Array.from(new Set([...fromSlides, ...fallbacks])).slice(0, 6);
-  }, [heroSlides]);
+  }, [heroSlides, templateGalleryImages]);
 
   // Testimonials — dashboard-configurable via template.testimonials
   const loungeTestimonials =
@@ -733,12 +815,16 @@ export function RestaurantLandingTemplate({
               transition={{ duration: 1.8, ease: "easeInOut" }}
               className="absolute inset-0 w-full h-full"
             >
-               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={getPublicServeUrl(activeSlide.image) ?? activeSlide.image} 
-                alt="Restaurant Interior" 
-                className="w-full h-full object-cover object-center" 
-              />
+              {activeSlide.image?.trim() ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={getPublicServeUrl(activeSlide.image) ?? activeSlide.image}
+                  alt="Restaurant Interior"
+                  className="w-full h-full object-cover object-center"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#1a0a30] via-[#120820] to-[#0a0015]" />
+              )}
             </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20 pointer-events-none z-10" />
@@ -860,15 +946,19 @@ export function RestaurantLandingTemplate({
 
       {/* Club energy marquee */}
       <Marquee
-        items={[
-          t("landing.marquee.dj", "Live DJ Sets"),
-          t("landing.marquee.cocktails", "Craft Cocktails"),
-          t("landing.marquee.late", "Late Nights"),
-          t("landing.marquee.vip", "VIP Lounge"),
-          t("landing.marquee.flavors", "Signature Flavors"),
-          t("landing.marquee.events", "Private Events"),
-          t("landing.marquee.bottle", "Bottle Service"),
-        ]}
+        items={
+          Array.isArray(template?.marquee) && template.marquee.filter((m) => m?.trim()).length > 0
+            ? template.marquee.filter((m) => m?.trim())
+            : [
+                t("landing.marquee.dj", "Live DJ Sets"),
+                t("landing.marquee.cocktails", "Craft Cocktails"),
+                t("landing.marquee.late", "Late Nights"),
+                t("landing.marquee.vip", "VIP Lounge"),
+                t("landing.marquee.flavors", "Signature Flavors"),
+                t("landing.marquee.events", "Private Events"),
+                t("landing.marquee.bottle", "Bottle Service"),
+              ]
+        }
       />
 
       {/* Animated stats band */}
@@ -1169,7 +1259,11 @@ export function RestaurantLandingTemplate({
         <div className="absolute top-1/2 left-1/4 w-[350px] h-[350px] bg-[#7B16D9]/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <SectionTitle title="Exclusive Services" subtitle="Services" t={t} />
+          <SectionTitle
+            title={template?.services_section?.title?.trim() || "Exclusive Services"}
+            subtitle={template?.services_section?.eyebrow?.trim() || "Services"}
+            t={t}
+          />
           
           <div className="grid md:grid-cols-3 gap-8">
             {loungeServices.map((srv, i) => (
@@ -1215,10 +1309,41 @@ export function RestaurantLandingTemplate({
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionTitle title="Upcoming Theme Nights" subtitle="Events" t={t} />
-          
-          <div className="grid md:grid-cols-3 gap-8">
+
+          {/* Slider controls */}
+          <div className="flex items-center justify-between mb-8 -mt-8">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-muted-foreground">
+              {dynamicEvents.length} {t("landing.events.count", dynamicEvents.length === 1 ? "night" : "nights")}
+            </p>
+            {dynamicEvents.length > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollEvents("left")}
+                  aria-label={t("landing.events.prev", "Previous events")}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-foreground/70 hover:text-white hover:border-[#FF1A43]/60 hover:shadow-[0_0_18px_rgba(255,26,67,0.3)] transition-all duration-300 cursor-pointer"
+                >
+                  <ArrowRight className="h-5 w-5 rotate-180" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollEvents("right")}
+                  aria-label={t("landing.events.next", "Next events")}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-foreground/70 hover:text-white hover:border-[#FF1A43]/60 hover:shadow-[0_0_18px_rgba(255,26,67,0.3)] transition-all duration-300 cursor-pointer"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div
+            ref={eventsSliderRef}
+            className="flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6"
+          >
             {dynamicEvents.map((evt, i) => (
-              <Reveal key={i} delay={i * 0.1}>
+              <div key={i} className="snap-start shrink-0 w-[86%] sm:w-[47%] lg:w-[31.8%]">
+              <Reveal delay={Math.min(i, 2) * 0.1} className="h-full">
                 <TiltCard className="group relative rounded-[2.5rem] overflow-hidden shadow-xl border border-white/[0.08] bg-card p-6 flex flex-col justify-between h-[520px] hover:border-[#FF1A43]/60 hover:shadow-[0_0_35px_rgba(255,26,67,0.25)] transition-all duration-500">
                 {/* Image panel */}
                 <div className="relative h-48 w-full rounded-2xl overflow-hidden mb-6">
@@ -1265,6 +1390,7 @@ export function RestaurantLandingTemplate({
                 </div>
                 </TiltCard>
               </Reveal>
+              </div>
             ))}
           </div>
         </div>
@@ -1274,7 +1400,11 @@ export function RestaurantLandingTemplate({
       <section id="gallery" className="py-32 bg-muted/5 relative overflow-hidden">
         <div className="absolute bottom-0 left-1/3 w-[420px] h-[420px] bg-[#D31A9B]/8 rounded-full blur-[110px] pointer-events-none z-0" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <SectionTitle title="The Vibe" subtitle="Gallery" t={t} />
+          <SectionTitle
+            title={template?.gallery?.title?.trim() || "The Vibe"}
+            subtitle={template?.gallery?.eyebrow?.trim() || "Gallery"}
+            t={t}
+          />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 [grid-auto-rows:220px] md:[grid-auto-rows:260px]">
             {galleryImages.map((img, i) => (
               <Reveal key={img} delay={i * 0.08} className={i === 0 || i === 3 ? "md:col-span-2 row-span-1 md:row-span-2" : ""}>
@@ -1319,24 +1449,19 @@ export function RestaurantLandingTemplate({
             >
               <p className="text-sm font-black uppercase tracking-[0.3em] text-[#FF1A43] mb-4 flex items-center gap-4">
                 <span className="w-12 h-px bg-[#FF1A43]" />
-                {t("landing.cellar.eyebrow", "The Liquor Boutique")}
+                {cellarContent.eyebrow}
               </p>
               <h2 className="text-5xl sm:text-6xl font-black tracking-tighter mb-8 leading-[1.1] uppercase text-foreground">
                 <span className="bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
-                  {t("landing.cellar.title", "Savory Spirits & Wine Cellar")}
+                  {cellarContent.title}
                 </span>
               </h2>
               <p className="text-xl text-muted-foreground mb-12 leading-relaxed font-medium">
-                {t("landing.cellar.description", "Step into a sanctuary of taste. From rare single-malt scotches and vintage champagnes to bespoke local spirits, our cellar offers an curated selection for the refined palate.")}
+                {cellarContent.description}
               </p>
-              
+
               <div className="grid sm:grid-cols-2 gap-8">
-                {[
-                  { title: "Rare Vintages", desc: "Exquisite wines from the world's most prestigious vineyards." },
-                  { title: "Bespoke Spirits", desc: "Hard-to-find single malts, small-batch bourbons, and fine cognacs." },
-                  { title: "Private Tastings", desc: "Curated wine and spirit tasting sessions led by our sommelier." },
-                  { title: "Exclusive Sourcing", desc: "Request rare bottles directly through our concierge service." }
-                ].map((item, i) => (
+                {cellarContent.items.map((item, i) => (
                   <motion.div 
                     key={i}
                     initial={{ opacity: 0, y: 20 }}
@@ -1366,9 +1491,9 @@ export function RestaurantLandingTemplate({
               <div className="absolute -inset-6 bg-yellow-500/10 rounded-[3rem] transform rotate-3 blur-2xl z-0" />
               <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-yellow-500/20 hover:border-yellow-500/50 transition-colors duration-500 group z-10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src="/landing/liquor.png" 
-                  alt="Premium Spirits Selection" 
+                <img
+                  src={cellarContent.image}
+                  alt="Premium Spirits Selection"
                   className="w-full object-cover aspect-[4/5] scale-100 group-hover:scale-105 transition-transform duration-[1.5s]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-10 sm:p-12 opacity-95 text-left z-20">
@@ -1393,14 +1518,14 @@ export function RestaurantLandingTemplate({
           >
             <p className="text-sm font-black uppercase tracking-[0.3em] text-primary mb-4 flex items-center justify-center gap-4">
               <span className="w-8 h-px bg-primary" />
-              {t("landing.ambiance.eyebrow", "The Ambiance")}
+              {experienceContent.eyebrow}
               <span className="w-8 h-px bg-primary" />
             </p>
             <h2 className="text-5xl sm:text-6xl font-black tracking-tighter mb-6 max-w-3xl mx-auto">
-              {t("landing.ambiance.title", "An atmosphere that elevates every moment.")}
+              {experienceContent.title}
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
-              {t("landing.ambiance.description", "Whether it's a romantic dinner, a family celebration, or a business lunch, our dining spaces are designed to provide the perfect backdrop.")}
+              {experienceContent.description}
             </p>
           </motion.div>
 
@@ -1412,15 +1537,15 @@ export function RestaurantLandingTemplate({
             className="relative rounded-[3rem] overflow-hidden shadow-2xl border border-border"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/landing/dining.png" 
-              alt="Dining Area" 
+            <img
+              src={experienceContent.image}
+              alt="Dining Area"
               className="w-full h-[500px] sm:h-[700px] object-cover hover:scale-105 transition-transform duration-1000"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-10 sm:p-16 text-left">
-              <Badge className="w-fit mb-4 bg-primary text-primary-foreground hover:bg-primary px-4 py-1">Featured Space</Badge>
-              <h3 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">The Garden Terrace</h3>
-              <p className="text-white/90 max-w-xl text-xl leading-relaxed">Experience alfresco dining surrounded by lush greenery and ambient lighting. Perfect for evening sunsets and starry nights.</p>
+              <Badge className="w-fit mb-4 bg-primary text-primary-foreground hover:bg-primary px-4 py-1">{experienceContent.featuredBadge}</Badge>
+              <h3 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">{experienceContent.featuredTitle}</h3>
+              <p className="text-white/90 max-w-xl text-xl leading-relaxed">{experienceContent.featuredDescription}</p>
             </div>
           </motion.div>
         </div>
@@ -1527,13 +1652,13 @@ export function RestaurantLandingTemplate({
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row items-center justify-between gap-10 text-center md:text-left">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-[#FF1A43] mb-3">
-              {t("landing.guestlist.eyebrow", "Skip the line")}
+              {guestlistContent.eyebrow}
             </p>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">
-              <RevealText text={t("landing.guestlist.title", "Get on the Guest List")} />
+              <RevealText text={guestlistContent.title} />
             </h2>
             <p className="mt-4 max-w-xl text-lg text-white/70 font-medium">
-              {t("landing.guestlist.description", "Priority entry, a welcome drink, and first pick of the lounge — confirmed in minutes.")}
+              {guestlistContent.description}
             </p>
           </div>
           <MagneticButton>
@@ -1546,7 +1671,7 @@ export function RestaurantLandingTemplate({
               className="rounded-full px-12 h-16 text-lg font-black shadow-[0_0_30px_rgba(255,26,67,0.45)] hover:shadow-[0_0_45px_rgba(255,26,67,0.65)] transition-all duration-300 bg-gradient-to-r from-[#FF1A43] to-[#7B16D9] text-white border-none"
             >
               <Martini className="mr-3 h-6 w-6" />
-              {t("landing.guestlist.cta", "Join Tonight")}
+              {guestlistContent.cta}
             </Button>
           </MagneticButton>
         </div>
@@ -1567,10 +1692,10 @@ export function RestaurantLandingTemplate({
               className="text-left"
             >
               <h2 className="text-5xl sm:text-7xl font-black tracking-tighter mb-8 leading-[1.1] uppercase">
-                <RevealText text={t("landing.footer.cta", "Ready to join us?")} />
+                <RevealText text={locationContent.ctaTitle} />
               </h2>
               <p className="text-2xl text-primary-foreground/90 mb-12 max-w-lg leading-relaxed font-medium">
-                {t("landing.footer.description", "Reserve your table today and let us treat you to an unforgettable dining experience.")}
+                {locationContent.ctaDescription}
               </p>
               <Button onClick={() => setIsBookingOpen(true)} size="lg" variant="secondary" className="rounded-full px-10 h-16 text-lg font-black w-full sm:w-auto hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.25)]">
                 {t("landing.cta.book", "Book a Table")}
@@ -1592,9 +1717,9 @@ export function RestaurantLandingTemplate({
                   <h3 className="font-black text-2xl">Hours</h3>
                 </div>
                 <div className="text-primary-foreground/90 space-y-2 text-lg font-medium">
-                  <p>Mon-Thu: 11am - 10pm</p>
-                  <p>Fri-Sat: 11am - 11pm</p>
-                  <p>Sunday: 10am - 9pm</p>
+                  {locationContent.hours.map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
                 </div>
               </div>
               
@@ -1606,10 +1731,11 @@ export function RestaurantLandingTemplate({
                   <h3 className="font-black text-2xl">Location</h3>
                 </div>
                 <div className="text-primary-foreground/90 space-y-2 text-lg font-medium">
-                  <p>123 Culinary Blvd</p>
-                  <p>Metropolis, NY 10001</p>
+                  {locationContent.address.map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
                   <p className="pt-4 flex items-center gap-3 font-bold text-xl">
-                    <Phone className="h-5 w-5" /> (555) 123-4567
+                    <Phone className="h-5 w-5" /> {locationContent.phone}
                   </p>
                 </div>
               </div>
