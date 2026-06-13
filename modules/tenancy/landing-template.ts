@@ -131,6 +131,7 @@ export type TenantLandingLocationInfo = {
   hours?: string[];
   address?: string[];
   phone?: string;
+  map_url?: string;
 };
 
 export type TenantLandingGuestlist = {
@@ -445,6 +446,7 @@ export const resolveLandingTemplate = (
             ? candidate.location_info.address.map((line) => String(line ?? "")).filter(Boolean)
             : undefined,
           phone: typeof candidate.location_info.phone === "string" ? candidate.location_info.phone : undefined,
+          map_url: typeof candidate.location_info.map_url === "string" ? candidate.location_info.map_url : undefined,
         }
       : fallback.location_info,
     guestlist: candidate.guestlist && typeof candidate.guestlist === "object"

@@ -495,21 +495,33 @@ export function RestaurantLandingTemplate({
       "Experience alfresco dining surrounded by lush greenery and ambient lighting. Perfect for evening sunsets and starry nights.",
   };
 
-  // Location / hours / final CTA — dashboard-configurable
+  // Location / hours / final CTA — dashboard-configurable.
+  // The platform fallback template ships generic SaaS copy ("Select a business
+  // preset, refine the copy in admin…") — detect and replace with lounge defaults.
+  const genericCtaHints = ["business preset", "refine the copy", "in admin", "purpose-built", "homepage"];
+  const rawCtaTitle = template?.final_cta?.title?.trim() || "";
+  const rawCtaDesc = template?.final_cta?.description?.trim() || "";
+  const ctaLooksGeneric = (s: string) => genericCtaHints.some((h) => s.toLowerCase().includes(h));
+  const address =
+    (template?.location_info?.address ?? []).length > 0
+      ? (template!.location_info!.address as string[])
+      : ["123 Culinary Blvd", "Metropolis, NY 10001"];
+  const mapUrl =
+    template?.location_info?.map_url?.trim() ||
+    `https://www.google.com/maps?q=${encodeURIComponent(address.join(", "))}&output=embed`;
   const locationContent = {
-    ctaTitle: template?.final_cta?.title?.trim() || t("landing.footer.cta", "Ready to join us?"),
+    ctaTitle: rawCtaTitle && !ctaLooksGeneric(rawCtaTitle) ? rawCtaTitle : t("landing.footer.cta", "Ready to join us?"),
     ctaDescription:
-      template?.final_cta?.description?.trim() ||
-      t("landing.footer.description", "Reserve your table today and let us treat you to an unforgettable dining experience."),
+      rawCtaDesc && !ctaLooksGeneric(rawCtaDesc)
+        ? rawCtaDesc
+        : t("landing.footer.description", "Reserve your table today and let us treat you to an unforgettable dining experience."),
     hours:
       (template?.location_info?.hours ?? []).length > 0
         ? (template!.location_info!.hours as string[])
         : ["Mon-Thu: 11am - 10pm", "Fri-Sat: 11am - 11pm", "Sunday: 10am - 9pm"],
-    address:
-      (template?.location_info?.address ?? []).length > 0
-        ? (template!.location_info!.address as string[])
-        : ["123 Culinary Blvd", "Metropolis, NY 10001"],
+    address,
     phone: template?.location_info?.phone?.trim() || "(555) 123-4567",
+    mapUrl,
   };
 
   // Guest list strip — dashboard-configurable via template.guestlist
@@ -1678,63 +1690,93 @@ export function RestaurantLandingTemplate({
       </section>
 
       {/* Quick Info & CTA */}
-      <section id="location" className="py-32 bg-primary text-primary-foreground relative overflow-hidden">
+      <section id="location" className="py-16 sm:py-20 bg-primary text-primary-foreground relative overflow-hidden">
         {/* Decorative background pattern */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary-foreground to-transparent bg-[length:20px_20px]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)' }} />
-        
+
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-20 items-center">
+          {/* Heading row */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="text-left max-w-3xl mb-10"
+          >
+            <h2 className="text-4xl sm:text-6xl font-black tracking-tighter mb-4 leading-[1.05] uppercase">
+              <RevealText text={locationContent.ctaTitle} />
+            </h2>
+            <p className="text-lg sm:text-xl text-primary-foreground/90 mb-6 leading-relaxed font-medium">
+              {locationContent.ctaDescription}
+            </p>
+            <Button onClick={() => setIsBookingOpen(true)} size="lg" variant="secondary" className="rounded-full px-10 h-14 text-base font-black w-full sm:w-auto hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.25)]">
+              {t("landing.cta.book", "Book a Table")}
+            </Button>
+          </motion.div>
+
+          {/* Map + info row */}
+          <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+            {/* Map */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.97 }}
+              whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-left"
+              transition={{ duration: 0.7 }}
+              className="relative min-h-[300px] lg:min-h-0 rounded-[2rem] overflow-hidden border border-primary-foreground/25 shadow-2xl bg-primary-foreground/10"
             >
-              <h2 className="text-5xl sm:text-7xl font-black tracking-tighter mb-8 leading-[1.1] uppercase">
-                <RevealText text={locationContent.ctaTitle} />
-              </h2>
-              <p className="text-2xl text-primary-foreground/90 mb-12 max-w-lg leading-relaxed font-medium">
-                {locationContent.ctaDescription}
-              </p>
-              <Button onClick={() => setIsBookingOpen(true)} size="lg" variant="secondary" className="rounded-full px-10 h-16 text-lg font-black w-full sm:w-auto hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.25)]">
-                {t("landing.cta.book", "Book a Table")}
-              </Button>
+              <iframe
+                title={t("landing.location.map_title", "Map & directions")}
+                src={locationContent.mapUrl}
+                className="absolute inset-0 h-full w-full"
+                style={{ border: 0, filter: "saturate(0.85)" }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
             </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, x: 30 }}
+
+            {/* Hours / Location card */}
+            <motion.div
+              initial={{ opacity: 0, x: 24 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="grid sm:grid-cols-2 gap-10 bg-primary-foreground/10 p-10 rounded-[2.5rem] backdrop-blur-md border border-primary-foreground/20 text-left"
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="grid sm:grid-cols-2 gap-8 bg-primary-foreground/10 p-8 rounded-[2rem] backdrop-blur-md border border-primary-foreground/20 text-left"
             >
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary-foreground text-primary p-4 rounded-full shadow-lg">
-                    <Clock className="h-6 w-6" />
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary-foreground text-primary p-3 rounded-full shadow-lg">
+                    <Clock className="h-5 w-5" />
                   </div>
-                  <h3 className="font-black text-2xl">Hours</h3>
+                  <h3 className="font-black text-xl">Hours</h3>
                 </div>
-                <div className="text-primary-foreground/90 space-y-2 text-lg font-medium">
+                <div className="text-primary-foreground/90 space-y-1.5 text-base font-medium">
                   {locationContent.hours.map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}
                 </div>
               </div>
-              
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary-foreground text-primary p-4 rounded-full shadow-lg">
-                    <MapPin className="h-6 w-6" />
+
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary-foreground text-primary p-3 rounded-full shadow-lg">
+                    <MapPin className="h-5 w-5" />
                   </div>
-                  <h3 className="font-black text-2xl">Location</h3>
+                  <h3 className="font-black text-xl">Location</h3>
                 </div>
-                <div className="text-primary-foreground/90 space-y-2 text-lg font-medium">
+                <div className="text-primary-foreground/90 space-y-1.5 text-base font-medium">
                   {locationContent.address.map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}
-                  <p className="pt-4 flex items-center gap-3 font-bold text-xl">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationContent.address.join(", "))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="pt-3 inline-flex items-center gap-2 font-bold text-sm underline underline-offset-4 hover:opacity-80 transition-opacity"
+                  >
+                    <MapPin className="h-4 w-4" /> {t("landing.location.directions", "Get Directions")}
+                  </a>
+                  <p className="pt-2 flex items-center gap-3 font-bold text-lg">
                     <Phone className="h-5 w-5" /> {locationContent.phone}
                   </p>
                 </div>

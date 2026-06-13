@@ -604,6 +604,7 @@ export default function HeroSliderPage() {
       hours: template.location_info?.hours ?? [],
       address: template.location_info?.address ?? [],
       phone: template.location_info?.phone || "",
+      map_url: template.location_info?.map_url || "",
     });
     setGuestlist(template.guestlist ?? {});
     setFinalCta({
@@ -665,6 +666,7 @@ export default function HeroSliderPage() {
           hours: (locationInfo.hours ?? []).map((l) => l.trim()).filter(Boolean),
           address: (locationInfo.address ?? []).map((l) => l.trim()).filter(Boolean),
           phone: locationInfo.phone?.trim() || "",
+          map_url: locationInfo.map_url?.trim() || "",
         },
         guestlist: {
           eyebrow: guestlist.eyebrow?.trim() || "",
@@ -734,6 +736,7 @@ export default function HeroSliderPage() {
         hours: updatedTemplate.location_info?.hours ?? [],
         address: updatedTemplate.location_info?.address ?? [],
         phone: updatedTemplate.location_info?.phone || "",
+        map_url: updatedTemplate.location_info?.map_url || "",
       });
       setGuestlist(updatedTemplate.guestlist ?? {});
       setFinalCta({
@@ -2312,6 +2315,17 @@ export default function HeroSliderPage() {
                 <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Phone</Label>
                 <Input placeholder="e.g. +251 911 123 456" value={locationInfo.phone || ""} onChange={(e) => { setLocationInfo((p) => ({ ...p, phone: e.target.value })); setIsDirty(true); }} maxLength={30} />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-wide text-muted-foreground">Map Embed URL <span className="normal-case font-normal opacity-60">(optional)</span></Label>
+              <Input
+                placeholder="Leave empty to auto-map from the address, or paste a Google Maps embed URL"
+                value={locationInfo.map_url || ""}
+                onChange={(e) => { setLocationInfo((p) => ({ ...p, map_url: e.target.value })); setIsDirty(true); }}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                If empty, the map auto-centers on the address above. To pin an exact spot: Google Maps → Share → Embed a map → copy the <strong>src</strong> URL from the iframe.
+              </p>
             </div>
           </div>
 
