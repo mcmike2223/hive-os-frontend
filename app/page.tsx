@@ -446,7 +446,16 @@ function LandingUI({
 
     if (businessType === "b2b") {
       return (
-        <B2BLandingTemplate />
+        <B2BLandingTemplate
+          brandSettings={brandSettings}
+          template={resolveLandingTemplate(tenantLandingPayload?.landing_page_template)}
+          tenantName={
+            tenantLandingPayload?.tenant?.name ||
+            brandSettings?.app_title ||
+            detectedTenantSlug ||
+            t('landing.common.tenant_workspace', "Tenant Workspace")
+          }
+        />
       );
     }
 

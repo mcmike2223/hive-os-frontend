@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getBackendApiRoot } from '@/lib/runtime-context';
+import { getBackendApiRoot, getTenantHeaders } from '@/lib/runtime-context';
 
 interface TranslationState {
   locale: string;
@@ -29,7 +29,10 @@ export const useTranslation = create<TranslationState>((set, get) => ({
     
     try {
       const res = await fetch(getApiUrl(`/translations/${newLocale}`), {
-        headers: { 'Accept': 'application/json' }
+        headers: {
+          'Accept': 'application/json',
+          ...getTenantHeaders()
+        }
       });
       
       if (res.ok) {

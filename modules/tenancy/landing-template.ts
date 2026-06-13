@@ -141,6 +141,87 @@ export type TenantLandingGuestlist = {
   cta?: string;
 };
 
+// ── B2B marketplace landing ──────────────────────────────────────────────
+export type TenantB2BStat = { value: string; label: string; icon?: string };
+export type TenantB2BCategory = {
+  name: string;
+  image?: string;
+  count?: string;
+  growth?: string;
+  description?: string;
+  suppliers?: number;
+};
+export type TenantB2BProduct = {
+  id?: string;
+  name: string;
+  price?: string;
+  moq?: string;
+  image?: string;
+  supplier?: string;
+  supplier_logo?: string;
+  rating?: number;
+  reviews?: number;
+  location?: string;
+  verified?: boolean;
+  trade_assurance?: boolean;
+  badges?: string[];
+  lead_time?: string;
+  category?: string;
+};
+export type TenantB2BSupplier = {
+  name: string;
+  logo?: string;
+  country?: string;
+  flag?: string;
+  rating?: number;
+  years?: number;
+  products?: number;
+  verified?: boolean;
+  premium?: boolean;
+};
+export type TenantB2BStep = { title: string; description: string };
+export type TenantB2BValueProp = { title: string; description: string };
+export type TenantB2BTestimonial = {
+  quote: string;
+  author: string;
+  role?: string;
+  company?: string;
+  flag?: string;
+  amount?: string;
+};
+export type TenantB2BFaq = { question: string; answer: string };
+
+export type TenantB2BLanding = {
+  hero?: {
+    badge?: string;
+    title?: string;
+    title_highlight?: string;
+    subtitle?: string;
+    search_placeholder?: string;
+    trending?: string[];
+  };
+  trust_badges?: string[];
+  stats?: TenantB2BStat[];
+  categories?: TenantB2BCategory[];
+  products?: TenantB2BProduct[];
+  suppliers?: TenantB2BSupplier[];
+  escrow?: {
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+    steps?: TenantB2BStep[];
+  };
+  value_props?: {
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+    items?: TenantB2BValueProp[];
+  };
+  testimonials?: TenantB2BTestimonial[];
+  faqs?: TenantB2BFaq[];
+  cta?: { badge?: string; title?: string; description?: string };
+};
+
 export type TenantLandingTemplateMeta = {
   business_type?: string;
   business_label?: string;
@@ -171,6 +252,7 @@ export type TenantLandingTemplate = {
   experience?: TenantLandingExperience;
   location_info?: TenantLandingLocationInfo;
   guestlist?: TenantLandingGuestlist;
+  b2b?: TenantB2BLanding;
 };
 
 export type TenantLandingTemplateVariant = {
@@ -457,6 +539,11 @@ export const resolveLandingTemplate = (
           cta: typeof candidate.guestlist.cta === "string" ? candidate.guestlist.cta : undefined,
         }
       : fallback.guestlist,
+    // b2b is a large admin-controlled structure; pass it through and let the
+    // component fall back per-field. Backend already filters to allowlisted sections.
+    b2b: candidate.b2b && typeof candidate.b2b === "object"
+      ? (candidate.b2b as TenantB2BLanding)
+      : fallback.b2b,
   };
 };
 
