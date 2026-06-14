@@ -109,13 +109,26 @@ export default function BuyerDashboard() {
           ) : (
             orders.map((o) => (
               <Card key={o.id}>
-                <CardContent className="flex flex-wrap items-center gap-3 py-4">
-                  <div className="flex-1 min-w-[160px]">
-                    <p className="text-sm font-black">{o.order_number}</p>
-                    <p className="text-xs text-muted-foreground">{o.items_count} item{o.items_count === 1 ? "" : "s"} · {new Date(o.created_at).toLocaleDateString()}</p>
+                <CardContent className="py-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex-1 min-w-[160px]">
+                      <p className="text-sm font-black">{o.order_number}</p>
+                      <p className="text-xs text-muted-foreground">{o.items_count} item{o.items_count === 1 ? "" : "s"} · {new Date(o.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Badge variant={o.status === "completed" ? "default" : "secondary"}>{o.status}</Badge>
+                    <span className="text-lg font-black text-primary">${o.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <Badge variant={o.status === "completed" ? "default" : "secondary"}>{o.status}</Badge>
-                  <span className="text-lg font-black text-primary">${o.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  {o.items && o.items.length > 0 && (
+                    <div className="mt-3 divide-y divide-border/50 border-t border-border/50 pt-2">
+                      {o.items.map((it, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                          <span className="min-w-0 flex-1 truncate text-muted-foreground">{it.name}</span>
+                          <span className="text-xs text-muted-foreground">{it.quantity} × ${it.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="w-24 text-right font-bold">${it.line_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))

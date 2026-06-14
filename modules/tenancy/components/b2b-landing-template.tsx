@@ -73,6 +73,7 @@ import {
   getPublicServeUrl,
   getBackendApiRoot,
   getTenantHeaders,
+  getAccessToken,
 } from "@/lib/runtime-context";
 import { type TenantLandingTemplate } from "@/modules/tenancy/landing-template";
 import { B2BApi } from "@/modules/b2b-marketplace/api";
@@ -1024,7 +1025,12 @@ function RfqDialog({
 function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPostRfq: () => void; onOpenCart: () => void; brandName?: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const { count: cartCount } = useCart();
+
+  useEffect(() => {
+    setLoggedIn(!!getAccessToken());
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -1085,9 +1091,9 @@ function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPo
               <div className="w-px h-5 bg-border mx-1" />
               <ThemeToggle />
             </div>
-            <Link href={signInHref} className="hidden sm:block">
+            <Link href={loggedIn ? "/dashboard/b2b-marketplace" : signInHref} className="hidden sm:block">
               <Button variant="ghost" className="rounded-full font-bold text-sm h-9 px-4">
-                Sign In
+                {loggedIn ? "Dashboard" : "Sign In"}
               </Button>
             </Link>
             <Button

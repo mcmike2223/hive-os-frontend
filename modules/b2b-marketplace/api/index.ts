@@ -241,6 +241,8 @@ export const B2BDash = {
   placeOrder: (payload: PlaceOrderPayload) => body<B2BOrder>(api.post("/b2b-marketplace/orders", payload)),
 };
 
+export type B2BOrderLine = { name: string; unit_price: number; quantity: number; line_total: number };
+
 export type B2BOrder = {
   id: number;
   order_number: string;
@@ -248,6 +250,7 @@ export type B2BOrder = {
   subtotal: number;
   currency: string;
   items_count: number;
+  items?: B2BOrderLine[];
   created_at: string;
 };
 
