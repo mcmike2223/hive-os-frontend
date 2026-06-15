@@ -48,6 +48,7 @@ import { resolveLandingTemplate } from "@/modules/tenancy/landing-template";
 import { TenantBusinessLanding } from "@/modules/tenancy/components/tenant-business-landing";
 import { RestaurantLandingTemplate } from "@/modules/tenancy/components/restaurant-landing-template";
 import B2BLandingTemplate from "@/modules/tenancy/components/b2b-landing-template";
+import { MarketplacePreloader } from "@/modules/b2b-marketplace/components/MarketplacePreloader";
 
 interface LandingUIProps {
   initialPortalName: string;
@@ -416,14 +417,20 @@ function LandingUI({
 
   if (isTenantExperience) {
     if (isLoadingTenantLanding) {
-      return (
-        <div className="flex h-screen w-screen items-center justify-center bg-[#080510]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#FF1A43] border-t-transparent" />
-            <p className="text-white/60 font-black tracking-widest text-xs uppercase">Loading Savory Lounge...</p>
+      // Savory keeps its lounge spinner; every other tenant gets the marketplace preloader.
+      if (detectedTenantSlug === "savory-lounge") {
+        return (
+          <div className="flex h-screen w-screen items-center justify-center bg-[#080510]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#FF1A43] border-t-transparent" />
+              <p className="text-white/60 font-black tracking-widest text-xs uppercase">
+                Loading {brandSettings?.app_title || "Savory Lounge"}...
+              </p>
+            </div>
           </div>
-        </div>
-      );
+        );
+      }
+      return <MarketplacePreloader brandName={brandSettings?.app_title || detectedTenantSlug} />;
     }
 
     const businessType = tenantLandingPayload?.business_type;
