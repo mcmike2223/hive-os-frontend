@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
+  Boxes,
   Globe,
   Image as ImageIcon,
   Loader2,
@@ -35,6 +36,24 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   return res.json();
 }
 
+type ModuleOverride = {
+  title: string;
+  description: string;
+  keywords: string;
+  og_image: string;
+  allow_indexing: boolean;
+};
+
+type CatalogEntry = { key: string; label: string; path: string };
+
+const EMPTY_MODULE: ModuleOverride = {
+  title: "",
+  description: "",
+  keywords: "",
+  og_image: "",
+  allow_indexing: true,
+};
+
 type SeoForm = {
   site_name: string;
   title_template: string;
@@ -56,6 +75,7 @@ type SeoForm = {
   organization_logo: string;
   social_links: string;
   robots_extra: string;
+  module_seo: Record<string, ModuleOverride>;
 };
 
 const EMPTY: SeoForm = {
@@ -79,6 +99,7 @@ const EMPTY: SeoForm = {
   organization_logo: "",
   social_links: "",
   robots_extra: "",
+  module_seo: {},
 };
 
 function Section({
@@ -129,6 +150,7 @@ function Field({
 export default function SeoSettings() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SeoForm>(EMPTY);
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["seo-settings"],
@@ -138,11 +160,22 @@ export default function SeoSettings() {
   useEffect(() => {
     const d = data?.data;
     if (!d) return;
+    const cat: CatalogEntry[] = Array.isArray(d.modules_catalog) ? d.modules_catalog : [];
+    setCatalog(cat);
+
+    // Ensure every catalogued module has a full override object to edit.
+    const modules: Record<string, ModuleOverride> = {};
+    for (const m of cat) {
+      modules[m.key] = { ...EMPTY_MODULE, ...(d.module_seo?.[m.key] ?? {}) };
+      modules[m.key].allow_indexing = (d.module_seo?.[m.key]?.allow_indexing ?? true) !== false;
+    }
+
     setForm({
       ...EMPTY,
       ...d,
       social_links: Array.isArray(d.social_links) ? d.social_links.join("\n") : d.social_links || "",
       allow_indexing: d.allow_indexing !== false,
+      module_seo: modules,
     });
   }, [data]);
 
@@ -167,6 +200,15 @@ export default function SeoSettings() {
 
   const set = <K extends keyof SeoForm>(key: K, value: SeoForm[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const setModule = <K extends keyof ModuleOverride>(moduleKey: string, field: K, value: ModuleOverride[K]) =>
+    setForm((prev) => ({
+      ...prev,
+      module_seo: {
+        ...prev.module_seo,
+        [moduleKey]: { ...(prev.module_seo[moduleKey] ?? EMPTY_MODULE), [field]: value },
+      },
+    }));
 
   if (isLoading) {
     return (
@@ -291,6 +333,49 @@ export default function SeoSettings() {
           <Textarea value={form.social_links} onChange={(e) => set("social_links", e.target.value)} rows={3} placeholder={"https://twitter.com/hive\nhttps://linkedin.com/company/hive"} />
         </Field>
       </Section>
+
+      {catalog.length > 0 && (
+        <Section
+          icon={Boxes}
+          title="Per-Module SEO"
+          description="Override the title, description and keywords for each public-facing module. Blank fields inherit the global settings above."
+        >
+          {catalog.map((m) => {
+            const mod = form.module_seo[m.key] ?? EMPTY_MODULE;
+            return (
+              <div key={m.key} className="rounded-xl border border-border/50 p-4 space-y-4 bg-background/40">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{m.label}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{m.path}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Indexable</span>
+                    <Switch
+                      checked={mod.allow_indexing}
+                      onCheckedChange={(v) => setModule(m.key, "allow_indexing", v)}
+                    />
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Field label="Title" help="Composed with the global title template.">
+                    <Input value={mod.title} onChange={(e) => setModule(m.key, "title", e.target.value)} placeholder={`${m.label}`} />
+                  </Field>
+                  <Field label="Keywords" help="Comma-separated.">
+                    <Input value={mod.keywords} onChange={(e) => setModule(m.key, "keywords", e.target.value)} />
+                  </Field>
+                </div>
+                <Field label="Meta description">
+                  <Textarea value={mod.description} onChange={(e) => setModule(m.key, "description", e.target.value)} rows={2} />
+                </Field>
+                <Field label="Share image (OG image) URL" help="Falls back to the global share image when blank.">
+                  <Input value={mod.og_image} onChange={(e) => setModule(m.key, "og_image", e.target.value)} placeholder="https://.../share.png" />
+                </Field>
+              </div>
+            );
+          })}
+        </Section>
+      )}
 
       <div className="flex justify-end">
         <Button onClick={() => mutation.mutate(form)} disabled={mutation.isPending} className="rounded-xl">

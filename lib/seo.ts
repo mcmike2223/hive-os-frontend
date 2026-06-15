@@ -1,5 +1,17 @@
 import "server-only";
 
+import type { Metadata } from "next";
+
+export type ModuleSeoOverride = {
+  title?: string;
+  description?: string;
+  keywords?: string;
+  og_image?: string;
+  allow_indexing?: boolean;
+};
+
+export type ModuleCatalogEntry = { key: string; label: string; path: string };
+
 export type SeoSettings = {
   site_name: string;
   title_template: string;
@@ -21,6 +33,8 @@ export type SeoSettings = {
   organization_logo: string;
   social_links: string[];
   robots_extra: string;
+  module_seo: Record<string, ModuleSeoOverride>;
+  modules_catalog: ModuleCatalogEntry[];
 };
 
 /**
@@ -38,4 +52,53 @@ export async function fetchSeoSettings(): Promise<Partial<SeoSettings>> {
   } catch {
     return {};
   }
+}
+
+/**
+ * Builds Next.js metadata for a specific public module, layering the central
+ * per-module override (set in Settings → SEO & Discovery) over the global SEO
+ * config. Anything left blank for the module inherits the global value, so the
+ * parent layout's title template, OG and verification still apply.
+ *
+ * Use inside a module's server `layout.tsx`:
+ *   export const generateMetadata = () => moduleMetadata("marketplace");
+ */
+export async function moduleMetadata(moduleKey: string): Promise<Metadata> {
+  const seo = await fetchSeoSettings();
+  const override: ModuleSeoOverride = seo.module_seo?.[moduleKey] ?? {};
+
+  const meta: Metadata = {};
+
+  // A plain string title composes with the root layout's title template.
+  if (override.title) {
+    meta.title = override.title;
+  }
+
+  const description = override.description || seo.meta_description;
+  if (description) meta.description = description;
+
+  if (override.keywords) {
+    meta.keywords = override.keywords.split(",").map((k) => k.trim()).filter(Boolean);
+  }
+
+  // Module can opt out of indexing even when the site as a whole is indexable.
+  if (override.allow_indexing === false) {
+    meta.robots = { index: false, follow: false, googleBot: { index: false, follow: false } };
+  }
+
+  const ogImage = override.og_image || seo.og_image;
+  if (override.title || description || ogImage) {
+    meta.openGraph = {
+      ...(override.title ? { title: override.title } : {}),
+      ...(description ? { description } : {}),
+      ...(ogImage ? { images: [ogImage] } : {}),
+    };
+    meta.twitter = {
+      ...(override.title ? { title: override.title } : {}),
+      ...(description ? { description } : {}),
+      ...(ogImage ? { images: [ogImage] } : {}),
+    };
+  }
+
+  return meta;
 }
