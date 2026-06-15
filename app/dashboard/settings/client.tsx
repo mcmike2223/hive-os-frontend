@@ -6,7 +6,7 @@ import {
     Loader2, Palette, Shield, Settings, Globe, Bell, Headset, 
     Globe2, Sliders, AlertTriangle, Clock, HardDrive, HelpCircle, 
     Image as ImageIcon, Upload, CheckCircle2, X, Activity, Mail, UserPlus, ShieldCheck,
-    CreditCard, Database, Sparkles, LayoutTemplate
+    CreditCard, Database, Sparkles, LayoutTemplate, Search
 } from 'lucide-react';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import { EmailSettings } from '@/components/settings/email-settings';
 import { PaymentSettings } from '@/components/settings/payment-settings';
 import { PlanSettings } from '@/components/settings/plan-settings';
 import { TenantLandingSettings } from '@/components/settings/tenant-landing-settings';
+import SeoSettings from '@/components/settings/seo-settings';
 import { useChatStore } from '@/store/chat-store';
 import { useMailStore } from '@/store/mail-store';
 
@@ -731,6 +732,7 @@ function SettingsTabs({
     canAccessBackups,
     canManagePayments,
     canManagePlans,
+    canManageSeo,
     isCentralNode,
 }: {
     canManageBrand: boolean;
@@ -739,6 +741,7 @@ function SettingsTabs({
     canAccessBackups: boolean;
     canManagePayments: boolean;
     canManagePlans: boolean;
+    canManageSeo: boolean;
     isCentralNode: boolean;
 }) {
     const { t } = useTranslation();
@@ -779,6 +782,7 @@ function SettingsTabs({
         canManageLocalization ? { id: 'localization', label: t('nav.settings_loc', 'Localization'), icon: Globe } : null,
         canAccessBackups ? { id: 'backup', label: t('nav.settings_backup', 'System Backups'), icon: Database } : null,
         canManagePlans ? { id: 'plans', label: 'Subscription Plans', icon: Sparkles } : null,
+        canManageSeo ? { id: 'seo', label: 'SEO & Discovery', icon: Search } : null,
     ].filter(Boolean) as Array<{ id: string; label: string; icon: any }>;
 
     useEffect(() => {
@@ -836,6 +840,11 @@ function SettingsTabs({
                         <BackupSettings isCentralNode={isCentralNode} />
                     </div>
                 )}
+                {canManageSeo && activeTab === 'seo' && (
+                    <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
+                        <SeoSettings />
+                    </div>
+                )}
                 {canManagePlans && activeTab === 'plans' && (
                     <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
                         <PlanSettings />
@@ -861,7 +870,8 @@ export default function SettingsClient() {
     const canAccessBackups = isCentralNode === true && hasAnyPermission(["view_backups", "manage_backups"]);
     const canManagePayments = isCentralNode === true && hasAnyPermission(["manage_payment_settings", "manage_general_settings", "manage_tenants"]);
     const canManagePlans = isCentralNode === true && hasAnyPermission(["manage_tenants", "provision_tenants"]);
-    const hasAnySettingsAccess = canManageBrand || canManageGeneral || canManageLocalization || canAccessBackups || canManagePayments || canManagePlans;
+    const canManageSeo = isCentralNode === true && hasAnyPermission(["manage_system_settings", "manage_general_settings", "manage_tenants"]);
+    const hasAnySettingsAccess = canManageBrand || canManageGeneral || canManageLocalization || canAccessBackups || canManagePayments || canManagePlans || canManageSeo;
 
     if (!isLoaded || isCentralNode === null) {
         return <SettingsWorkspaceSkeleton />;
@@ -894,6 +904,7 @@ export default function SettingsClient() {
                     canAccessBackups={canAccessBackups}
                     canManagePayments={canManagePayments}
                     canManagePlans={canManagePlans}
+                    canManageSeo={canManageSeo}
                     isCentralNode={isCentralNode}
                 />
             </Suspense>
