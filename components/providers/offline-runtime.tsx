@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useOfflineStatus } from "@/hooks/use-offline-status";
 import { processOfflineMutationQueue } from "@/lib/offline/mutation-queue";
 import { installAxiosOfflineInterceptor, uninstallAxiosOfflineInterceptor } from "@/lib/offline/axios-offline-interceptor";
+import { installFetchOfflineInterceptor, uninstallFetchOfflineInterceptor } from "@/lib/offline/fetch-offline-interceptor";
 import { ensureOfflineMutationDefinitionsRegistered } from "@/modules/shared/offline-mutations";
 import { OfflineQueueToastListener } from "@/components/offline/offline-queue-toast-listener";
 
@@ -19,8 +20,10 @@ export function OfflineRuntime() {
 
   React.useEffect(() => {
     installAxiosOfflineInterceptor();
+    installFetchOfflineInterceptor();
     return () => {
       uninstallAxiosOfflineInterceptor();
+      uninstallFetchOfflineInterceptor();
     };
   }, []);
 

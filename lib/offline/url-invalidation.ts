@@ -128,6 +128,14 @@ const RULES: InvalidationRule[] = [
   { method: "POST", pattern: /^\/project-management\/columns(\/|$)/, queryKeys: [["pm-boards"], ["projects"]] },
   { method: "PUT", pattern: /^\/project-management\/columns(\/|$)/, queryKeys: [["pm-boards"], ["projects"]] },
 
+  // B2B Marketplace — all writes go through /b2b-marketplace/*. The module's
+  // query keys all share the ["b2b", ...] prefix, plus the public catalog and
+  // per-record detail keys, so we invalidate them broadly.
+  { method: "POST", pattern: /^\/b2b-marketplace(\/|$)/, queryKeys: [["b2b"], ["public-catalog"], ["b2bProduct"], ["b2bSupplier"], ["b2bCategory"]] },
+  { method: "PUT", pattern: /^\/b2b-marketplace(\/|$)/, queryKeys: [["b2b"], ["public-catalog"], ["b2bProduct"], ["b2bSupplier"], ["b2bCategory"]] },
+  { method: "PATCH", pattern: /^\/b2b-marketplace(\/|$)/, queryKeys: [["b2b"], ["public-catalog"], ["b2bProduct"], ["b2bSupplier"], ["b2bCategory"]] },
+  { method: "DELETE", pattern: /^\/b2b-marketplace(\/|$)/, queryKeys: [["b2b"], ["public-catalog"], ["b2bProduct"], ["b2bSupplier"], ["b2bCategory"]] },
+
   // Settings (global)
   { method: "POST", pattern: /^\/settings\//, queryKeys: [["globalSystemSettings"], ["settings"]] },
   { method: "PUT", pattern: /^\/settings\//, queryKeys: [["globalSystemSettings"], ["settings"]] },
@@ -162,15 +170,19 @@ const stripQueryAndHash = (input: string): string => {
 const normalizeUrl = (input: string): string => {
   if (!input) return "";
   let url = input.trim();
-  if (typeof window !== "undefined") {
-    try {
-      const parsed = new URL(url, window.location.origin);
-      url = parsed.pathname;
-    } catch {
-      // fall through, treat as path
-    }
+  const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  try {
+    url = new URL(url, base).pathname;
+  } catch {
+    // fall through, treat as path
   }
   url = stripQueryAndHash(url);
+  // Strip the API version prefix so rules can match bare resource paths
+  // (e.g. "/api/v1/users" -> "/users"). getBackendApiRoot() always includes it.
+  url = url.replace(/^\/api\/v\d+/, "");
+  if (url === "") {
+    url = "/";
+  }
   if (url.length > 1 && url.endsWith("/")) {
     url = url.slice(0, -1);
   }
