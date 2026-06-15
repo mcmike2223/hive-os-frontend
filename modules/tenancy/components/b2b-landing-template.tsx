@@ -1055,8 +1055,8 @@ function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPo
     <header
       className={cn(
         "fixed top-0 inset-x-0 z-50 transition-all duration-300",
-        scrolled
-          ? "bg-background/80 backdrop-blur-2xl border-b border-border/60 shadow-sm"
+        scrolled || open
+          ? "bg-background/95 backdrop-blur-2xl border-b border-border/60 shadow-sm"
           : "bg-transparent"
       )}
     >
@@ -1086,9 +1086,10 @@ function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPo
           </div>
 
           <div className="flex items-center gap-1.5">
-            <div className="hidden sm:flex items-center">
+            {/* Language + light/dark — visible on mobile too, beside the cart */}
+            <div className="flex items-center">
               <LanguageSwitcher />
-              <div className="w-px h-5 bg-border mx-1" />
+              <div className="w-px h-5 bg-border mx-1 hidden xs:block sm:block" />
               <ThemeToggle />
             </div>
             {!loggedIn && (
@@ -1142,7 +1143,7 @@ function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPo
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden overflow-hidden border-t border-border/60"
+              className="lg:hidden overflow-hidden border-t border-border/60 -mx-4 sm:-mx-6 px-4 sm:px-6 bg-background shadow-lg"
             >
               <div className="py-3 space-y-1">
                 {links.map((l) => (
