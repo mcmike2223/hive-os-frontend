@@ -273,6 +273,18 @@ export const B2BDash = {
   registrations: () => body<B2BRegistration[]>(api.get("/b2b-marketplace/registrations")),
   approveRegistration: (id: number) => api.post(`/b2b-marketplace/registrations/${id}/approve`).then((r) => r.data),
   rejectRegistration: (id: number) => api.post(`/b2b-marketplace/registrations/${id}/reject`).then((r) => r.data),
+
+  // Payments & order mediation
+  payOrder: (id: number, reference?: string) =>
+    body<B2BOrder>(api.post(`/b2b-marketplace/orders/${id}/pay`, { reference })),
+  stripeCheckout: (id: number, returnUrl: string) =>
+    body<{ checkout_url: string }>(api.post(`/b2b-marketplace/orders/${id}/stripe-checkout`, { return_url: returnUrl })),
+  orderInvoice: (id: number) => body<B2BInvoice>(api.get(`/b2b-marketplace/orders/${id}/invoice`)),
+  adminOrders: () => body<B2BAdminOrder[]>(api.get("/b2b-marketplace/admin/orders")),
+  confirmOrderPayment: (id: number) => api.post(`/b2b-marketplace/orders/${id}/confirm-payment`).then((r) => r.data),
+  updateOrderStatus: (id: number, payload: { status?: string; payout_status?: string }) =>
+    api.patch(`/b2b-marketplace/orders/${id}/status`, payload).then((r) => r.data),
+  sellerOrders: () => body<B2BSellerOrder[]>(api.get("/b2b-marketplace/seller/orders")),
 };
 
 export type B2BOrderLine = { name: string; unit_price: number; quantity: number; line_total: number };
@@ -281,11 +293,43 @@ export type B2BOrder = {
   id: number;
   order_number: string;
   status: string;
+  payment_status: "unpaid" | "pending_confirmation" | "paid" | "refunded";
+  payment_method: string | null;
+  payment_reference: string | null;
+  payout_status: "pending" | "released";
   subtotal: number;
+  platform_fee_percent: number;
+  platform_fee_amount: number;
+  seller_payout_amount: number;
   currency: string;
   items_count: number;
   items?: B2BOrderLine[];
   created_at: string;
+};
+
+export type B2BAdminOrder = B2BOrder & { buyer: string | null; shipping_name: string | null };
+
+export type B2BSellerOrder = {
+  id: number;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  my_items: { name: string; quantity: number; line_total: number }[];
+  my_gross: number;
+  my_payout: number;
+  created_at: string;
+};
+
+export type B2BInvoice = B2BOrderDetail & {
+  platform_fee_percent: number;
+  platform_fee_amount: number;
+  seller_payout_amount: number;
+  payment_status: string;
+  payment_method: string | null;
+  payment_reference: string | null;
+  paid_at: string | null;
+  is_admin_view: boolean;
+  platform: { name: string };
 };
 
 export type B2BOrderDetail = B2BOrder & {

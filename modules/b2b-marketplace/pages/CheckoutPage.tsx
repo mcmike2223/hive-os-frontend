@@ -29,6 +29,10 @@ export default function CheckoutPage() {
     notes: "",
   });
 
+  const [payMethod, setPayMethod] = useState<"direct" | "card">("direct");
+  const [reference, setReference] = useState("");
+  const [paid, setPaid] = useState(false);
+
   const place = useMutation({
     mutationFn: () =>
       B2BDash.placeOrder({
@@ -45,39 +49,101 @@ export default function CheckoutPage() {
     },
   });
 
-  // ── Confirmation ──
+  const payDirect = useMutation({
+    mutationFn: () => B2BDash.payOrder(placed!.id, reference || undefined),
+    onSuccess: () => setPaid(true),
+  });
+
+  const payCard = useMutation({
+    mutationFn: () =>
+      B2BDash.stripeCheckout(placed!.id, typeof window !== "undefined" ? window.location.origin + "/dashboard/b2b-marketplace" : ""),
+    onSuccess: (res) => { if (res?.checkout_url) window.location.href = res.checkout_url; },
+  });
+
+  // ── Order placed → payment ──
   if (placed) {
+    if (paid) {
+      return (
+        <Shell>
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="mx-auto max-w-lg py-20 text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15">
+              <PackageCheck className="h-10 w-10 text-emerald-500" />
+            </div>
+            <h1 className="text-3xl font-black">Payment submitted</h1>
+            <p className="mt-2 text-muted-foreground">
+              Order <span className="font-bold text-foreground">{placed.order_number}</span> · {money(placed.subtotal)}.
+              The marketplace will confirm your payment and release the order to the supplier.
+            </p>
+            <div className="mt-8 flex justify-center gap-3">
+              <Button asChild variant="outline" className="rounded-xl"><Link href="/">Continue sourcing</Link></Button>
+              <Button asChild className="rounded-xl"><Link href="/dashboard/b2b-marketplace">View my orders</Link></Button>
+            </div>
+          </motion.div>
+        </Shell>
+      );
+    }
     return (
       <Shell>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mx-auto max-w-lg py-20 text-center"
-        >
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15">
-            <PackageCheck className="h-10 w-10 text-emerald-500" />
-          </div>
-          <h1 className="text-3xl font-black">Order placed!</h1>
-          <p className="mt-2 text-muted-foreground">
-            Your order <span className="font-bold text-foreground">{placed.order_number}</span> has been submitted.
-            Suppliers will confirm pricing and freight shortly.
-          </p>
-          <div className="mt-6 inline-flex items-center gap-4 rounded-2xl border border-border/60 bg-card/60 px-6 py-4">
-            <div className="text-left">
-              <p className="text-xs text-muted-foreground">Order total</p>
-              <p className="text-2xl font-black text-primary">{money(placed.subtotal)}</p>
+        <div className="mx-auto max-w-lg py-12">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <CheckCircle2 className="h-7 w-7 text-primary" />
             </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="text-left">
-              <p className="text-xs text-muted-foreground">Items</p>
-              <p className="text-2xl font-black">{placed.items_count}</p>
+            <h1 className="text-2xl font-black">Order {placed.order_number} created</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Complete payment to the marketplace to confirm it.</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/50 p-5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Amount due</span>
+              <span className="text-2xl font-black text-primary">{money(placed.subtotal)}</span>
             </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Paid to the platform (incl. {placed.platform_fee_percent}% handling); the supplier is paid out after delivery.
+            </p>
+
+            {/* Method toggle */}
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              {([
+                { k: "direct", label: "Direct / bank transfer", icon: Lock },
+                { k: "card", label: "Pay by card (Stripe)", icon: Lock },
+              ] as const).map((m) => (
+                <button key={m.k} type="button" onClick={() => setPayMethod(m.k)}
+                  className={"rounded-xl border p-3 text-left text-sm font-bold transition-all " + (payMethod === m.k ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 hover:border-primary/40")}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {payMethod === "direct" ? (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Transfer <b className="text-foreground">{money(placed.subtotal)}</b> to the marketplace settlement account, using
+                  reference <b className="text-foreground">{placed.order_number}</b>, then submit your payment reference below.
+                </div>
+                <Input placeholder="Your payment / transfer reference" value={reference} onChange={(e) => setReference(e.target.value)} />
+                <Button onClick={() => payDirect.mutate()} disabled={payDirect.isPending} className="h-11 w-full rounded-xl font-bold gap-2">
+                  {payDirect.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} I've paid — submit
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                <Button onClick={() => payCard.mutate()} disabled={payCard.isPending} className="h-11 w-full rounded-xl font-bold gap-2">
+                  {payCard.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Pay by card
+                </Button>
+                {payCard.isError && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {(payCard.error as any)?.response?.data?.message || "Card payments aren't enabled yet — use direct transfer, or ask the admin to configure Stripe."}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-          <div className="mt-8 flex justify-center gap-3">
-            <Button asChild variant="outline" className="rounded-xl"><Link href="/">Continue sourcing</Link></Button>
-            <Button asChild className="rounded-xl"><Link href="/dashboard/b2b-marketplace">View my orders</Link></Button>
+
+          <div className="mt-4 text-center">
+            <Button asChild variant="ghost" className="rounded-xl text-sm"><Link href="/dashboard/b2b-marketplace">Pay later — go to my orders</Link></Button>
           </div>
-        </motion.div>
+        </div>
       </Shell>
     );
   }

@@ -10,6 +10,7 @@ import B2BAnalyticsDashboard from "@/modules/b2b-marketplace/pages/B2BAnalyticsD
 import BuyerDashboard from "@/modules/b2b-marketplace/pages/BuyerDashboard";
 import SellerDashboard from "@/modules/b2b-marketplace/pages/SellerDashboard";
 import RegistrationsAdmin from "@/modules/b2b-marketplace/pages/RegistrationsAdmin";
+import AdminOrders from "@/modules/b2b-marketplace/pages/AdminOrders";
 
 export default function B2BMarketplacePage() {
   const { hasPermission, isLoaded } = usePermissions();
@@ -20,6 +21,7 @@ export default function B2BMarketplacePage() {
         { value: "overview", label: "Overview", perm: "view_b2b_dashboard", node: <B2BAnalyticsDashboard /> },
         { value: "buyer", label: "Buyer Portal", perm: "manage_b2b_inquiries", node: <BuyerDashboard /> },
         { value: "seller", label: "Seller Portal", perm: "manage_b2b_products", node: <SellerDashboard /> },
+        { value: "orders", label: "Orders & Payments", perm: "manage_b2b_marketplace", node: <AdminOrders /> },
         { value: "approvals", label: "Approvals", perm: "manage_b2b_marketplace", node: <RegistrationsAdmin /> },
       ].filter((t) => hasPermission(t.perm)),
     [hasPermission],

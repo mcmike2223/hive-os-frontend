@@ -58,11 +58,13 @@ export default function SellerDashboard() {
   const myQuotesQ = useQuery({ queryKey: ["b2b", "sellerQuotes"], queryFn: () => B2BDash.quotes() });
   const productsQ = useQuery({ queryKey: ["b2b", "myProducts"], queryFn: () => B2BDash.myProducts() });
   const categoriesQ = useQuery({ queryKey: ["b2b", "publicCategories"], queryFn: () => B2BApi.categories() });
+  const salesQ = useQuery({ queryKey: ["b2b", "sellerOrders"], queryFn: () => B2BDash.sellerOrders() });
 
   const openRfqs = openRfqsQ.data ?? [];
   const myQuotes = myQuotesQ.data ?? [];
   const products = productsQ.data ?? [];
   const categories = categoriesQ.data ?? [];
+  const sales = salesQ.data ?? [];
 
   const [quoting, setQuoting] = useState<B2BInquiry | null>(null);
   const [thread, setThread] = useState<B2BQuote | null>(null);
@@ -89,7 +91,45 @@ export default function SellerDashboard() {
           <TabsTrigger value="rfqs">Open RFQs</TabsTrigger>
           <TabsTrigger value="quotes">My Quotes</TabsTrigger>
           <TabsTrigger value="products">My Products</TabsTrigger>
+          <TabsTrigger value="sales">My Sales</TabsTrigger>
         </TabsList>
+
+        {/* Sales — orders containing my products */}
+        <TabsContent value="sales" className="space-y-3">
+          {salesQ.isLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : sales.length === 0 ? (
+            <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">No sales yet. When buyers order your products, they appear here with your payout (after the platform fee).</CardContent></Card>
+          ) : (
+            sales.map((o) => (
+              <Card key={o.id}>
+                <CardContent className="space-y-2 py-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex-1 min-w-[160px]">
+                      <p className="text-sm font-black">{o.order_number}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Badge variant={o.payment_status === "paid" ? "default" : "secondary"}>{o.payment_status.replace("_", " ")}</Badge>
+                    <Badge variant="outline">{o.status}</Badge>
+                    <div className="text-right">
+                      <p className="text-[11px] text-muted-foreground">Your payout</p>
+                      <p className="text-lg font-black text-primary">${o.my_payout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-border/50 border-t border-border/50 pt-1">
+                    {o.my_items.map((it, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">{it.name}</span>
+                        <span className="text-xs text-muted-foreground">×{it.quantity}</span>
+                        <span className="w-24 text-right font-bold">${it.line_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
 
         {/* Open RFQ feed */}
         <TabsContent value="rfqs" className="space-y-3">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
+  CreditCard,
   FileText,
   Heart,
   Loader2,
@@ -27,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { B2BDash, type B2BInquiry, type B2BQuote } from "@/modules/b2b-marketplace/api";
+import { B2BDash, type B2BInquiry, type B2BOrder, type B2BQuote } from "@/modules/b2b-marketplace/api";
 import { QuoteThreadDialog } from "@/modules/b2b-marketplace/components/QuoteThreadDialog";
 
 function Kpi({ label, value }: { label: string; value: React.ReactNode }) {
@@ -59,6 +60,13 @@ export default function BuyerDashboard() {
   const [form, setForm] = useState({ title: "", description: "", budget_range: "" });
   const [reviewing, setReviewing] = useState<B2BQuote | null>(null);
   const [thread, setThread] = useState<B2BQuote | null>(null);
+  const [payingOrder, setPayingOrder] = useState<B2BOrder | null>(null);
+  const [payRef, setPayRef] = useState("");
+
+  const payMut = useMutation({
+    mutationFn: () => B2BDash.payOrder(payingOrder!.id, payRef || undefined),
+    onSuccess: () => { setPayingOrder(null); setPayRef(""); qc.invalidateQueries({ queryKey: ["b2b", "myOrders"] }); },
+  });
 
   const createRfq = useMutation({
     mutationFn: () => B2BDash.createInquiry(form),
@@ -115,8 +123,19 @@ export default function BuyerDashboard() {
                       <p className="text-sm font-black">{o.order_number}</p>
                       <p className="text-xs text-muted-foreground">{o.items_count} item{o.items_count === 1 ? "" : "s"} · {new Date(o.created_at).toLocaleDateString()}</p>
                     </div>
-                    <Badge variant={o.status === "completed" ? "default" : "secondary"}>{o.status}</Badge>
+                    <Badge variant={o.payment_status === "paid" ? "default" : o.payment_status === "pending_confirmation" ? "secondary" : "destructive"}>
+                      {o.payment_status === "pending_confirmation" ? "awaiting confirmation" : o.payment_status}
+                    </Badge>
+                    <Badge variant="outline">{o.status}</Badge>
                     <span className="text-lg font-black text-primary">${o.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="flex gap-1.5">
+                      {o.payment_status === "unpaid" && (
+                        <Button size="sm" onClick={() => setPayingOrder(o)} className="gap-1"><CreditCard className="h-3.5 w-3.5" /> Pay</Button>
+                      )}
+                      <Button asChild size="sm" variant="outline" className="gap-1">
+                        <Link href={`/marketplace/orders/${o.id}/invoice`} target="_blank"><FileText className="h-3.5 w-3.5" /> Invoice</Link>
+                      </Button>
+                    </div>
                   </div>
                   {o.items && o.items.length > 0 && (
                     <div className="mt-3 divide-y divide-border/50 border-t border-border/50 pt-2">
@@ -255,6 +274,29 @@ export default function BuyerDashboard() {
 
       {/* Message thread */}
       <QuoteThreadDialog quote={thread} onClose={() => setThread(null)} />
+
+      {/* Pay an order (direct) */}
+      <Dialog open={!!payingOrder} onOpenChange={(o) => { if (!o) { setPayingOrder(null); setPayRef(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="inline-flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Pay order</DialogTitle>
+            <DialogDescription>
+              {payingOrder?.order_number} · ${payingOrder?.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} to the marketplace.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-3">
+            <p className="rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
+              Transfer the amount to the marketplace settlement account using reference <b className="text-foreground">{payingOrder?.order_number}</b>, then enter your payment reference. The admin confirms receipt and releases the order.
+            </p>
+            <Input placeholder="Payment / transfer reference" value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button onClick={() => payMut.mutate()} disabled={payMut.isPending} className="w-full rounded-xl gap-2">
+              {payMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} Submit payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
