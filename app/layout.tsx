@@ -29,6 +29,10 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+// Render metadata at request time so titles/description reflect the live central
+// SEO config (the backend is unreachable during build, which would bake defaults).
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await fetchSeoSettings();
   const siteName = seo.site_name || "HIVE";

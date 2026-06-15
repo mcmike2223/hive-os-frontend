@@ -2,6 +2,9 @@ import type { MetadataRoute } from "next";
 
 import { fetchSeoSettings } from "@/lib/seo";
 
+// Render at request time so it reflects the live central SEO config.
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const seo = await fetchSeoSettings();
 
