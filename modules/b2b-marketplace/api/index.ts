@@ -285,6 +285,11 @@ export const B2BDash = {
   updateOrderStatus: (id: number, payload: { status?: string; payout_status?: string }) =>
     api.patch(`/b2b-marketplace/orders/${id}/status`, payload).then((r) => r.data),
   sellerOrders: () => body<B2BSellerOrder[]>(api.get("/b2b-marketplace/seller/orders")),
+
+  // Marketplace settings (admin) — commission rate
+  marketplaceSettings: () => body<{ commission_percent: number }>(api.get("/b2b-marketplace/settings")),
+  updateCommission: (commission_percent: number) =>
+    body<{ commission_percent: number }>(api.put("/b2b-marketplace/settings", { commission_percent })),
 };
 
 export type B2BOrderLine = { name: string; unit_price: number; quantity: number; line_total: number };

@@ -3,9 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, FileText, Loader2, Truck } from "lucide-react";
+import { Check, FileText, Loader2, Percent, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -35,11 +36,45 @@ export default function AdminOrders() {
     onSuccess: invalidate,
   });
 
+  // Commission rate (editable)
+  const settingsQ = useQuery({ queryKey: ["b2b", "marketplaceSettings"], queryFn: () => B2BDash.marketplaceSettings() });
+  const [commission, setCommission] = React.useState<string>("");
+  React.useEffect(() => {
+    if (settingsQ.data) setCommission(String(settingsQ.data.commission_percent));
+  }, [settingsQ.data]);
+  const saveCommission = useMutation({
+    mutationFn: () => B2BDash.updateCommission(Number(commission)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["b2b", "marketplaceSettings"] }),
+  });
+
   const totalGmv = orders.filter((o) => o.payment_status === "paid").reduce((s, o) => s + o.subtotal, 0);
   const totalFees = orders.filter((o) => o.payment_status === "paid").reduce((s, o) => s + o.platform_fee_amount, 0);
 
   return (
     <div className="space-y-4">
+      {/* Commission rate — set your own */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Percent className="h-5 w-5" /></div>
+          <div className="flex-1 min-w-[180px]">
+            <p className="text-sm font-bold">Platform commission</p>
+            <p className="text-xs text-muted-foreground">Your cut on each order. Applies to new orders; existing orders keep their rate.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number" min={0} max={50} step={0.5}
+              value={commission}
+              onChange={(e) => setCommission(e.target.value)}
+              className="h-9 w-24 text-right"
+            />
+            <span className="text-sm font-bold text-muted-foreground">%</span>
+            <Button size="sm" disabled={saveCommission.isPending || commission === ""} onClick={() => saveCommission.mutate()} className="gap-1">
+              {saveCommission.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Save
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">Orders</p><p className="text-2xl font-black">{orders.length}</p></CardContent></Card>
         <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">Paid GMV</p><p className="text-2xl font-black text-primary">{money(totalGmv)}</p></CardContent></Card>
