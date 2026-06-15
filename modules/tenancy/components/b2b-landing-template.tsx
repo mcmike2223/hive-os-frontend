@@ -1196,7 +1196,11 @@ export default function B2BLandingTemplate({
   const brandName = brandSettings?.app_title?.trim() || tenantName?.trim() || "B2B Marketplace";
   const pubImg = (u?: string) => {
     if (!u) return "";
-    // Absolute URLs and rooted public paths (e.g. /images/b2b/…) pass through untouched;
+    // Private media serve URL → public-serve so it loads without a login, on any device.
+    if (u.includes("/files/") && u.includes("/serve") && !u.includes("/public-serve")) {
+      return getPublicServeUrl(u) ?? u;
+    }
+    // Absolute URLs and static rooted paths (e.g. /images/b2b/…) pass through untouched;
     // bare storage keys are resolved to a public serve URL.
     if (u.startsWith("http") || u.startsWith("/")) return u;
     return getPublicServeUrl(u) ?? u;

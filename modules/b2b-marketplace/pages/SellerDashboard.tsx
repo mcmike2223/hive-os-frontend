@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { B2BApi, B2BDash, type B2BInquiry, type B2BMyProduct, type B2BQuote } from "@/modules/b2b-marketplace/api";
 import { QuoteThreadDialog } from "@/modules/b2b-marketplace/components/QuoteThreadDialog";
+import { MarketplaceImagePicker } from "@/modules/b2b-marketplace/components/MarketplaceImagePicker";
 
 function Kpi({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -325,7 +326,9 @@ function ProductDialog({
             <Input placeholder="Price unit (e.g. / kg)" value={form.price_unit ?? ""} onChange={(e) => setForm({ ...form, price_unit: e.target.value })} />
             <Input placeholder="Lead time (e.g. 7-15 days)" value={form.lead_time ?? ""} onChange={(e) => setForm({ ...form, lead_time: e.target.value })} />
             <Input placeholder="Location" value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-            <div className="col-span-2"><Input placeholder="Image URL (e.g. /images/b2b/...)" value={form.image_url ?? ""} onChange={(e) => setForm({ ...form, image_url: e.target.value })} /></div>
+            <div className="col-span-2">
+              <MarketplaceImagePicker label="Product image" value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} />
+            </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={save.isPending} className="w-full rounded-xl gap-2">
