@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, onlineManager } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { enqueueFileUpload } from "@/lib/offline/file-upload-queue";
 import {
   Folder, Star, Share2, Trash2, Clock, Settings, Search, 
   Image as ImageIcon, Video, FileText, Music, Plus, UploadCloud, 
@@ -1462,30 +1463,62 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   });
 
   const uploadFileMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ queued: boolean }> => {
       if (!uploadFile) throw new Error("No file selected");
+
+      const offlineFields: Record<string, string> = {};
+      if (uploadTargetFolder !== "root") offlineFields.folder_id = uploadTargetFolder;
+      if (uploadBaseName) offlineFields.base_name = uploadBaseName;
+
+      const queueForLater = async () => {
+        await enqueueFileUpload({
+          file: uploadFile,
+          fileName: uploadFile.name,
+          fileType: uploadFile.type,
+          fields: offlineFields,
+          thumbnail: customThumbnail,
+          label: `upload ${uploadFile.name}`,
+        });
+        return { queued: true };
+      };
+
+      // No connection: stash the whole file in IndexedDB and sync on reconnect.
+      if (!onlineManager.isOnline()) {
+        return queueForLater();
+      }
+
       const uploadId = `${Date.now()}-${uploadFile.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
       const totalChunks = Math.ceil(uploadFile.size / CHUNK_SIZE);
-      
+
       for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         const start = chunkIndex * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, uploadFile.size);
         const chunk = uploadFile.slice(start, end);
-        
+
         const formData = new FormData();
         formData.append("file", chunk);
         formData.append("chunk_index", chunkIndex.toString());
         formData.append("total_chunks", totalChunks.toString());
         formData.append("upload_id", uploadId);
         formData.append("original_name", uploadFile.name);
-        
+
         if (uploadTargetFolder !== "root") formData.append("folder_id", uploadTargetFolder);
         if (uploadBaseName) formData.append("base_name", uploadBaseName);
         if (chunkIndex === totalChunks - 1 && customThumbnail) formData.append("custom_thumbnail", customThumbnail);
 
-        const res = await fetch(`${getBackendApiRoot()}/files/upload`, {
-          method: 'POST', headers: getAuthHeaders(), body: formData
-        });
+        let res: Response;
+        try {
+          res = await fetch(`${getBackendApiRoot()}/files/upload`, {
+            method: 'POST', headers: getAuthHeaders(), body: formData
+          });
+        } catch (networkErr) {
+          // Connectivity dropped mid-upload — queue the whole file for retry.
+          if (networkErr instanceof TypeError) {
+            setUploadProgress(0);
+            return queueForLater();
+          }
+          throw networkErr;
+        }
 
         if (!res.ok) {
           const errText = await res.text();
@@ -1503,8 +1536,17 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
         }
         setUploadProgress(Math.round(((chunkIndex + 1) / totalChunks) * 100));
       }
+      return { queued: false };
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["files"] }); toast.success("File uploaded successfully"); setIsUploadOpen(false); setUploadFile(null); setCustomThumbnail(null); setUploadBaseName(""); setUploadProgress(0); },
+    onSuccess: (result) => {
+      if (result?.queued) {
+        toast.success("Upload queued — it'll sync automatically when you're back online", { duration: 6000 });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["files"] });
+        toast.success("File uploaded successfully");
+      }
+      setIsUploadOpen(false); setUploadFile(null); setCustomThumbnail(null); setUploadBaseName(""); setUploadProgress(0);
+    },
     onError: (err: any) => { toast.error(err.message, { duration: 8000 }); setUploadProgress(0); }
   });
 

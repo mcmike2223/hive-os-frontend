@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useOfflineStatus } from "@/hooks/use-offline-status";
 import { processOfflineMutationQueue } from "@/lib/offline/mutation-queue";
+import { processFileUploadQueue, refreshUploadQueueCount } from "@/lib/offline/file-upload-queue";
 import { installAxiosOfflineInterceptor, uninstallAxiosOfflineInterceptor } from "@/lib/offline/axios-offline-interceptor";
 import { installFetchOfflineInterceptor, uninstallFetchOfflineInterceptor } from "@/lib/offline/fetch-offline-interceptor";
 import { ensureOfflineMutationDefinitionsRegistered } from "@/modules/shared/offline-mutations";
@@ -16,6 +17,7 @@ export function OfflineRuntime() {
 
   React.useEffect(() => {
     ensureOfflineMutationDefinitionsRegistered();
+    void refreshUploadQueueCount();
   }, []);
 
   React.useEffect(() => {
@@ -32,6 +34,7 @@ export function OfflineRuntime() {
       return;
     }
     void processOfflineMutationQueue(queryClient);
+    void processFileUploadQueue(queryClient);
   }, [isOnline, queryClient]);
 
   React.useEffect(() => {
@@ -40,10 +43,12 @@ export function OfflineRuntime() {
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === "hidden") return;
       void processOfflineMutationQueue(queryClient);
+      void processFileUploadQueue(queryClient);
     };
 
     const handleOnline = () => {
       void processOfflineMutationQueue(queryClient);
+      void processFileUploadQueue(queryClient);
     };
 
     window.addEventListener("online", handleOnline);

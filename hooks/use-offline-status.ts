@@ -8,6 +8,7 @@ import {
   readOfflineMutationQueue,
   subscribeOfflineMutationQueue,
 } from "@/lib/offline/mutation-queue";
+import { getUploadQueueCount, subscribeUploadQueue } from "@/lib/offline/file-upload-queue";
 
 const SERVER_SNAPSHOT_QUEUE: typeof getEmptyOfflineMutationQueue = () => [];
 
@@ -52,6 +53,12 @@ export const useOfflineStatus = () => {
     SERVER_SNAPSHOT_QUEUE,
   );
 
+  const queuedUploads = useSyncExternalStore(
+    subscribeUploadQueue,
+    getUploadQueueCount,
+    () => 0,
+  );
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") {
       return;
@@ -64,7 +71,8 @@ export const useOfflineStatus = () => {
   return {
     isOnline,
     isOffline: !isOnline,
-    queuedCount: queuedMutations.length,
+    queuedCount: queuedMutations.length + queuedUploads,
     queuedMutations,
+    queuedUploads,
   };
 };
