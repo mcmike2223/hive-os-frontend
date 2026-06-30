@@ -227,7 +227,7 @@ export const getBackendOrigin = (): string => {
   const host = window.location.hostname;
   const protocol = window.location.protocol;
 
-  return `${protocol}//${host}:8085`;
+  return `${protocol}//${host}`;
 };
 
 export const getBackendApiRoot = (): string => {
