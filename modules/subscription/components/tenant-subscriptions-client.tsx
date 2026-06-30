@@ -68,9 +68,9 @@ const PLAN_ORDER = ["larva", "startup", "business", "enterprise", "overlord"];
 const PLAN_MODULES_COUNT: Record<string, number> = {
   larva: 1,      // mailbox only
   startup: 4,    // mailbox + file_manager + image_editor + document_converter
-  business: 13,  // business defaults + hospitality
-  enterprise: 17, // enterprise defaults + hospitality
-  overlord: 18,  // all catalog modules
+  business: 14,  // business defaults + hospitality + B2B marketplace
+  enterprise: 18, // enterprise defaults + hospitality + B2B marketplace
+  overlord: 19,  // all catalog modules except lightweight media utilities
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

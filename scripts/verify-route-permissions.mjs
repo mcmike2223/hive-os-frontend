@@ -38,12 +38,34 @@ const tenantWithoutModuleAccess = {
   hasModule: () => false,
 };
 
+const b2bTenantWithoutModuleAccess = {
+  canBypassModuleSubscriptions: false,
+  hasPermission: (permission) => permission === "view_b2b_marketplace",
+  hasAnyPermission: (permissions) => permissions.includes("view_b2b_marketplace"),
+  hasModule: () => false,
+};
+
+const b2bTenantWithModuleAccess = {
+  canBypassModuleSubscriptions: false,
+  hasPermission: (permission) => permission === "view_b2b_marketplace",
+  hasAnyPermission: (permissions) => permissions.includes("view_b2b_marketplace"),
+  hasModule: (slug) => slug === "b2b_marketplace",
+};
+
 if (!canAccessDashboardRoute("/dashboard/workflow/rules", centralOverrideAccess)) {
   throw new Error("Central override users must not be blocked by workflow subscription checks.");
 }
 
 if (canAccessDashboardRoute("/dashboard/workflow/rules", tenantWithoutModuleAccess)) {
   throw new Error("Tenant users without workflow_automation must still be blocked.");
+}
+
+if (canAccessDashboardRoute("/dashboard/b2b-marketplace", b2bTenantWithoutModuleAccess)) {
+  throw new Error("Tenant users without b2b_marketplace must be blocked from the B2B marketplace.");
+}
+
+if (!canAccessDashboardRoute("/dashboard/b2b-marketplace", b2bTenantWithModuleAccess)) {
+  throw new Error("Tenant users with b2b_marketplace must be allowed into the B2B marketplace.");
 }
 
 console.log("route-permissions central override checks passed");

@@ -15,6 +15,7 @@ export const b2bMarketplaceModule: FrontendModuleDefinition = {
       href: "/dashboard/b2b-marketplace",
       icon: Store,
       permissions: ["view_b2b_marketplace"],
+      subscriptionSlug: "b2b_marketplace",
       placement: "primary",
     },
     {
@@ -24,6 +25,7 @@ export const b2bMarketplaceModule: FrontendModuleDefinition = {
       href: "/dashboard/b2b-marketplace/landing",
       icon: LayoutTemplate,
       permissions: ["manage_b2b_marketplace"],
+      subscriptionSlug: "b2b_marketplace",
       placement: "primary",
     },
   ],

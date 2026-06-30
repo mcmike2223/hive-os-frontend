@@ -27,6 +27,14 @@ export const HOSPITALITY_ROUTE_PERMISSIONS = [
   "view_hospitality_reservations",
   "view_hospitality_service_orders",
 ] as const;
+export const B2B_MARKETPLACE_ROUTE_PERMISSIONS = [
+  "view_b2b_marketplace",
+  "view_b2b_dashboard",
+  "manage_b2b_products",
+  "manage_b2b_inquiries",
+  "manage_b2b_quotes",
+  "manage_b2b_marketplace",
+] as const;
 export const INVENTORY_ROUTE_PERMISSIONS = ["view_inventory", "manage_inventory"] as const;
 export const WORKFLOW_ROUTE_PERMISSIONS = [
   "view_workflow_automation",
@@ -153,11 +161,15 @@ export function canAccessDashboardRoute(rawPath: string, access: RoutePermission
     return access.hasAnyPermission([...API_DOCS_ROUTE_PERMISSIONS]) && hasSubscribedModule(access, "api_docs");
   }
 
-if (matchesPrefix(path, "/dashboard/hospitality")) {
+  if (matchesPrefix(path, "/dashboard/hospitality")) {
     return hasSubscribedModule(access, "hospitality");
   }
 
-if (matchesPrefix(path, "/dashboard/inventory")) {
+  if (matchesPrefix(path, "/dashboard/b2b-marketplace")) {
+    return access.hasAnyPermission([...B2B_MARKETPLACE_ROUTE_PERMISSIONS]) && hasSubscribedModule(access, "b2b_marketplace");
+  }
+
+  if (matchesPrefix(path, "/dashboard/inventory")) {
     return hasSubscribedModule(access, "inventory_control");
   }
 
