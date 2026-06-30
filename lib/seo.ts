@@ -37,6 +37,91 @@ export type SeoSettings = {
   modules_catalog: ModuleCatalogEntry[];
 };
 
+export type PublicBrandSettings = {
+  app_title?: string | null;
+  meta_description?: string | null;
+  og_image?: string | null;
+};
+
+type HeaderReader = {
+  get(name: string): string | null;
+};
+
+const normalizeHost = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/\.+$/, "") || null;
+};
+
+const extractConfiguredHost = (value: string | null | undefined): string | null => {
+  const normalized = normalizeHost(value);
+  if (!normalized) return null;
+
+  try {
+    return normalizeHost(new URL(value as string).hostname);
+  } catch {
+    return normalized;
+  }
+};
+
+const centralHosts = (): string[] => {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "gulfingot.com";
+  const configuredHosts = [
+    rootDomain,
+    `hive.${rootDomain}`,
+    `hive-backend.${rootDomain}`,
+    `hive-queue.${rootDomain}`,
+    extractConfiguredHost(process.env.NEXT_PUBLIC_APP_URL),
+    extractConfiguredHost(process.env.NEXT_PUBLIC_API_URL),
+    ...(process.env.NEXT_PUBLIC_CENTRAL_DOMAINS?.split(",") ?? []).map((value) => normalizeHost(value)),
+  ].filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(["localhost", "127.0.0.1", ...configuredHosts]));
+};
+
+const tenantIdFromHost = (host: string | null): string | null => {
+  const normalized = normalizeHost(host);
+  if (!normalized || centralHosts().includes(normalized)) return null;
+
+  if (normalized.endsWith(".localhost")) {
+    return normalized.split(".")[0] || null;
+  }
+
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "gulfingot.com";
+  if (normalized.endsWith(`.${rootDomain}`)) {
+    return normalized.replace(`.${rootDomain}`, "");
+  }
+
+  return normalized;
+};
+
+const requestHost = (requestHeaders?: HeaderReader): string | null => {
+  return normalizeHost(
+    requestHeaders?.get("x-forwarded-host")
+    || requestHeaders?.get("host")
+    || null
+  );
+};
+
+const tenantHeadersForRequest = (requestHeaders?: HeaderReader): Record<string, string> => {
+  const explicitTenant = requestHeaders?.get("x-tenant");
+  const explicitSignature = requestHeaders?.get("x-tenant-signature");
+  const tenantId = explicitTenant || tenantIdFromHost(requestHost(requestHeaders));
+
+  if (!tenantId) return {};
+
+  return {
+    "X-Tenant": tenantId,
+    ...(explicitSignature ? { "X-Tenant-Signature": explicitSignature } : {}),
+  };
+};
+
 /**
  * Fetches the central super-admin SEO configuration (server-side, cached 5 min).
  * Returns {} on any failure so the app still renders with built-in defaults.
@@ -49,6 +134,30 @@ export async function fetchSeoSettings(): Promise<Partial<SeoSettings>> {
     if (!res.ok) return {};
     const json = await res.json();
     return (json?.data ?? {}) as Partial<SeoSettings>;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Fetches brand settings for the current request workspace. On tenant domains
+ * this sends X-Tenant so the server-rendered title starts with tenant branding.
+ */
+export async function fetchPublicBrandSettings(requestHeaders?: HeaderReader): Promise<Partial<PublicBrandSettings>> {
+  const base = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  if (!base) return {};
+
+  try {
+    const res = await fetch(`${base}/settings/brand/public`, {
+      headers: {
+        Accept: "application/json",
+        ...tenantHeadersForRequest(requestHeaders),
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    return (json?.data ?? {}) as Partial<PublicBrandSettings>;
   } catch {
     return {};
   }

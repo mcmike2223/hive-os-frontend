@@ -296,7 +296,7 @@ function LandingUI({
     if (brandSettings?.app_title) {
       document.title = isTenantExperience
         ? formatDocumentTitle(brandSettings.app_title)
-        : formatDocumentTitle(brandSettings.app_title, "Enterprise Operations");
+        : formatDocumentTitle("Enterprise Operations", brandSettings.app_title);
     }
   }, [brandSettings, isTenantExperience]);
 

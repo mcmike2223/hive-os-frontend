@@ -2,6 +2,7 @@ import "./globals.css";
 
 import type { Metadata } from "next";
 import Script from "next/script";
+import { headers } from "next/headers";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 
 import Providers from "@/components/providers";
@@ -9,7 +10,8 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import BrandCursor from "@/components/brand-cursor";
 import { PublicBrandSyncProvider } from "@/components/providers/public-brand-sync-provider";
-import { fetchSeoSettings } from "@/lib/seo";
+import { formatDocumentTitle } from "@/lib/document-title";
+import { fetchPublicBrandSettings, fetchSeoSettings } from "@/lib/seo";
 
 // 🚀 IMPORT OUR NEW GLOBAL SETTINGS PROVIDER
 import { SettingsProvider } from "@/components/providers/settings-provider";
@@ -34,11 +36,16 @@ const jetbrainsMono = JetBrains_Mono({
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const seo = await fetchSeoSettings();
-  const siteName = seo.site_name || "HIVE";
-  const title = seo.default_title || `${siteName} | Enterprise Neural Network`;
-  const description = seo.meta_description || "The neural network for modern enterprise.";
-  const ogImages = seo.og_image ? [seo.og_image] : undefined;
+  const requestHeaders = await headers();
+  const [seo, brand] = await Promise.all([
+    fetchSeoSettings(),
+    fetchPublicBrandSettings(requestHeaders),
+  ]);
+  const siteName = formatDocumentTitle(brand.app_title || seo.site_name || "HIVE.OS");
+  const title = formatDocumentTitle(brand.app_title || seo.default_title || siteName);
+  const description = brand.meta_description || seo.meta_description || "The neural network for modern enterprise.";
+  const ogImage = brand.og_image || seo.og_image;
+  const ogImages = ogImage ? [ogImage] : undefined;
   const indexable = seo.allow_indexing !== false;
 
   const meta: Metadata = {

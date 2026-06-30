@@ -19,6 +19,7 @@ const { formatDocumentTitle } = module.exports;
 assert.equal(typeof formatDocumentTitle, "function", "formatDocumentTitle must be exported");
 
 assert.equal(formatDocumentTitle("HIVE.OS", "Dashboard"), "HIVE.OS | Dashboard");
+assert.equal(formatDocumentTitle("Dashboard", "HIVE.OS"), "Dashboard | HIVE.OS");
 assert.equal(formatDocumentTitle("HIVE.OS | Dashboard", "Dashboard"), "HIVE.OS | Dashboard");
 assert.equal(formatDocumentTitle("HIVE.OS | Dashboard | Dashboard", "Dashboard"), "HIVE.OS | Dashboard");
 assert.equal(
@@ -27,5 +28,20 @@ assert.equal(
 );
 assert.equal(formatDocumentTitle("Techive Tenant | Techive Tenant"), "Techive Tenant");
 assert.equal(formatDocumentTitle("", "Dashboard"), "HIVE.OS | Dashboard");
+
+const dashboardLayout = fs.readFileSync("app/dashboard/layout.tsx", "utf8");
+assert.match(dashboardLayout, /title:\s*"Dashboard"/, "dashboard metadata page title must stay unsuffixed");
+assert.doesNotMatch(
+  dashboardLayout,
+  /title:\s*"Dashboard\s*\|/,
+  "dashboard metadata must not include the brand or root layout will append another site title",
+);
+
+const rootLayout = fs.readFileSync("app/layout.tsx", "utf8");
+assert.match(
+  rootLayout,
+  /fetchPublicBrandSettings/,
+  "root metadata must derive site title from the current workspace branding settings",
+);
 
 console.log("document title normalization check passed");

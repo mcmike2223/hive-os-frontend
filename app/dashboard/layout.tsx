@@ -16,7 +16,7 @@ import type { ReactNode } from "react";
 
 // This acts as the fallback metadata until the Client Provider hydrates
 export const metadata: Metadata = {
-  title: "Dashboard | HIVE.OS",
+  title: "Dashboard",
   description: "Enterprise Resource Planning Control Hub",
 };
 

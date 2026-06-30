@@ -57,7 +57,7 @@ export function BrandSyncProvider() {
       // Safely apply Document Title
       if (brandSettings?.app_title) {
           // This ensures it overrides the default metadata title set in layout.tsx
-          document.title = formatDocumentTitle(brandSettings.app_title, "Dashboard");
+          document.title = formatDocumentTitle("Dashboard", brandSettings.app_title);
       }
     }, [brandSettings]);
 
