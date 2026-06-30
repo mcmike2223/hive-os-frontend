@@ -6,7 +6,7 @@ import { ShieldAlert } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { SystemOffline } from "@/components/auth/system-offline";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
-import { getAccessToken, getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAccessToken, getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 
 // 🚀 Interfaces
 export interface SystemSettings {
@@ -39,6 +39,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [hasCheckedUser, setHasCheckedUser] = useState(false);
+    const workspaceScope = getWorkspaceScopeKey();
 
     useEffect(() => {
         try {
@@ -64,7 +65,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }, [pathname]);
 
     const { data, isLoading } = useQuery({
-        queryKey: ["globalSystemSettings"],
+        queryKey: ["globalSystemSettings", workspaceScope],
         queryFn: async () => {
             const token = getAccessToken();
 

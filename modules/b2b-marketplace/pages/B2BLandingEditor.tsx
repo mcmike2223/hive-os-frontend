@@ -38,7 +38,7 @@ import {
 import { SecureAssetImage } from "@/components/ui/secure-asset-image";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { usePermissions } from "@/hooks/use-permissions";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import {
   resolveLandingTemplate,
   type TenantLandingTemplate,
@@ -125,6 +125,7 @@ export default function B2BLandingEditor() {
   const { hasAnyPermission, hasPermission } = usePermissions();
   const canBrowseAssets = hasAnyPermission(["view_storage", "manage_storage"]);
   const canManageStorage = hasPermission("manage_storage");
+  const workspaceScope = getWorkspaceScopeKey();
 
   const [currentTemplate, setCurrentTemplate] = useState<TenantLandingTemplate | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -163,7 +164,7 @@ export default function B2BLandingEditor() {
   };
 
   const { data: queryData, isLoading, isError, refetch } = useQuery({
-    queryKey: ["b2b", "landing-settings"],
+    queryKey: ["b2b", "landing-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/landing"),
     throwOnError: false,
     retry: 1,

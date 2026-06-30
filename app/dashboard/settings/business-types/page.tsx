@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "@/store/use-translation";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import type { ColumnDef } from "@tanstack/react-table";
 
 type BusinessType = {
@@ -58,6 +58,7 @@ export default function BusinessTypesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
+  const workspaceScope = getWorkspaceScopeKey();
 
   const page = parseInt(searchParams.get("page") || "0", 10);
   const size = parseInt(searchParams.get("size") || "10", 10);
@@ -72,7 +73,7 @@ export default function BusinessTypesPage() {
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["settings", "business-types", page, size, search, sortCol, sortDir],
+    queryKey: ["settings", "business-types", workspaceScope, page, size, search, sortCol, sortDir],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("page", String(page));

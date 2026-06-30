@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { getBackendApiRoot, getAuthHeaders } from "@/lib/runtime-context";
+import { getBackendApiRoot, getAuthHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { toast } from "sonner";
 
 // ─── Inline API helper (mirrors settings/client.tsx) ─────────────────────────
@@ -321,9 +321,10 @@ export function PlanSettings() {
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const [localPlans, setLocalPlans] = useState<Record<string, PlanConfig>>({});
+  const workspaceScope = getWorkspaceScopeKey();
 
   const { data, isLoading, error } = useQuery<{ data: PlanSettingsData }>({
-    queryKey: ["plan-settings"],
+    queryKey: ["plan-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/plans"),
     staleTime: 60_000,
   });

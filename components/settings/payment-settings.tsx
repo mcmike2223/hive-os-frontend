@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import type { TenantDirectTransferBankAccount } from "@/modules/subscription/types";
 
@@ -89,9 +89,10 @@ export function PaymentSettings() {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<PaymentSettingsData | null>(null);
   const [snapshot, setSnapshot] = useState<string>("");
+  const workspaceScope = getWorkspaceScopeKey();
 
   const { data, isLoading, error } = useQuery<{ data: PaymentSettingsData }>({
-    queryKey: ["payment-settings"],
+    queryKey: ["payment-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/payments"),
     staleTime: 60_000,
   });

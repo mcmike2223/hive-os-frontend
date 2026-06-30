@@ -135,6 +135,21 @@ export const getTenantId = (): string | null => {
   return null;
 };
 
+export const getWorkspaceScopeKey = (): string => {
+  if (typeof window === "undefined") {
+    return "server";
+  }
+
+  const host = normalizeHost(window.location.hostname) ?? "unknown-host";
+  const tenantId = getTenantId();
+
+  if (tenantId) {
+    return `tenant:${tenantId}@${host}`;
+  }
+
+  return `central:${host}`;
+};
+
 export const getAppOrigin = (): string => {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
 

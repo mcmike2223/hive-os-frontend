@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import {
   applyLandingTemplateMeta,
   buildTenantLandingPreviewHtml,
@@ -190,6 +190,7 @@ const updateBusinessTypeTemplate = (
 export function TenantLandingTemplateSettings() {
   const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
+  const workspaceScope = getWorkspaceScopeKey();
   const [catalog, setCatalog] = React.useState<TenantBusinessTypeDefinition[]>([]);
   const [selectedBusinessTypeKey, setSelectedBusinessTypeKey] = React.useState("general");
   const [selectedTemplateKey, setSelectedTemplateKey] = React.useState("signature");
@@ -206,14 +207,14 @@ export function TenantLandingTemplateSettings() {
   const [jsonError, setJsonError] = React.useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["landing-template-settings"],
+    queryKey: ["landing-template-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/landing-templates"),
     throwOnError: false,
     retry: 1,
   });
 
   const { data: brandingData } = useQuery({
-    queryKey: ["landing-template-preview-branding"],
+    queryKey: ["landing-template-preview-branding", workspaceScope],
     queryFn: () => apiFetch("/settings/brand/public"),
     throwOnError: false,
     retry: 1,

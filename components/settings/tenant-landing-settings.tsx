@@ -26,7 +26,7 @@ import { CodeEditor, type VirtualFile } from "@/components/ui/code-editor";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import {
   buildTenantLandingPreviewHtml,
   FALLBACK_TENANT_BUSINESS_TYPES,
@@ -103,6 +103,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 export function TenantLandingSettings() {
   const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
+  const workspaceScope = getWorkspaceScopeKey();
   const [catalog, setCatalog] = React.useState<TenantBusinessTypeDefinition[]>([]);
   const [selectedBusinessTypeKey, setSelectedBusinessTypeKey] = React.useState("general");
   const [selectedTemplateKey, setSelectedTemplateKey] = React.useState("signature");
@@ -112,14 +113,14 @@ export function TenantLandingSettings() {
   const [jsonError, setJsonError] = React.useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["tenant-landing-page-settings"],
+    queryKey: ["tenant-landing-page-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/landing"),
     throwOnError: false,
     retry: 1,
   });
 
   const { data: brandingData } = useQuery({
-    queryKey: ["landing-template-preview-branding"],
+    queryKey: ["landing-template-preview-branding", workspaceScope],
     queryFn: () => apiFetch("/settings/brand/public"),
     throwOnError: false,
     retry: 1,

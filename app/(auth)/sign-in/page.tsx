@@ -16,7 +16,7 @@ import { useTranslation } from "@/store/use-translation";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { logFrontendAction } from "@/lib/api"; 
 import { clearHiveSession } from "@/lib/auth-sync";
-import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getTenantId, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
+import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getTenantId, getWorkspaceScopeKey, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
 import { initializeSessionActivity } from "@/lib/session-activity";
 
 export default function LoginPage() {
@@ -32,11 +32,17 @@ export default function LoginPage() {
   const [isTenant, setIsTenant] = useState(false);
 
   const viewLogged = useRef(false);
+  const workspaceScope = getWorkspaceScopeKey();
 
   const { data: brandData } = useQuery({
-    queryKey: ["publicBrandSettings"],
+    queryKey: ["publicBrandSettings", workspaceScope],
     queryFn: async () => {
-      const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`);
+      const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
+        headers: {
+          Accept: "application/json",
+          ...getTenantHeaders(),
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch public brand settings");
       return res.json();
     },

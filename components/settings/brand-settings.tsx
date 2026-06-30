@@ -18,11 +18,7 @@ import { toast } from "sonner";
 import { useTranslation } from '@/store/use-translation';
 import { cn } from "@/lib/utils";
 import { logFrontendAction } from "@/lib/api";
-import { extractStorageRelativePath, getAccessToken, getBackendOrigin, getBackendStorageUrl } from "@/lib/runtime-context";
-
-const getApiUrl = () => {
-    return `${getBackendOrigin()}/api`;
-};
+import { extractStorageRelativePath, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getWorkspaceScopeKey } from "@/lib/runtime-context";
 
 // 🚀 CRITICAL FIX: Bulletproof URL Helper forces port 8085 to prevent broken images on reload
 const getStorageUrl = (url: string | null | undefined) => {
@@ -41,14 +37,14 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const workspaceScope = getWorkspaceScopeKey();
 
   // 1. Fetch ALL files from the File Manager API
   const { data, isLoading } = useQuery({
-    queryKey: ["files", "all"],
+    queryKey: ["files", "all", workspaceScope],
     queryFn: async () => {
-      const token = getAccessToken();
-      const res = await fetch(`${getApiUrl()}/v1/files?filter=all`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      const res = await fetch(`${getBackendApiRoot()}/files?filter=all`, {
+        headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error("Failed to fetch files");
       return res.json();
@@ -64,7 +60,6 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
   // 3. Handle Direct Upload
   const uploadMut = useMutation({
     mutationFn: async (file: File) => {
-      const token = getAccessToken();
       const formData = new FormData();
       formData.append("file", file);
       formData.append("chunk_index", "0");
@@ -72,8 +67,8 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
       formData.append("upload_id", `brand_${Date.now()}`);
       formData.append("original_name", file.name);
 
-      const res = await fetch(`${getApiUrl()}/v1/files/upload`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData
+      const res = await fetch(`${getBackendApiRoot()}/files/upload`, {
+        method: 'POST', headers: getAuthHeaders(), body: formData
       });
 
       if (!res.ok) throw new Error("Upload failed");
@@ -180,6 +175,7 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
 export function BrandSettings() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    const workspaceScope = getWorkspaceScopeKey();
 
     const [formData, setFormData] = useState({
         logo_light: '', logo_dark: '', favicon: '', sidebar_icon: '', app_title: '', footer_text: '',
@@ -195,11 +191,10 @@ export function BrandSettings() {
 
     // Fetch from Backend API
     const { data: settingsData, isLoading: isFetching } = useQuery({
-        queryKey: ['brandSettings'],
+        queryKey: ['brandSettings', 'protected', workspaceScope],
         queryFn: async () => {
-            const token = getAccessToken();
-            const res = await fetch(`${getApiUrl()}/v1/settings/brand`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const res = await fetch(`${getBackendApiRoot()}/settings/brand`, {
+                headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error("Failed to fetch settings");
             return res.json();
@@ -216,10 +211,9 @@ export function BrandSettings() {
 
     const saveSettingsMut = useMutation({
         mutationFn: async () => {
-            const token = getAccessToken();
-            const res = await fetch(`${getApiUrl()}/v1/settings/brand`, {
+            const res = await fetch(`${getBackendApiRoot()}/settings/brand`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(formData)
             });
             if (!res.ok) throw new Error("Failed to save settings");

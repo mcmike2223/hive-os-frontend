@@ -46,7 +46,7 @@ import {
 import { SecureAssetImage } from "@/components/ui/secure-asset-image";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { usePermissions } from "@/hooks/use-permissions";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import {
   resolveLandingTemplate,
   resolveBusinessTypeCatalog,
@@ -306,6 +306,7 @@ export default function HeroSliderPage() {
   const { hasAnyPermission, hasPermission } = usePermissions();
   const canBrowseAssetLibrary = hasAnyPermission(["view_storage", "manage_storage"]);
   const canManageStorage = hasPermission("manage_storage");
+  const workspaceScope = getWorkspaceScopeKey();
 
   // ── slides state ──
   const [slides, setSlides] = useState<TenantLandingHeroSlide[]>([]);
@@ -449,7 +450,7 @@ export default function HeroSliderPage() {
 
   // ── menu items (for the Menus Section tab) ──
   const { data: menuItemsData, isLoading: isLoadingMenuItems } = useQuery({
-    queryKey: ["hospitality", "menu-items", "all"],
+    queryKey: ["hospitality", "menu-items", "all", workspaceScope],
     queryFn: () => fetchHospitalityMenuItems({ per_page: 50, sortCol: "sort_order", sortDir: "asc" }),
   });
   const allMenuItems: HospitalityMenuItem[] = Array.isArray(menuItemsData) ? menuItemsData : (menuItemsData as any)?.rows ?? [];
@@ -535,7 +536,7 @@ export default function HeroSliderPage() {
 
   // ── fetch current template ──
   const { data: queryData, isLoading, isError, refetch } = useQuery({
-    queryKey: ["hospitality", "hero-slider-settings"],
+    queryKey: ["hospitality", "hero-slider-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/landing"),
     throwOnError: false,
     retry: 1,

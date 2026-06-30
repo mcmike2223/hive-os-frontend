@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from '@/store/use-translation';
 import { cn } from "@/lib/utils";
-import { getAccessToken, getBackendApiRoot, isTenantSession } from "@/lib/runtime-context";
+import { getAccessToken, getBackendApiRoot, getWorkspaceScopeKey, isTenantSession } from "@/lib/runtime-context";
 
 // ==========================================
 // 🚀 BULLETPROOF API ROUTING & FETCH WRAPPER
@@ -50,6 +50,7 @@ export function GeneralSettings() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [isTenantNode, setIsTenantNode] = useState<boolean | null>(null);
+    const workspaceScope = getWorkspaceScopeKey();
 
     const [formData, setFormData] = useState({
         support_email: '',
@@ -70,7 +71,7 @@ export function GeneralSettings() {
     });
 
     const { data: settingsData, isLoading: isFetching } = useQuery({
-        queryKey: ['globalSystemSettings'], 
+        queryKey: ['globalSystemSettings', workspaceScope],
         queryFn: () => apiFetch('/settings/general'),
     });
 

@@ -16,13 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { B2BDash, type B2BAdminOrder } from "@/modules/b2b-marketplace/api";
+import { getWorkspaceScopeKey } from "@/lib/runtime-context";
 
 const money = (n: number) => `$${(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const STATUSES = ["pending", "confirmed", "processing", "shipped", "completed", "cancelled"];
 
 export default function AdminOrders() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["b2b", "adminOrders"], queryFn: () => B2BDash.adminOrders() });
+  const workspaceScope = getWorkspaceScopeKey();
+  const q = useQuery({ queryKey: ["b2b", "adminOrders", workspaceScope], queryFn: () => B2BDash.adminOrders() });
   const orders = q.data ?? [];
   const invalidate = () => qc.invalidateQueries({ queryKey: ["b2b", "adminOrders"] });
 
@@ -37,7 +39,7 @@ export default function AdminOrders() {
   });
 
   // Commission rate (editable)
-  const settingsQ = useQuery({ queryKey: ["b2b", "marketplaceSettings"], queryFn: () => B2BDash.marketplaceSettings() });
+  const settingsQ = useQuery({ queryKey: ["b2b", "marketplaceSettings", workspaceScope], queryFn: () => B2BDash.marketplaceSettings() });
   const [commission, setCommission] = React.useState<string>("");
   React.useEffect(() => {
     if (settingsQ.data) setCommission(String(settingsQ.data.commission_percent));

@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getStoredHiveContextSignature, getTenantId, getStreamUrl, getStoredHiveContext } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getStoredHiveContextSignature, getTenantId, getStreamUrl, getStoredHiveContext, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { authenticatedDownload } from "@/lib/authenticated-download";
 import { useTranslation } from "@/store/use-translation";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -965,10 +965,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
         (module: any) => module.slug === checkoutModuleSlug
       ) ?? null
     : null;
+  const workspaceScope = getWorkspaceScopeKey();
 
   // --- Brand settings for video watermark ---
   const { data: brandData } = useQuery({
-    queryKey: ['brandSettings', 'file-manager'],
+    queryKey: ['publicBrandSettings', 'file-manager', workspaceScope],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
         headers: getAuthHeaders(),

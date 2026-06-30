@@ -42,6 +42,7 @@ import {
   getBackendStorageUrl,
   getTenantHeaders,
   getTenantId,
+  getWorkspaceScopeKey,
   isTenantHost,
 } from "@/lib/runtime-context";
 import { resolveLandingTemplate } from "@/modules/tenancy/landing-template";
@@ -207,6 +208,7 @@ function LandingUI({
     mounted && typeof window !== "undefined"
       ? getTenantId() || initialTenantSlug
       : initialTenantSlug;
+  const workspaceScope = getWorkspaceScopeKey();
   const isTenantExperience =
     mounted && typeof window !== "undefined"
       ? isTenantHost(window.location.hostname)
@@ -225,7 +227,7 @@ function LandingUI({
 
   // 🚀 FETCH PUBLIC BRAND SETTINGS
   const { data: brandData } = useQuery({
-    queryKey: ["publicBrandSettings", detectedTenantSlug, isTenantExperience],
+    queryKey: ["publicBrandSettings", detectedTenantSlug, isTenantExperience, workspaceScope],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
         headers: {

@@ -46,7 +46,7 @@ import {
     resolveTemplateVariant,
     type TenantLandingPreviewBranding,
 } from "@/modules/tenancy/landing-template";
-import { getBackendApiRoot } from "@/lib/runtime-context";
+import { getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -105,6 +105,7 @@ export function TenantsTableClient({ companySettings, brandingSettings }: Props)
     const { resolvedTheme } = useTheme();
     const { hasAnyPermission } = usePermissions();
     const { t, locale } = useTranslation(); // 🚀 Grab translator AND locale
+    const workspaceScope = getWorkspaceScopeKey();
 
     const canCreate = hasAnyPermission(["manage_tenants", "provision_tenants"]);
     const canEdit = hasAnyPermission(["manage_tenants", "edit_tenants"]);
@@ -166,7 +167,7 @@ const { data: subscriptionCatalogData } = useQuery({
 
     // Fetch business types from settings API (custom business types)
     const { data: settingsBusinessTypes } = useQuery({
-        queryKey: ["settings", "landing-templates"],
+        queryKey: ["settings", "landing-templates", workspaceScope],
         queryFn: async () => {
             const res = await fetch(`${getBackendApiRoot()}/settings/landing-templates`);
             const json = await res.json();

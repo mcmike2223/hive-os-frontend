@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
+import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${getBackendApiRoot()}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
@@ -151,9 +151,10 @@ export default function SeoSettings() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SeoForm>(EMPTY);
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const workspaceScope = getWorkspaceScopeKey();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["seo-settings"],
+    queryKey: ["seo-settings", workspaceScope],
     queryFn: () => apiFetch("/settings/seo"),
   });
 

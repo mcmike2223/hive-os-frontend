@@ -3,14 +3,16 @@
 
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl } from "@/lib/runtime-context";
+import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { applyBrandRuntime } from "@/lib/brand-theme";
 import { handleAuthFailureResponse } from "@/lib/auth-sync";
 
 export function BrandSyncProvider() {
+    const workspaceScope = getWorkspaceScopeKey();
+
     // 🚀 FETCH PROTECTED BRAND SETTINGS FOR METADATA SYNC
     const { data: brandData } = useQuery({
-      queryKey: ['brandSettings'],
+      queryKey: ['brandSettings', 'protected', workspaceScope],
       queryFn: async () => {
           const token = getAccessToken();
           if (!token) return null;

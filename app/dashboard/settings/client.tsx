@@ -25,6 +25,7 @@ import {
     getAuthHeaders,
     getBackendApiRoot,
     getBackendStorageUrl,
+    getWorkspaceScopeKey,
     isTenantSession,
 } from "@/lib/runtime-context";
 import { applyBrandRuntime, normalizeBrandHex, resolveBrandFontStack } from "@/lib/brand-theme";
@@ -205,6 +206,7 @@ function BrandSettings() {
     const { hasPermission, hasAnyPermission } = usePermissions();
     const canManageStorage = hasPermission("manage_storage");
     const canBrowseBrandLibrary = hasPermission("manage_brand_settings") || hasAnyPermission(["view_storage", "manage_storage"]);
+    const workspaceScope = getWorkspaceScopeKey();
 
     const [formData, setFormData] = useState<BrandFormData>(createInitialBrandForm());
     const [savedSnapshot, setSavedSnapshot] = useState<BrandFormData>(createInitialBrandForm());
@@ -218,7 +220,7 @@ function BrandSettings() {
     const savedBrandRef = React.useRef({ primary_color: '#10b981', font_family: 'Inter' });
 
     const { data: settingsData, isLoading } = useQuery({
-        queryKey: ['brandSettings'],
+        queryKey: ['brandSettings', 'protected', workspaceScope],
         queryFn: () => apiFetch('/settings/brand'),
     });
 
@@ -529,6 +531,7 @@ function GeneralSettings() {
     const queryClient = useQueryClient();
     const { roles } = usePermissions();
     const [isTenantNode, setIsTenantNode] = useState<boolean | null>(null);
+    const workspaceScope = getWorkspaceScopeKey();
 
     const [formData, setFormData] = useState({
         support_email: '', support_phone: '', system_email_name: '', system_email_address: '',
@@ -538,7 +541,7 @@ function GeneralSettings() {
     });
 
     const { data: settingsData, isLoading } = useQuery({
-        queryKey: ['globalSystemSettings'], 
+        queryKey: ['globalSystemSettings', workspaceScope],
         queryFn: () => apiFetch('/settings/general'),
     });
 

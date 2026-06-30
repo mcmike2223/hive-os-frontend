@@ -51,6 +51,7 @@ import {
   getBackendApiRoot,
   getBackendStorageUrl,
   getTenantHeaders,
+  getWorkspaceScopeKey,
   isTenantSession,
 } from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
@@ -210,8 +211,10 @@ export function MobileSidebar() {
     setIsTenantNode(isTenantSession());
   }, []);
 
+  const workspaceScope = getWorkspaceScopeKey();
+
   const { data: brandData } = useQuery({
-    queryKey: ["brandSettings"],
+    queryKey: ["publicBrandSettings", "sidebar", workspaceScope],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
         headers: {

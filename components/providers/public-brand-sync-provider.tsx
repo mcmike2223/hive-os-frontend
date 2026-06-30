@@ -2,14 +2,21 @@
 
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getBackendApiRoot, getBackendStorageUrl } from "@/lib/runtime-context";
+import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { applyBrandRuntime } from "@/lib/brand-theme";
 
 export function PublicBrandSyncProvider() {
+  const workspaceScope = getWorkspaceScopeKey();
+
   const { data: brandData } = useQuery({
-    queryKey: ["publicBrandSettings"],
+    queryKey: ["publicBrandSettings", workspaceScope],
     queryFn: async () => {
-      const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`);
+      const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
+        headers: {
+          Accept: "application/json",
+          ...getTenantHeaders(),
+        },
+      });
 
       if (!res.ok) throw new Error("Failed to fetch public brand settings");
       return res.json();

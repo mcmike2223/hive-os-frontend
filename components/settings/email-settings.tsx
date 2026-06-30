@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from '@/store/use-translation';
-import { getBackendApiRoot, getAuthHeaders, getTenantId } from "@/lib/runtime-context";
+import { getBackendApiRoot, getAuthHeaders, getTenantId, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { SettingsPanelSkeleton } from "@/components/ui/loading-states";
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
@@ -28,6 +28,7 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 export function EmailSettings() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    const workspaceScope = getWorkspaceScopeKey();
 
     const [formData, setFormData] = useState({
         mail_driver: 'smtp',
@@ -44,7 +45,7 @@ export function EmailSettings() {
     });
 
     const { data: settingsData, isLoading } = useQuery({
-        queryKey: ['emailSettings'], 
+        queryKey: ['emailSettings', workspaceScope],
         queryFn: () => apiFetch('/settings/email'),
     });
 
