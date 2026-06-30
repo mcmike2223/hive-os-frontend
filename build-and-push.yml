@@ -47,8 +47,8 @@ jobs:
           file: ./Dockerfile.prod
           push: true
           tags: |
-            ghcr.io/techiveet/hive-os-frontend:latest
-            ghcr.io/techiveet/hive-os-frontend:${{ github.sha }}
+            ghcr.io/mcmike2223/hive-os-frontend:latest
+            ghcr.io/mcmike2223/hive-os-frontend:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
