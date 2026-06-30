@@ -42,6 +42,7 @@ import api from "@/modules/shared/api/http";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useTenantModuleAccess } from "@/hooks/use-tenant-module-access";
 import { useTranslation } from "@/store/use-translation";
 import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, persistHiveContext } from "@/lib/runtime-context";
 
@@ -100,6 +101,8 @@ export function UsersTabClient(props: Props) {
   const canImpersonate = hasAnyPermission(["manage_users"]);
   const canManageStorage = hasAnyPermission(["manage_storage"]);
   const canBrowseAvatarLibrary = hasAnyPermission(["view_storage", "manage_storage"]);
+  const { hasModule } = useTenantModuleAccess();
+  const hasHospitalityModule = hasModule("hospitality");
 
   const isProtectedUser = React.useCallback((user: any) => {
     if (!user) return false;
@@ -259,9 +262,9 @@ export function UsersTabClient(props: Props) {
     placeholderData: (prev) => prev,
   });
 
-  const { data: rolesData } = useQuery({
+  const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useQuery({
     queryKey: ["roles", tenantId],
-    queryFn: () => fetchRoles(tenantId),
+    queryFn: () => fetchRoles({ nopaginate: true, tenant_id: tenantId }),
   });
 
   const { data: unlinkedStaff = [] } = useQuery({
@@ -276,7 +279,7 @@ export function UsersTabClient(props: Props) {
         return [];
       }
     },
-    enabled: !!createDialogOpen && !!tenantId,
+    enabled: !!createDialogOpen && !!tenantId && hasHospitalityModule,
   });
 
   const staffOptions = React.useMemo(() => {
@@ -514,7 +517,7 @@ export function UsersTabClient(props: Props) {
     if (formAvatarPath) payload.avatar_path = formAvatarPath;
     else if (isAvatarRemoved) payload.remove_avatar = "1";
 
-    if (formHospitalityStaffId !== undefined) {
+    if (hasHospitalityModule && formHospitalityStaffId !== undefined) {
       payload.hospitality_staff_id = formHospitalityStaffId === "none" || formHospitalityStaffId === ""
         ? null
         : Number(formHospitalityStaffId);
@@ -539,7 +542,7 @@ export function UsersTabClient(props: Props) {
       }
       // Non-422 errors are surfaced by the mutation's onError handler.
     }
-  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId]);
+  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule]);
 
   const getPrimaryRoleName = React.useCallback((u: any) => {
     if (u.role && typeof u.role === "string") return u.role;
@@ -826,7 +829,7 @@ export function UsersTabClient(props: Props) {
               <Separator />
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {tenantId && staffOptions.length > 0 && (
+                {tenantId && hasHospitalityModule && staffOptions.length > 0 && (
                   <div className="sm:col-span-2 space-y-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 p-4 rounded-2xl">
                     <Label htmlFor="hospitality_staff_id" className="text-indigo-500 dark:text-indigo-400 font-bold flex items-center gap-1.5 text-xs uppercase tracking-wider">
                       <VenetianMask className="h-4 w-4" /> Link to Hospitality Staff Profile (Optional)
@@ -933,6 +936,21 @@ export function UsersTabClient(props: Props) {
                       <SelectValue placeholder={t('users.select_role', "Select Role")} />
                     </SelectTrigger>
                     <SelectContent position="popper" side="bottom" className="max-h-[200px] rounded-xl border-border/50 shadow-xl">
+                      {isRolesLoading && (
+                        <SelectItem value="__roles_loading" disabled className="py-2.5">
+                          {t('users.loading_roles', 'Loading roles...')}
+                        </SelectItem>
+                      )}
+                      {isRolesError && (
+                        <SelectItem value="__roles_error" disabled className="py-2.5 text-destructive">
+                          {t('users.roles_unavailable', 'Roles unavailable')}
+                        </SelectItem>
+                      )}
+                      {!isRolesLoading && !isRolesError && assignableRoles.length === 0 && (
+                        <SelectItem value="__roles_empty" disabled className="py-2.5">
+                          {t('users.no_assignable_roles', 'No assignable roles')}
+                        </SelectItem>
+                      )}
                       {assignableRoles.map((r: any) => (
                         <SelectItem key={r.id} value={r.id} className="cursor-pointer py-2.5">
                           <div className="flex items-center gap-2 font-medium">{r.name}</div>
