@@ -73,13 +73,34 @@ import { ProjectAutomations } from "../components/ProjectAutomations";
 import { BacklogView } from "../components/BacklogView";
 import { FinancialReportView } from "../components/FinancialReportView";
 import { ProjectOverviewCharts } from "../components/ProjectOverviewCharts";
-import type { MemberRole, Project, ProjectStatus, Task } from "../types";
+import type { MemberRole, Project, ProjectMember, ProjectStatus, Task } from "../types";
 
 interface ProjectDetailPageProps {
   id: string;
 }
 
 type DetailView = "overview" | "board" | "list" | "gantt" | "calendar" | "resources" | "automations" | "backlog" | "financials" | "insights";
+
+const DEFAULT_BOARD_COLUMNS = [
+  { name: "Backlog", order: 0, is_done: false },
+  { name: "In Progress", order: 1, is_done: false },
+  { name: "In Review", order: 2, is_done: false },
+  { name: "Done", order: 3, is_done: true },
+];
+
+type ProjectGoalItem = {
+  id: number;
+  title: string;
+  is_completed: boolean;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error && error.message ? error.message : fallback;
+};
+
+const hasProjectMemberUser = (
+  user: ProjectMember["user"],
+): user is NonNullable<ProjectMember["user"]> => Boolean(user);
 
 const statusColors: Record<string, string> = {
   planning: "bg-sky-500/10 text-sky-600",
@@ -147,9 +168,9 @@ function ProjectOverview({
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<MemberRole>("member");
 
-  const { data: goals = [], refetch: refetchGoals } = useQuery({
+  const { data: goals = [], refetch: refetchGoals } = useQuery<ProjectGoalItem[]>({
     queryKey: ["project-goals", project.id],
-    queryFn: () => projectApi.getProjectGoals(project.id),
+    queryFn: async () => projectApi.getProjectGoals(project.id) as Promise<ProjectGoalItem[]>,
   });
 
   const { data: users = [] } = useQuery({
@@ -198,14 +219,14 @@ function ProjectOverview({
       refetchGoals();
       toast.success("Goal added");
     },
-    onError: (error: any) => toast.error(error.message || "Could not add goal"),
+    onError: (error: unknown) => toast.error(getErrorMessage(error, "Could not add goal")),
   });
 
   const toggleGoalMutation = useMutation({
     mutationFn: ({ id, is_completed }: { id: number, is_completed: boolean }) => 
       projectApi.updateProjectGoal(id, { is_completed }),
     onSuccess: () => refetchGoals(),
-    onError: (error: any) => toast.error(error.message || "Could not update goal"),
+    onError: (error: unknown) => toast.error(getErrorMessage(error, "Could not update goal")),
   });
 
   const deleteGoalMutation = useMutation({
@@ -214,7 +235,7 @@ function ProjectOverview({
       refetchGoals();
       toast.success("Goal removed");
     },
-    onError: (error: any) => toast.error(error.message || "Could not remove goal"),
+    onError: (error: unknown) => toast.error(getErrorMessage(error, "Could not remove goal")),
   });
 
   const addGoal = () => {
@@ -273,7 +294,7 @@ function ProjectOverview({
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t("project_management.project_managers", "Project Manager(s)")}</p>
                 <div className="flex flex-col gap-2">
-                  {project.members?.filter(m => m.role === 'manager').map(m => m.user).filter(Boolean).map((manager: any) => (
+                  {project.members?.filter(m => m.role === 'manager').map(m => m.user).filter(hasProjectMemberUser).map((manager) => (
                     <div key={manager.id} className="flex items-center gap-2">
                       <Avatar className="h-6 w-6 bg-muted">
                         <AvatarImage src={manager.avatar_path || undefined} />
@@ -336,7 +357,7 @@ function ProjectOverview({
           <Panel id="tour-pm-project-goals" title={t("project_management.project_goals", "Project Goals")}>
             <div className="space-y-4">
               <div className="divide-y rounded-md border max-h-[300px] overflow-y-auto custom-scrollbar">
-                {goals.map((goal: any) => (
+                {goals.map((goal) => (
                   <div key={goal.id} className="flex items-center justify-between gap-3 p-3 text-sm font-semibold group">
                     <label className="flex items-center gap-3 cursor-pointer flex-1">
                       <Checkbox 
@@ -649,12 +670,41 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
     [columns]
   );
 
-  const handleAddTask = (columnId?: string | null) => {
-    const nextColumnId = columnId || columns[0]?.id;
-    if (!nextColumnId) {
-      toast.error("Create a board column before adding tasks");
-      return;
+  const ensureDefaultTaskColumn = async () => {
+    if (columns[0]?.id) {
+      return columns[0].id;
     }
+
+    const toastId = toast.loading("Preparing task board...");
+
+    try {
+      const board = await projectApi.createBoard({
+        project_id: id,
+        name: "Main Board",
+        order: 0,
+      });
+
+      let firstColumnId: string | null = null;
+
+      for (const column of DEFAULT_BOARD_COLUMNS) {
+        const createdColumn = await projectApi.createColumn(board.id, column);
+        firstColumnId ??= createdColumn.id;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["project", id] });
+      toast.success("Task board is ready", { id: toastId });
+
+      return firstColumnId;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not prepare task board", { id: toastId });
+      return null;
+    }
+  };
+
+  const handleAddTask = async (columnId?: string | null) => {
+    const nextColumnId = columnId || columns[0]?.id || await ensureDefaultTaskColumn();
+    if (!nextColumnId) return;
+
     setSelectedColumnId(nextColumnId);
     setIsCreateTaskOpen(true);
   };
@@ -685,7 +735,7 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
         </div>
         <h2 className="text-2xl font-bold tracking-tight">{t("project_management.error_loading_project", "Error Loading Project")}</h2>
         <p className="mt-2 max-w-md text-muted-foreground">
-          {(error as any).message || t("project_management.error_loading_project_desc", "We couldn't retrieve the project details. This might be due to a network issue or the project might no longer exist.")}
+          {getErrorMessage(error, t("project_management.error_loading_project_desc", "We couldn't retrieve the project details. This might be due to a network issue or the project might no longer exist."))}
         </p>
         <div className="mt-8 flex gap-3">
           <Button variant="outline" asChild>

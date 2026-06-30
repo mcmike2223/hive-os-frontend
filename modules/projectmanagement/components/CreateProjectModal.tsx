@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CalendarIcon, ChevronDown, Loader2, TagIcon, UserIcon, UsersIcon, BriefcaseIcon, XCircleIcon, Coins, DollarSign, X, Github, Cpu, Globe, Terminal, Code2, Link as LinkIcon, ExternalLink, Clock } from "lucide-react";
+import { CalendarIcon, Loader2, TagIcon, UserIcon, BriefcaseIcon, XCircleIcon, X, Github, Cpu, Terminal, Link as LinkIcon, Clock } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -34,12 +34,11 @@ import {
   ComboboxEmpty,
   ComboboxItem,
   ComboboxList,
-  ComboboxValue,
   useComboboxAnchor,
 } from "@/components/ui/combobox";
 import { Project, ProjectStatus, TaskPriority, ProjectAttachment } from "../types";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
-import { FileIcon, PaperclipIcon, UploadIcon, Layout, Calendar as CalendarDays, Users as UsersGroup, Wallet, Cpu as CpuIcon, Paperclip, Settings, Info, BarChart3 } from "lucide-react";
+import { FileIcon, PaperclipIcon, UploadIcon, Users as UsersGroup, Wallet, Cpu as CpuIcon, Paperclip, Settings, Info, BarChart3 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "@/store/use-translation";
 
@@ -77,6 +76,25 @@ type CreateProjectPayload = {
   tech_stack?: string[] | null;
 };
 
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === "object" && "response" in error) {
+    const response = (error as ApiError).response;
+    if (response?.data?.message) {
+      return response.data.message;
+    }
+  }
+
+  return error instanceof Error && error.message ? error.message : fallback;
+};
+
 interface CreateProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -96,14 +114,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [description, setDescription] = useState(project?.description || "");
   const [status, setStatus] = useState<ProjectStatus>(project?.status || "planning");
   const [projectManagerIds, setProjectManagerIds] = useState<string[]>(
-    project?.members?.filter((m: any) => m.role === 'manager').map((m: any) => String(m.user_id)) || 
+    project?.members?.filter((member) => member.role === 'manager').map((member) => String(member.user_id)) || 
     (project?.project_manager_id ? [String(project.project_manager_id)] : [])
   );
   const [clientStakeholder, setClientStakeholder] = useState(project?.client_stakeholder || "");
   const [startDate, setStartDate] = useState<Date | undefined>(project?.start_date ? new Date(project.start_date) : undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(project?.end_date ? new Date(project.end_date) : undefined);
   const [priority, setPriority] = useState<TaskPriority>(project?.priority || "medium");
-  const [assignedTo, setAssignedTo] = useState<string[]>(project?.members?.map((m: any) => String(m.user_id)) || []);
+  const [assignedTo, setAssignedTo] = useState<string[]>(project?.members?.map((member) => String(member.user_id)) || []);
   const [tags, setTags] = useState<string[]>(project?.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [attachments, setAttachments] = useState<ProjectAttachment[]>(project?.attachments || []);
@@ -162,15 +180,15 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       setDescription(project.description || "");
       setStatus(project.status || "planning");
       const managerIds = project.members
-        ?.filter((m: any) => m.role === 'manager' || m.role === 'owner')
-        .map((m: any) => String(m.user_id)) || [];
+        ?.filter((member) => member.role === 'manager' || member.role === 'owner')
+        .map((member) => String(member.user_id)) || [];
       const primaryManagerId = project.project_manager_id ? [String(project.project_manager_id)] : [];
       setProjectManagerIds(Array.from(new Set([...managerIds, ...primaryManagerId])));
       setClientStakeholder(project.client_stakeholder || "");
       setStartDate(project.start_date ? new Date(project.start_date) : undefined);
       setEndDate(project.end_date ? new Date(project.end_date) : undefined);
       setPriority(project.priority || "medium");
-      setAssignedTo(Array.from(new Set(project.members?.map((m: any) => String(m.user_id)) || [])));
+      setAssignedTo(Array.from(new Set(project.members?.map((member) => String(member.user_id)) || [])));
       setTags(project.tags || []);
       setAttachments(project.attachments || []);
       setBudget(project.budget?.toString() || "");
@@ -228,8 +246,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       toast.success("Project spawned from template successfully");
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to spawn project");
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Failed to spawn project"));
     },
   });
 
@@ -246,8 +264,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       onOpenChange(false);
       if (!project) resetForm();
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || `Failed to ${project ? 'update' : 'create'} project`);
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, `Failed to ${project ? 'update' : 'create'} project`));
     },
   });
 
@@ -685,7 +703,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           <div ref={managerAnchor} className="flex min-h-14 w-full rounded-2xl bg-muted/10 border border-border/40 transition-all hover:bg-muted/20 focus-within:ring-2 focus-within:ring-primary/20 overflow-hidden px-2">
                             <ComboboxChips className="border-none bg-transparent shadow-none w-full py-2">
                               {projectManagerIds.map((id) => {
-                                const user = users.find((u: any) => String(u.id) === id);
+                                const user = users.find((candidate) => String(candidate.id) === id);
                                 return (
                                   <ComboboxChip key={id} value={id} className="bg-primary/10 text-primary border-primary/20 rounded-xl">
                                     {user?.name || id}
@@ -698,7 +716,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           <ComboboxContent anchor={managerAnchor} className="rounded-2xl border-border/40 shadow-2xl">
                             <ComboboxList>
                               <ComboboxEmpty>{t('project_management.no_personnel_found', 'No personnel found.')}</ComboboxEmpty>
-                              {users.map((user: any) => (
+                              {users.map((user) => (
                                 <ComboboxItem key={user.id} value={String(user.id)} className="rounded-xl font-bold text-xs">
                                   {user.name}
                                 </ComboboxItem>
@@ -721,7 +739,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           <div ref={assignedAnchor} className="flex min-h-14 w-full rounded-2xl bg-muted/10 border border-border/40 transition-all hover:bg-muted/20 focus-within:ring-2 focus-within:ring-primary/20 overflow-hidden px-2">
                             <ComboboxChips className="border-none bg-transparent shadow-none w-full py-2">
                               {assignedTo.map((id) => {
-                                const user = users.find((u: any) => String(u.id) === id);
+                                const user = users.find((candidate) => String(candidate.id) === id);
                                 return (
                                   <ComboboxChip key={id} value={id} className="bg-primary/10 text-primary border-primary/20 rounded-xl">
                                     {user?.name || id}
@@ -734,7 +752,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           <ComboboxContent anchor={assignedAnchor} className="rounded-2xl border-border/40 shadow-2xl">
                             <ComboboxList>
                               <ComboboxEmpty>{t('project_management.no_personnel_found', 'No personnel found.')}</ComboboxEmpty>
-                              {users.map((user: any) => (
+                              {users.map((user) => (
                                 <ComboboxItem key={user.id} value={String(user.id)} className="rounded-xl font-bold text-xs">
                                   {user.name}
                                 </ComboboxItem>

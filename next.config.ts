@@ -5,6 +5,31 @@ const skipBuildTypecheck =
   process.env.NEXT_SKIP_BUILD_TYPECHECK === "1" ||
   process.env.NEXT_SKIP_BUILD_TYPECHECK === "true";
 
+const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, "");
+
+const getApiRoot = (): string => {
+  const configured =
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8085/api/v1";
+
+  const normalized = trimTrailingSlashes(configured);
+
+  return /\/api\/v1$/i.test(normalized)
+    ? normalized
+    : `${normalized}/api/v1`;
+};
+
+const getApiOrigin = (): string => {
+  const apiRoot = getApiRoot();
+
+  try {
+    return new URL(apiRoot).origin;
+  } catch {
+    return apiRoot.replace(/\/api\/v1$/i, "");
+  }
+};
+
 const nextConfig: NextConfig = {
   output: "standalone",
   typescript: {
@@ -12,39 +37,37 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085";
+    const apiRoot = getApiRoot();
+    const apiOrigin = getApiOrigin();
+
     return [
       {
         source: "/api/v1/:path*",
-        destination: `${backendUrl}/api/v1/:path*`,
+        destination: `${apiRoot}/:path*`,
       },
       {
         source: "/sanctum/:path*",
-        destination: `${backendUrl}/sanctum/:path*`,
+        destination: `${apiOrigin}/sanctum/:path*`,
       },
     ];
   },
 
-  webpack(config, { isServer }) {
-    // Allow WASM imports (used by pdfjs-dist)
+  webpack(config) {
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
     };
+
     return config;
   },
   turbopack: {},
 };
 
 export default withSentryConfig(nextConfig, {
-  // Build-time options for the Sentry plugin.
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
-  // Quiet unless running in CI.
   silent: !process.env.CI,
-  // Only upload source maps when an auth token is provided (skipped in normal builds).
   authToken: process.env.SENTRY_AUTH_TOKEN,
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
-  // Tree-shake Sentry logger statements to reduce bundle size.
   disableLogger: true,
 });

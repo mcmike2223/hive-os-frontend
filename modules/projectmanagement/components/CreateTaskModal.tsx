@@ -74,8 +74,10 @@ import {
 } from "@/components/ui/tabs";
 import { useTranslation } from "@/store/use-translation";
 
+type Translate = (key: string, fallback: string, values?: Record<string, string>) => string;
+
 // Dynamic schema function with all fields strictly required
-const createTaskSchema = (projectStartDate?: Date, projectEndDate?: Date, t?: any) => {
+const createTaskSchema = (projectStartDate?: Date, projectEndDate?: Date, t?: Translate) => {
   return z.object({
     title: z
       .string()

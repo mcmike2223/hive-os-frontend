@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { getBackendOrigin, getTenantHeaders, getTenantId } from "@/lib/runtime-context";
+import { getBackendApiRoot, getTenantHeaders, getTenantId } from "@/lib/runtime-context";
 
 declare global {
   interface Window {
@@ -70,13 +70,11 @@ export const initEcho = (token: string) => {
       ? window.location.hostname
       : process.env.NEXT_PUBLIC_REVERB_HOST || window.location.hostname;
 
-  const reverbPort =
-    process.env.NEXT_PUBLIC_REVERB_HOST === 'localhost' || process.env.NEXT_PUBLIC_REVERB_HOST === 'reverb'
-      ? 9000
-      : Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? 9000);
+  const reverbPort = Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? 9000);
 
   const reverbScheme = window.location.protocol === 'https:' ? 'https' : (process.env.NEXT_PUBLIC_REVERB_SCHEME || 'http');
-  const sessionKey = `${getBackendOrigin()}::${getTenantId() ?? 'central'}::${token}`;
+  const backendApiRoot = getBackendApiRoot();
+  const sessionKey = `${backendApiRoot}::${getTenantId() ?? 'central'}::${token}`;
 
   if (window.Echo && window.__hiveEchoSessionKey !== sessionKey) {
     window.Echo.disconnect();
@@ -91,8 +89,8 @@ export const initEcho = (token: string) => {
       wsPort: reverbPort,
       wssPort: reverbPort,
       forceTLS: reverbScheme === 'https',
-      enabledTransports: ['ws', 'wss'],
-      authEndpoint: `${getBackendOrigin()}/api/v1/broadcasting/auth`,
+      enabledTransports: [reverbScheme === 'https' ? 'wss' : 'ws'],
+      authEndpoint: `${backendApiRoot}/broadcasting/auth`,
       auth: {
         headers: {
           Authorization: `Bearer ${token}`,

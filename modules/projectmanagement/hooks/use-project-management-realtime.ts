@@ -10,24 +10,38 @@ import {
 } from "@/lib/echo";
 import { getAccessToken } from "@/lib/runtime-context";
 
+type RealtimePayload = Record<string, unknown>;
+type TypingUser = { name: string; timestamp: number };
+type SendTyping = (isTyping: boolean, user: { id: string | number; name: string }) => void;
+
 type ProjectManagementRealtimeOptions = {
   projectId?: string | null;
-  onCommentCreated?: (payload: any) => void;
-  onCommentUpdated?: (payload: any) => void;
-  onCommentDeleted?: (payload: any) => void;
+  onCommentCreated?: (payload: RealtimePayload) => void;
+  onCommentUpdated?: (payload: RealtimePayload) => void;
+  onCommentDeleted?: (payload: RealtimePayload) => void;
 };
 
 type ProjectManagementEvent = {
   project_id?: string | number | null;
   action?: string;
-  payload?: any;
+  payload?: RealtimePayload;
+};
+
+type ProjectManagementTypingEvent = {
+  user_id?: string | number;
+  user_name?: string;
 };
 
 export function useProjectManagementRealtime(options: ProjectManagementRealtimeOptions = {}) {
-  const [typingUsers, setTypingUsers] = React.useState<Record<string, { name: string, timestamp: number }>>({});
-  const sendTypingRef = React.useRef<((isTyping: boolean, user: { id: string | number, name: string }) => void) | null>(null);
+  const [typingUsers, setTypingUsers] = React.useState<Record<string, TypingUser>>({});
+  const sendTypingRef = React.useRef<SendTyping | null>(null);
+  const callbackRefs = React.useRef<Pick<ProjectManagementRealtimeOptions, "onCommentCreated" | "onCommentUpdated" | "onCommentDeleted">>({});
   const queryClient = useQueryClient();
   const { projectId, onCommentCreated, onCommentUpdated, onCommentDeleted } = options;
+
+  useEffect(() => {
+    callbackRefs.current = { onCommentCreated, onCommentUpdated, onCommentDeleted };
+  }, [onCommentCreated, onCommentUpdated, onCommentDeleted]);
 
   useEffect(() => {
     const token = getAccessToken() || localStorage.getItem("token");
@@ -46,16 +60,16 @@ export function useProjectManagementRealtime(options: ProjectManagementRealtimeO
       const payload = event?.payload;
 
       // Check for specific comment actions if callbacks are provided
-      if ((action === 'project.comment_created' || action === 'comment.created') && onCommentCreated) {
-        onCommentCreated(payload);
+      if ((action === 'project.comment_created' || action === 'comment.created') && callbackRefs.current.onCommentCreated) {
+        callbackRefs.current.onCommentCreated(payload ?? {});
         return;
       }
-      if ((action === 'project.comment_updated' || action === 'comment.updated') && onCommentUpdated) {
-        onCommentUpdated(payload);
+      if ((action === 'project.comment_updated' || action === 'comment.updated') && callbackRefs.current.onCommentUpdated) {
+        callbackRefs.current.onCommentUpdated(payload ?? {});
         return;
       }
-      if ((action === 'project.comment_deleted' || action === 'comment.deleted') && onCommentDeleted) {
-        onCommentDeleted(payload);
+      if ((action === 'project.comment_deleted' || action === 'comment.deleted') && callbackRefs.current.onCommentDeleted) {
+        callbackRefs.current.onCommentDeleted(payload ?? {});
         return;
       }
 
@@ -78,14 +92,17 @@ export function useProjectManagementRealtime(options: ProjectManagementRealtimeO
     workspaceChannel.listen(".project-management.updated", refreshProjectManagement);
 
     // Typing indicators
-    const handleTyping = (event: any) => {
-      if (event.user_id && event.user_name) {
+    const handleTyping = (event: ProjectManagementTypingEvent) => {
+      const userId = event.user_id;
+      const userName = event.user_name;
+
+      if (userId && userName) {
         setTypingUsers(prev => ({
           ...prev,
-          [event.user_id]: { 
-            name: event.user_name, 
-            timestamp: Date.now() 
-          }
+          [String(userId)]: {
+            name: userName,
+            timestamp: Date.now(),
+          },
         }));
       }
     };
@@ -109,7 +126,7 @@ export function useProjectManagementRealtime(options: ProjectManagementRealtimeO
     }, 1000);
 
     let projectChannelName: string | null = null;
-    let projectChannel: any = null;
+    let projectChannel: typeof workspaceChannel | null = null;
     if (projectId) {
       projectChannelName = getProjectManagementProjectChannelName(projectId);
       projectChannel = echo.private(projectChannelName);
@@ -117,7 +134,7 @@ export function useProjectManagementRealtime(options: ProjectManagementRealtimeO
       projectChannel.listenForWhisper('typing', handleTyping);
     }
 
-    const sendTyping = (isTyping: boolean, user: { id: string | number, name: string }) => {
+    const sendTyping: SendTyping = (isTyping, user) => {
       if (isTyping) {
         workspaceChannel.whisper('typing', {
           user_id: user.id,
