@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { applyBrandRuntime } from "@/lib/brand-theme";
 import { handleAuthFailureResponse } from "@/lib/auth-sync";
+import { formatDocumentTitle } from "@/lib/document-title";
 
 export function BrandSyncProvider() {
     const workspaceScope = getWorkspaceScopeKey();
@@ -56,7 +57,7 @@ export function BrandSyncProvider() {
       // Safely apply Document Title
       if (brandSettings?.app_title) {
           // This ensures it overrides the default metadata title set in layout.tsx
-          document.title = `${brandSettings.app_title} | Dashboard`;
+          document.title = formatDocumentTitle(brandSettings.app_title, "Dashboard");
       }
     }, [brandSettings]);
 

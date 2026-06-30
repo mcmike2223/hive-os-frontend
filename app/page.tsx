@@ -50,6 +50,7 @@ import { TenantBusinessLanding } from "@/modules/tenancy/components/tenant-busin
 import { RestaurantLandingTemplate } from "@/modules/tenancy/components/restaurant-landing-template";
 import B2BLandingTemplate from "@/modules/tenancy/components/b2b-landing-template";
 import { MarketplacePreloader } from "@/modules/b2b-marketplace/components/MarketplacePreloader";
+import { formatDocumentTitle } from "@/lib/document-title";
 
 interface LandingUIProps {
   initialPortalName: string;
@@ -294,8 +295,8 @@ function LandingUI({
     }
     if (brandSettings?.app_title) {
       document.title = isTenantExperience
-        ? brandSettings.app_title
-        : `${brandSettings.app_title} | Enterprise Operations`;
+        ? formatDocumentTitle(brandSettings.app_title)
+        : formatDocumentTitle(brandSettings.app_title, "Enterprise Operations");
     }
   }, [brandSettings, isTenantExperience]);
 

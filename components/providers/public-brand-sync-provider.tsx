@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { applyBrandRuntime } from "@/lib/brand-theme";
+import { formatDocumentTitle } from "@/lib/document-title";
 
 export function PublicBrandSyncProvider() {
   const workspaceScope = getWorkspaceScopeKey();
@@ -46,7 +47,7 @@ export function PublicBrandSyncProvider() {
     }
 
     if (brandSettings?.app_title && !window.location.pathname.startsWith("/dashboard")) {
-      document.title = brandSettings.app_title;
+      document.title = formatDocumentTitle(brandSettings.app_title);
     }
   }, [brandSettings]);
 
