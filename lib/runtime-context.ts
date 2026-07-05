@@ -25,7 +25,10 @@ export const getStoredHiveContextSignature = (): string | null => {
   return value;
 };
 
-export const persistHiveContext = (context: string | null, signature?: string | null) => {
+export const persistHiveContext = (
+  context: string | null,
+  signature?: string | null,
+) => {
   if (typeof window === "undefined") return;
 
   if (context) {
@@ -44,16 +47,20 @@ export const persistHiveContext = (context: string | null, signature?: string | 
 const normalizeHost = (value: string | null | undefined): string | null => {
   if (!value) return null;
 
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .replace(/:\d+$/, "")
-    .replace(/\.+$/, "") || null;
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "")
+      .replace(/:\d+$/, "")
+      .replace(/\.+$/, "") || null
+  );
 };
 
-const extractConfiguredHost = (value: string | null | undefined): string | null => {
+const extractConfiguredHost = (
+  value: string | null | undefined,
+): string | null => {
   const normalized = normalizeHost(value);
 
   if (!normalized) {
@@ -68,8 +75,8 @@ const extractConfiguredHost = (value: string | null | undefined): string | null 
 };
 
 export const getCentralHosts = (): string[] => {
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'gulfingot.com';
-  
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "gulfingot.com";
+
   const configuredHosts = [
     rootDomain,
     `hive.${rootDomain}`,
@@ -77,7 +84,9 @@ export const getCentralHosts = (): string[] => {
     `hive-queue.${rootDomain}`,
     extractConfiguredHost(process.env.NEXT_PUBLIC_APP_URL),
     extractConfiguredHost(process.env.NEXT_PUBLIC_API_URL),
-    ...(process.env.NEXT_PUBLIC_CENTRAL_DOMAINS?.split(",") ?? []).map((value) => normalizeHost(value)),
+    ...(process.env.NEXT_PUBLIC_CENTRAL_DOMAINS?.split(",") ?? []).map(
+      (value) => normalizeHost(value),
+    ),
   ].filter((value): value is string => Boolean(value));
 
   return Array.from(new Set(["localhost", "127.0.0.1", ...configuredHosts]));
@@ -100,12 +109,16 @@ export const isTenantHost = (host: string): boolean => {
 export const isTenantSession = (): boolean => {
   if (typeof window === "undefined") return false;
 
+  if (isTenantHost(window.location.hostname)) {
+    return true;
+  }
+
   const context = getStoredHiveContext();
   if (context) {
     return context !== "central";
   }
 
-  return isTenantHost(window.location.hostname);
+  return false;
 };
 
 export const getTenantId = (): string | null => {
@@ -117,7 +130,7 @@ export const getTenantId = (): string | null => {
   }
 
   const host = window.location.hostname.toLowerCase();
-  
+
   // 1. Handle localhost subdomains
   if (host.endsWith(".localhost")) {
     return host.split(".")[0] || null;
@@ -125,9 +138,9 @@ export const getTenantId = (): string | null => {
 
   // 2. Handle production subdomains
   if (isTenantHost(host)) {
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'gulfingot.com';
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "gulfingot.com";
     if (host.endsWith(`.${rootDomain}`)) {
-      return host.replace(`.${rootDomain}`, '');
+      return host.replace(`.${rootDomain}`, "");
     }
     return normalizeHost(host);
   }
@@ -218,7 +231,8 @@ export const getBackendOrigin = (): string => {
   if (configuredApiRoot && configuredApiRoot.startsWith("http")) {
     try {
       const url = new URL(configuredApiRoot);
-      const onTenantHost = typeof window !== "undefined" && isTenantHost(window.location.hostname);
+      const onTenantHost =
+        typeof window !== "undefined" && isTenantHost(window.location.hostname);
       if (onTenantHost) {
         const protocol = window.location.protocol;
         const host = window.location.hostname;
@@ -251,7 +265,8 @@ export const getBackendApiRoot = (): string => {
   }
 
   const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
-  const onTenantHost = typeof window !== "undefined" && isTenantHost(window.location.hostname);
+  const onTenantHost =
+    typeof window !== "undefined" && isTenantHost(window.location.hostname);
 
   if (configured && onTenantHost) {
     try {
@@ -281,7 +296,7 @@ const getLocalPathname = (url: string): string => {
 
 /**
  * Converts a standard file serve URL into a signed media stream URL.
- * This allows native media players and 3D viewers to access protected 
+ * This allows native media players and 3D viewers to access protected
  * tenant media without manually adding Authorization headers.
  */
 export const getStreamUrl = (url: string | null | undefined): string => {
@@ -293,14 +308,15 @@ export const getStreamUrl = (url: string | null | undefined): string => {
 
   const fileId = match[1];
   const apiRoot = getBackendApiRoot();
-  const token = typeof window !== "undefined" ? localStorage.getItem("hive_token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("hive_token") : null;
   const tenantId = getStoredHiveContext();
   const tenantSignature = getStoredHiveContextSignature();
 
   const params = new URLSearchParams();
   if (token) params.set("token", token);
   if (tenantId) params.set("tenant", tenantId);
-  
+
   // Only add signature for tenant-scoped requests (not central)
   if (tenantId && tenantId !== "central" && tenantSignature) {
     params.set("signature", tenantSignature);
@@ -326,7 +342,9 @@ const getStorageAssetPath = (url: string | null | undefined): string | null => {
   const storagePrefix = "/storage/";
   const storageIndex = pathname.indexOf(storagePrefix);
   if (storageIndex !== -1) {
-    return pathname.slice(storageIndex + storagePrefix.length).replace(/^\/+/, "");
+    return pathname
+      .slice(storageIndex + storagePrefix.length)
+      .replace(/^\/+/, "");
   }
 
   if (pathname.startsWith("storage/")) {
@@ -347,15 +365,19 @@ type TenantHeaderOptions = {
   signatureOverride?: string | null;
 };
 
-export const getTenantHeaders = (options: TenantHeaderOptions = {}): Record<string, string> => {
+export const getTenantHeaders = (
+  options: TenantHeaderOptions = {},
+): Record<string, string> => {
   const tenantId = options.tenantOverride ?? getTenantId();
 
   if (!tenantId) {
     return {};
   }
 
-  const signature = options.signatureOverride ?? getStoredHiveContextSignature();
-  const tenantHost = typeof window !== "undefined" && isTenantHost(window.location.hostname);
+  const signature =
+    options.signatureOverride ?? getStoredHiveContextSignature();
+  const tenantHost =
+    typeof window !== "undefined" && isTenantHost(window.location.hostname);
 
   if (!tenantHost && !signature && !options.allowUnsigned) {
     return {};
@@ -367,7 +389,9 @@ export const getTenantHeaders = (options: TenantHeaderOptions = {}): Record<stri
   };
 };
 
-export const getAuthHeaders = (extras: Record<string, string> = {}): Record<string, string> => {
+export const getAuthHeaders = (
+  extras: Record<string, string> = {},
+): Record<string, string> => {
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...getTenantHeaders(),
@@ -391,13 +415,17 @@ export const getAccessToken = (): string | null => {
   return token;
 };
 
-export const getBackendStorageUrl = (url: string | null | undefined): string | null => {
+export const getBackendStorageUrl = (
+  url: string | null | undefined,
+): string | null => {
   if (!url) return null;
 
   const assetPath = getStorageAssetPath(url);
   if (assetPath) {
-    const onTenantHost = typeof window !== "undefined" && isTenantHost(window.location.hostname);
-    const basePath = onTenantHost || isTenantSession() ? "/tenancy/assets" : "/storage";
+    const onTenantHost =
+      typeof window !== "undefined" && isTenantHost(window.location.hostname);
+    const basePath =
+      onTenantHost || isTenantSession() ? "/tenancy/assets" : "/storage";
     return `${getBackendOrigin()}${basePath}/${assetPath}`;
   }
 
@@ -409,11 +437,17 @@ export const getBackendStorageUrl = (url: string | null | undefined): string | n
   return `${getBackendOrigin()}${normalizedPath}`;
 };
 
-export const getPublicServeUrl = (url: string | null | undefined): string | null => {
+export const getPublicServeUrl = (
+  url: string | null | undefined,
+): string | null => {
   if (!url) return null;
 
   // Convert private serve URL to public-serve URL for public pages
-  if (typeof url === "string" && url.includes("/files/") && url.includes("/serve")) {
+  if (
+    typeof url === "string" &&
+    url.includes("/files/") &&
+    url.includes("/serve")
+  ) {
     const publicUrl = url.replace("/serve", "/public-serve");
     return getBackendStorageUrl(publicUrl);
   }
@@ -421,7 +455,9 @@ export const getPublicServeUrl = (url: string | null | undefined): string | null
   return getBackendStorageUrl(url);
 };
 
-export const extractStorageRelativePath = (url: string | null | undefined): string | null => {
+export const extractStorageRelativePath = (
+  url: string | null | undefined,
+): string | null => {
   if (!url) return null;
 
   const assetPath = getStorageAssetPath(url);
@@ -432,7 +468,9 @@ export const extractStorageRelativePath = (url: string | null | undefined): stri
   return getLocalPathname(url);
 };
 
-export const handleAuthFailureResponse = async (res: Response): Promise<boolean> => {
+export const handleAuthFailureResponse = async (
+  res: Response,
+): Promise<boolean> => {
   if (res.status === 401) {
     if (typeof window !== "undefined") {
       window.location.href = "/sign-in";

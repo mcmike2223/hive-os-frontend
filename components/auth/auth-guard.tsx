@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSystemSettings } from "@/components/providers/settings-provider";
 import { handleAuthFailureResponse } from "@/lib/auth-sync";
-import { getAccessToken, getBackendApiRoot, getTenantHeaders, isTenantSession } from "@/lib/runtime-context";
-import { canAccessDashboardRoute } from "@/lib/route-permissions";
+import { canAccessDashboardPath } from "@/lib/dashboard-access";
+import {
+  getAccessToken,
+  getBackendApiRoot,
+  getTenantHeaders,
+  isTenantSession,
+} from "@/lib/runtime-context";
 import { FullScreenPlaceholder } from "@/components/ui/loading-states";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -18,6 +23,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    setCheckingAuth(true);
 
     const validateSession = async () => {
       const token = getAccessToken();
@@ -59,16 +65,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           window.dispatchEvent(new Event("hive_security_cleared"));
 
           if (
-            pathname.startsWith("/dashboard")
-            && pathname !== "/dashboard/subscription-required"
-            && !canAccessDashboardRoute(pathname, {
-              hasPermission: (permission) => (freshUser.permissions ?? []).includes(permission),
-              hasAnyPermission: (permissions) => permissions.some((permission) => (freshUser.permissions ?? []).includes(permission)),
-              hasModule: (slug) => Boolean(freshUser.module_access?.statuses?.[slug]?.active),
-              canBypassModuleSubscriptions: Boolean(freshUser.central_control_override || freshUser.module_access?.bypass_checks),
-            })
+            pathname.startsWith("/dashboard") &&
+            pathname !== "/dashboard/subscription-required" &&
+            !canAccessDashboardPath(pathname, freshUser)
           ) {
-            router.replace(`/dashboard/subscription-required?from=${encodeURIComponent(pathname)}`);
+            router.replace(
+              `/dashboard/subscription-required?from=${encodeURIComponent(pathname)}`,
+            );
             if (isMounted) {
               setIsAuthorized(false);
               setCheckingAuth(false);
