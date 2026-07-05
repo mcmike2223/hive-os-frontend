@@ -213,7 +213,7 @@ export const processFileUploadQueue = async (queryClient?: QueryClient): Promise
   let syncedAny = false;
 
   try {
-    let items = await getAllForScope();
+    const items = await getAllForScope();
 
     for (const record of items) {
       if (!onlineManager.isOnline()) break;

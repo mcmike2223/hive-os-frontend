@@ -187,7 +187,7 @@ export default function B2BLandingEditor() {
     setCurrentTemplate(tpl);
     applyB2b(tpl.b2b);
     setIsDirty(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [queryData]);
 
   const saveMutation = useMutation({

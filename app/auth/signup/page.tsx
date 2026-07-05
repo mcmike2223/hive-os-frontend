@@ -52,6 +52,43 @@ type CatalogModule = {
   name: string;
 };
 
+type DirectTransferBankAccount = {
+  id: string;
+  label?: string;
+  bank_name?: string;
+  account_name?: string;
+  account_number?: string;
+  branch?: string | null;
+  notes?: string | null;
+};
+
+type CheckoutErrorResponse = {
+  response?: {
+    data?: {
+      errors?: Record<string, string[] | string>;
+      message?: string;
+    };
+  };
+  message?: string;
+};
+
+function getCheckoutErrorMessage(error: unknown) {
+  const candidate = error as CheckoutErrorResponse;
+  const validationErrors = candidate.response?.data?.errors;
+  const validationSummary = validationErrors
+    ? Object.values(validationErrors)
+        .flatMap((value) => (Array.isArray(value) ? value : [value]))
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(" ")
+    : null;
+
+  return validationSummary
+    || candidate.response?.data?.message
+    || candidate.message
+    || "Checkout failed. Please try again.";
+}
+
 const PLAN_META: Record<string, PlanMeta> = {
   larva: {
     label: "Larva", tagline: "Free forever — start small",
@@ -222,6 +259,7 @@ export default function TenantSignupPage() {
   const [graceExpired, setGraceExpired] = useState(false);
   const checkRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedCheckoutReturnRef = useRef(false);
+  const appliedBusinessTypeFromQueryRef = useRef(false);
 
   // Derive tenantId from orgName
   useEffect(() => {
@@ -315,6 +353,27 @@ export default function TenantSignupPage() {
     }
   }, [businessType, businessTypeMap, businessTypes]);
 
+  useEffect(() => {
+    if (appliedBusinessTypeFromQueryRef.current || typeof window === "undefined" || businessTypes.length === 0) {
+      return;
+    }
+
+    const requestedBusinessType = new URLSearchParams(window.location.search)
+      .get("business_type")
+      ?.trim()
+      .toLowerCase();
+
+    if (!requestedBusinessType) {
+      appliedBusinessTypeFromQueryRef.current = true;
+      return;
+    }
+
+    if (businessTypeMap[requestedBusinessType]) {
+      setBusinessType(requestedBusinessType);
+      appliedBusinessTypeFromQueryRef.current = true;
+    }
+  }, [businessTypeMap, businessTypes.length]);
+
   const planMeta = planMap[selectedPlan] ?? planOptions[0] ?? { ...PLAN_META.business, key: "business", monthlyPriceEtb: fallbackAmount(PLAN_META.business) };
   const isFree = planMeta.monthlyPriceEtb <= 0;
 
@@ -398,7 +457,7 @@ export default function TenantSignupPage() {
 
   // Checkout mutation
   const checkoutMutation = useMutation({
-    mutationFn: (payload: any) => startPublicSubscriptionCheckout(payload),
+    mutationFn: (payload: unknown) => startPublicSubscriptionCheckout(payload),
     onSuccess: (res) => {
       const order = res?.data?.order;
       const checkoutUrlRes = order?.provider_checkout_url || res?.data?.checkout_url;
@@ -409,12 +468,8 @@ export default function TenantSignupPage() {
         setStep("confirm");
       }
     },
-    onError: (err: any) => {
-      const validationErrors = err?.response?.data?.errors;
-      const validationSummary = validationErrors
-        ? Object.values(validationErrors).flat().filter(Boolean).slice(0, 3).join(" ")
-        : null;
-      setError(validationSummary || err?.response?.data?.message || err?.message || "Checkout failed. Please try again.");
+    onError: (err: unknown) => {
+      setError(getCheckoutErrorMessage(err));
     },
   });
 
@@ -1214,7 +1269,7 @@ export default function TenantSignupPage() {
                         )}
 
                         <div className="space-y-3">
-                          {(directTransfer?.bank_accounts ?? []).map((account: any) => (
+                          {((directTransfer?.bank_accounts ?? []) as DirectTransferBankAccount[]).map((account) => (
                             <button
                               key={account.id}
                               type="button"

@@ -240,10 +240,10 @@ function printSimpleTable(
   // Filter out system keys that shouldn't be printed
   const keys = Object.keys(dataRows[0]).filter(key => !["id", "uuid", "user_id", "serial", "tenant_id", "logo_url"].includes(key));
   
-  let headers = `<th width="6%">SEQ</th>` + keys.map(k => `<th>${escapeHtml(k.replace(/_/g, " ").toUpperCase())}</th>`).join("");
+  const headers = `<th width="6%">SEQ</th>` + keys.map(k => `<th>${escapeHtml(k.replace(/_/g, " ").toUpperCase())}</th>`).join("");
   
   // Create rows with zero-padded Sequence numbers (0001, 0002, etc.)
-  let rows = dataRows.map((row, i) => 
+  const rows = dataRows.map((row, i) => 
     `<tr>
       <td class="seq">${String(i + 1).padStart(4, '0')}</td>
       ${keys.map(k => `<td>${escapeHtml(row[k] ?? "")}</td>`).join("")}

@@ -61,6 +61,15 @@ export const PROJECT_MANAGEMENT_PROJECT_ROUTE_PERMISSIONS = ["view_projects", "m
 export const PROJECT_MANAGEMENT_TASK_ROUTE_PERMISSIONS = ["view_tasks", "manage_tasks"] as const;
 export const PROJECT_MANAGEMENT_TEAM_ROUTE_PERMISSIONS = ["view_project_team", "manage_project_team"] as const;
 export const PROJECT_MANAGEMENT_REPORT_ROUTE_PERMISSIONS = ["view_project_reports", "manage_project_reports"] as const;
+export const LEARNING_MANAGEMENT_ROUTE_PERMISSIONS = [
+  "view_learning_management",
+  "manage_learning_management",
+  "view_lms_courses",
+  "manage_lms_courses",
+] as const;
+export const LEARNING_MANAGEMENT_COURSE_ROUTE_PERMISSIONS = ["view_lms_courses", "manage_lms_courses"] as const;
+export const LEARNING_MANAGEMENT_LEARNER_ROUTE_PERMISSIONS = ["view_lms_learners", "manage_lms_enrollments"] as const;
+export const LEARNING_MANAGEMENT_REPORT_ROUTE_PERMISSIONS = ["view_lms_reports", "manage_lms_reports"] as const;
 
 export type RoutePermissionAccess = {
   hasPermission: (permission: string) => boolean;
@@ -220,6 +229,29 @@ export function canAccessDashboardRoute(rawPath: string, access: RoutePermission
     }
 
     return access.hasAnyPermission([...PROJECT_MANAGEMENT_ROUTE_PERMISSIONS]);
+  }
+
+  if (matchesPrefix(path, "/dashboard/learning-management")) {
+    if (!hasSubscribedModule(access, "learning_management")) {
+      return false;
+    }
+
+    if (matchesPrefix(path, "/dashboard/learning-management/courses")) {
+      return access.hasAnyPermission([...LEARNING_MANAGEMENT_COURSE_ROUTE_PERMISSIONS]);
+    }
+
+    if (matchesPrefix(path, "/dashboard/learning-management/learners")) {
+      return access.hasAnyPermission([...LEARNING_MANAGEMENT_LEARNER_ROUTE_PERMISSIONS]);
+    }
+
+    if (matchesPrefix(path, "/dashboard/learning-management/reports")) {
+      return access.hasAnyPermission([...LEARNING_MANAGEMENT_REPORT_ROUTE_PERMISSIONS]);
+    }
+
+    return access.hasAnyPermission([
+      ...LEARNING_MANAGEMENT_ROUTE_PERMISSIONS,
+      "view_my_learning",
+    ]);
   }
 
   if (matchesPrefix(path, "/dashboard/tools/converter") || matchesPrefix(path, "/dashboard/tools/converters")) {

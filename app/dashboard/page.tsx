@@ -207,8 +207,8 @@ export default function DashboardHome() {
                 queryClient.setQueryData(['dashboardMetrics', tenantName], (oldData: any) => {
                     if (!oldData) return oldData;
 
-                    let newStats = { ...oldData.stats };
-                    let newBusiness = oldData.business ? { ...oldData.business } : undefined;
+                    const newStats = { ...oldData.stats };
+                    const newBusiness = oldData.business ? { ...oldData.business } : undefined;
 
                     // ISOLATED: Only process these calculations if on Central
                     if (tenantName === 'CENTRAL') {

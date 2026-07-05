@@ -26,6 +26,7 @@ import {
   KanbanSquare,
   LayoutDashboard,
   Utensils,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -187,6 +188,7 @@ function SidebarInner({
   const [isHospitalityOpen, setIsHospitalityOpen] = useState(false);
   const [isProjectManagementOpen, setIsProjectManagementOpen] = useState(false);
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
+  const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
@@ -273,7 +275,8 @@ function SidebarInner({
           .toLowerCase()
           .includes(searchQuery.toLowerCase()) &&
         item.moduleId !== "projectmanagement" &&
-        item.moduleId !== "workflow",
+        item.moduleId !== "workflow" &&
+        item.moduleId !== "lms",
     );
   }, [hasAccess, searchQuery, t, isMounted]);
 
@@ -297,6 +300,16 @@ function SidebarInner({
             .includes(searchQuery.toLowerCase()),
       )
     : [];
+  const lmsFromSecondary = isMounted
+    ? DASHBOARD_SECONDARY.filter(
+        (item) =>
+          item.moduleId === "lms" &&
+          hasAccess(item) &&
+          t(item.translationKey, item.fallbackLabel)
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()),
+      )
+    : [];
 
   const moduleNavItems = [
     ...filteredNav.filter(
@@ -306,10 +319,12 @@ function SidebarInner({
         item.moduleId === "warehouse" ||
         item.moduleId === "workflow" ||
         item.moduleId === "projectmanagement" ||
+        item.moduleId === "lms" ||
         item.moduleId === "b2b-marketplace",
     ),
     ...projectManagementFromSecondary,
     ...workflowFromSecondary,
+    ...lmsFromSecondary,
   ];
   const standardNavItems = filteredNav.filter(
     (item) =>
@@ -318,6 +333,7 @@ function SidebarInner({
       item.moduleId !== "warehouse" &&
       item.moduleId !== "workflow" &&
       item.moduleId !== "projectmanagement" &&
+      item.moduleId !== "lms" &&
       item.moduleId !== "b2b-marketplace" &&
       item.href !== "/dashboard/landing-templates",
   );
@@ -335,6 +351,9 @@ function SidebarInner({
   );
   const workflowModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "workflow",
+  );
+  const lmsModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "lms",
   );
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
@@ -360,6 +379,10 @@ function SidebarInner({
     if (pathname.startsWith("/dashboard/workflow")) {
       setIsModulesOpen(true);
       setIsWorkflowOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/learning-management")) {
+      setIsModulesOpen(true);
+      setIsLmsOpen(true);
     }
     if (pathname.startsWith("/dashboard/b2b-marketplace")) {
       setIsModulesOpen(true);
@@ -832,6 +855,60 @@ function SidebarInner({
                         {isWorkflowOpen && (
                           <div className="flex flex-col gap-1 pl-4">
                             {workflowModuleItems.map((item) => {
+                              const active =
+                                item.href === "/dashboard"
+                                  ? pathname === "/dashboard"
+                                  : pathname === item.href ||
+                                    pathname.startsWith(item.href + "/");
+                              const Icon = item.icon;
+                              const label = t(
+                                item.translationKey,
+                                item.fallbackLabel,
+                              );
+
+                              return (
+                                <Link
+                                  key={item.href}
+                                  id={item.tourId}
+                                  href={item.href}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
+                                    active
+                                      ? "hive-sidebar-nested-active"
+                                      : "hive-sidebar-nested-idle",
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {lmsModuleItems.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => setIsLmsOpen(!isLmsOpen)}
+                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                        >
+                          <div className="flex items-center gap-3">
+                            <GraduationCap className="h-4 w-4 shrink-0" />
+                            <span className="truncate">
+                              {t("nav.lms", "LMS")}
+                            </span>
+                          </div>
+                          {isLmsOpen ? (
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 opacity-50" />
+                          )}
+                        </button>
+                        {isLmsOpen && (
+                          <div className="flex flex-col gap-1 pl-4">
+                            {lmsModuleItems.map((item) => {
                               const active =
                                 item.href === "/dashboard"
                                   ? pathname === "/dashboard"
