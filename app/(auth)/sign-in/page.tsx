@@ -19,6 +19,26 @@ import { clearHiveSession } from "@/lib/auth-sync";
 import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getTenantId, getWorkspaceScopeKey, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
 import { initializeSessionActivity } from "@/lib/session-activity";
 
+const POST_LOGIN_REDIRECT_STORAGE_KEY = "hive_post_login_redirect";
+
+const resolveSafePostLoginRedirect = () => {
+  if (typeof window === "undefined") {
+    return "/dashboard";
+  }
+
+  const redirect = new URLSearchParams(window.location.search).get("redirect")?.trim();
+
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//") || redirect.includes("\\")) {
+    return "/dashboard";
+  }
+
+  return redirect;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 export default function LoginPage() {
   const router = useRouter();
   
@@ -102,6 +122,7 @@ export default function LoginPage() {
       // If the user manually enabled 2FA OR the system globally enforces it
       if (data.requires_2fa || data.global_2fa_enforced) {
         sessionStorage.setItem("hive_pending_email", email);
+        sessionStorage.setItem(POST_LOGIN_REDIRECT_STORAGE_KEY, resolveSafePostLoginRedirect());
         if (data.two_factor_token) sessionStorage.setItem("hive_2fa_token", data.two_factor_token);
         
         // 🚀 FORCED SETUP: If they haven't configured it yet but the system demands it
@@ -128,11 +149,12 @@ export default function LoginPage() {
       sessionStorage.removeItem("hive_eject_reason");
 
       await logFrontendAction({ module: 'UI Telemetry', action: 'session_initialized', description: `Operator ${email} authenticated.` }).catch(()=>{});
-      window.location.href = "/dashboard";
+      window.location.href = resolveSafePostLoginRedirect();
       
-    } catch (err: any) {
-      logFrontendAction({ module: 'Auth', action: 'login_failed', description: `Failed: ${err.message}` }).catch(()=>{});
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Invalid credentials provided");
+      logFrontendAction({ module: 'Auth', action: 'login_failed', description: `Failed: ${message}` }).catch(()=>{});
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -46,7 +46,11 @@ export function PublicBrandSyncProvider() {
       }
     }
 
-    if (brandSettings?.app_title && !window.location.pathname.startsWith("/dashboard")) {
+    if (
+      brandSettings?.app_title &&
+      window.location.pathname !== "/" &&
+      !window.location.pathname.startsWith("/dashboard")
+    ) {
       document.title = formatDocumentTitle(brandSettings.app_title);
     }
   }, [brandSettings]);

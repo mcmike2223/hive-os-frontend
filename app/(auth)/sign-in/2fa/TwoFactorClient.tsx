@@ -16,6 +16,26 @@ import { QRCodeSVG } from "qrcode.react"; // 🚀 Used for forced setup
 import { getBackendApiRoot, getTenantHeaders, getTenantId, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
 import { initializeSessionActivity } from "@/lib/session-activity";
 
+const POST_LOGIN_REDIRECT_STORAGE_KEY = "hive_post_login_redirect";
+
+const resolveStoredPostLoginRedirect = () => {
+  if (typeof window === "undefined") {
+    return "/dashboard";
+  }
+
+  const redirect = sessionStorage.getItem(POST_LOGIN_REDIRECT_STORAGE_KEY)?.trim();
+
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//") || redirect.includes("\\")) {
+    return "/dashboard";
+  }
+
+  return redirect;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 export default function TwoFactorClient() {
   const router = useRouter();
   
@@ -101,10 +121,13 @@ export default function TwoFactorClient() {
       sessionStorage.removeItem("hive_eject_reason");
 
       await logFrontendAction({ module: 'Auth - 2FA', action: 'login_success', description: `2FA verification passed.` }).catch(()=>{});
-      window.location.href = "/dashboard";
-    } catch (err: any) {
-      logFrontendAction({ module: 'Auth - 2FA', action: 'login_failed', description: `2FA verification failed: ${err.message}` }).catch(()=>{});
-      setError(err.message);
+      const redirectPath = resolveStoredPostLoginRedirect();
+      sessionStorage.removeItem(POST_LOGIN_REDIRECT_STORAGE_KEY);
+      window.location.href = redirectPath;
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Invalid authentication code.");
+      logFrontendAction({ module: 'Auth - 2FA', action: 'login_failed', description: `2FA verification failed: ${message}` }).catch(()=>{});
+      setError(message);
       setCode(""); 
     } finally {
       setLoading(false);

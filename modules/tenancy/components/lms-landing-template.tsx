@@ -1,0 +1,1171 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import * as React from "react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  BookOpenCheck,
+  CalendarCheck2,
+  Clock3,
+  GraduationCap,
+  Layers3,
+  LibraryBig,
+  LineChart,
+  MonitorPlay,
+  PlayCircle,
+  Quote,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  UsersRound,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { formatDocumentTitle } from "@/lib/document-title";
+import { getBackendStorageUrl } from "@/lib/runtime-context";
+import { cn } from "@/lib/utils";
+import { publicLearningApi, type LmsPublicLanding } from "@/modules/Lms/api";
+import type {
+  TenantLandingCard,
+  TenantLandingFaq,
+  TenantLandingServiceCard,
+  TenantLandingTemplate,
+} from "@/modules/tenancy/landing-template";
+
+type BrandSettings = {
+  app_title?: string | null;
+  logo_light?: string | null;
+  logo_dark?: string | null;
+  primary_color?: string | null;
+};
+
+type LmsLandingTemplateProps = {
+  brandSettings?: BrandSettings | null;
+  template: TenantLandingTemplate;
+  tenantName: string;
+};
+
+type LmsCourseCard = {
+  id?: string;
+  title: string;
+  description: string;
+  category: string;
+  image: string;
+  duration: string;
+  lessons: string;
+  level: string;
+  rating: string;
+  enrollHref?: string;
+  detailHref?: string;
+  instructor?: string;
+  badge?: string;
+};
+
+type LmsInstructor = {
+  name: string;
+  role: string;
+  image: string;
+  description: string;
+};
+
+type LmsStyleVars = React.CSSProperties & {
+  "--lms-accent": string;
+  "--lms-accent-soft": string;
+  "--lms-accent-text": string;
+  "--lms-navy": string;
+  "--lms-navy-2": string;
+  "--lms-green": string;
+  "--lms-muted": string;
+};
+
+/* Design tokens lifted from the lms2 template css (Educrat design system). */
+const NAVY = "#140342";
+const NAVY_2 = "#1A064F";
+const NAVY_CARD = "#2B1C63";
+const PURPLE = "#6440FB";
+const LAVENDER = "#EBEAFE";
+const GREEN = "#00FF84";
+const GREEN_DARK = "#04D697";
+const BEIGE = "#FEFBF4";
+const STAR_YELLOW = "#E59819";
+const MUTED = "#4F547B";
+const LIGHT_BG = "#F7F8FB";
+
+const FONT_STACK = '"DM Sans", "DM Sans Fallback", ui-sans-serif, system-ui, sans-serif';
+const FONT_HREF =
+  "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap";
+
+const LMS_MY_LEARNING_PATH = "/dashboard/learning-management?tab=my-learning";
+const LOGIN_HREF = `/sign-in?redirect=${encodeURIComponent(LMS_MY_LEARNING_PATH)}`;
+const REGISTER_HREF = "/lms-register";
+const COURSE_CATALOG_HREF = "/courses";
+
+const COURSE_IMAGES = [
+  "/lms2/img/coursesCards/1.png",
+  "/lms2/img/coursesCards/2.png",
+  "/lms2/img/coursesCards/3.png",
+  "/lms2/img/coursesCards/4.png",
+  "/lms2/img/coursesCards/5.png",
+  "/lms2/img/coursesCards/6.png",
+];
+
+const INSTRUCTOR_IMAGES = [
+  "/lms2/img/team/1.png",
+  "/lms2/img/team/2.png",
+  "/lms2/img/team/3.png",
+  "/lms2/img/team/4.png",
+];
+
+const HERO_IMAGE = "/lms2/img/masthead/1.png";
+
+const DEFAULT_CATEGORIES = [
+  "Course Design",
+  "Compliance",
+  "Onboarding",
+  "Leadership",
+  "Product Training",
+  "Certification",
+  "Analytics",
+  "Team Enablement",
+];
+
+const DEFAULT_COURSES: LmsCourseCard[] = [
+  {
+    title: "Structured onboarding essentials",
+    description: "Build a reliable first-week learning path for new team members.",
+    category: "Onboarding",
+    image: COURSE_IMAGES[0],
+    duration: "4 weeks",
+    lessons: "12 lessons",
+    level: "Beginner",
+    rating: "4.9",
+  },
+  {
+    title: "Compliance training operations",
+    description: "Assign required training and keep completion records audit-ready.",
+    category: "Compliance",
+    image: COURSE_IMAGES[1],
+    duration: "3 weeks",
+    lessons: "9 lessons",
+    level: "Intermediate",
+    rating: "4.8",
+  },
+  {
+    title: "Manager coaching pathway",
+    description: "Guide managers through repeatable coaching, review, and feedback habits.",
+    category: "Leadership",
+    image: COURSE_IMAGES[2],
+    duration: "6 weeks",
+    lessons: "18 lessons",
+    level: "Advanced",
+    rating: "4.9",
+  },
+];
+
+const normalizeHexColor = (value: string | null | undefined, fallback: string): string => {
+  const raw = (value ?? "").trim();
+  if (!raw) return fallback;
+
+  const normalized = raw.length === 4
+    ? `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`
+    : raw;
+
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized.toUpperCase() : fallback;
+};
+
+const hexToRgb = (hex: string) => {
+  const normalized = normalizeHexColor(hex, PURPLE).slice(1);
+
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
+  };
+};
+
+const toLinear = (channel: number) => {
+  const value = channel / 255;
+  return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+};
+
+const luminance = (hex: string) => {
+  const rgb = hexToRgb(hex);
+  return 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b);
+};
+
+const contrastRatio = (first: string, second: string) => {
+  const lighter = Math.max(luminance(first), luminance(second));
+  const darker = Math.min(luminance(first), luminance(second));
+  return (lighter + 0.05) / (darker + 0.05);
+};
+
+const readableTextOn = (background: string) =>
+  contrastRatio("#FFFFFF", background) >= 4.5 ? "#FFFFFF" : "#0F172A";
+
+const blendWithWhite = (hex: string, ratio: number) => {
+  const rgb = hexToRgb(hex);
+  const mix = (channel: number) => Math.round(channel + (255 - channel) * ratio);
+  return `#${[mix(rgb.r), mix(rgb.g), mix(rgb.b)]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
+};
+
+const sanitizeHref = (value: string | undefined, fallback: string) => {
+  const href = (value ?? "").trim();
+  const lower = href.toLowerCase();
+
+  if (!href || href === "#") return fallback;
+  if (lower.endsWith("login.html")) return LOGIN_HREF;
+  if (lower.endsWith("signup.html") || lower.endsWith("register.html")) return REGISTER_HREF;
+
+  if (
+    href.startsWith("/") ||
+    href.startsWith("#") ||
+    href.startsWith("http://") ||
+    href.startsWith("https://")
+  ) {
+    return href;
+  }
+
+  return fallback;
+};
+
+const asNonEmpty = (value: string | null | undefined, fallback: string) => {
+  const trimmed = (value ?? "").trim();
+  return trimmed || fallback;
+};
+
+const buildCategories = (template: TenantLandingTemplate) => {
+  const fromTemplate = template.marquee?.map((item) => item.trim()).filter(Boolean) ?? [];
+  const fromHighlights = template.highlights.map((item) => item.kicker).filter(Boolean);
+  const merged = Array.from(new Set([...fromTemplate, ...fromHighlights, ...DEFAULT_CATEGORIES]));
+
+  return merged.slice(0, 10);
+};
+
+const buildCourses = (template: TenantLandingTemplate): LmsCourseCard[] => {
+  const serviceCards = template.services ?? [];
+
+  if (serviceCards.length > 0) {
+    return serviceCards.slice(0, 6).map((item: TenantLandingServiceCard, index) => ({
+      title: asNonEmpty(item.title, DEFAULT_COURSES[index % DEFAULT_COURSES.length].title),
+      description: asNonEmpty(item.description, DEFAULT_COURSES[index % DEFAULT_COURSES.length].description),
+      category: template.highlights[index]?.kicker || DEFAULT_COURSES[index % DEFAULT_COURSES.length].category,
+      image: item.image || COURSE_IMAGES[index % COURSE_IMAGES.length],
+      duration: index % 2 === 0 ? "4 weeks" : "6 weeks",
+      lessons: `${(index + 3) * 3} lessons`,
+      level: index % 3 === 0 ? "Beginner" : index % 3 === 1 ? "Intermediate" : "Advanced",
+      rating: index % 2 === 0 ? "4.9" : "4.8",
+    }));
+  }
+
+  const templateCards: TenantLandingCard[] = [
+    ...template.highlights,
+    ...template.spotlight.items.map((item, index) => ({
+      kicker: index % 2 === 0 ? "Learning Path" : "Operations",
+      title: item.title,
+      description: item.description,
+    })),
+  ];
+
+  const built = templateCards.slice(0, 6).map((item, index) => ({
+    title: asNonEmpty(item.title, DEFAULT_COURSES[index % DEFAULT_COURSES.length].title),
+    description: asNonEmpty(item.description, DEFAULT_COURSES[index % DEFAULT_COURSES.length].description),
+    category: asNonEmpty(item.kicker, DEFAULT_COURSES[index % DEFAULT_COURSES.length].category),
+    image: item.image || COURSE_IMAGES[index % COURSE_IMAGES.length],
+    duration: index % 2 === 0 ? "4 weeks" : "6 weeks",
+    lessons: `${(index + 3) * 3} lessons`,
+    level: index % 3 === 0 ? "Beginner" : index % 3 === 1 ? "Intermediate" : "Advanced",
+    rating: index % 2 === 0 ? "4.9" : "4.8",
+  }));
+
+  return built.length > 0 ? built : DEFAULT_COURSES;
+};
+
+const formatCourseDuration = (minutes: number) => {
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    return "Self-paced";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = Math.round(minutes / 60);
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+};
+
+const buildPublicCourses = (landing: LmsPublicLanding | null): LmsCourseCard[] => {
+  if (!landing?.courses?.length) {
+    return [];
+  }
+
+  return landing.courses.slice(0, 6).map((course, index) => ({
+    id: course.id,
+    title: course.title,
+    description: asNonEmpty(course.summary || course.description, DEFAULT_COURSES[index % DEFAULT_COURSES.length].description),
+    category: asNonEmpty(course.category, DEFAULT_COURSES[index % DEFAULT_COURSES.length].category),
+    image: course.image || COURSE_IMAGES[index % COURSE_IMAGES.length],
+    duration: formatCourseDuration(course.duration_minutes),
+    lessons: `${course.lessons_count} ${course.lessons_count === 1 ? "lesson" : "lessons"}`,
+    level: course.level ? course.level.charAt(0).toUpperCase() + course.level.slice(1) : "Beginner",
+    rating: course.rating || "4.9",
+    enrollHref: `${REGISTER_HREF}?course_id=${encodeURIComponent(course.id)}`,
+    detailHref: `/courses/${encodeURIComponent(course.id)}`,
+    instructor: course.instructor_name,
+    badge: course.badge,
+  }));
+};
+
+const buildPublicStats = (landing: LmsPublicLanding | null, template: TenantLandingTemplate) => {
+  if (!landing) {
+    return template.stats.slice(0, 3);
+  }
+
+  return [
+    {
+      value: `${landing.stats.published_courses}`,
+      label: "published courses",
+    },
+    {
+      value: `${landing.stats.lessons}`,
+      label: "guided lessons",
+    },
+    {
+      value: `${landing.stats.learners}`,
+      label: "active learners",
+    },
+  ];
+};
+
+const buildFaqs = (template: TenantLandingTemplate): TenantLandingFaq[] => {
+  if (template.faqs && template.faqs.length > 0) {
+    return template.faqs.slice(0, 4);
+  }
+
+  return template.spotlight.items.slice(0, 3).map((item) => ({
+    question: `How does ${item.title.toLowerCase()} work?`,
+    answer: item.description,
+  }));
+};
+
+const buildInstructors = (template: TenantLandingTemplate): LmsInstructor[] => {
+  const items = template.spotlight.items.length > 0
+    ? template.spotlight.items
+    : [
+        { title: "Learning architects", description: "Design training paths that learners can follow with confidence." },
+        { title: "Course managers", description: "Publish content, assign cohorts, and keep learning records organized." },
+        { title: "Progress analysts", description: "Turn completion data into training decisions." },
+      ];
+
+  return items.slice(0, 4).map((item, index) => ({
+    name: ["Aster Learning", "Noah Course Ops", "Maya Progress", "Samir Enablement"][index] ?? "Learning Lead",
+    role: item.title,
+    description: item.description,
+    image: INSTRUCTOR_IMAGES[index % INSTRUCTOR_IMAGES.length],
+  }));
+};
+
+const resolveTemplateImageSrc = (src: string) => {
+  const trimmed = src.trim();
+
+  if (!trimmed) {
+    return src;
+  }
+
+  if (trimmed.startsWith("/lms2/") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  return getBackendStorageUrl(trimmed) || trimmed;
+};
+
+function TemplateImage({
+  src,
+  alt,
+  className,
+  sizes,
+  priority = false,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  sizes?: string;
+  priority?: boolean;
+}) {
+  const resolved = resolveTemplateImageSrc(src);
+
+  return (
+    <Image
+      src={resolved}
+      alt={alt}
+      fill
+      unoptimized={resolved.startsWith("http") || resolved.startsWith("/lms2/")}
+      priority={priority}
+      sizes={sizes ?? "(min-width: 1024px) 33vw, 100vw"}
+      className={cn("object-cover", className)}
+    />
+  );
+}
+
+function Stars({ rating, className }: { rating?: string; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1", className)}>
+      {rating ? (
+        <span className="text-sm font-bold" style={{ color: STAR_YELLOW }}>
+          {rating}
+        </span>
+      ) : null}
+      <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Star key={index} className="size-3" style={{ color: STAR_YELLOW, fill: STAR_YELLOW }} />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function BrandMark({
+  brandSettings,
+  tenantName,
+  onDark = false,
+}: {
+  brandSettings?: BrandSettings | null;
+  tenantName: string;
+  onDark?: boolean;
+}) {
+  const [failed, setFailed] = React.useState(false);
+  const logoUrl = getBackendStorageUrl(
+    onDark
+      ? brandSettings?.logo_dark || brandSettings?.logo_light
+      : brandSettings?.logo_light || brandSettings?.logo_dark
+  );
+  const label = brandSettings?.app_title || tenantName;
+
+  React.useEffect(() => {
+    setFailed(false);
+  }, [logoUrl]);
+
+  if (logoUrl && !failed) {
+    return (
+      <span className="relative block h-11 w-36">
+        <Image
+          src={logoUrl}
+          alt={`${label} logo`}
+          fill
+          unoptimized={logoUrl.startsWith("http")}
+          sizes="144px"
+          className="object-contain object-left"
+          onError={() => setFailed(true)}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-2.5 text-lg font-bold tracking-tight",
+        onDark ? "text-white" : "text-[var(--lms-navy)]"
+      )}
+    >
+      <span className="grid size-10 place-items-center rounded-xl bg-[var(--lms-accent)] text-[var(--lms-accent-text)]">
+        <GraduationCap className="size-5" aria-hidden="true" />
+      </span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function SectionHeader({
+  title,
+  description,
+  align = "center",
+  onDark = false,
+}: {
+  title: string;
+  description?: string;
+  align?: "center" | "left";
+  onDark?: boolean;
+}) {
+  return (
+    <div className={cn("max-w-2xl", align === "center" ? "mx-auto text-center" : "text-left")}>
+      <h2
+        className={cn(
+          "text-3xl font-bold tracking-tight sm:text-[2.5rem] sm:leading-[1.15]",
+          onDark ? "text-white" : "text-[var(--lms-navy)]"
+        )}
+      >
+        {title}
+      </h2>
+      {description && (
+        <p className={cn("mt-3 text-[15px] leading-7", onDark ? "text-white/70" : "text-[var(--lms-muted)]")}>
+          {description}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function LmsLandingTemplate({ brandSettings, template, tenantName }: LmsLandingTemplateProps) {
+  const brandName = brandSettings?.app_title || tenantName;
+  // Default to the lms2 template purple; a tenant brand color still wins when set.
+  const accent = normalizeHexColor(brandSettings?.primary_color, PURPLE);
+  const accentSoft = blendWithWhite(accent, 0.88);
+  const [publicLanding, setPublicLanding] = React.useState<LmsPublicLanding | null>(null);
+  const publicCourses = React.useMemo(() => buildPublicCourses(publicLanding), [publicLanding]);
+  const courses = React.useMemo(
+    () => (publicCourses.length > 0 ? publicCourses : buildCourses(template)),
+    [publicCourses, template]
+  );
+  const categories = React.useMemo(() => {
+    const publicCategories = publicLanding?.categories?.map((item) => item.name).filter(Boolean) ?? [];
+
+    return publicCategories.length > 0 ? publicCategories.slice(0, 10) : buildCategories(template);
+  }, [publicLanding, template]);
+  const categoryCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    publicLanding?.categories?.forEach((item) => counts.set(item.name, item.courses_count));
+
+    return counts;
+  }, [publicLanding]);
+  const displayStats = React.useMemo(() => buildPublicStats(publicLanding, template), [publicLanding, template]);
+  const faqs = React.useMemo(() => buildFaqs(template), [template]);
+  const templateInstructors = React.useMemo(() => buildInstructors(template), [template]);
+  const instructors = React.useMemo(() => {
+    if (!publicLanding?.instructors?.length) {
+      return templateInstructors;
+    }
+
+    return publicLanding.instructors.slice(0, 4).map((instructor) => ({
+      name: instructor.name,
+      role: instructor.role,
+      description: instructor.description,
+      image: instructor.image,
+    }));
+  }, [publicLanding, templateInstructors]);
+  const secondaryHref = sanitizeHref(template.hero.secondary_href, COURSE_CATALOG_HREF);
+  const heroImage = template.hero.slides?.[0]?.image || HERO_IMAGE;
+  const experienceImage = template.experience?.image || "/lms2/img/home-4/dreamJob/1.png";
+  const styleVars: LmsStyleVars = {
+    "--lms-accent": accent,
+    "--lms-accent-soft": accentSoft,
+    "--lms-accent-text": readableTextOn(accent),
+    "--lms-navy": NAVY,
+    "--lms-navy-2": NAVY_2,
+    "--lms-green": GREEN,
+    "--lms-muted": MUTED,
+    fontFamily: FONT_STACK,
+  };
+
+  React.useEffect(() => {
+    document.title = formatDocumentTitle("Learning Portal", brandName);
+  }, [brandName]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    publicLearningApi
+      .getLanding()
+      .then((landing) => {
+        if (cancelled) {
+          return;
+        }
+
+        setPublicLanding(landing);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categoryIcons = [LibraryBig, Layers3, ShieldCheck, UsersRound, LineChart, MonitorPlay, BarChart3, BookOpenCheck];
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-white text-[var(--lms-navy)] antialiased" style={styleVars}>
+      { }
+      <link rel="stylesheet" href={FONT_HREF} precedence="default" />
+
+      {/* ============ Header ============ */}
+      <header className="sticky top-0 z-40" style={{ backgroundColor: NAVY }}>
+        <div
+          className="px-4 py-2 text-center text-xs font-medium text-white/90"
+          style={{ backgroundColor: PURPLE }}
+        >
+          {template.hero.announcement || "Course creation, enrollments, lessons, and learner progress are ready."}
+        </div>
+        <nav
+          className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
+          aria-label="Main"
+        >
+          <Link
+            href="/"
+            className="shrink-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lms-green)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#140342]"
+          >
+            <BrandMark brandSettings={brandSettings} tenantName={tenantName} onDark />
+          </Link>
+          <div className="hidden items-center gap-8 text-[15px] font-medium text-white/85 lg:flex">
+            <a href="#categories" className="transition hover:text-[var(--lms-green)]">Categories</a>
+            <Link href="/courses" className="transition hover:text-[var(--lms-green)]">Courses</Link>
+            <a href="#why-learn" className="transition hover:text-[var(--lms-green)]">Why learn</a>
+            <a href="#instructors" className="transition hover:text-[var(--lms-green)]">Instructors</a>
+            <a href="#faq" className="transition hover:text-[var(--lms-green)]">FAQ</a>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Button
+              asChild
+              variant="ghost"
+              className="hidden h-11 rounded-lg px-5 text-[15px] font-medium text-white hover:bg-white/10 hover:text-white sm:inline-flex"
+            >
+              <Link href={LOGIN_HREF}>Log in</Link>
+            </Button>
+            <Button
+              asChild
+              className="h-11 rounded-lg bg-white px-6 text-[15px] font-medium text-[var(--lms-navy)] shadow-none transition hover:bg-[var(--lms-green)] hover:text-[var(--lms-navy)]"
+            >
+              <Link href={REGISTER_HREF}>Sign up</Link>
+            </Button>
+          </div>
+        </nav>
+      </header>
+
+      {/* ============ Hero masthead ============ */}
+      <section className="relative" style={{ backgroundColor: NAVY }}>
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden="true"
+          style={{
+            background:
+              "radial-gradient(42rem 42rem at 88% -10%, rgba(100,64,251,0.35), transparent 60%), radial-gradient(30rem 30rem at -8% 105%, rgba(100,64,251,0.28), transparent 60%)",
+          }}
+        />
+        {/* floating decorative dots */}
+        <div className="pointer-events-none absolute left-[6%] top-24 hidden size-3 rounded-full lg:block" style={{ backgroundColor: GREEN }} aria-hidden="true" />
+        <div className="pointer-events-none absolute right-[10%] top-40 hidden size-2 rounded-full bg-white/40 lg:block" aria-hidden="true" />
+        <div className="pointer-events-none absolute bottom-24 left-[42%] hidden size-2 rounded-full lg:block" style={{ backgroundColor: "#E8543E" }} aria-hidden="true" />
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-24 pt-14 sm:px-6 lg:grid-cols-[1.04fr_0.96fr] lg:px-8 lg:pb-32 lg:pt-20">
+          <div>
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]"
+              style={{ backgroundColor: "rgba(0,255,132,0.12)", color: GREEN }}
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
+              {template.hero.eyebrow}
+            </div>
+            <h1 className="mt-6 max-w-2xl text-[2.75rem] font-bold leading-[1.08] tracking-tight text-white sm:text-6xl">
+              {template.hero.title}
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-white/70">
+              {template.hero.description}
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="h-14 rounded-lg px-8 text-base font-medium text-white shadow-xl transition hover:opacity-90"
+                style={{ backgroundColor: PURPLE, boxShadow: "0 20px 40px rgba(100,64,251,0.35)" }}
+              >
+                <Link href={REGISTER_HREF}>
+                  Register as student
+                  <ArrowRight className="size-5" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-14 rounded-lg border bg-transparent px-8 text-base font-medium transition hover:bg-[rgba(0,255,132,0.1)]"
+                style={{ borderColor: GREEN, color: GREEN }}
+              >
+                <a href={secondaryHref}>
+                  <PlayCircle className="size-5" aria-hidden="true" />
+                  {template.hero.secondary_label || "Explore courses"}
+                </a>
+              </Button>
+            </div>
+            <ul className="mt-12 flex flex-wrap gap-x-10 gap-y-5">
+              {displayStats.map((stat, index) => (
+                <li key={`${stat.value}-${stat.label}`} className="flex items-center gap-3 text-white">
+                  <span
+                    className="grid size-11 shrink-0 place-items-center rounded-full"
+                    style={{ backgroundColor: "rgba(255,255,255,0.08)", color: GREEN }}
+                  >
+                    {React.createElement([BookOpenCheck, MonitorPlay, UsersRound][index % 3], {
+                      className: "size-5",
+                      "aria-hidden": true,
+                    })}
+                  </span>
+                  <span>
+                    <strong className="block text-xl font-bold leading-none text-white">{stat.value}</strong>
+                    <span className="mt-1 block text-xs font-medium uppercase tracking-[0.12em] text-white/55">
+                      {stat.label}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Hero collage with floating cards */}
+          <div className="relative mx-auto w-full max-w-xl">
+            <div
+              className="pointer-events-none absolute -inset-6 rounded-full opacity-60 blur-3xl"
+              style={{ background: "radial-gradient(closest-side, rgba(100,64,251,0.45), transparent)" }}
+              aria-hidden="true"
+            />
+            <div className="relative aspect-[0.92] overflow-hidden rounded-2xl">
+              <TemplateImage
+                src={heroImage}
+                alt={`${brandName} learning portal preview`}
+                sizes="(min-width: 1024px) 44vw, 100vw"
+                priority
+                className="object-contain"
+              />
+            </div>
+
+            <div className="absolute -left-4 top-10 hidden animate-[lms-float_6s_ease-in-out_infinite] rounded-2xl bg-white p-4 shadow-2xl md:block lg:-left-10">
+              <div className="flex items-center gap-3">
+                <span className="grid size-11 place-items-center rounded-full" style={{ backgroundColor: "#FDEEEC", color: "#E8543E" }}>
+                  <MonitorPlay className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: NAVY }}>{courses.length}+ courses</p>
+                  <p className="text-xs" style={{ color: MUTED }}>Ready to start</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="absolute -right-2 top-1/3 hidden animate-[lms-float_7s_ease-in-out_infinite_0.8s] rounded-2xl bg-white p-4 shadow-2xl md:block lg:-right-8">
+              <p className="text-sm font-bold" style={{ color: NAVY }}>Learner rating</p>
+              <div className="mt-2 flex items-center gap-2">
+                <Stars rating="4.9" />
+              </div>
+            </div>
+
+            <div className="absolute -bottom-6 left-6 right-6 hidden rounded-2xl bg-white p-5 shadow-2xl md:block">
+              <div className="flex items-start gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-xl text-white" style={{ backgroundColor: PURPLE }}>
+                  <BookOpenCheck className="size-6" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold" style={{ color: NAVY }}>{courses[0]?.title}</p>
+                  <p className="mt-1 line-clamp-1 text-xs" style={{ color: MUTED }}>{courses[0]?.description}</p>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: LAVENDER }}>
+                    <div className="h-full w-2/3 rounded-full" style={{ backgroundColor: GREEN_DARK }} />
+                  </div>
+                </div>
+                <BadgeCheck className="size-5 shrink-0" style={{ color: GREEN_DARK }} aria-hidden="true" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Curved bottom edge */}
+        <svg
+          className="block w-full"
+          style={{ marginBottom: -1 }}
+          viewBox="0 0 1440 64"
+          fill="none"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0 64 C 360 0 1080 0 1440 64 L 1440 64 L 0 64 Z" fill="white" />
+        </svg>
+      </section>
+
+      {/* ============ Categories ============ */}
+      <section id="categories" className="bg-white py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            title={template.services_section?.title || "Top categories"}
+            description={
+              template.services_section?.eyebrow ||
+              "Browse the main course families available in this learning portal."
+            }
+          />
+          <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {categories.map((category, index) => {
+              const Icon = categoryIcons[index % categoryIcons.length];
+              return (
+                <li key={category}>
+                  <Link
+                    href={`/courses?category=${encodeURIComponent(category)}`}
+                    className="group flex min-h-40 flex-col items-center justify-center gap-4 rounded-2xl border border-[#EDEDED] bg-white p-6 text-center transition duration-300 hover:-translate-y-1.5 hover:border-transparent hover:shadow-[0_25px_60px_-12px_rgba(20,3,66,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lms-accent)] focus-visible:ring-offset-4"
+                  >
+                    <span
+                      className="grid size-14 place-items-center rounded-full transition group-hover:scale-110"
+                      style={{ backgroundColor: LAVENDER, color: PURPLE }}
+                    >
+                      <Icon className="size-6" aria-hidden="true" />
+                    </span>
+                    <span>
+                      <span className="block text-[15px] font-bold" style={{ color: NAVY }}>{category}</span>
+                      <span className="mt-1 block text-sm" style={{ color: MUTED }}>
+                        {categoryCounts.get(category) ?? 12 + index * 3} courses
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* ============ Popular courses ============ */}
+      <section id="courses" className="py-20 lg:py-24" style={{ backgroundColor: LIGHT_BG }}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <SectionHeader
+              align="left"
+              title="Our most popular courses"
+              description="Choose from the published catalog, register as a student, and continue inside My Learning."
+            />
+            <Link
+              href="/courses"
+              className="inline-flex w-fit items-center gap-2 text-[15px] font-bold transition hover:gap-3"
+              style={{ color: PURPLE }}
+            >
+              View all courses
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <ul className="mt-12 grid gap-7 md:grid-cols-2 xl:grid-cols-3">
+            {courses.map((course) => (
+              <li key={course.id || course.title}>
+                <Link
+                  href={course.detailHref || course.enrollHref || REGISTER_HREF}
+                  className="group block h-full overflow-hidden rounded-2xl bg-white shadow-[0_6px_16px_rgba(20,3,66,0.05)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_30px_60px_-15px_rgba(20,3,66,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lms-accent)] focus-visible:ring-offset-4">
+                  <div className="relative m-2.5 aspect-[16/10] overflow-hidden rounded-xl" style={{ backgroundColor: LAVENDER }}>
+                    <TemplateImage
+                      src={course.image}
+                      alt={`${course.title} course preview`}
+                      className="transition duration-500 group-hover:scale-105"
+                    />
+                    <div
+                      className="absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white"
+                      style={{ backgroundColor: PURPLE }}
+                    >
+                      {course.category}
+                    </div>
+                    {course.badge ? (
+                      <div
+                        className="absolute right-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide"
+                        style={{ backgroundColor: GREEN, color: NAVY }}
+                      >
+                        {course.badge}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="px-5 pb-5 pt-3">
+                    <div className="flex items-center gap-2">
+                      <Stars rating={course.rating} />
+                      <span className="text-xs" style={{ color: MUTED }}>rating</span>
+                    </div>
+                    <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-snug" style={{ color: NAVY }}>
+                      {course.title}
+                    </h3>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6" style={{ color: MUTED }}>
+                      {course.description}
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]" style={{ color: MUTED }}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <BookOpenCheck className="size-4" style={{ color: PURPLE }} aria-hidden="true" />
+                        {course.lessons}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock3 className="size-4" style={{ color: PURPLE }} aria-hidden="true" />
+                        {course.duration}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <BarChart3 className="size-4" style={{ color: PURPLE }} aria-hidden="true" />
+                        {course.level}
+                      </span>
+                    </div>
+                    <div className="mt-5 flex items-center justify-between border-t pt-4" style={{ borderColor: "#EDEDED" }}>
+                      {course.instructor ? (
+                        <span className="truncate text-sm font-medium" style={{ color: NAVY }}>
+                          {course.instructor}
+                        </span>
+                      ) : (
+                        <span
+                          className="rounded-full px-3 py-1 text-xs font-bold"
+                          style={{ backgroundColor: LAVENDER, color: PURPLE }}
+                        >
+                          {course.level}
+                        </span>
+                      )}
+                      <span
+                        className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold transition group-hover:gap-2.5"
+                        style={{ color: PURPLE }}
+                      >
+                        View course
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ============ Why learn (dark) ============ */}
+      <section id="why-learn" className="relative py-20 text-white lg:py-24" style={{ backgroundColor: NAVY_2 }}>
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden="true"
+          style={{
+            background:
+              "radial-gradient(36rem 36rem at 100% 0%, rgba(100,64,251,0.3), transparent 55%)",
+          }}
+        />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[0.94fr_1.06fr] lg:px-8">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: GREEN }}>
+              {template.spotlight.heading}
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-[2.5rem] sm:leading-[1.15]">
+              Why learn with {brandName}?
+            </h2>
+            <p className="mt-5 text-[15px] leading-8 text-white/70">{template.spotlight.description}</p>
+            <div className="relative mt-9 overflow-hidden rounded-2xl border border-white/10">
+              <div className="relative aspect-[16/11]">
+                <TemplateImage src={experienceImage} alt={`${brandName} learning experience`} />
+              </div>
+            </div>
+          </div>
+          <ul className="grid content-start gap-5">
+            {template.highlights.slice(0, 4).map((item, index) => (
+              <li
+                key={item.title}
+                className="rounded-2xl p-6 transition duration-300 hover:-translate-y-1"
+                style={{ backgroundColor: NAVY_CARD }}
+              >
+                <div className="flex gap-5">
+                  <span
+                    className="grid size-14 shrink-0 place-items-center rounded-full text-2xl font-bold"
+                    style={{ backgroundColor: "rgba(0,255,132,0.14)", color: GREEN }}
+                  >
+                    {React.createElement([BookOpenCheck, UsersRound, BarChart3, CalendarCheck2][index % 4], {
+                      className: "size-6",
+                      "aria-hidden": true,
+                    })}
+                  </span>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: GREEN }}>
+                      {item.kicker}
+                    </p>
+                    <h3 className="mt-2 text-xl font-bold text-white">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-white/65">{item.description}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ============ Instructors ============ */}
+      <section id="instructors" className="py-20 lg:py-24" style={{ backgroundColor: BEIGE }}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            title="Meet the learning team"
+            description="The people who design, publish, and track the course experience."
+          />
+          <ul className="mt-12 grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+            {instructors.map((instructor) => (
+              <li key={instructor.name}>
+                <article className="group h-full text-center">
+                  <div className="relative mx-auto aspect-square w-full overflow-hidden rounded-2xl bg-white shadow-[0_6px_16px_rgba(20,3,66,0.06)] transition duration-300 group-hover:-translate-y-1.5 group-hover:shadow-[0_25px_50px_-12px_rgba(20,3,66,0.18)]">
+                    <TemplateImage src={instructor.image} alt={`${instructor.name}, ${instructor.role}`} sizes="280px" />
+                  </div>
+                  <h3 className="mt-5 text-lg font-bold" style={{ color: NAVY }}>{instructor.name}</h3>
+                  <p className="mt-1 text-sm font-medium" style={{ color: PURPLE }}>{instructor.role}</p>
+                  <p className="mt-2 text-sm leading-6" style={{ color: MUTED }}>{instructor.description}</p>
+                  <div className="mt-3 flex justify-center">
+                    <Stars />
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ============ Testimonials ============ */}
+      <section className="relative py-20 text-white lg:py-24" style={{ backgroundColor: NAVY }}>
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden="true"
+          style={{
+            background: "radial-gradient(34rem 34rem at 0% 100%, rgba(100,64,251,0.28), transparent 55%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <SectionHeader
+              align="left"
+              onDark
+              title="What learners say"
+              description="Feedback from teams already running their training here."
+            />
+          </div>
+          <ul className="mt-12 grid gap-6 md:grid-cols-2">
+            {template.testimonials.slice(0, 4).map((testimonial, index) => (
+              <li key={`${testimonial.author}-${testimonial.quote}`}>
+                <blockquote
+                  className="flex h-full flex-col rounded-2xl p-7 transition duration-300 hover:-translate-y-1"
+                  style={{ backgroundColor: NAVY_CARD }}
+                >
+                  <Quote className="size-8" style={{ color: GREEN }} aria-hidden="true" />
+                  <p className="mt-5 flex-1 text-base leading-8 text-white/85">{testimonial.quote}</p>
+                  <footer className="mt-7 flex items-center gap-3 border-t border-white/10 pt-5">
+                    <div className="relative size-12 overflow-hidden rounded-full bg-white/10">
+                      <TemplateImage src={`/lms2/img/home-4/testimonials/${(index % 3) + 1}.png`} alt="" sizes="48px" />
+                    </div>
+                    <div>
+                      <cite className="not-italic text-[15px] font-bold text-white">{testimonial.author}</cite>
+                      <p className="text-sm text-white/55">{testimonial.role}</p>
+                    </div>
+                  </footer>
+                </blockquote>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ============ Experience CTA + FAQ ============ */}
+      <section id="faq" className="bg-white py-20 lg:py-24">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+          <div
+            className="relative overflow-hidden rounded-3xl p-8 text-white sm:p-12"
+            style={{ backgroundColor: PURPLE }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0"
+              aria-hidden="true"
+              style={{
+                background:
+                  "radial-gradient(24rem 24rem at 100% 0%, rgba(255,255,255,0.14), transparent 55%)",
+              }}
+            />
+            <div className="relative">
+              <p className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: GREEN }}>
+                {template.experience?.eyebrow || "Learn from anywhere"}
+              </p>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-[2.5rem] sm:leading-[1.15]">
+                {template.experience?.title || "A learner portal that works wherever the team is."}
+              </h2>
+              <p className="mt-5 max-w-2xl text-[15px] leading-8 text-white/80">
+                {template.experience?.description ||
+                  "Learners can sign in, see assigned courses, open lessons, and keep their progress moving from the same workspace."}
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  className="h-12 rounded-lg bg-white px-7 text-[15px] font-medium hover:bg-white/90"
+                  style={{ color: NAVY }}
+                >
+                  <Link href={LOGIN_HREF}>
+                    Open my learning
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-12 rounded-lg border-white/50 bg-transparent px-7 text-[15px] font-medium text-white hover:bg-white/10 hover:text-white"
+                >
+                  <Link href={REGISTER_HREF}>Register as student</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-3xl p-7 sm:p-9" style={{ backgroundColor: LIGHT_BG }}>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: NAVY }}>
+              Frequently asked questions
+            </h2>
+            <ul className="mt-6 space-y-4">
+              {faqs.map((faq) => (
+                <li key={faq.question} className="rounded-2xl bg-white p-5 shadow-[0_4px_12px_rgba(20,3,66,0.04)]">
+                  <h3 className="text-[15px] font-bold" style={{ color: NAVY }}>{faq.question}</h3>
+                  <p className="mt-2 text-sm leading-7" style={{ color: MUTED }}>{faq.answer}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ Final CTA + footer ============ */}
+      <footer style={{ backgroundColor: NAVY }} className="text-white">
+        <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
+          <div
+            className="flex flex-col gap-8 rounded-3xl p-8 sm:p-12 lg:flex-row lg:items-center lg:justify-between"
+            style={{ backgroundColor: PURPLE }}
+          >
+            <div className="max-w-3xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: GREEN }}>
+                Ready to start?
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{template.final_cta.title}</h2>
+              <p className="mt-4 text-[15px] leading-8 text-white/80">{template.final_cta.description}</p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="h-14 rounded-lg bg-white px-8 text-[15px] font-medium hover:bg-white/90"
+                style={{ color: NAVY }}
+              >
+                <Link href={REGISTER_HREF}>Register as student</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-14 rounded-lg border-white/50 bg-transparent px-8 text-[15px] font-medium text-white hover:bg-white/10 hover:text-white"
+              >
+                <Link href={LOGIN_HREF}>Log in</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-between gap-6 border-b border-white/10 py-10 md:flex-row">
+            <BrandMark brandSettings={brandSettings} tenantName={tenantName} onDark />
+            <nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/70" aria-label="Footer">
+              <a href="#categories" className="transition hover:text-white">Categories</a>
+              <Link href="/courses" className="transition hover:text-white">Courses</Link>
+              <a href="#instructors" className="transition hover:text-white">Instructors</a>
+              <a href="#faq" className="transition hover:text-white">FAQ</a>
+              <Link href={LOGIN_HREF} className="transition hover:text-white">Log in</Link>
+            </nav>
+          </div>
+          <div className="flex flex-col items-center justify-between gap-3 py-6 text-sm text-white/50 md:flex-row">
+            <p>© {new Date().getFullYear()} {brandName}. All rights reserved.</p>
+            <p>Powered by the {tenantName} learning portal.</p>
+          </div>
+        </div>
+      </footer>
+
+      <style>{`
+        @keyframes lms-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+      `}</style>
+    </main>
+  );
+}
+
+export default LmsLandingTemplate;

@@ -10,6 +10,7 @@ The real feature ownership lives under `frontend/modules/*`.
 - `modules/tenancy`: tenant-management entrypoints.
 - `modules/hospitality`: lounge and club operations (tables, reservations, service orders).
 - `modules/inventory`: inventory control, stock movements, and transaction ledger.
+- `modules/Lms`: learning management, courses, learners, reports, and assigned training.
 
 ## Rules
 

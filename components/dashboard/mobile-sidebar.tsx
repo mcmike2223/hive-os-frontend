@@ -26,6 +26,7 @@ import {
   Utensils,
   Warehouse,
   X,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +65,7 @@ const MODULE_IDS = new Set([
   "warehouse",
   "workflow",
   "projectmanagement",
+  "lms",
   "b2b-marketplace",
 ]);
 
@@ -194,6 +196,7 @@ export function MobileSidebar() {
   const [isHospitalityOpen, setIsHospitalityOpen] = useState(false);
   const [isProjectManagementOpen, setIsProjectManagementOpen] = useState(false);
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
+  const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
@@ -306,6 +309,7 @@ export function MobileSidebar() {
         matchesSearch(item) &&
         item.moduleId !== "projectmanagement" &&
         item.moduleId !== "workflow" &&
+        item.moduleId !== "lms" &&
         !isAppPath(item.href),
     );
   }, [hasAccess, isMounted, matchesSearch]);
@@ -334,13 +338,25 @@ export function MobileSidebar() {
     [hasAccess, isMounted, matchesSearch],
   );
 
+  const lmsFromSecondary = useMemo(
+    () =>
+      isMounted
+        ? DASHBOARD_SECONDARY.filter(
+          (item) =>
+            item.moduleId === "lms" && hasAccess(item) && matchesSearch(item),
+        )
+        : [],
+    [hasAccess, isMounted, matchesSearch],
+  );
+
   const moduleNavItems = useMemo(
     () => [
       ...filteredNav.filter((item) => MODULE_IDS.has(item.moduleId ?? "")),
       ...projectManagementFromSecondary,
       ...workflowFromSecondary,
+      ...lmsFromSecondary,
     ],
-    [filteredNav, projectManagementFromSecondary, workflowFromSecondary],
+    [filteredNav, projectManagementFromSecondary, workflowFromSecondary, lmsFromSecondary],
   );
 
   const standardNavItems = useMemo(
@@ -380,6 +396,9 @@ export function MobileSidebar() {
   const workflowModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "workflow",
   );
+  const lmsModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "lms",
+  );
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
   );
@@ -408,6 +427,11 @@ export function MobileSidebar() {
     if (pathname.startsWith("/dashboard/workflow")) {
       setIsModulesOpen(true);
       setIsWorkflowOpen(true);
+    }
+
+    if (pathname.startsWith("/dashboard/learning-management")) {
+      setIsModulesOpen(true);
+      setIsLmsOpen(true);
     }
 
     if (pathname.startsWith("/dashboard/b2b-marketplace")) {
@@ -776,6 +800,14 @@ export function MobileSidebar() {
                           icon: CheckCircle,
                           openState: isWorkflowOpen,
                           onToggle: () => setIsWorkflowOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: lmsModuleItems,
+                          label: t("nav.lms", "LMS"),
+                          icon: GraduationCap,
+                          openState: isLmsOpen,
+                          onToggle: () => setIsLmsOpen((value) => !value),
                         })}
 
                         {renderModuleSection({

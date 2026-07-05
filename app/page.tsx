@@ -48,6 +48,7 @@ import {
 import { resolveLandingTemplate } from "@/modules/tenancy/landing-template";
 import { TenantBusinessLanding } from "@/modules/tenancy/components/tenant-business-landing";
 import { RestaurantLandingTemplate } from "@/modules/tenancy/components/restaurant-landing-template";
+import LmsLandingTemplate from "@/modules/tenancy/components/lms-landing-template";
 import B2BLandingTemplate from "@/modules/tenancy/components/b2b-landing-template";
 import { MarketplacePreloader } from "@/modules/b2b-marketplace/components/MarketplacePreloader";
 import { formatDocumentTitle } from "@/lib/document-title";
@@ -57,6 +58,15 @@ interface LandingUIProps {
   initialTenantSlug: string;
   initialIsTenant: boolean;
 }
+
+type PartnerLogo = {
+  name: string;
+  logo: string;
+};
+
+type HexParticle = {
+  update: () => void;
+};
 
 // 🚀 SAFE LOGO COMPONENT
 // This uses a native <img> tag to completely bypass CORS preflight issues for public assets.
@@ -94,7 +104,7 @@ function SafeLogo({
 }
 
 // --- JS DRIVEN INFINITE SCROLL PARTNER COMPONENT ---
-const PartnerSlider = ({ partners }: { partners: any[] }) => {
+const PartnerSlider = ({ partners }: { partners: PartnerLogo[] }) => {
   const { t } = useTranslation();
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -294,11 +304,15 @@ function LandingUI({
       if (favUrl) link.href = favUrl;
     }
     if (brandSettings?.app_title) {
+      if (isTenantExperience && tenantLandingPayload?.business_type === "lms") {
+        return;
+      }
+
       document.title = isTenantExperience
         ? formatDocumentTitle(brandSettings.app_title)
         : formatDocumentTitle("Enterprise Operations", brandSettings.app_title);
     }
-  }, [brandSettings, isTenantExperience]);
+  }, [brandSettings, isTenantExperience, tenantLandingPayload?.business_type]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -320,7 +334,7 @@ function LandingUI({
       if (ctx) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        let hexagons: any[] = [];
+        let hexagons: HexParticle[] = [];
 
         const isDarkNow = document.documentElement.classList.contains("dark");
         const r = isDarkNow ? 255 : 180;
@@ -457,6 +471,21 @@ function LandingUI({
     if (businessType === "b2b") {
       return (
         <B2BLandingTemplate
+          brandSettings={brandSettings}
+          template={resolveLandingTemplate(tenantLandingPayload?.landing_page_template)}
+          tenantName={
+            tenantLandingPayload?.tenant?.name ||
+            brandSettings?.app_title ||
+            detectedTenantSlug ||
+            t('landing.common.tenant_workspace', "Tenant Workspace")
+          }
+        />
+      );
+    }
+
+    if (businessType === "lms") {
+      return (
+        <LmsLandingTemplate
           brandSettings={brandSettings}
           template={resolveLandingTemplate(tenantLandingPayload?.landing_page_template)}
           tenantName={

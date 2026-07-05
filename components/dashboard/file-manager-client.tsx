@@ -88,7 +88,7 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
             const menuHeight = 260; // Estimated max height
             
             const isLeftHalf = rect.left < (window.innerWidth / 2);
-            let leftPos = isLeftHalf ? rect.left : (rect.right - menuWidth);
+            const leftPos = isLeftHalf ? rect.left : (rect.right - menuWidth);
 
             let topPos = rect.bottom + 8;
             if (topPos + menuHeight > window.innerHeight) {
@@ -565,8 +565,8 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error("Could not get canvas context");
 
-        let dWidth = resize.w || cropBox.width;
-        let dHeight = resize.h || cropBox.height;
+        const dWidth = resize.w || cropBox.width;
+        const dHeight = resize.h || cropBox.height;
         const isRotated = rotate % 180 !== 0;
 
         canvas.width = isRotated ? dHeight : dWidth;

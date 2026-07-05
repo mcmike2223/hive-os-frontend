@@ -286,7 +286,7 @@ export function VideoPlayer({
 
   // 1. Fetch Subtitles securely using the provided Auth Token
   useEffect(() => {
-    let objectUrls: string[] = [];
+    const objectUrls: string[] = [];
 
     const loadSubtitlesAsBlobs = async () => {
       const processedSubs = await Promise.all(
