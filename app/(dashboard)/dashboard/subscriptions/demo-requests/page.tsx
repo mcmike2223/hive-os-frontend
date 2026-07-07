@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, CheckCircle2, Clock, Mail, Phone, Building2, Users,
-  MessageSquare, X, Check, XCircle, Eye, Bell, Loader2
+  X, Check, XCircle, Eye, Bell, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchDemoRequests, updateDemoRequest } from "@/modules/subscription/api";
-import { useTranslation } from "@/store/use-translation";
+import { usePermissions } from "@/hooks/use-permissions";
+import { isTenantSession } from "@/lib/runtime-context";
 
 type DemoRequest = {
   id: number;
@@ -42,13 +43,31 @@ const STATUS_CONFIG = {
 
 export default function DemoRequestsPage() {
   const router = useRouter();
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { hasAnyPermission, isLoaded } = usePermissions();
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const canViewDemoRequests = hasAnyPermission([
+    "view_demo_requests",
+    "manage_demo_requests",
+    "process_demo_requests",
+    "manage_tenants",
+  ]);
+
+  React.useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
+    if (isTenantSession() || !canViewDemoRequests) {
+      router.replace("/dashboard/subscriptions");
+    }
+  }, [canViewDemoRequests, isLoaded, router]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["demo-requests", statusFilter],
     queryFn: () => fetchDemoRequests(statusFilter === "all" ? undefined : statusFilter),
+    enabled: isLoaded && canViewDemoRequests && !isTenantSession(),
   });
 
   const updateMutation = useMutation({
@@ -70,6 +89,14 @@ export default function DemoRequestsPage() {
   }, {} as Record<string, number>);
 
   const pendingCount = statusCounts["pending"] || 0;
+
+  if (!isLoaded || !canViewDemoRequests || isTenantSession()) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -15,7 +15,44 @@ export const updateSubscriptionAdminPricing = async (data: unknown) => (await ap
 export const assignTenantSubscription = async (tenantId: string, data: unknown) => (await api.put(`/subscriptions/admin/tenants/${tenantId}`, data)).data;
 
 // Demo Request API functions
-export const fetchDemoRequests = async (status?: string) => (await api.get("/public/demo-requests", { params: status ? { status } : {} })).data;
-export const updateDemoRequest = async (id: number, data: { status?: string; notes?: string }) => (await api.put(`/demo-requests/${id}`, data)).data;
+export type DemoRequestPayload = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  company: string;
+  company_size?: string;
+  interests?: string[];
+  message?: string;
+};
+
+export const submitDemoRequest = async (payload: DemoRequestPayload) => {
+  const response = await fetch("/api/v1/public/demo-requests", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      typeof body?.message === "string"
+        ? body.message
+        : `Failed to submit demo request (${response.status})`,
+    );
+  }
+
+  return body;
+};
+
+export const fetchDemoRequests = async (status?: string) =>
+  (await api.get("/demo-requests", { params: status ? { status } : {} })).data;
+
+export const updateDemoRequest = async (id: number, data: { status?: string; notes?: string }) =>
+  (await api.put(`/demo-requests/${id}`, data)).data;
 
 export default api;

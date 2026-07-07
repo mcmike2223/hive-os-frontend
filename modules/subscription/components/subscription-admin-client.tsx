@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, ChevronRight, Loader2, Route, Search, ShieldCheck } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Loader2, Route, Search, ShieldCheck, Bell } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -147,6 +148,25 @@ export function SubscriptionAdminClient() {
 
   return (
     <div className="space-y-6">
+      <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight">
+              <Bell className="h-5 w-5 text-primary" />
+              Demo Requests
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Review inbound demo requests from the public landing page and track follow-up status.
+            </p>
+          </div>
+          <Link href="/dashboard/subscriptions/demo-requests">
+            <Button variant="outline" className="rounded-full font-bold">
+              Open Demo Inbox
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
