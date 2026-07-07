@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
 import { VideoPlayer } from "@/components/ui/video-player";
 
@@ -109,9 +110,9 @@ export default function VideoAudioConverterPage() {
       finishFakeProgress();
       toast.success(`Converted to ${outputFormat.toUpperCase()}!`, { id: toastId });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       finishFakeProgress();
-      toast.error(err.message || "Conversion failed.", { id: toastId });
+      toast.error(getErrorMessage(err, "Conversion failed."), { id: toastId });
     } finally {
       setConverting(false);
     }

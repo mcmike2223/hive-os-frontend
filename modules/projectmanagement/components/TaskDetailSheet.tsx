@@ -56,6 +56,7 @@ import { useUser } from "@/hooks/use-user";
 import { motion, AnimatePresence } from "framer-motion";
 import * as RuntimeContext from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import { TaskTimer } from "./TaskTimer";
 import { History as HistoryIcon, Clock, Trash2 as TrashIcon } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
@@ -385,10 +386,10 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
       } else if (failed_count === 0) {
         toast.success("Messages processed successfully");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
       console.error("Bulk deletion error:", err);
-      toast.error(err.response?.data?.message || "An error occurred during bulk deletion");
+      toast.error(getErrorMessage(err, "An error occurred during bulk deletion"));
     }
   };
 

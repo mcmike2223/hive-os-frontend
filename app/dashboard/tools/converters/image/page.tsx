@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 
 type OutputFormat = "image/png" | "image/jpeg" | "image/webp" | "image/gif";
 type OutputExt = "png" | "jpg" | "webp" | "gif";
@@ -188,8 +189,8 @@ export default function ImageConverterPage() {
       try {
         const result = await convertImageFile(file, outputFormat, outputExt, quality);
         results.push(result);
-      } catch (err: any) {
-        errors.push(`${file.name}: ${err.message}`);
+      } catch (err: unknown) {
+        errors.push(`${file.name}: ${getErrorMessage(err)}`);
       }
     }
 

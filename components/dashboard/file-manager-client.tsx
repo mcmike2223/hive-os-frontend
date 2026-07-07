@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient, onlineManager } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { enqueueFileUpload } from "@/lib/offline/file-upload-queue";
+import { getErrorMessage } from "@/lib/errors";
 import {
   Folder, Star, Share2, Trash2, Clock, Settings, Search, 
   Image as ImageIcon, Video, FileText, Music, Plus, UploadCloud, 
@@ -1081,8 +1082,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
 
         toast.success("Download complete.", { id: `download-${fileId}` });
       }
-    } catch (err: any) {
-      toast.error(err?.message || 'Download failed. Please try again.');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Download failed. Please try again.'));
       toast.dismiss(`download-${fileId}`);
     } finally {
       setDownloadingFileId(null);

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -254,8 +255,8 @@ export default function PdfConverterPage() {
         setOutputs([{ url, blob, name: filename, size: blob.size }]);
         toast.success("Conversion complete!", { id: toastId });
       }
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred.", { id: toastId });
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "An error occurred."), { id: toastId });
     } finally {
       setConverting(false);
     }

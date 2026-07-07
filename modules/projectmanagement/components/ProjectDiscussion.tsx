@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import EmojiPicker from "emoji-picker-react";
 import { FileManagerClient, ImageViewer } from "@/components/dashboard/file-manager-client";
 import { VideoPlayer } from "@/components/ui/video-player";
@@ -421,10 +422,10 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
       } else if (failed_count === 0) {
         toast.success("Messages processed successfully");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
       console.error("Bulk deletion error:", err);
-      toast.error(err.response?.data?.message || "An error occurred during bulk deletion");
+      toast.error(getErrorMessage(err, "An error occurred during bulk deletion"));
     }
   };
 

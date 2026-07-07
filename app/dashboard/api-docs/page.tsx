@@ -11,14 +11,7 @@ import { ModulePageSkeleton } from "@/components/ui/loading-states";
 import { usePermissions } from "@/hooks/use-permissions";
 import { API_DOCS_ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 import { Home, ExternalLink, ShieldCheck, Network, ServerCog, RefreshCcw, Braces, ShieldAlert } from "lucide-react";
-
-declare global {
-  interface Window {
-    SwaggerUIBundle?: any;
-    SwaggerUIStandalonePreset?: any;
-    hiveSwaggerUi?: { destroy?: () => void } | null;
-  }
-}
+import "@/lib/swagger-ui-globals";
 
 const SWAGGER_CSS_ID = "swagger-ui-dist-css";
 const SWAGGER_BUNDLE_SRC = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js";
@@ -126,8 +119,12 @@ const { hasAnyPermission, isLoaded } = usePermissions();
 
         if (cancelled || !swaggerRef.current) return;
 
+        const swaggerBundle = window.SwaggerUIBundle;
+        const swaggerPreset = window.SwaggerUIStandalonePreset;
+        if (!swaggerBundle || !swaggerPreset) return;
+
         swaggerRef.current.innerHTML = "";
-        window.hiveSwaggerUi = window.SwaggerUIBundle({
+        window.hiveSwaggerUi = swaggerBundle({
           spec,
           domNode: swaggerRef.current,
           deepLinking: true,
@@ -136,11 +133,11 @@ const { hasAnyPermission, isLoaded } = usePermissions();
           displayRequestDuration: true,
           tryItOutEnabled: true,
           presets: [
-            window.SwaggerUIBundle.presets.apis,
-            window.SwaggerUIStandalonePreset,
+            swaggerBundle.presets.apis,
+            swaggerPreset,
           ],
           layout: "BaseLayout",
-          requestInterceptor: (request: any) => {
+          requestInterceptor: (request) => {
             request.headers = request.headers || {};
 
             if (token) {

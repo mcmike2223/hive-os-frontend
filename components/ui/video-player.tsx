@@ -9,6 +9,7 @@ import {
   SkipBack, SkipForward, Subtitles, Settings, Gauge, Check,
   AlertCircle, PictureInPicture, RotateCcw, RotateCw, Repeat, Keyboard, ListVideo
 } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
 import { getAuthHeaders } from '@/lib/runtime-context';
 import { cn } from '@/lib/utils';
 
@@ -598,9 +599,9 @@ export function VideoPlayer({
           }
           await video.requestPictureInPicture();
         }
-      } catch (err: any) {
-        console.warn('PiP error:', err?.message || err);
-        if (err?.name === 'NotAllowedError') {
+      } catch (err: unknown) {
+        console.warn('PiP error:', getErrorMessage(err));
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
           toast.error('PiP was blocked. Please interact with the video first.');
         } else {
           // If standard fails, try falling through to webkit if available

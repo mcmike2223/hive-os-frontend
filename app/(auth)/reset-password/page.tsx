@@ -19,7 +19,12 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { logFrontendAction } from "@/lib/api"; // 🚀 Added Telemetry
 import { cn } from "@/lib/utils";
 import { getBackendApiRoot, getTenantHeaders, getTenantId, isTenantHost } from "@/lib/runtime-context";
-
+type PasswordPolicy = {
+  min_length?: number;
+  require_mixed_case?: boolean;
+  require_numbers?: boolean;
+  require_symbols?: boolean;
+};
 function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,8 +37,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [policy, setPolicy] = useState<any>(null);
-
+  const [policy, setPolicy] = useState<PasswordPolicy | null>(null);
   const viewLogged = useRef(false);
 
   useEffect(() => {
@@ -62,7 +66,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
         
         if (res.ok) setPolicy(await res.json());
         else setPolicy(fallbackPolicy);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setPolicy(fallbackPolicy);
       } finally {
         clearTimeout(timeoutId);
@@ -123,10 +127,11 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
 
       toast.success("Node access established successfully.");
       setTimeout(() => router.push("/sign-in"), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 🚀 TELEMETRY: Failure
-      await logFrontendAction({ module: 'Auth - Recovery', action: 'reset_failed', description: `Key reset failed: ${err.message}` }).catch(()=>{});
-      setError(err.message);
+      const errMessage = err instanceof Error ? err.message : String(err);
+      await logFrontendAction({ module: 'Auth - Recovery', action: 'reset_failed', description: `Key reset failed: ${errMessage}` }).catch(()=>{});
+      setError(errMessage);
     } finally {
       setLoading(false);
     }

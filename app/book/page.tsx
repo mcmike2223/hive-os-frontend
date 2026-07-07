@@ -51,9 +51,13 @@ export default function PublicBookingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Submission failed.");
       setStep("success");
-    } catch (err: any) {
-      toast.error(err.message ?? "Something went wrong. Please try again.");
-    } finally {
+    } catch (err: unknown) {
+  const message =
+    err instanceof Error ? err.message : "Something went wrong";
+
+  toast.error(message);
+    }
+    finally {
       setSubmitting(false);
     }
   };
@@ -175,7 +179,7 @@ export default function PublicBookingPage() {
         </Button>
 
         <p className="text-center text-white/30 text-xs">
-          Your reservation is subject to approval. We'll reach you on the phone number provided.
+          Your reservation is subject to approval. We`&apos;`ll reach you on the phone number provided.
         </p>
       </form>
     </div>

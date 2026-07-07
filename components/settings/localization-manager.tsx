@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/errors';
 import { SettingsPanelSkeleton } from "@/components/ui/loading-states";
 import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
 
@@ -161,8 +162,8 @@ export function LocalizationManager() {
 
       setForm({ langName: '', langCode: '', group: 'global', key: '', value: '' });
       setModals({ ...modals, key: false });
-    } catch (err: any) { 
-      toast.error(err.message); 
+    } catch (err: unknown) { 
+      toast.error(getErrorMessage(err)); 
     }
   };
 
@@ -174,8 +175,8 @@ export function LocalizationManager() {
       // Remove instantly from fallback UI
       const newBase = {...finalBase}; delete newBase[key]; setFallbackBase(newBase);
       const newTarget = {...finalTarget}; delete newTarget[key]; setFallbackTarget(newTarget);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -183,8 +184,8 @@ export function LocalizationManager() {
     try {
       await deleteLanguage(code);
       toast.success(`'${name}' ${t('localization.toast_lang_purged', 'completely purged from the system.')}`);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     }
   };
 

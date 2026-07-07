@@ -83,8 +83,12 @@ export default function SystemAlertsPage() {
             queryClient.invalidateQueries({ queryKey: ['systemAlertsList'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] }); // Update dashboard counters too!
         },
-        onError: (err: any) => toast.error(err.message)
-    });
+onError: (err: unknown) => {
+    const message =
+        err instanceof Error ? err.message : "Failed to dismiss alert";
+
+    toast.error(message);
+}    });
 
     // MUTATION: Dismiss ALL alerts
     const dismissAllMut = useMutation({
@@ -94,8 +98,12 @@ export default function SystemAlertsPage() {
             queryClient.invalidateQueries({ queryKey: ['systemAlertsList'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
         },
-        onError: (err: any) => toast.error(err.message)
-    });
+onError: (err: unknown) => {
+    const message =
+        err instanceof Error ? err.message : "Failed to dismiss alert";
+
+    toast.error(message);
+}    });
 
     const alerts: SystemAlert[] = alertsData?.data || [];
 

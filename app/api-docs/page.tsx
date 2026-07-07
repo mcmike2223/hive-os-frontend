@@ -7,15 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { getAccessToken, getBackendOrigin, getStoredHiveContextSignature, getTenantHeaders, getTenantId } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
+import "@/lib/swagger-ui-globals";
 import { Home, ExternalLink, ShieldCheck, Network, ServerCog, RefreshCcw, Braces } from "lucide-react";
-
-declare global {
-  interface Window {
-    SwaggerUIBundle?: any;
-    SwaggerUIStandalonePreset?: any;
-    hiveSwaggerUi?: { destroy?: () => void } | null;
-  }
-}
 
 const SWAGGER_CSS_ID = "swagger-ui-dist-css";
 const SWAGGER_BUNDLE_SRC = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js";
@@ -121,8 +114,12 @@ export default function ApiDocsPage() {
         if (cancelled) return;
         if (!swaggerRef.current) return;
 
+        const swaggerBundle = window.SwaggerUIBundle;
+        const swaggerPreset = window.SwaggerUIStandalonePreset;
+        if (!swaggerBundle || !swaggerPreset) return;
+
         swaggerRef.current.innerHTML = "";
-        window.hiveSwaggerUi = window.SwaggerUIBundle({
+        window.hiveSwaggerUi = swaggerBundle({
           spec,
           domNode: swaggerRef.current,
           deepLinking: true,
@@ -131,12 +128,11 @@ export default function ApiDocsPage() {
           displayRequestDuration: true,
           tryItOutEnabled: true,
           presets: [
-            window.SwaggerUIBundle.presets.apis,
-            window.SwaggerUIStandalonePreset,
+            swaggerBundle.presets.apis,
+            swaggerPreset,
           ],
           layout: "BaseLayout",
-          requestInterceptor: (request: any) => {
-            request.headers = request.headers || {};
+          requestInterceptor: (request: { headers?: Record<string, string> }) => {            request.headers = request.headers || {};
 
             if (token) {
               request.headers.Authorization = `Bearer ${token}`;

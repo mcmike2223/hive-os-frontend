@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getErrorMessage } from '@/lib/errors';
 import { getAccessToken, getBackendApiRoot } from '@/lib/runtime-context';
 
 interface Language {
@@ -55,8 +56,8 @@ export const useLocalization = create<LocalizationState>((set, get) => ({
       const source = normalizedLanguages.find((l: Language) => l.is_default) || normalizedLanguages[0];
         
       if (source) await get().fetchBaseTranslations(source.code);
-    } catch (err: any) { 
-      set({ error: err.message }); 
+    } catch (err: unknown) { 
+      set({ error: getErrorMessage(err) }); 
     } finally { 
       set({ isLoading: false }); 
     }
@@ -73,7 +74,7 @@ export const useLocalization = create<LocalizationState>((set, get) => ({
       const data = await res.json();
       // 🚀 THE FIX: Removed .messages
       set({ baseTranslations: data.data || data || {} });
-    } catch (err: any) { 
+    } catch { 
       set({ baseTranslations: {} });
     }
   },
@@ -87,8 +88,8 @@ export const useLocalization = create<LocalizationState>((set, get) => ({
       const data = await res.json();
       // 🚀 THE FIX: Removed .messages
       set({ targetTranslations: data.data || data || {} });
-    } catch (err: any) {
-      set({ error: err.message });
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err) });
     } finally { 
       set({ isLoading: false }); 
     }
@@ -124,8 +125,8 @@ export const useLocalization = create<LocalizationState>((set, get) => ({
       }
       
       await get().fetchLanguages();
-    } catch (err: any) {
-      throw new Error(err.message || "Network connection failed");
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err, "Network connection failed"));
     }
   },
 

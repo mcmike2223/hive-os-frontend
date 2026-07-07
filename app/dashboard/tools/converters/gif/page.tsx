@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
 
 type GifMode = "video-to-gif" | "images-to-gif" | "gif-to-mp4";
@@ -163,9 +164,9 @@ export default function GifConverterPage() {
       finishFakeProgress();
       toast.success("Conversion complete!", { id: toastId });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       finishFakeProgress();
-      toast.error(err.message || "Conversion failed.", { id: toastId });
+      toast.error(getErrorMessage(err, "Conversion failed."), { id: toastId });
     } finally {
       setConverting(false);
     }

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/store/use-translation";
 import { api } from "@/modules/shared/api/http";
@@ -112,31 +113,27 @@ export default function RequestDemoPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response text:", errorText);
-        let errorData = {};
+        let errorData: { message?: string } = {};
         try {
           errorData = JSON.parse(errorText);
         } catch {
           // Not JSON
         }
-        throw new Error((errorData as any).message || `Server error: ${response.status} - ${errorText.substring(0, 100)}`);
+        throw new Error(errorData.message || `Server error: ${response.status} - ${errorText.substring(0, 100)}`);
       }
 
       const data = await response.json();
       console.log("Demo request response:", data);
       setSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Demo request error:", err);
-      console.error("Error type:", err?.constructor?.name);
-      console.error("Error message:", err?.message);
-      
-      let message = "Failed to submit request. Please try again.";
-      
-      if (err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError")) {
+
+      let message = getErrorMessage(err, "Failed to submit request. Please try again.");
+
+      if (err instanceof Error && (err.message.includes("Failed to fetch") || err.message.includes("NetworkError"))) {
         message = "Cannot connect to server. Please make sure:\n1. Next.js is running on port 3000\n2. Backend is running in Docker on port 8085\n3. Restart Next.js after config changes (Ctrl+C, then npm run dev)";
-      } else if (err?.message) {
-        message = err.message;
       }
-      
+
       setError(message);
     } finally {
       setLoading(false);

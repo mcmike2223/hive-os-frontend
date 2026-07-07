@@ -6,7 +6,8 @@
     "dev": "node scripts/prepare-next-dev.js && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
