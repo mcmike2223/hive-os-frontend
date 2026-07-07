@@ -94,7 +94,7 @@ export default function B2BMarketplacePage() {
 
       {!isLoaded ? null : tabs.length === 0 ? (
         <div className="rounded-3xl border border-border/60 bg-card/50 p-10 text-center text-sm text-muted-foreground">
-          You don't have access to any marketplace areas yet. Ask an administrator to assign you a
+          You don&apos;t have access to any marketplace areas yet. Ask an administrator to assign you a
           buyer, seller, or admin role.
         </div>
       ) : (

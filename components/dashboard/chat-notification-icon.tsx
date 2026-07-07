@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useChatAccess } from '@/hooks/use-chat-access';
 import { decryptChatConversation, decryptChatConversations, decryptChatMessages } from '@/lib/chat-e2ee';
 import { getChatConversationTitle, getChatMessagePreview, getStoredChatUser } from '@/lib/chat-utils';
-import { useChatStore } from '@/store/chat-store';
+import { useChatStore, type ChatConversation } from '@/store/chat-store';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,7 +41,7 @@ export function ChatNotificationIcon() {
           setConversations(convs);
           
           // Calculate unread from fetched conversations
-          const unread = convs.reduce((acc: number, c: any) => acc + (c.unread_count || 0), 0);
+          const unread = convs.reduce((acc: number, c: ChatConversation) => acc + (c.unread_count || 0), 0);
           setCounts({ total: convs.length, unread });
         } catch (err) {
           console.error('Failed to fetch conversations:', err);

@@ -35,6 +35,19 @@ import {
     TENANTS_ROUTE_PERMISSIONS,
 } from "@/lib/route-permissions";
 
+interface DashboardActivity {
+    id?: number | string;
+    event?: string;
+    description?: string;
+    causer?: string | { name?: string };
+    subject_type?: string;
+    properties?: { causer_name?: string };
+    node?: string;
+    tenant_id?: string;
+    time?: string;
+    time_ago?: string;
+}
+
 interface DashboardData {
     company: string;
     plan: string;
@@ -46,7 +59,7 @@ interface DashboardData {
         total_tenants?: number;
         active_tenants?: number;
     };
-    recent_activity: any[];
+    recent_activity: DashboardActivity[];
     business?: {
         mrr: number;
         enterprise_pct: number;
@@ -178,11 +191,11 @@ export default function DashboardHome() {
             const channelName = `dashboard.${tenantName.toLowerCase()}`;
             const channel = echo.private(channelName);
             
-            channel.listen('.activity.logged', (e: any) => {
-                const activity = e.activity;
+            channel.listen('.activity.logged', (e: { activity: DashboardActivity }) => {
+                const activity = { ...e.activity };
                 
                 // Set the correct operator name dynamically
-                activity.causer = activity.properties?.causer_name || activity.causer?.name || activity.causer || 'System';
+                activity.causer = activity.properties?.causer_name || (typeof activity.causer === 'object' ? activity.causer?.name : activity.causer) || 'System';
 
                 const eventType = activity.event?.toLowerCase() || '';
                 const description = activity.description?.toLowerCase() || '';
@@ -204,7 +217,7 @@ export default function DashboardHome() {
                     });
                 }
 
-                queryClient.setQueryData(['dashboardMetrics', tenantName], (oldData: any) => {
+                queryClient.setQueryData(['dashboardMetrics', tenantName], (oldData: DashboardData | undefined) => {
                     if (!oldData) return oldData;
 
                     const newStats = { ...oldData.stats };
@@ -219,7 +232,8 @@ export default function DashboardHome() {
 
                         if (eventType === 'created' || description.includes('provisioned')) {
                             if (isTenantAction) { 
-                                newStats.total_tenants++; newStats.active_tenants++; 
+                                newStats.total_tenants = (newStats.total_tenants ?? 0) + 1;
+                                newStats.active_tenants = (newStats.active_tenants ?? 0) + 1;
                                 if (newBusiness) newBusiness.mrr += 199; 
                             }
                             if (isUserAction) { newStats.total_users++; newStats.active_users++; }
@@ -228,7 +242,8 @@ export default function DashboardHome() {
                         } 
                         else if (eventType === 'deleted' || description.includes('purged')) {
                             if (isTenantAction) { 
-                                newStats.total_tenants--; newStats.active_tenants--; 
+                                newStats.total_tenants = (newStats.total_tenants ?? 0) - 1;
+                                newStats.active_tenants = (newStats.active_tenants ?? 0) - 1;
                                 if (newBusiness) newBusiness.mrr -= 199; 
                             }
                             if (isUserAction) { newStats.total_users--; newStats.active_users--; }
@@ -237,8 +252,8 @@ export default function DashboardHome() {
                         } 
                         else if (eventType === 'updated') {
                             if (isTenantAction) {
-                                if (description.includes('online')) newStats.active_tenants++;
-                                if (description.includes('suspended')) newStats.active_tenants--;
+                                if (description.includes('online')) newStats.active_tenants = (newStats.active_tenants ?? 0) + 1;
+                                if (description.includes('suspended')) newStats.active_tenants = (newStats.active_tenants ?? 0) - 1;
                             }
                             if (isUserAction) {
                                 if (description.includes('active')) newStats.active_users++;
@@ -443,7 +458,7 @@ export default function DashboardHome() {
                                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
                                         <XAxis type="number" hide />
                                         <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold'}} />
-                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: any) => [`${val} ${t('dashboard.modules.req_per_sec', 'Req/s')}`, t('dashboard.modules.volume_label', 'Volume')]} />
+                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: number | string) => [`${val} ${t('dashboard.modules.req_per_sec', 'Req/s')}`, t('dashboard.modules.volume_label', 'Volume')]} />
                                         <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} isAnimationActive={false}>
                                             {moduleTraffic.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                         </Bar>
@@ -456,7 +471,7 @@ export default function DashboardHome() {
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold'}} />
                                         <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: any) => [`${val}${t('dashboard.modules.ms', 'ms')}`, t('dashboard.modules.latency_label', 'Latency')]} />
+                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: number | string) => [`${val}${t('dashboard.modules.ms', 'ms')}`, t('dashboard.modules.latency_label', 'Latency')]} />
                                         <Bar dataKey="ms" radius={[4, 4, 0, 0]} barSize={32} isAnimationActive={false}>
                                             {moduleLatency.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} opacity={0.8} />)}
                                         </Bar>
@@ -466,7 +481,7 @@ export default function DashboardHome() {
                             {moduleTab === 'errors' && (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
-                                        <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} formatter={(val: any) => [`${val} ${t('dashboard.modules.events', 'Events')}`, t('dashboard.modules.anomalies', 'Anomalies')]} />
+                                        <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} formatter={(val: number | string) => [`${val} ${t('dashboard.modules.events', 'Events')}`, t('dashboard.modules.anomalies', 'Anomalies')]} />
                                         <Pie data={moduleErrors.map(m => ({ ...m, name: t(`dashboard.modules.${m.name.toLowerCase()}`, m.name) }))} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="count" stroke="none" isAnimationActive={false}>
                                             {moduleErrors.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                                         </Pie>
@@ -701,7 +716,7 @@ export default function DashboardHome() {
                         </div>
                         <div className="space-y-3">
                             {(data.recent_activity || []).slice(0, 5).map((log, index) => {
-                                let causerName = log.properties?.causer_name || log.causer?.name || log.causer || 'System';
+                                let causerName = log.properties?.causer_name || (typeof log.causer === 'object' ? log.causer?.name : log.causer) || 'System';
                                 if (causerName === 'HIVE OVERLORD' && log.properties?.causer_name) {
                                     causerName = log.properties.causer_name;
                                 }

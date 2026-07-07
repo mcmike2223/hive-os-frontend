@@ -22,8 +22,13 @@ interface LandingUIProps {
   initialIsTenant: boolean;
 }
 
+type Partner = {
+  name: string;
+  logo: string;
+};
+
 // --- JS DRIVEN INFINITE SCROLL PARTNER COMPONENT ---
-const PartnerSlider = ({ partners }: { partners: any[] }) => {
+const PartnerSlider = ({ partners }: { partners: Partner[] }) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -143,7 +148,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
       if (ctx) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        let hexagons: any[] = [];
+        let hexagons: Hex[] = [];
 
         const isDark = document.documentElement.classList.contains('dark');
         const r = isDark ? 255 : 180;
@@ -458,7 +463,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               </div>
               <h3 className="text-2xl font-bold font-space mb-3">Chapa & ArifPay Ready</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Connect directly to Ethiopia's leading modern payment gateways. Auto-reconcile invoices, track digital disbursements, and accept mobile payments natively.
+                Connect directly to Ethiopia&apos;s leading modern payment gateways. Auto-reconcile invoices, track digital disbursements, and accept mobile payments natively.
               </p>
             </div>
 
@@ -590,7 +595,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             <Badge className="mb-4 bg-primary/10 text-primary border-none shadow-none">HUMAN RESOURCES</Badge>
             <h2 className="font-space text-4xl md:text-5xl font-bold mb-6">Ethiopian <span className="text-primary">Payroll & Pension</span></h2>
             <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              Managing payroll shouldn't require a master's degree in tax law. Hive automatically handles ERCA tax brackets and POESSA pension splits for your entire workforce.
+              Managing payroll shouldn&apos;t require a master&apos;s degree in tax law. Hive automatically handles ERCA tax brackets and POESSA pension splits for your entire workforce.
             </p>
             <ul className="space-y-4">
               <li className="flex gap-4">
@@ -671,7 +676,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             <Badge className="mb-4 bg-secondary text-secondary-foreground border-none shadow-none">FIELD READY</Badge>
             <h2 className="font-space text-4xl md:text-5xl font-bold mb-6">Built for the <span className="text-primary">Road</span></h2>
             <p className="text-muted-foreground text-lg mb-8">
-              Operations in Ethiopia don't always have reliable internet. Our native applications are designed with aggressive offline-caching, allowing your team to work anywhere.
+              Operations in Ethiopia don&apos;t always have reliable internet. Our native applications are designed with aggressive offline-caching, allowing your team to work anywhere.
             </p>
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 rounded-lg bg-card/50 border border-border">
@@ -720,7 +725,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               <Badge className="mb-4 bg-primary/20 text-primary border-none shadow-none">SCALABLE ARCHITECTURE</Badge>
               <h2 className="font-space text-4xl md:text-5xl font-bold mb-4">Choose Your <span className="text-primary">Deployment</span></h2>
               <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                Whether you're a lean startup or a massive corporate enterprise, Hive scales infrastructure directly to your operational needs.
+                Whether you&apos;re a lean startup or a massive corporate enterprise, Hive scales infrastructure directly to your operational needs.
               </p>
             </div>
 

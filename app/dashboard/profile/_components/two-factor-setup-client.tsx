@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { ShieldCheck, ShieldAlert, Loader2, KeyRound, Copy, Check } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/errors";
 import { logFrontendAction } from "@/lib/api"; 
 import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
 import {
@@ -105,8 +106,8 @@ export function TwoFactorSetupClient() {
         logFrontendAction({ module: 'Profile Settings', action: 'updated', description: 'Operator completely disabled Two-Factor Authentication.' }).catch(()=>{});
         toast.warning("Security Downgraded: Two-Factor Authentication has been disabled.");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Authorization Failed");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Authorization Failed"));
     } finally {
       setIsLoading(false);
       setIsPasswordModalOpen(false);
@@ -136,8 +137,8 @@ export function TwoFactorSetupClient() {
       logFrontendAction({ module: 'Profile Settings', action: 'updated', description: 'Operator successfully activated and locked Two-Factor Authentication.' }).catch(()=>{});
       toast.success("Security Upgraded! Two-Factor Authentication is now active.");
 
-    } catch (error: any) {
-      toast.error(error.message || "Verification Failed");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Verification Failed"));
     } finally {
       setIsLoading(false);
     }

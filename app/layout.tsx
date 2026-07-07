@@ -59,9 +59,9 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: indexable
       ? { index: true, follow: true }
       : { index: false, follow: false, googleBot: { index: false, follow: false } },
-    openGraph: { title, description, siteName, type: (seo.og_type as any) || "website", images: ogImages },
+    openGraph: { title, description, siteName, type: (seo.og_type || "website") as NonNullable<Metadata["openGraph"]> extends { type?: infer T } ? T : "website", images: ogImages },
     twitter: {
-      card: (seo.twitter_card as any) || "summary_large_image",
+      card: (seo.twitter_card || "summary_large_image") as "summary" | "summary_large_image" | "app" | "player",
       site: seo.twitter_handle || undefined,
       title,
       description,

@@ -44,7 +44,37 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useTenantModuleAccess } from "@/hooks/use-tenant-module-access";
 import { useTranslation } from "@/store/use-translation";
+import { getErrorMessage } from "@/lib/errors";
 import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, persistHiveContext } from "@/lib/runtime-context";
+
+type ServerRoleRecord = { id: number | string; name: string };
+type ServerUserRecord = {
+  id: number | string;
+  name?: string | null;
+  email: string;
+  is_active?: boolean;
+  created_at?: string;
+  avatar_path?: string | null;
+  avatar_url?: string | null;
+  role?: string;
+  roles?: ServerRoleRecord[];
+  hospitality_staff?: UserForClient["hospitalityStaff"];
+};
+
+type AssignableRole = { id: string; name: string };
+type HospitalityStaffOption = NonNullable<UserForClient["hospitalityStaff"]>;
+type PickerFile = {
+  media_details?: { url?: string };
+  url?: string;
+  path?: string;
+};
+type TableQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortCol?: string | null;
+  sortDir?: string | null;
+};
 
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
@@ -104,12 +134,12 @@ export function UsersTabClient(props: Props) {
   const { hasModule } = useTenantModuleAccess();
   const hasHospitalityModule = hasModule("hospitality");
 
-  const isProtectedUser = React.useCallback((user: any) => {
+  const isProtectedUser = React.useCallback((user: UserForClient | null | undefined) => {
     if (!user) return false;
     if (user.id === "1" || user.id === 1) return true;
     if (user.role && typeof user.role === "string" && user.role.includes("Super Admin")) return true;
     if (user.userRoles && Array.isArray(user.userRoles)) {
-      return user.userRoles.some((r: any) => r.role?.name === "Super Admin");
+      return user.userRoles.some((r) => r.role?.name === "Super Admin");
     }
     return false;
   }, []);
@@ -166,14 +196,14 @@ export function UsersTabClient(props: Props) {
   }, []);
 
   const mapServerUserToClient = React.useCallback(
-    (u: any): UserForClient => ({
+    (u: ServerUserRecord): UserForClient => ({
       id: String(u.id), 
       name: u.name,
       email: u.email,
       isActive: !!u.is_active,
       createdAt: u.created_at,
       avatarUrl: getStorageUrl(u.avatar_path || u.avatar_url),
-      userRoles: (u.roles || []).map((r: any) => ({
+      userRoles: (u.roles || []).map((r: ServerRoleRecord) => ({
         id: String(r.id),
         roleId: String(r.id),
         role: { key: r.name, name: r.name },
@@ -285,7 +315,7 @@ export function UsersTabClient(props: Props) {
   const staffOptions = React.useMemo(() => {
     const options = [...unlinkedStaff];
     if (isEdit && editingUser?.hospitalityStaff) {
-      const exists = options.some((s: any) => s.id === editingUser.hospitalityStaff?.id);
+      const exists = options.some((s: HospitalityStaffOption) => s.id === editingUser.hospitalityStaff?.id);
       if (!exists) {
         options.push(editingUser.hospitalityStaff);
       }
@@ -294,17 +324,17 @@ export function UsersTabClient(props: Props) {
   }, [unlinkedStaff, isEdit, editingUser]);
 
   const selectedStaff = React.useMemo(() => {
-    return staffOptions.find((s: any) => String(s.id) === formHospitalityStaffId);
+    return staffOptions.find((s: HospitalityStaffOption) => String(s.id) === formHospitalityStaffId);
   }, [staffOptions, formHospitalityStaffId]);
 
-  const assignableRoles = React.useMemo(() => {
-    let rawRoles: any[] = [];
+  const assignableRoles = React.useMemo<AssignableRole[]>(() => {
+    let rawRoles: Array<{ id: number | string; name: string }> = [];
     if (rolesData?.data && Array.isArray(rolesData.data)) rawRoles = rolesData.data;
     else if (Array.isArray(rolesData)) rawRoles = rolesData;
     return rawRoles
-      .map((r: any) => ({ id: String(r.id), name: r.name }))
-      .filter((r: any) => r.name !== "Super Admin") 
-      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      .map((r) => ({ id: String(r.id), name: r.name }))
+      .filter((r) => r.name !== "Super Admin")
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [rolesData]);
 
   React.useEffect(() => {
@@ -340,12 +370,12 @@ export function UsersTabClient(props: Props) {
         window.location.href = '/dashboard';
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || t('global.operation_failed', "Failed to impersonate user."));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t('global.operation_failed', "Failed to impersonate user.")));
     }
   });
 
-  const createMut = useOfflineMutation<any, Error, UserOfflinePayload>({
+  const createMut = useOfflineMutation<unknown, Error, UserOfflinePayload>({
     definition: createUserOfflineMutationDefinition,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -357,12 +387,12 @@ export function UsersTabClient(props: Props) {
       toast.info("Offline: the new user has been queued and will provision automatically once the network returns.");
       setCreateDialogOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('global.operation_failed', "An unexpected error occurred."));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t('global.operation_failed', "An unexpected error occurred.")));
     },
   });
 
-  const updateMut = useOfflineMutation<any, Error, UserUpdateOfflinePayload>({
+  const updateMut = useOfflineMutation<unknown, Error, UserUpdateOfflinePayload>({
     definition: updateUserOfflineMutationDefinition,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -374,36 +404,36 @@ export function UsersTabClient(props: Props) {
       toast.info("Offline: user updates have been queued and will sync automatically when the connection returns.");
       setCreateDialogOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('global.operation_failed', "An unexpected error occurred."));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t('global.operation_failed', "An unexpected error occurred.")));
     },
   });
 
-  const toggleMut = useOfflineMutation<any, Error, number>({
+  const toggleMut = useOfflineMutation<unknown, Error, number>({
     definition: toggleUserStatusOfflineMutationDefinition,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
     onQueued: () => {
       toast.info("Offline: the access change has been queued and will sync automatically.");
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('global.operation_failed', "Failed to update status"));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t('global.operation_failed', "Failed to update status")));
     },
   });
 
-  const deleteMut = useOfflineMutation<any, Error, number>({
+  const deleteMut = useOfflineMutation<unknown, Error, number>({
     definition: deleteUserOfflineMutationDefinition,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('global.operation_failed', "Operation failed."));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t('global.operation_failed', "Operation failed.")));
     },
   });
 
-  const handleQueryChange = React.useCallback((q: any) => {
+  const handleQueryChange = React.useCallback((q: TableQuery) => {
     if (q.page !== undefined) setPage(q.page);
     if (q.pageSize !== undefined) setPageSize(q.pageSize);
-    if (q.search !== undefined) setSearch((prev) => { if (prev !== q.search) setPage(1); return q.search; });
+    if (q.search !== undefined) setSearch((prev) => { if (prev !== q.search) setPage(1); return q.search ?? ""; });
     if (q.sortCol !== undefined) setSortCol(q.sortCol);
     if (q.sortDir !== undefined) setSortDir(q.sortDir);
   }, [setPageSize]);
@@ -477,7 +507,7 @@ export function UsersTabClient(props: Props) {
     setCreateDialogOpen(true);
   }, [assignableRoles, isProtectedUser, t]);
 
-  const handleFileSelect = React.useCallback((file: any) => {
+  const handleFileSelect = React.useCallback((file: PickerFile) => {
       const rawUrl = file?.media_details?.url || file?.url || file?.path;
       if (!rawUrl) {
           toast.error("Error: Could not extract image path from selection.");
@@ -511,7 +541,7 @@ export function UsersTabClient(props: Props) {
     if (formPassword.trim() !== "") payload.password = formPassword.trim();
     if (tenantId) payload.tenant_id = tenantId;
 
-    const roleObj = assignableRoles.find((r: any) => r.id === formRoleId);
+    const roleObj = assignableRoles.find((r) => r.id === formRoleId);
     if (roleObj) payload.role = roleObj.name;
 
     if (formAvatarPath) payload.avatar_path = formAvatarPath;
@@ -533,18 +563,25 @@ export function UsersTabClient(props: Props) {
       } else {
         await createMut.mutateAsync(payload);
       }
-    } catch (error: any) {
-      if (error?.response?.status === 422 && error?.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const formattedErrors: Record<string, string> = {};
-        Object.keys(errors).forEach(key => formattedErrors[key] = errors[key][0]);
-        setFieldErrors(formattedErrors);
+    } catch (error: unknown) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error
+      ) {
+        const response = (error as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } }).response;
+        if (response?.status === 422 && response.data?.errors) {
+          const errors = response.data.errors;
+          const formattedErrors: Record<string, string> = {};
+          Object.keys(errors).forEach((key) => { formattedErrors[key] = errors[key][0]; });
+          setFieldErrors(formattedErrors);
+        }
       }
       // Non-422 errors are surfaced by the mutation's onError handler.
     }
   }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule]);
 
-  const getPrimaryRoleName = React.useCallback((u: any) => {
+  const getPrimaryRoleName = React.useCallback((u: UserForClient) => {
     if (u.role && typeof u.role === "string") return u.role;
     if (u.userRoles && Array.isArray(u.userRoles) && u.userRoles.length > 0) return u.userRoles[0]?.role?.name || "Member";
     return "Member";
@@ -740,7 +777,7 @@ export function UsersTabClient(props: Props) {
           <SelectTrigger className="h-9 w-[140px] bg-background"><SelectValue placeholder={t('users.filter_role', 'Role')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('users.all_roles', 'All Roles')}</SelectItem>
-            {assignableRoles.map((r: any) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+            {assignableRoles.map((r) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -875,7 +912,7 @@ export function UsersTabClient(props: Props) {
                                   {formHospitalityStaffId === "none" && <Check className="h-4 w-4" />}
                                 </CommandItem>
                               )}
-                              {staffOptions.map((s: any) => (
+                              {staffOptions.map((s: HospitalityStaffOption) => (
                                 <CommandItem
                                   key={s.id}
                                   value={`${s.name} ${s.email} ${s.role} ${s.id}`}
@@ -888,7 +925,7 @@ export function UsersTabClient(props: Props) {
                                     // Try to auto-select clearance level
                                     const systemRoleName = staffRoleToSystemRole[s.role];
                                     if (systemRoleName) {
-                                      const matchedRoleObj = assignableRoles.find((r: any) => r.name === systemRoleName);
+                                      const matchedRoleObj = assignableRoles.find((r) => r.name === systemRoleName);
                                       if (matchedRoleObj) {
                                         setFormRoleId(matchedRoleObj.id);
                                       }
@@ -951,7 +988,7 @@ export function UsersTabClient(props: Props) {
                           {t('users.no_assignable_roles', 'No assignable roles')}
                         </SelectItem>
                       )}
-                      {assignableRoles.map((r: any) => (
+                      {assignableRoles.map((r) => (
                         <SelectItem key={r.id} value={r.id} className="cursor-pointer py-2.5">
                           <div className="flex items-center gap-2 font-medium">{r.name}</div>
                         </SelectItem>

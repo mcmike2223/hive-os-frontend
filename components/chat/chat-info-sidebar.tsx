@@ -1,37 +1,54 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useChatStore } from '@/store/chat-store';
 import { cn } from '@/lib/utils';
 import { 
-  X, Info, Phone, Video, MoreVertical, 
+  X, Phone, Video, 
   FileText, Image as ImageIcon, Link as LinkIcon,
-  User, Users, Settings, Bell, Search,
+  Users, Bell, Search,
   Download, ExternalLink, ChevronRight,
   Trash2, ShieldAlert, Ban, LogOut, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
+type SharedImage = {
+  url?: string;
+  thumbnail?: string;
+};
+
+type SharedFile = {
+  name?: string;
+  size?: number;
+  type?: string;
+  url?: string;
+};
+
+type SharedLink = {
+  title?: string;
+  url?: string;
+};
+
+type SharedItems = {
+  images: SharedImage[];
+  files: SharedFile[];
+  links: SharedLink[];
+};
+
 export default function ChatInfoSidebar() {
   const { activeConversationId, conversations, setInfoSidebarOpen, deleteConversation, setActiveConversation } = useChatStore();
-  const [sharedItems, setSharedItems] = useState<{ images: any[], files: any[], links: any[] }>({ images: [], files: [], links: [] });
+  const [sharedItems, setSharedItems] = useState<SharedItems>({ images: [], files: [], links: [] });
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('media');
   
   const conversation = conversations.find(c => c.id === activeConversationId);
 
-  useEffect(() => {
-    if (activeConversationId) {
-      fetchSharedItems();
-    }
-  }, [activeConversationId]);
+  const fetchSharedItems = useCallback(async () => {
+    if (!activeConversationId) return;
 
-  const fetchSharedItems = async () => {
     setIsLoading(true);
     try {
       const { data } = await api.get(`/chat/conversations/${activeConversationId}/shared`);
@@ -45,7 +62,11 @@ export default function ChatInfoSidebar() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeConversationId]);
+
+  useEffect(() => {
+    fetchSharedItems();
+  }, [fetchSharedItems]);
 
   const handleClearChat = async () => {
     if (!activeConversationId || !confirm('Are you sure you want to clear all messages? This cannot be undone.')) return;
@@ -54,7 +75,7 @@ export default function ChatInfoSidebar() {
       toast.success('Chat cleared');
       // Refresh messages if needed
       window.location.reload(); 
-    } catch (err) {
+    } catch {
       toast.error('Failed to clear chat');
     }
   };
@@ -67,7 +88,7 @@ export default function ChatInfoSidebar() {
       setActiveConversation(null);
       setInfoSidebarOpen(false);
       toast.success('Conversation deleted');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete conversation');
     }
   };
@@ -136,7 +157,6 @@ export default function ChatInfoSidebar() {
               <ToggleAction 
                 icon={<Bell className="h-4 w-4" />} 
                 title="Mute Notifications" 
-                color="blue"
               />
               {isGroup && (
                 <ActionItem 
@@ -162,7 +182,7 @@ export default function ChatInfoSidebar() {
               <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">See All</button>
            </div>
           
-          <Tabs defaultValue="media" className="w-full" onValueChange={setActiveTab}>
+          <Tabs defaultValue="media" className="w-full">
             <TabsList className="w-full bg-slate-100 dark:bg-muted/30 p-1.5 rounded-2xl h-12">
               <TabsTrigger value="media" className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Media</TabsTrigger>
               <TabsTrigger value="files" className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Files</TabsTrigger>
@@ -282,7 +302,7 @@ function ActionItem({ icon, title, description, color }: { icon: React.ReactNode
   );
 }
 
-function ToggleAction({ icon, title, color }: { icon: React.ReactNode, title: string, color: string }) {
+function ToggleAction({ icon, title }: { icon: React.ReactNode, title: string }) {
   const [enabled, setEnabled] = useState(false);
   
   return (
@@ -309,7 +329,7 @@ function ToggleAction({ icon, title, color }: { icon: React.ReactNode, title: st
   );
 }
 
-function FileCard({ file }: { file: any }) {
+function FileCard({ file }: { file: SharedFile }) {
   return (
     <div className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-muted/10 border border-border/30 hover:border-primary/30 transition-all group relative overflow-hidden">
       <div className="flex items-center gap-4 overflow-hidden">
@@ -318,7 +338,7 @@ function FileCard({ file }: { file: any }) {
         </div>
         <div className="flex flex-col min-w-0">
           <span className="text-[13px] font-extrabold truncate group-hover:text-primary transition-colors">{file.name || 'document.pdf'}</span>
-          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-tight">{(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || 'FILE'}</span>
+          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-tight">{((file.size ?? 0) / 1024 / 1024).toFixed(2)} MB · {file.type || 'FILE'}</span>
         </div>
       </div>
       <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl hover:bg-slate-100">
@@ -328,7 +348,7 @@ function FileCard({ file }: { file: any }) {
   );
 }
 
-function LinkCard({ link }: { link: any }) {
+function LinkCard({ link }: { link: SharedLink }) {
   return (
     <div className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-muted/10 border border-border/30 hover:border-primary/30 transition-all group cursor-pointer">
        <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">

@@ -374,7 +374,7 @@ export default function GifConverterPage() {
                 <p className="text-[11px] font-black text-emerald-600">FFmpeg Docker Service</p>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Uses FFmpeg's 2-pass palette method for best GIF quality. Runs server-side — no browser limits.
+                Uses FFmpeg&apos;s 2-pass palette method for best GIF quality. Runs server-side — no browser limits.
               </p>
             </div>
           </div>

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 import { toast } from 'sonner';
 import { 
   Loader2, X, Search, ChevronRight, Check,
@@ -144,8 +145,8 @@ export default function ComposeChatModal() {
       
       handleClose();
       toast.success(isGroup ? 'Group created' : 'Chat started');
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Failed to initialize conversation');
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, 'Failed to initialize conversation'));
     } finally {
       setLoading(false);
     }

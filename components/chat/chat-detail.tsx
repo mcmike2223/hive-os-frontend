@@ -49,8 +49,10 @@ import {
 import { cn } from '@/lib/utils';
 import { getConversationPresenceChannelName, initEcho } from '@/lib/echo';
 import { getAccessToken, getAuthHeaders } from '@/lib/runtime-context';
+import { getErrorMessage } from '@/lib/errors';
 import {
   ChatAttachmentMetadata,
+  ChatConversation,
   ChatMessage,
   ChatMessageMetadata,
   useChatStore,
@@ -63,6 +65,33 @@ interface ChatDetailProps {
 type LocalUser = {
   id: number;
   name: string;
+};
+
+type TypingWhisperPayload = {
+  conversation_id?: number | string;
+  user?: { id: number | string; name?: string };
+  is_typing?: boolean;
+};
+
+type PresenceChannel = {
+  whisper: (event: string, payload: TypingWhisperPayload) => void;
+  listenForWhisper: (event: string, callback: (payload: TypingWhisperPayload) => void) => void;
+};
+
+type ChatFileSelection = {
+  id?: number | string;
+  url?: string;
+  media_details?: {
+    uuid?: string;
+    name?: string;
+    title?: string;
+    download_name?: string;
+    mime_type?: string;
+    size?: number;
+    human_size?: string;
+    url?: string;
+    thumbnail?: string;
+  };
 };
 
 const getFileMessageType = (mimeType?: string | null): 'image' | 'file' | 'audio' => {
@@ -313,7 +342,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const conversationChannelRef = useRef<any>(null);
+  const conversationChannelRef = useRef<PresenceChannel | null>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isTypingRef = useRef(false);
 
@@ -354,7 +383,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
     const channel = echo.join(channelName);
     conversationChannelRef.current = channel;
 
-    channel.listenForWhisper('typing', (payload: any) => {
+    channel.listenForWhisper('typing', (payload: TypingWhisperPayload) => {
       if (
         !payload?.conversation_id ||
         !payload?.user ||
@@ -414,7 +443,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
 
     if (conversation?.unread_count) {
       adjustCounts({ unread: -conversation.unread_count });
-      updateConversation(activeConversationId, { unread_count: 0 } as any);
+      updateConversation(activeConversationId, { unread_count: 0 });
     }
 
     void api.put(`/chat/conversations/${activeConversationId}/read`).catch(() => {});
@@ -558,14 +587,14 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
           created_at: newMessage.created_at,
         },
         updated_at: newMessage.created_at,
-      } as any);
+      } satisfies Partial<ChatConversation>);
 
       setMessageInput('');
       setPendingAttachment(null);
       setReplyingTo(null);
       stopTypingIndicator();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to send message');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to send message'));
     } finally {
       setSending(false);
     }
@@ -583,8 +612,8 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
         );
         toast.success(data?.message || 'Attachment saved to File Manager.');
         return;
-      } catch (error: any) {
-        toast.error(error?.response?.data?.message || 'Failed to save attachment to File Manager.');
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, 'Failed to save attachment to File Manager.'));
         return;
       }
     }
@@ -599,12 +628,12 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
         filename: attachment.download_name || attachment.name || attachment.title || 'attachment',
         headers: getAuthHeaders(),
       });
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to download attachment.');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to download attachment.'));
     }
   };
 
-  const handleFileSelect = (file: any) => {
+  const handleFileSelect = (file: ChatFileSelection) => {
     if (!canBrowseAttachments || !canManageChat) {
       return;
     }

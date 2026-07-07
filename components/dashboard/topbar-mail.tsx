@@ -8,12 +8,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigg
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken, getBackendApiRoot, getTenantHeaders, isTenantSession } from "@/lib/runtime-context";
 import { toast } from "sonner";
-import { useMailStore } from "@/store/mail-store";
+import { useMailStore, type MailParticipant } from "@/store/mail-store";
 import { formatDistanceToNow } from "date-fns";
 import api from "@/lib/api";
 import { decryptMailParticipants, ensureMailEncryptionIdentity, fetchMailEncryptionConfig, getEncryptedMailBodyFallback } from "@/lib/mail-e2ee";
 
-export function TopbarMailIcon({ activeUser }: { activeUser: any }) {
+type ActiveMailUser = { id?: number | string | null };
+
+export function TopbarMailIcon({ activeUser }: { activeUser: ActiveMailUser | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectMail, setActiveFolder } = useMailStore();
@@ -122,7 +124,7 @@ export function TopbarMailIcon({ activeUser }: { activeUser: any }) {
               No recent emails inside inbox.
             </div>
           ) : (
-            recentMails.map((mail: any) => (
+            recentMails.map((mail: MailParticipant) => (
               <div 
                 key={mail.id} 
                 onClick={() => handleMailClick(mail.mail_message_id, mail.is_read)}

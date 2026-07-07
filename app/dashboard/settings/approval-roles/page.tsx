@@ -58,8 +58,17 @@ import {
 } from "@/modules/workflow/api";
 import { fetchUsers } from "@/modules/identity/api";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/errors";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { ApprovalRole } from "@/modules/workflow/types";
+
+type TableQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortCol?: string | null;
+  sortDir?: string | null;
+};
 
 // --- Dialog Components ---
 
@@ -96,8 +105,8 @@ function RoleFormDialog({
       onSuccess();
       onClose();
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to save");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Failed to save"));
     }
   });
 
@@ -186,9 +195,9 @@ function ManageUsersDialog({
       onSuccess();
       onClose();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Update users error:", error);
-      toast.error(error.message || "Failed to update users");
+      toast.error(getErrorMessage(error, "Failed to update users"));
     }
   });
 
@@ -316,16 +325,16 @@ export default function ApprovalRolesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["approval-roles"] }),
   });
 
-  const handleQueryChange = React.useCallback((q: any) => {
+  const handleQueryChange = React.useCallback((q: TableQuery) => {
     if (q.page !== undefined) setPage(q.page);
     if (q.pageSize !== undefined) setPageSize(q.pageSize);
     if (q.search !== undefined) {
-      setSearch(q.search);
+      setSearch(q.search ?? "");
       setPage(1);
     }
-    if (q.sortCol !== undefined) {
+    if (q.sortCol !== undefined && q.sortCol) {
       setSortCol(q.sortCol);
-      setSortDir(q.sortDir || "asc");
+      setSortDir(q.sortDir === "desc" ? "desc" : "asc");
     }
   }, [setPageSize]);
 

@@ -26,6 +26,32 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { syncUserSession } from "@/lib/auth-sync";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useTranslation } from "@/store/use-translation"; 
+import { getErrorMessage } from "@/lib/errors";
+
+type PermissionRecord = {
+  id: number | string;
+  name: string;
+};
+
+type RoleRecord = {
+  id: number | string;
+  name: string;
+  permissions?: PermissionRecord[];
+  created_at?: string;
+};
+
+type RoleSavePayload = {
+  name: string;
+  permissions: string[];
+};
+
+type TableQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortCol?: string | null;
+  sortDir?: string | null;
+};
 
 type Props = {
   tenantId: string | null;
@@ -55,8 +81,8 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [viewDialogOpen, setViewDialogOpen] = React.useState(false); 
   
-  const [editingRole, setEditingRole] = React.useState<any>(null);
-  const [viewRole, setViewRole] = React.useState<any>(null); 
+  const [editingRole, setEditingRole] = React.useState<RoleRecord | null>(null);
+  const [viewRole, setViewRole] = React.useState<RoleRecord | null>(null); 
   
   const [roleName, setRoleName] = React.useState("");
   const [selectedPermissions, setSelectedPermissions] = React.useState<string[]>([]);
@@ -101,20 +127,20 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
     if (!permissionSearch.trim()) return permissionsData;
     
     const query = permissionSearch.toLowerCase();
-    return permissionsData.filter((p: any) => p.name.toLowerCase().includes(query));
+    return permissionsData.filter((p: PermissionRecord) => p.name.toLowerCase().includes(query));
   }, [permissionsData, permissionSearch]);
 
   const enabledPerms = React.useMemo(() => 
-    searchedPermissions.filter((p: any) => selectedPermissions.includes(p.name)), 
+    searchedPermissions.filter((p: PermissionRecord) => selectedPermissions.includes(p.name)), 
   [searchedPermissions, selectedPermissions]);
 
   const disabledPerms = React.useMemo(() => 
-    searchedPermissions.filter((p: any) => !selectedPermissions.includes(p.name)), 
+    searchedPermissions.filter((p: PermissionRecord) => !selectedPermissions.includes(p.name)), 
   [searchedPermissions, selectedPermissions]);
 
   const saveMut = useMutation({
-    mutationFn: async (payload: any) => {
-      if (isEdit) return updateRole({ id: editingRole.id, data: payload });
+    mutationFn: async (payload: RoleSavePayload) => {
+      if (isEdit && editingRole) return updateRole({ id: editingRole.id, data: payload });
       return createRole(payload);
     },
     onSuccess: async () => {
@@ -124,7 +150,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
       toast.success(isEdit ? t('roles.updated', "Clearance level updated") : t('roles.established', "Clearance level established"));
       setDialogOpen(false);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || err.message),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, "Failed to save role")),
   });
 
   const deleteMut = useMutation({
@@ -138,7 +164,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
 
   const isProtectedRole = React.useCallback((name: string) => name === "Super Admin" || name === "Admin", []);
 
-  const handleQueryChange = React.useCallback((q: any) => {
+  const handleQueryChange = React.useCallback((q: TableQuery) => {
     if (q.page !== undefined) setPage(q.page);
     if (q.pageSize !== undefined) setPageSize(q.pageSize);
     if (q.search !== undefined) setSearch(q.search);
@@ -152,7 +178,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
     setSearch(""); setSortCol(null); setSortDir(null); setPage(1); setTableKey((prev) => prev + 1);
   }, []);
 
-  const handleDeleteRows = React.useCallback(async (rows: any[]) => {
+  const handleDeleteRows = React.useCallback(async (rows: RoleRecord[]) => {
     const validRows = rows.filter(r => !isProtectedRole(r.name));
     
     // 🚀 THE FIX: Removed the `return` statement so it returns void instead of string/number
@@ -170,7 +196,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
     setPermissionSearch(""); setPermissionFilter("all"); setDialogOpen(true);
   };
 
-  const openEdit = (role: any) => {
+  const openEdit = (role: RoleRecord) => {
     // 🚀 THE FIX: Removed `return` statements from toast calls here too just in case
     if (role.name === 'Super Admin') {
         toast.error(t('roles.super_admin_err', "Super Admin cannot be modified."));
@@ -179,12 +205,12 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
     if (role.name === 'Admin') toast.warning(t('roles.admin_warn', "Core Role: You can modify capabilities, but the designation cannot be changed."));
     
     setEditingRole(role); setRoleName(role.name);
-    const currentPerms = role.permissions ? role.permissions.map((p: any) => p.name) : [];
+    const currentPerms = role.permissions ? role.permissions.map((p: PermissionRecord) => p.name) : [];
     setSelectedPermissions(currentPerms);
     setPermissionSearch(""); setPermissionFilter("all"); setDialogOpen(true);
   };
 
-  const openView = (role: any) => {
+  const openView = (role: RoleRecord) => {
     setViewRole(role); setViewDialogOpen(true);
   };
 
@@ -193,7 +219,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
   };
 
   const toggleAllFiltered = () => {
-    const visibleNames = searchedPermissions.map((p: any) => p.name);
+    const visibleNames = searchedPermissions.map((p: PermissionRecord) => p.name);
     const allVisibleSelected = visibleNames.every((name: string) => selectedPermissions.includes(name));
 
     if (allVisibleSelected) {
@@ -226,7 +252,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
     }
   }, []);
 
-  const columns = React.useMemo<ColumnDef<any>[]>(() => [
+  const columns = React.useMemo<ColumnDef<RoleRecord>[]>(() => [
     {
       id: "name", accessorKey: "name", header: t('roles.col_designation', "Clearance Level"), enableSorting: true,
       cell: ({ row }) => {
@@ -243,7 +269,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
     },
     {
       id: "permissions", 
-      accessorFn: (row) => row.name === "Super Admin" ? t('roles.god_mode', 'ALL PROTOCOLS (GOD MODE)') : (row.permissions?.length || 0) > 0 ? row.permissions.map((p:any) => p.name).join(', ') : t('roles.no_access', 'No Access'), 
+      accessorFn: (row) => row.name === "Super Admin" ? t('roles.god_mode', 'ALL PROTOCOLS (GOD MODE)') : (row.permissions?.length || 0) > 0 ? row.permissions!.map((p: PermissionRecord) => p.name).join(', ') : t('roles.no_access', 'No Access'), 
       header: t('roles.col_capabilities', "Network Capabilities"), enableSorting: false,
       cell: ({ row }) => {
         const perms = row.original.permissions || [];
@@ -251,7 +277,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
         if (isSuper) return <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">{t('roles.god_mode', 'ALL PROTOCOLS (GOD MODE)')}</Badge>;
         return (
           <div className="flex items-center gap-1 flex-wrap max-w-[300px]">
-            {perms.slice(0, 3).map((p: any) => (
+            {perms.slice(0, 3).map((p: PermissionRecord) => (
               <Badge key={p.id} variant="secondary" className="text-[10px] font-mono tracking-tighter bg-muted/50">
                 {p.name}
               </Badge>
@@ -271,7 +297,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
       cell: ({ row }) => (
         <div className="flex items-center gap-1.5 text-muted-foreground font-mono text-xs">
           <Calendar className="h-3.5 w-3.5" />
-          {formatDate(row.original.created_at)}
+          {row.original.created_at ? formatDate(row.original.created_at) : ""}
         </div>
       ),
     },
@@ -463,7 +489,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
                     <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                   ) : searchedPermissions.length === 0 ? (
                     <div className="p-6 text-center text-sm text-muted-foreground font-mono">
-                      {t('roles.no_perms_match', 'No capabilities match')} "{permissionSearch}"
+                      {t('roles.no_perms_match', 'No capabilities match')} &quot;{permissionSearch}&quot;
                     </div>
                   ) : (
                     <>
@@ -473,7 +499,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
                             <CheckCircle2 className="h-3 w-3" /> {t('roles.active_caps', 'Active Capabilities')}
                           </h4>
                           <div className="grid gap-1">
-                            {enabledPerms.map((perm: any) => (
+                            {enabledPerms.map((perm: PermissionRecord) => (
                               <Label key={perm.id} className="flex items-center justify-between p-3 rounded-lg border border-primary/40 bg-primary/5 transition-all cursor-pointer hover:bg-primary/10 shadow-sm">
                                 <span className="font-mono text-xs font-semibold text-primary">{perm.name}</span>
                                 <Switch checked={true} onCheckedChange={() => togglePermission(perm.name)} className="data-[state=checked]:bg-primary" />
@@ -489,7 +515,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
                             <Circle className="h-3 w-3" /> {t('roles.available_caps', 'Available Capabilities')}
                           </h4>
                           <div className="grid gap-1">
-                            {disabledPerms.map((perm: any) => (
+                            {disabledPerms.map((perm: PermissionRecord) => (
                               <Label key={perm.id} className="flex items-center justify-between p-3 rounded-lg border border-transparent transition-all cursor-pointer hover:bg-muted/50 bg-background">
                                 <span className="font-mono text-xs text-muted-foreground group-hover:text-foreground">{perm.name}</span>
                                 <Switch checked={false} onCheckedChange={() => togglePermission(perm.name)} className="data-[state=checked]:bg-primary" />
@@ -546,8 +572,8 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
                 <Key className="h-3 w-3" /> {t('roles.explicit_caps', 'Explicitly Bound Capabilities')}
               </div>
               <div className="flex flex-wrap gap-2.5">
-                {viewRole?.permissions?.length > 0 ? (
-                  viewRole.permissions.map((p: any) => (
+                {viewRole?.permissions?.length ? (
+                  viewRole.permissions.map((p: PermissionRecord) => (
                     <Badge key={p.id} variant="secondary" className="px-3 py-1.5 font-mono text-[11px] bg-muted/50 border border-border/50 text-foreground transition-all hover:bg-muted hover:border-border">
                       {p.name}
                     </Badge>

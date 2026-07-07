@@ -36,6 +36,19 @@ type FilterOption = {
     label: string;
 };
 
+type AuditLogRecord = {
+    id: number;
+    event: string;
+    description: string;
+    log_name: string;
+    causer: string;
+    created_at?: string;
+    tenant_id?: string | null;
+    properties?: Record<string, unknown>;
+};
+
+type LogQueryParams = Record<string, string>;
+
 function buildFallbackOptions(values: Array<string | null | undefined>, formatLabel?: (value: string) => string): FilterOption[] {
     const uniqueValues = Array.from(
         new Map(
@@ -76,7 +89,7 @@ export function AuditLogsClient() {
     const [startDate, setStartDate] = React.useState<string>("");
     const [endDate, setEndDate] = React.useState<string>("");
     
-    const [viewLog, setViewLog] = React.useState<any>(null);
+    const [viewLog, setViewLog] = React.useState<AuditLogRecord | null>(null);
     const [isArchiving, setIsArchiving] = React.useState(false);
     
     const [selectedIds, setSelectedIds] = React.useState<number[]>([]);
@@ -142,7 +155,7 @@ export function AuditLogsClient() {
     const { data: logsData, isLoading, isFetching } = useQuery({
         queryKey: ["logs", page, pageSize, search, sortCol, sortDir, eventFilter, nodeFilter, moduleFilter, operatorFilter, nodeIdFilter, viewMode, startDate, endDate],
         queryFn: async () => {
-            const params: any = {
+            const params: LogQueryParams = {
                 page: page.toString(), pageSize: pageSize.toString(), search, 
                 sort_by: sortCol || "created_at", sort_direction: sortDir || "desc",
                 event: eventFilter, node: nodeFilter
@@ -170,7 +183,7 @@ export function AuditLogsClient() {
     const { data: filterOptions, isFetching: isFilterOptionsFetching } = useQuery({
         queryKey: ["log-filter-options", viewMode, eventFilter, nodeFilter, startDate, endDate, isTenant],
         queryFn: async () => {
-            const params: any = {
+            const params: LogQueryParams = {
                 mode: viewMode,
                 event: eventFilter,
                 node: nodeFilter,
@@ -197,12 +210,12 @@ export function AuditLogsClient() {
     });
 
     const moduleOptions = React.useMemo(
-        () => (filterOptions?.modules?.length ? filterOptions.modules : buildFallbackOptions((logsData?.rows || []).map((row: any) => row.log_name))),
+        () => (filterOptions?.modules?.length ? filterOptions.modules : buildFallbackOptions((logsData?.rows || []).map((row: AuditLogRecord) => row.log_name))),
         [filterOptions?.modules, logsData?.rows]
     );
 
     const operatorOptions = React.useMemo(
-        () => (filterOptions?.operators?.length ? filterOptions.operators : buildFallbackOptions((logsData?.rows || []).map((row: any) => row.causer))),
+        () => (filterOptions?.operators?.length ? filterOptions.operators : buildFallbackOptions((logsData?.rows || []).map((row: AuditLogRecord) => row.causer))),
         [filterOptions?.operators, logsData?.rows]
     );
 
@@ -211,7 +224,7 @@ export function AuditLogsClient() {
             filterOptions?.nodes?.length
                 ? filterOptions.nodes
                 : buildFallbackOptions(
-                    (logsData?.rows || []).map((row: any) => row.tenant_id || "central"),
+                    (logsData?.rows || []).map((row: AuditLogRecord) => row.tenant_id || "central"),
                     (value) => value.toLowerCase() === "central" ? "Central Command" : value.toUpperCase()
                 )
         ),
@@ -317,13 +330,13 @@ export function AuditLogsClient() {
     };
 
     const handleEventFilterChange = React.useCallback((value: string) => {
-        setEventFilter(value as any);
+        setEventFilter(value as "all" | "crud" | "telemetry" | "system");
         setPage(1);
         triggerAudit('filtered', `Applied MATRIX filter: ${value.toUpperCase()}`);
     }, [triggerAudit]);
 
     const handleNodeScopeChange = React.useCallback((value: string) => {
-        setNodeFilter(value as any);
+        setNodeFilter(value as "all" | "central" | "tenant");
         setNodeIdFilter("all");
         setPage(1);
         triggerAudit('filtered', `Applied NODE filter: ${value.toUpperCase()}`);
@@ -374,8 +387,8 @@ export function AuditLogsClient() {
         }
     };
 
-    const columns = React.useMemo<ColumnDef<any>[]>(() => {
-        const baseCols: ColumnDef<any>[] = [
+    const columns = React.useMemo<ColumnDef<AuditLogRecord>[]>(() => {
+        const baseCols: ColumnDef<AuditLogRecord>[] = [
             { id: "id", accessorKey: "id", header: t('audit.col_id', "ID"), size: 60, cell: ({ row }) => <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-0.5"><Hash className="h-3 w-3" />{row.original.id}</span> },
             { 
                 id: "event", 
@@ -417,7 +430,7 @@ export function AuditLogsClient() {
                     <Checkbox 
                         // 🚀 THE FIX: Safely check array length using optional chaining and nullish coalescing
                         checked={(logsData?.rows?.length ?? 0) > 0 && selectedIds.length === (logsData?.rows?.length ?? 0)}
-                        onCheckedChange={(c) => c ? setSelectedIds(logsData?.rows?.map((r: any) => r.id) || []) : setSelectedIds([])}
+                        onCheckedChange={(c) => c ? setSelectedIds(logsData?.rows?.map((r: AuditLogRecord) => r.id) || []) : setSelectedIds([])}
                     />
                 ),
                 size: 40,

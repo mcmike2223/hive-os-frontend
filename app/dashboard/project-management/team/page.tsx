@@ -106,7 +106,7 @@ export default function TeamPage() {
   );
 }
 
-function TeamMemberRow({ member, t }: { member: TeamMember, t: any }) {
+function TeamMemberRow({ member, t }: { member: TeamMember; t: (key: string, fallback?: string) => string }) {
   const topRole = member.roles.includes("owner")
     ? "owner"
     : member.roles.includes("manager")

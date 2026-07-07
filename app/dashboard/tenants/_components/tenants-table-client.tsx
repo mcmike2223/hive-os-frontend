@@ -46,6 +46,7 @@ import {
     resolveTemplateVariant,
     type TenantLandingPreviewBranding,
 } from "@/modules/tenancy/landing-template";
+import { getErrorMessage } from "@/lib/errors";
 import { getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -55,6 +56,41 @@ import { useTranslation } from "@/store/use-translation"; // 🚀 Added Translat
 type Props = {
     companySettings?: CompanySettingsInfo | null;
     brandingSettings?: BrandingSettingsInfo | null;
+};
+
+type BusinessTypeCatalogEntry = {
+    key: string;
+    label?: string;
+    default_template_key?: string;
+    default_template?: unknown;
+};
+
+type TenantRecord = {
+    id: string;
+    name?: string;
+    plan?: string;
+    domain?: string;
+    business_type?: string;
+    business_type_meta?: { label?: string };
+    subscribed_modules_count?: number;
+    subscribed_modules?: TenantCustomModuleInput[];
+    is_active?: boolean;
+    admin_active?: boolean;
+    admin_email?: string;
+    created_at?: string;
+    landing_page_template?: unknown;
+    module_subscriptions?: {
+        enabled_modules?: string[];
+        custom_modules?: TenantCustomModuleInput[];
+    };
+};
+
+type TableQuery = {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    sortCol?: string | null;
+    sortDir?: string | null;
 };
 
 const globalActionLock: Record<string, number> = {};
@@ -120,10 +156,10 @@ export function TenantsTableClient({ companySettings, brandingSettings }: Props)
     const [tableKey, setTableKey] = React.useState(0);
 
     const [dialogOpen, setDialogOpen] = React.useState(false);
-    const [editingTenant, setEditingTenant] = React.useState<any>(null);
+    const [editingTenant, setEditingTenant] = React.useState<TenantRecord | null>(null);
     const isEdit = !!editingTenant;
     const [viewDialogOpen, setViewDialogOpen] = React.useState(false);
-    const [viewTenant, setViewTenant] = React.useState<any>(null);
+    const [viewTenant, setViewTenant] = React.useState<TenantRecord | null>(null);
 
     const [formId, setFormId] = React.useState("");
     const [formName, setFormName] = React.useState("");
@@ -183,8 +219,8 @@ const { data: subscriptionCatalogData } = useQuery({
         const catalogTypes = subscriptionCatalogData?.data?.business_types ?? [];
         // Combine, removing duplicates (custom types override catalog ones)
         const combined = [...customTypes];
-        catalogTypes.forEach((bt: any) => {
-            if (!combined.find((c: any) => c.key === bt.key)) {
+        catalogTypes.forEach((bt: BusinessTypeCatalogEntry) => {
+            if (!combined.find((c: BusinessTypeCatalogEntry) => c.key === bt.key)) {
                 combined.push(bt);
             }
         });
@@ -234,8 +270,8 @@ const { data: subscriptionCatalogData } = useQuery({
     const previewBranding = React.useMemo<TenantLandingPreviewBranding>(() => ({
         app_title: formName || brandingSettings?.app_title || "Tenant Brand",
         footer_text: brandingSettings?.footer_text,
-        primary_color: (brandingSettings as Record<string, any> | undefined)?.primary_color,
-        font_family: (brandingSettings as Record<string, any> | undefined)?.font_family,
+        primary_color: typeof brandingSettings?.primary_color === "string" ? brandingSettings.primary_color : undefined,
+        font_family: typeof brandingSettings?.font_family === "string" ? brandingSettings.font_family : undefined,
     }), [brandingSettings, formName]);
     const landingPreviewHtml = React.useMemo(
         () => buildTenantLandingPreviewHtml(
@@ -390,7 +426,7 @@ const { data: subscriptionCatalogData } = useQuery({
         }
     }, [buildPresetTemplate, businessTypeMap, businessTypes, formBusinessType, writeLandingTemplate]);
 
-    const createTenantMut = useOfflineMutation<any, Error, TenantCreateOfflinePayload>({
+    const createTenantMut = useOfflineMutation<unknown, Error, TenantCreateOfflinePayload>({
         definition: createTenantOfflineMutationDefinition,
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
@@ -402,10 +438,10 @@ const { data: subscriptionCatalogData } = useQuery({
             toast.info(`Offline: node ${variables.id} has been queued and will provision automatically once you're back online.`);
             setDialogOpen(false);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || t('global.operation_failed', "Operation failed.")),
+        onError: (err: unknown) => toast.error(getErrorMessage(err, t('global.operation_failed', "Operation failed."))),
     });
 
-    const updateTenantMut = useOfflineMutation<any, Error, TenantUpdateOfflinePayload>({
+    const updateTenantMut = useOfflineMutation<unknown, Error, TenantUpdateOfflinePayload>({
         definition: updateTenantOfflineMutationDefinition,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
@@ -423,19 +459,19 @@ const { data: subscriptionCatalogData } = useQuery({
             }
             setDialogOpen(false);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || t('global.operation_failed', "Operation failed.")),
+        onError: (err: unknown) => toast.error(getErrorMessage(err, t('global.operation_failed', "Operation failed."))),
     });
 
-    const deleteMut = useOfflineMutation<any, Error, string>({
+    const deleteMut = useOfflineMutation<unknown, Error, string>({
         definition: deleteTenantOfflineMutationDefinition,
         onSuccess: (_, id) => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
             triggerAudit('deleted', `Operator executed fatal purge command on Node ID: ${id}`);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || t('global.operation_failed', "Operation failed.")),
+        onError: (err: unknown) => toast.error(getErrorMessage(err, t('global.operation_failed', "Operation failed."))),
     });
 
-    const toggleStatusMut = useOfflineMutation<any, Error, string>({
+    const toggleStatusMut = useOfflineMutation<unknown, Error, string>({
         definition: toggleTenantStatusOfflineMutationDefinition,
         onSuccess: (data, id) => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
@@ -445,10 +481,10 @@ const { data: subscriptionCatalogData } = useQuery({
         onQueued: (id) => {
             toast.info(`Offline: node ${id} status change has been queued for sync.`);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || t('global.operation_failed', "Operation failed.")),
+        onError: (err: unknown) => toast.error(getErrorMessage(err, t('global.operation_failed', "Operation failed."))),
     });
 
-    const toggleAdminMut = useOfflineMutation<any, Error, string>({
+    const toggleAdminMut = useOfflineMutation<unknown, Error, string>({
         definition: toggleTenantAdminOfflineMutationDefinition,
         onSuccess: (data, id) => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
@@ -458,21 +494,22 @@ const { data: subscriptionCatalogData } = useQuery({
         onQueued: (id) => {
             toast.info(`Offline: Super Admin clearance changes for node ${id} were queued for sync.`);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || t('global.operation_failed', "Operation failed.")),
+        onError: (err: unknown) => toast.error(getErrorMessage(err, t('global.operation_failed', "Operation failed."))),
     });
 
     const isSaving = createTenantMut.isPending || updateTenantMut.isPending;
 
-    const handleQueryChange = React.useCallback((q: any) => {
+    const handleQueryChange = React.useCallback((q: TableQuery) => {
         if (q.page !== undefined) setPage(q.page);
         if (q.pageSize !== undefined) setPageSize(q.pageSize);
         if (q.search !== undefined) {
-            setSearch(prev => { 
-                if (prev !== q.search) {
+            setSearch(prev => {
+                const nextSearch = q.search ?? "";
+                if (prev !== nextSearch) {
                     setPage(1);
-                    if (q.search.length > 2) triggerAudit('filtered', `Executed matrix text search for parameter: "${q.search}"`);
+                    if (nextSearch.length > 2) triggerAudit('filtered', `Executed matrix text search for parameter: "${nextSearch}"`);
                 }
-                return q.search; 
+                return nextSearch;
             });
         }
         if (q.sortCol) setSortCol(q.sortCol);
@@ -489,7 +526,7 @@ const { data: subscriptionCatalogData } = useQuery({
         triggerAudit('filtered', 'Operator reset all Node Matrix active filters');
     }, [triggerAudit]);
 
-    const handleDeleteRows = React.useCallback(async (rows: any[]) => {
+    const handleDeleteRows = React.useCallback(async (rows: TenantRecord[]) => {
         try {
             const results = await Promise.all(rows.map((r) => deleteMut.mutateAsync(r.id)));
             const queuedCount = results.filter(isOfflineMutationQueuedResult).length;
@@ -506,7 +543,7 @@ const { data: subscriptionCatalogData } = useQuery({
         }
     }, [deleteMut, triggerAudit, t]);
 
-    const openView = (tenant: any) => { 
+    const openView = (tenant: TenantRecord) => { 
         setViewTenant(tenant); setViewDialogOpen(true); 
         triggerAudit('viewed', `Operator performed deep metric inspection on Node ID: ${tenant.id}`);
     };
@@ -526,7 +563,7 @@ const { data: subscriptionCatalogData } = useQuery({
         triggerAudit('viewed', 'Operator accessed the Provisioning UI panel');
     };
     
-    const openEdit = (tenant: any) => {
+    const openEdit = (tenant: TenantRecord) => {
         const selectedBusinessType = businessTypeMap[tenant.business_type] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
         const existingTemplate = resolveLandingTemplate(
             tenant.landing_page_template,
@@ -618,7 +655,7 @@ const { data: subscriptionCatalogData } = useQuery({
         return <Badge variant="outline" className={cn("uppercase text-[9px]", colorClass)}>{plan}</Badge>;
     };
 
-    const columns = React.useMemo<ColumnDef<any>[]>(() => [
+    const columns = React.useMemo<ColumnDef<TenantRecord>[]>(() => [
         {
             id: "id", accessorKey: "id", header: t('tenants.col_id', "Node ID"),
             cell: ({ row }) => <div className="flex items-center gap-2 font-mono text-sm font-bold text-foreground"><Server className="h-4 w-4 text-primary" />{row.original.id}</div>,

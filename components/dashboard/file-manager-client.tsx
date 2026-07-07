@@ -47,11 +47,116 @@ import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { DocumentViewer } from "@/components/ui/document-viewer";
 import { Model3DViewer } from "@/components/ui/model-3d-viewer";
 import { useGlobalAudio } from "@/context/global-audio-context";
+import type { LucideIcon } from "lucide-react";
+
+type FileManagerItemRef = { type: 'file' | 'folder'; id: number };
+
+type FileManagerSubtitle = {
+  uuid?: string;
+  src?: string;
+  srcLang?: string;
+  label?: string;
+  default?: boolean;
+};
+
+type FileManagerVideoVersion = {
+  label?: string;
+  url?: string;
+};
+
+type FileManagerMediaDetails = {
+  title?: string;
+  name?: string;
+  mime_type?: string;
+  size?: number;
+  url?: string;
+  thumbnail?: string;
+  hls_path?: string;
+  artist?: string;
+  subtitles?: FileManagerSubtitle[];
+  video_versions?: FileManagerVideoVersion[];
+};
+
+type FileManagerFolder = {
+  id: number;
+  name: string;
+  created_at: string;
+};
+
+type FileManagerFile = {
+  id: number;
+  is_favorite?: boolean;
+  created_at: string;
+  media_details?: FileManagerMediaDetails;
+  url?: string;
+  path?: string;
+};
+
+type FileManagerPlaylist = {
+  id: number;
+  name: string;
+};
+
+type FileManagerCatalogModule = {
+  slug: string;
+  [key: string]: unknown;
+};
+
+type FileManagerSortable = FileManagerFolder | FileManagerFile;
+
+type CropDragInfo = {
+  mouseX: number;
+  mouseY: number;
+  initialBox: { x: number; y: number; width: number; height: number };
+  scaleFactor: number;
+};
+
+type ModuleCheckoutError = Error & { module?: string };
+
+type MenuItemProps = {
+  icon: React.ReactElement<{ className?: string }>;
+  label: string;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  danger?: boolean;
+};
+
+type ColorSliderProps = {
+  icon: LucideIcon;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  label: string;
+};
+
+type TransformButtonProps = {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  style?: React.CSSProperties;
+  active?: boolean;
+};
+
+type ImageViewerProps = {
+  src: string;
+  fetchUrl?: string;
+  alt?: string;
+  className?: string;
+  onSaveEdited?: (file: File) => void;
+  onUpgradeRequested?: () => void;
+};
+
+const getModuleCheckoutError = (error: unknown): ModuleCheckoutError | null => {
+  if (error instanceof Error) {
+    return error as ModuleCheckoutError;
+  }
+  return null;
+};
 
 // ============================================================================
 // 🚀 SMART PORTAL MENU
 // ============================================================================
-const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger: React.ReactElement }) => {
+const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger: React.ReactElement<{ className?: string }> }) => {
     const [open, setOpen] = React.useState(false);
     const [coords, setCoords] = React.useState({ top: 0, left: 0 });
     const triggerRef = React.useRef<HTMLDivElement>(null);
@@ -104,10 +209,9 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
     return (
         <>
            <div ref={triggerRef} onClick={toggleMenu} className="relative inline-block cursor-pointer z-50 overflow-visible">
-                {/* 🚀 THE PERMANENT FIX: Cast 'trigger' to any inside the clone to unlock 'props' access */}
-                {React.cloneElement(trigger as React.ReactElement<any>, {
+                {React.cloneElement(trigger, {
                     className: cn(
-                        (trigger as any).props?.className, 
+                        trigger.props?.className, 
                         open && "opacity-100 bg-background/80 ring-2 ring-emerald-500/50"
                     )
                 })}
@@ -127,7 +231,7 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
     )
 }
 
-const MenuItem = ({ icon, label, onClick, danger }: any) => (
+const MenuItem = ({ icon, label, onClick, danger }: MenuItemProps) => (
     <button 
         type="button"
         onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }} 
@@ -158,9 +262,11 @@ const extractFileIdFromServeUrl = (url: string | null | undefined): number | nul
   return match?.[1] ? Number.parseInt(match[1], 10) : null;
 };
 
-const toCollectionItems = <T,>(value: any): T[] => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
+const toCollectionItems = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object' && Array.isArray((value as { data?: unknown }).data)) {
+    return (value as { data: T[] }).data;
+  }
   return [];
 };
 
@@ -243,7 +349,7 @@ const getDownloadNameFromDisposition = (contentDisposition: string | null, fallb
 // ============================================================================
 type EditTab = 'transform' | 'adjust' | 'export' | 'ai';
 
-const ColorSlider = ({ icon: Icon, value, onChange, min, max, label }: any) => (
+const ColorSlider = ({ icon: Icon, value, onChange, min, max, label }: ColorSliderProps) => (
   <div className="flex items-center gap-4 w-full">
     <div className="flex items-center gap-2 w-28 shrink-0 text-muted-foreground">
       <Icon className="h-4 w-4 text-yellow-500" />
@@ -257,7 +363,7 @@ const ColorSlider = ({ icon: Icon, value, onChange, min, max, label }: any) => (
   </div>
 );
 
-const TransformButton = ({ icon: Icon, label, onClick, style, active }: any) => (
+const TransformButton = ({ icon: Icon, label, onClick, style, active }: TransformButtonProps) => (
   <Button 
     variant="outline" 
     onClick={onClick} 
@@ -269,7 +375,7 @@ const TransformButton = ({ icon: Icon, label, onClick, style, active }: any) => 
   </Button>
 );
 
-export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, onSaveEdited, onUpgradeRequested }: any) {
+export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, onSaveEdited, onUpgradeRequested }: ImageViewerProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const imageRef = React.useRef<HTMLImageElement>(null);
   const cropWrapperRef = React.useRef<HTMLDivElement>(null);
@@ -306,7 +412,7 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
   const [natSize, setNatSize] = React.useState({ w: 0, h: 0 }); 
   const [cropBox, setCropBox] = React.useState({ x: 0, y: 0, width: 0, height: 0 });
   const [activeHandle, setActiveHandle] = React.useState<string | null>(null); 
-  const dragStartInfo = React.useRef<any>(null); 
+  const dragStartInfo = React.useRef<CropDragInfo | null>(null); 
 
   // Fetch secure Blob
   React.useEffect(() => {
@@ -345,7 +451,8 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
           e.preventDefault(); 
           setCropBox(prev => {
-            let { x, y, width, height } = prev;
+            let { x, y } = prev;
+            const { width, height } = prev;
             if (e.key === 'ArrowUp') y = Math.max(0, y - step);
             if (e.key === 'ArrowDown') y = Math.min(natSize.h - height, y + step);
             if (e.key === 'ArrowLeft') x = Math.max(0, x - step);

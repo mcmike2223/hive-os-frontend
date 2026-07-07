@@ -8,6 +8,7 @@ import {
     Image as ImageIcon, Upload, CheckCircle2, X, Activity, Mail, UserPlus, ShieldCheck,
     CreditCard, Database, Sparkles, LayoutTemplate, Search
 } from 'lucide-react';
+import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from '@/store/use-translation';
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
     extractStorageRelativePath,
@@ -127,7 +129,14 @@ const BRAND_THEME_PRESETS = [
 // ============================================================================
 // 🚀 SECURE BRAND ASSET & MODAL (Brand Settings Helpers)
 // ============================================================================
-const SecureBrandAsset = ({ path, previewUrl, lastSaved, fallbackText, className, isWide }: any) => {
+const SecureBrandAsset = ({ path, previewUrl, lastSaved, fallbackText, className, isWide }: {
+    path?: string;
+    previewUrl?: string | null;
+    lastSaved: number;
+    fallbackText: string;
+    className?: string;
+    isWide?: boolean;
+}) => {
     const [blobUrl, setBlobUrl] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(true); 
 
@@ -272,8 +281,8 @@ function BrandSettings() {
             queryClient.invalidateQueries({ queryKey: ['brandSettings'] });
             queryClient.invalidateQueries({ queryKey: ['publicBrandSettings'] });
         },
-        onError: (err: any) => {
-            toast.error(err.message || t('settings.matrix_update_failed', 'Failed to save brand settings.'));
+        onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, t('settings.matrix_update_failed', 'Failed to save brand settings.')));
         }
     });
 
@@ -597,7 +606,7 @@ function GeneralSettings() {
             toast.success(t('settings.general_updated', "System Configuration Updated Successfully!"));
             queryClient.invalidateQueries({ queryKey: ['globalSystemSettings'] });
         },
-        onError: (err: any) => toast.error(toErrorMessage(err, "Failed to update general settings."))
+        onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to update general settings."))
     });
 
     if (isLoading) return <SettingsPanelSkeleton />;
@@ -786,7 +795,7 @@ function SettingsTabs({
         canAccessBackups ? { id: 'backup', label: t('nav.settings_backup', 'System Backups'), icon: Database } : null,
         canManagePlans ? { id: 'plans', label: 'Subscription Plans', icon: Sparkles } : null,
         canManageSeo ? { id: 'seo', label: 'SEO & Discovery', icon: Search } : null,
-    ].filter(Boolean) as Array<{ id: string; label: string; icon: any }>;
+    ].filter(Boolean) as Array<{ id: string; label: string; icon: LucideIcon }>;
 
     useEffect(() => {
         if (TABS.length === 0) return;

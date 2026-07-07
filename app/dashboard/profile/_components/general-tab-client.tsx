@@ -15,7 +15,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePermissions } from "@/hooks/use-permissions";
 import { logFrontendAction } from "@/lib/api";
 import { getAuthHeaders, getBackendApiRoot, getBackendStorageUrl } from "@/lib/runtime-context";
+import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+
+type UserProfile = {
+  name?: string;
+  email?: string;
+  avatar_path?: string | null;
+};
+
+type PickerFile = {
+  media_details?: { url?: string };
+  url?: string;
+  path?: string;
+  mime_type?: string;
+};
 
 const extractPathFromUrl = (url: string) => {
   if (!url) return null;
@@ -35,7 +49,7 @@ function SecureBlobAvatar({
   canFetch,
   className,
 }: {
-  user: any;
+  user: UserProfile | undefined;
   previewUrl: string | null;
   lastSaved: number;
   canFetch: boolean;
@@ -191,8 +205,8 @@ export function GeneralTabClient() {
       setLastSaved(Date.now());
       logFrontendAction({ module: "Profile Update", action: "updated", description: "Updated basic profile." }).catch(() => {});
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to update profile");
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, "Failed to update profile"));
     },
   });
 
@@ -202,7 +216,7 @@ export function GeneralTabClient() {
     updateProfileMut.mutate();
   };
 
-  const handleFileSelect = (file: any) => {
+  const handleFileSelect = (file: PickerFile) => {
     if (!canEditProfile) return;
 
     const rawUrl = file?.media_details?.url || file?.url || file?.path;

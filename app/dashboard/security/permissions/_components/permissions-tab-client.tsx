@@ -12,6 +12,20 @@ import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTranslation } from "@/store/use-translation"; // 🚀 Added Translation Hook
 
+type PermissionRecord = {
+  id: number | string;
+  name: string;
+  guard_name?: string;
+};
+
+type TableQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortCol?: string | null;
+  sortDir?: string | null;
+};
+
 export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) {
   const isCentralAdmin = !tenantId;
   const { t, locale } = useTranslation(); // 🚀 Grab translator AND locale
@@ -58,7 +72,7 @@ export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) 
     return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
-  const handleQueryChange = React.useCallback((q: any) => {
+  const handleQueryChange = React.useCallback((q: TableQuery) => {
     if (q.page !== undefined) setPage(q.page);
     if (q.pageSize !== undefined) setPageSize(q.pageSize);
     if (q.search !== undefined) setSearch(q.search);
@@ -70,7 +84,7 @@ export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) 
     setSearch(""); setSortCol(null); setSortDir(null); setPage(1); setTableKey((prev) => prev + 1);
   }, []);
 
-  const columns = React.useMemo<ColumnDef<any>[]>(() => [
+  const columns = React.useMemo<ColumnDef<PermissionRecord>[]>(() => [
     {
       id: "name", accessorKey: "name", header: t('permissions.col_code', "Capability Code"), enableSorting: true,
       cell: ({ row }) => (

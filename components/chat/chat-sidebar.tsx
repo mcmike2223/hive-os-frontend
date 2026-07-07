@@ -24,7 +24,7 @@ export default function ChatSidebar() {
   } = useChatStore();
   const { canManageChat } = useChatAccess();
   
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ name?: string; avatar_url?: string } | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('hive_user') || localStorage.getItem('user');
@@ -61,7 +61,7 @@ export default function ChatSidebar() {
                   ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30" 
                   : "text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-600 dark:hover:text-orange-400"
               )}
-              onClick={() => setActiveTab(item.id as any)}
+              onClick={() => setActiveTab(item.id as 'recent' | 'groups')}
             >
               <item.icon className="h-5 w-5" />
               {badge > 0 && (

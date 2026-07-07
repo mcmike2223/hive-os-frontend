@@ -11,6 +11,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useTour } from "@/components/providers/tour-provider";
 import { useTranslation } from "@/store/use-translation"; 
+import type { Step } from "react-joyride";
 import { cn } from "@/lib/utils";
 import { TabbedModuleSkeleton } from "@/components/ui/loading-states";
 
@@ -65,7 +66,7 @@ export function SecurityTabsClient({ tenantId, tenantName, defaultTab }: Props) 
     if (showUsers && activeTab !== "users") onTabChange("users");
     else if (!showUsers && showRoles && activeTab !== "roles") onTabChange("roles");
 
-    const steps: any[] = [];
+    const steps: Step[] = [];
 
     steps.push({
       target: '#tour-security-tabs',

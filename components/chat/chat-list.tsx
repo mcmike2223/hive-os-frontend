@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useChatAccess } from '@/hooks/use-chat-access';
 import { decryptChatConversation, decryptChatConversations, decryptChatMessages } from '@/lib/chat-e2ee';
 import { getChatMessagePreview, getStoredChatUser } from '@/lib/chat-utils';
-import { useChatStore } from '@/store/chat-store';
+import { useChatStore, type ChatConversation } from '@/store/chat-store';
 import { cn } from '@/lib/utils';
 import { isToday, isYesterday, format } from 'date-fns';
 import api from '@/lib/api';
@@ -28,7 +28,7 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
   const { canManageChat } = useChatAccess();
 
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: number; name?: string } | null>(null);
 
   useEffect(() => {
     setCurrentUser(getStoredChatUser());
@@ -79,7 +79,7 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
     const matchesTab = activeTab === 'groups' ? c.type === 'group' : true;
     const otherParticipant = c.type === 'group'
       ? null
-      : c.participants.find((participant: any) => String(participant.id) !== String(currentUser?.id));
+      : c.participants.find((participant) => String(participant.id) !== String(currentUser?.id));
 
     const title = c.type === 'group' ? (c.title || 'Group') : (otherParticipant?.name || 'Chat');
     const messagePreview = getChatMessagePreview(c.last_message);
@@ -90,9 +90,9 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
     return matchesTab && matchesSearch;
   });
 
-  const getOtherParticipant = (conv: any) => {
+  const getOtherParticipant = (conv: ChatConversation) => {
     if (conv.type === 'group') return null;
-    return conv.participants.find((p: any) => p.id !== currentUser?.id);
+    return conv.participants.find((p) => p.id !== currentUser?.id);
   };
 
   const formatMessageTime = (dateStr?: string) => {
