@@ -24,8 +24,10 @@ const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps>(
     ({ index, step, backProps, closeProps, primaryProps, skipProps, tooltipProps, isLastStep }, ref) => {
         if (!step) return null;
 
-        const combinedStyle = {
-            ...(tooltipProps as any).style,
+        const safeTooltipProps = tooltipProps as React.HTMLAttributes<HTMLDivElement>;
+
+        const combinedStyle: React.CSSProperties = {
+            ...(safeTooltipProps.style ?? {}),
             zIndex: 1000000,
             backgroundColor: 'hsl(var(--card))',
             borderRadius: '1.5rem',
@@ -159,19 +161,6 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
             if (stepTarget) {
                 const element = document.querySelector(stepTarget);
                 if (element) {
-                    // Find the nearest scrollable parent
-                    const scrollParent = (function getScrollParent(node: HTMLElement | null): HTMLElement | null {
-                        if (node == null) {
-                            return null;
-                        }
-                        if (node.scrollHeight > node.clientHeight) {
-                            return node;
-                        } else {
-                            return getScrollParent(node.parentNode as HTMLElement);
-                        }
-                    })(element as HTMLElement);
-
-                    // If it's inside our dashboard scroll container or any scroll container
                     setTimeout(() => {
                         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 50);
@@ -184,7 +173,7 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
             setStepIndex(index + (action === 'prev' ? -1 : 1));
         } else if (type === EVENTS.STEP_AFTER) {
             setStepIndex(index + (action === 'prev' ? -1 : 1));
-        } else if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+        } else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
             const isFinished = status === STATUS.FINISHED;
             setRun(false);
             setStepIndex(0);

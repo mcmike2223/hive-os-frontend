@@ -26,7 +26,7 @@ import { SettingsPanelSkeleton } from "@/components/ui/loading-states";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getAuthHeaders, getBackendApiRoot } from "@/lib/runtime-context";
-import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/errors";
 import { useTranslation } from "@/store/use-translation";
 
 interface BackupFile {
@@ -127,7 +127,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
       toast.success(t("settings.backup_updated", "Backup automation updated successfully."));
       queryClient.invalidateQueries({ queryKey: ["systemBackupSchedule"] });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
   });
 
   const triggerMut = useMutation({
@@ -141,7 +141,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
       toast.success("Backup queued successfully. Watch System Alerts for completion.");
       queryClient.invalidateQueries({ queryKey: ["systemBackupsList"] });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
     onSettled: () => window.setTimeout(() => setTriggeringType(null), 800),
   });
 
@@ -151,7 +151,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
       toast.success("Backup archive deleted successfully.");
       queryClient.invalidateQueries({ queryKey: ["systemBackupsList"] });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
   });
 
   const backups: BackupFile[] = backupsData?.data || [];
@@ -178,8 +178,8 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
         }
         window.open(url, "_blank", "noopener,noreferrer");
       })
-      .catch((error: any) => {
-        toast.error(error?.message || "Unable to start download.");
+      .catch((error: unknown) => {
+        toast.error(getErrorMessage(error, "Unable to start download."));
       });
   };
 

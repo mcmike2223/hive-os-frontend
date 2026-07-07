@@ -51,7 +51,7 @@ export interface CalendarEvent {
   end?: Date;
   color?: string;
   category?: string;
-  [key: string]: any;
+[key: string]: unknown;
 }
 
 interface EventCalendarProps {

@@ -202,6 +202,7 @@ export function ShelvesPage() {
     onError: (error: any) => {
       toast.error(error?.response?.data?.message ?? t("inventory.common.failed", "Failed to save shelf."));
     },
+    
   });
 
   const deleteMutation = useMutation({

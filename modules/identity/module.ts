@@ -6,7 +6,7 @@ export const identityModule: FrontendModuleDefinition = {
   name: "Identity",
   description: "Authentication, operators, roles, permissions, and profile security.",
   backendModule: "Modules\\Identity",
-  routePrefixes: ["/dashboard/security", "/sign-in", "/reset-password"],
+  routePrefixes: ["/dashboard/security", "/sign-in", "/forgot-password", "/reset-password"],
   navItems: [
     {
       moduleId: "identity",

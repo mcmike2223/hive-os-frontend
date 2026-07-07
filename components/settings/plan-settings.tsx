@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { getBackendApiRoot, getAuthHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/errors";
 
 // ─── Inline API helper (mirrors settings/client.tsx) ─────────────────────────
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
@@ -24,9 +25,18 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   );
   const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message || 'API Request Failed');
-  }
+  const err: unknown = await res.json().catch(() => ({}));
+
+  const message =
+    typeof err === "object" &&
+    err !== null &&
+    "message" in err &&
+    typeof err.message === "string"
+      ? err.message
+      : "API Request Failed";
+
+  throw new Error(message);
+}
   return res.json();
 }
 
@@ -356,9 +366,9 @@ export function PlanSettings() {
       queryClient.invalidateQueries({ queryKey: ["public-catalog"] });
       setDirty(false);
     },
-    onError: (err: any) => {
-      toast.error(err?.message || "Failed to save plan settings.");
-    },
+   
+    onError: (e: unknown) => toast.error(getErrorMessage(e, "Failed to save plan settings")),
+
   });
 
   // Reset single plan
@@ -369,9 +379,10 @@ export function PlanSettings() {
       queryClient.invalidateQueries({ queryKey: ["plan-settings"] });
       queryClient.invalidateQueries({ queryKey: ["public-catalog"] });
     },
-    onError: (err: any) => {
-      toast.error(err?.message || "Reset failed.");
-    },
+   
+        onError: (e: unknown) => toast.error(getErrorMessage(e, "Reset failed")),
+
+    
   });
 
   if (isLoading) {

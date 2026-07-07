@@ -19,6 +19,16 @@ import { useTranslation } from '@/store/use-translation';
 import { cn } from "@/lib/utils";
 import { logFrontendAction } from "@/lib/api";
 import { extractStorageRelativePath, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getWorkspaceScopeKey } from "@/lib/runtime-context";
+import { getErrorMessage } from "@/lib/errors";
+
+type BrandAssetFile = {
+  id: number;
+  media_details?: {
+    mime_type?: string;
+    url?: string;
+    name?: string;
+  };
+};
 
 // 🚀 CRITICAL FIX: Bulletproof URL Helper forces port 8085 to prevent broken images on reload
 const getStorageUrl = (url: string | null | undefined) => {
@@ -53,7 +63,7 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
   });
 
   // 2. Filter out ONLY images
-  const images = (data?.data?.files || []).filter((file: any) => 
+  const images = (data?.data?.files || []).filter((file: BrandAssetFile) => 
     file.media_details?.mime_type?.startsWith('image/')
   );
 
@@ -82,7 +92,7 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
           toast.success("Asset uploaded and selected!");
       }
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
     onSettled: () => setIsUploading(false)
   });
 
@@ -144,7 +154,7 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean,
                 <div className="text-center p-8 text-muted-foreground text-sm">No images found in your File Manager.</div>
             ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                    {images.map((file: any) => {
+                    {images.map((file: BrandAssetFile) => {
                         const rawUrl = file.media_details?.url;
                         const displayUrl = getStorageUrl(rawUrl);
                         return (
@@ -226,7 +236,7 @@ export function BrandSettings() {
             queryClient.invalidateQueries({ queryKey: ['brandSettings'] });
             logFrontendAction({ module: 'Brand Settings', action: 'updated', description: 'Updated global brand assets.' }).catch(()=>{});
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: unknown) => toast.error(getErrorMessage(err))
     });
 
     // Handle asset selection from picker

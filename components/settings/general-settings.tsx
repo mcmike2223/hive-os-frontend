@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useTranslation } from '@/store/use-translation';
 import { cn } from "@/lib/utils";
 import { getAccessToken, getBackendApiRoot, getWorkspaceScopeKey, isTenantSession } from "@/lib/runtime-context";
+import { getErrorMessage } from '@/lib/errors';
 
 // ==========================================
 // 🚀 BULLETPROOF API ROUTING & FETCH WRAPPER
@@ -98,7 +99,7 @@ export function GeneralSettings() {
             toast.success(t('settings.general_updated', "System Configuration Updated Successfully!"));
             queryClient.invalidateQueries({ queryKey: ['globalSystemSettings'] });
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: unknown) => toast.error(getErrorMessage(err))
     });
 
     const handleToggle = (key: keyof typeof formData) => {

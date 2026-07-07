@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { getErrorMessage } from '@/lib/errors';
 import { getAccessToken, getBackendApiRoot } from '@/lib/runtime-context';
 
-interface Language {
+export interface Language {
   id: number;
   name: string;
   code: string;

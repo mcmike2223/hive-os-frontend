@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useTranslation } from '@/store/use-translation';
 import { getBackendApiRoot, getAuthHeaders, getTenantId, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { SettingsPanelSkeleton } from "@/components/ui/loading-states";
+import { getErrorMessage } from '@/lib/errors';
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${getBackendApiRoot()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
@@ -66,7 +67,7 @@ export function EmailSettings() {
             toast.success(t('settings.email_updated', "Email Server Configurations Synchronized!"));
             queryClient.invalidateQueries({ queryKey: ['emailSettings'] });
         },
-        onError: (err: any) => toast.error(err.message)
+    onError: (e: unknown) => toast.error(getErrorMessage(e, "Something went wrong!")),
     });
 
     if (isLoading) return <SettingsPanelSkeleton />;
@@ -198,8 +199,7 @@ export function EmailSettings() {
                                         </div>
                                         <Input
                                             type="number"
-                                            value={(formData as any)[key] || ''}
-                                            onChange={e => setFormData(p => ({...p, [key]: parseInt(e.target.value)||0}))}
+value={(formData as Record<string, number | string>)[key] || ''}                                            onChange={e => setFormData(p => ({...p, [key]: parseInt(e.target.value)||0}))}
                                             className="bg-white/50 dark:bg-background/50 h-11 rounded-xl font-mono text-sm"
                                             placeholder={`${def} MB (plan default)`}
                                         />
@@ -213,7 +213,10 @@ export function EmailSettings() {
                     <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_storage_quota_tenant_users', 'Per-User Mailbox Quota (MB)')}</Label>
                         <Input type="number" value={formData.mail_storage_quota_tenant_users} onChange={e => setFormData(p => ({...p, mail_storage_quota_tenant_users: parseInt(e.target.value)||0}))} className="bg-muted/30 h-12 rounded-xl" placeholder="1024" />
-                        <p className="text-xs text-muted-foreground">Maximum mailbox size per user in your organization. Cannot exceed your plan's total org quota.</p>
+<p className="text-xs text-muted-foreground">
+  Maximum mailbox size per user in your organization. Cannot exceed your plan&apos;s total org quota.
+</p>
+
                     </div>
                 )}
             </div>

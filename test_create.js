@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 async function test() {
   try {
@@ -12,8 +12,6 @@ async function test() {
     }, {
       headers: {
         'Accept': 'application/json',
-        // In reality, this requires Sanctum auth cookie or token!
-        // If we get 401 Unauthenticated, we need a token.
       }
     });
     console.log(res.data);

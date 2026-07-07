@@ -27,6 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import type { TenantDirectTransferBankAccount } from "@/modules/subscription/types";
+import { getErrorMessage } from "@/lib/errors";
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${getBackendApiRoot()}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
@@ -35,8 +36,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   );
   const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message || "API Request Failed");
+    throw new Error( "API Request Failed");
   }
   return res.json();
 }
@@ -124,9 +124,8 @@ export function PaymentSettings() {
       queryClient.invalidateQueries({ queryKey: ["public-catalog"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-current-subscriptions"] });
     },
-    onError: (err: any) => {
-      toast.error(err?.message || "Failed to save payment settings.");
-    },
+        onError: (err: unknown) => toast.error(getErrorMessage(err)),
+    
   });
 
   const updateProvider = (providerKey: string, fieldKey: string, value: string | number | boolean | string[]) => {

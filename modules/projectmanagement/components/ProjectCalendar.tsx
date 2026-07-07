@@ -37,8 +37,8 @@ export function ProjectCalendar({ project, tasks, onTaskClick, onDayClick }: Pro
       });
   }, [tasks]);
 
-  const handleEventClick = (event: CalendarEvent) => {
-    onTaskClick(event.task);
+ const handleEventClick = (event: CalendarEvent) => {
+    onTaskClick(event.task as Task);
   };
 
   return (

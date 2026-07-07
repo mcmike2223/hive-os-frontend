@@ -177,7 +177,7 @@ export default function ComposeChatModal() {
 
   return (
     <Dialog open={isComposeOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[450px] md:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl sm:rounded-[2rem] bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl max-h-[90vh] sm:max-h-[85vh] flex flex-col">
+      <DialogContent showCloseButton={false} className="sm:max-w-[450px] md:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl sm:rounded-[2rem] bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl max-h-[90vh] sm:max-h-[85vh] flex flex-col">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         
         <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-2 relative z-10 shrink-0">
@@ -206,6 +206,7 @@ export default function ComposeChatModal() {
                 Group
               </button>
             </div>
+            
           </div>
         </DialogHeader>
         

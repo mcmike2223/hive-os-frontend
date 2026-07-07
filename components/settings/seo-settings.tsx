@@ -6,7 +6,6 @@ import {
   BarChart3,
   Boxes,
   Globe,
-  Image as ImageIcon,
   Loader2,
   Save,
   Search,
@@ -22,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
+import { getErrorMessage } from "@/lib/errors";
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${getBackendApiRoot()}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
@@ -29,10 +29,19 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     options.body && typeof options.body === "string" ? { "Content-Type": "application/json" } : {}
   );
   const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message || "API Request Failed");
-  }
+   if (!res.ok) {
+  const err: unknown = await res.json().catch(() => ({}));
+
+  const message =
+    typeof err === "object" &&
+    err !== null &&
+    "message" in err &&
+    typeof err.message === "string"
+      ? err.message
+      : "API Request Failed";
+
+  throw new Error(message);
+}
   return res.json();
 }
 
@@ -108,7 +117,7 @@ function Section({
   description,
   children,
 }: {
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   children: React.ReactNode;
@@ -196,7 +205,7 @@ export default function SeoSettings() {
       toast.success("SEO settings saved. Live across every landing page within ~5 minutes.");
       queryClient.invalidateQueries({ queryKey: ["seo-settings"] });
     },
-    onError: (e: any) => toast.error(e.message || "Failed to save SEO settings"),
+onError: (e: unknown) => toast.error(getErrorMessage(e, "Failed to save SEO settings")),
   });
 
   const set = <K extends keyof SeoForm>(key: K, value: SeoForm[K]) =>
