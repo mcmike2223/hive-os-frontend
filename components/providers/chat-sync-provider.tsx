@@ -15,7 +15,34 @@ import {
 import { getChatMessagePreview, getStoredChatUser } from '@/lib/chat-utils';
 import { getChatPresenceChannelName, getChatUserChannelName, initEcho } from '@/lib/echo';
 import { getAccessToken } from '@/lib/runtime-context';
-import { useChatStore } from '@/store/chat-store';
+import { useChatStore, ChatConversation, ChatMessage } from '@/store/chat-store';
+
+type ChatMessageEvent = {
+  message?: ChatMessage;
+  conversation?: ChatConversation;
+};
+
+type ChatMessagesReadEvent = {
+  payload?: {
+    conversation_id: number;
+    reader_id: number;
+  };
+  conversation_id?: number;
+  reader_id?: number;
+};
+
+type ChatConversationEvent = {
+  action?: string;
+  payload?: {
+    conversation_id: number;
+    changes?: Partial<ChatConversation>;
+  };
+};
+
+type ChatPresenceUser = {
+  id: number;
+  name?: string;
+};
 
 export function ChatSyncProvider() {
   const router = useRouter();
@@ -75,7 +102,7 @@ export function ChatSyncProvider() {
     void syncCounts();
     void syncEncryptionConfig();
 
-    channel.listen('.chat.message', async (event: any) => {
+    channel.listen('.chat.message', async (event: ChatMessageEvent) => {
       const store = useChatStore.getState();
       const rawMessage = event?.message;
       const rawConversation = event?.conversation;
@@ -126,7 +153,7 @@ export function ChatSyncProvider() {
           },
           updated_at: conversation?.updated_at ?? newMessage.created_at,
           unread_count: unreadCount,
-        } as any);
+        });
 
         if (!isFromCurrentUser && !isCurrentConversation) {
           store.adjustCounts({ unread: 1 });
@@ -161,7 +188,7 @@ export function ChatSyncProvider() {
       }
     });
 
-    channel.listen('.chat.messages.read', (event: any) => {
+    channel.listen('.chat.messages.read', (event: ChatMessagesReadEvent) => {
       const payload = event?.payload || event;
 
       if (!payload?.conversation_id || String(payload.reader_id) === String(user.id)) {
@@ -183,7 +210,7 @@ export function ChatSyncProvider() {
       );
     });
 
-    channel.listen('.chat.conversation', (event: any) => {
+    channel.listen('.chat.conversation', (event: ChatConversationEvent) => {
       const store = useChatStore.getState();
       const action = event?.action;
       const payload = event?.payload;
@@ -215,16 +242,16 @@ export function ChatSyncProvider() {
     });
 
     presenceChannel
-      .here((users: any[]) => {
+      .here((users: ChatPresenceUser[]) => {
         useChatStore.getState().setOnlineUsers(users);
       })
-      .joining((joiningUser: any) => {
+      .joining((joiningUser: ChatPresenceUser) => {
         const store = useChatStore.getState();
         if (!store.onlineUsers.find((userItem) => String(userItem.id) === String(joiningUser.id))) {
           store.setOnlineUsers([...store.onlineUsers, joiningUser]);
         }
       })
-      .leaving((leavingUser: any) => {
+      .leaving((leavingUser: ChatPresenceUser) => {
         const store = useChatStore.getState();
         store.setOnlineUsers(store.onlineUsers.filter((userItem) => String(userItem.id) !== String(leavingUser.id)));
 

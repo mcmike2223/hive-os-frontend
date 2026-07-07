@@ -5,7 +5,7 @@ import { useMailStore } from '@/store/mail-store';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 import { toast } from 'sonner';
 import { Loader2, Lock, X } from 'lucide-react';
 import { UserMultiSelect, User } from './user-multi-select';
@@ -93,9 +93,8 @@ export default function ComposeModal() {
       toast.success(encryptedDraft.encrypted ? 'Encrypted email sent successfully' : 'Email sent successfully');
       setComposeOpen(false);
       resetComposer();
-    } catch (e: any) {
-      const errorMsg = e.response?.data?.error || 'Failed to send email';
-      toast.error(errorMsg);
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, 'Failed to send email'));
     } finally {
       setLoading(false);
     }
@@ -124,14 +123,19 @@ export default function ComposeModal() {
       toast.success(draftId ? 'Draft updated' : 'Draft saved');
       setComposeOpen(false);
       resetComposer();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to save draft');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to save draft'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileSelect = (file: any) => {
+  const handleFileSelect = (file: {
+    media_details?: { url?: string; mime_type?: string; name?: string };
+    url?: string;
+    path?: string;
+    mime_type?: string;
+  }) => {
     const rawUrl = file?.media_details?.url || file?.url || file?.path;
     if (!rawUrl) {
       toast.error("Error: Could not extract media path from selection.");

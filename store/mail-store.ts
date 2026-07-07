@@ -74,6 +74,12 @@ export interface MailParticipant {
     };
 }
 
+export interface MailOnlineUser {
+    id: number;
+    name?: string;
+    avatar_url?: string;
+}
+
 export interface MailCounts {
     inbox: number;
     inbox_unread: number;
@@ -116,8 +122,8 @@ interface MailState {
     isFullscreen: boolean;
     setFullscreen: (val: boolean) => void;
     adjustCounts: (updates: Partial<MailCounts>) => void;
-    onlineUsers: any[];
-    setOnlineUsers: (users: any[]) => void;
+    onlineUsers: MailOnlineUser[];
+    setOnlineUsers: (users: MailOnlineUser[]) => void;
     encryptionConfig: {
         enabled: boolean;
         algorithm?: string | null;

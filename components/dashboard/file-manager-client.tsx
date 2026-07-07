@@ -111,7 +111,26 @@ type CropDragInfo = {
   scaleFactor: number;
 };
 
-type ModuleCheckoutError = Error & { module?: string };
+type MetricCardProps = {
+  icon: React.ReactNode;
+  title: string;
+  size: number;
+  count: number;
+  color: string;
+  onClick: () => void;
+  isActive: boolean;
+};
+
+type RenameItemPayload = { type: 'file' | 'folder'; id: number; name: string };
+type ShareItemPayload = { type: 'file' | 'folder'; id: number };
+type SubtitleUploadPayload = { fileId: number; file: File; lang: string; label: string };
+
+type FileManagerClientProps = {
+  tenantName?: string;
+  isPickerMode?: boolean;
+  onFileSelect?: (file: FileManagerFile) => void;
+  access?: { canRead: boolean; canManage: boolean };
+};
 
 type MenuItemProps = {
   icon: React.ReactElement<{ className?: string }>;
@@ -563,9 +582,9 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
           setIsIsolatedMode(true); 
           toast.success("Background removed successfully!");
 
-      } catch (error: any) {
+      } catch (error: unknown) {
           console.error(error);
-          toast.error(error.message || "Failed to remove background. Your model download probably timed out. Try again.");
+          toast.error(getErrorMessage(error, "Failed to remove background. Your model download probably timed out. Try again."));
       } finally {
           setIsProcessing(false);
           setAiLoadingText("");
@@ -604,9 +623,9 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
           setIsIsolatedMode(true);
           toast.success("Logo background punched out successfully!");
 
-      } catch (error: any) {
+      } catch (error: unknown) {
           console.error(error);
-          toast.error(error.message || "Failed to remove logo background.");
+          toast.error(getErrorMessage(error, "Failed to remove logo background."));
       } finally {
           setIsProcessing(false);
           setAiLoadingText("");
@@ -808,7 +827,7 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
     else setResize(r => ({ ...r, h: val }));
   };
 
-  const renderHandle = (type: string, cssStyle: any) => (
+  const renderHandle = (type: string, cssStyle: React.CSSProperties) => (
     <div className="absolute h-4 w-4 bg-yellow-500 rounded-full shadow-lg z-20 cursor-move border-2 border-background hover:bg-yellow-400 hover:scale-125 transition-transform" style={cssStyle} onMouseDown={(e) => handleHandleMouseDown(e, type)} />
   );
 
@@ -974,7 +993,7 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
                         <div className="h-10 w-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 shrink-0">
                            <Crop className="h-5 w-5" />
                         </div>
-                        <h4 className="font-bold text-blue-500 mb-2 text-sm">Logo "Magic Wand"</h4>
+                        <h4 className="font-bold text-blue-500 mb-2 text-sm">Logo &quot;Magic Wand&quot;</h4>
                         <p className="text-xs text-muted-foreground mb-4 flex-1">Best for flat graphics and logos. Detects the background color and punches it out everywhere.</p>
                         
                         <Button onClick={removeLogoBackground} disabled={isProcessing} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl h-10 mt-auto shrink-0">
@@ -1043,8 +1062,7 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
   );
 }
 
-export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, access }: { tenantName?: string, isPickerMode?: boolean, onFileSelect?: (file: any) => void, access?: { canRead: boolean; canManage: boolean } }) {
-  const { t } = useTranslation();
+export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, access }: FileManagerClientProps) {
   const queryClient = useQueryClient();
   const { playTrack, syncFavoriteStatus, currentTrack } = useGlobalAudio();
   const { hasAnyPermission, hasPermission } = usePermissions();
@@ -1070,7 +1088,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const paymentMethods = subscriptionData?.data?.payment_methods ?? [];
   const lockedModule = checkoutModuleSlug
     ? subscriptionData?.data?.module_subscriptions?.catalog_modules?.find(
-        (module: any) => module.slug === checkoutModuleSlug
+        (module: FileManagerCatalogModule) => module.slug === checkoutModuleSlug
       ) ?? null
     : null;
   const workspaceScope = getWorkspaceScopeKey();
@@ -1097,7 +1115,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const [downloadPhase, setDownloadPhase] = React.useState<"preparing" | "downloading" | null>(null);
 
   // --- Core State ---
-  const { data: playlistsData } = useQuery({
+  const { data: playlistsData } = useQuery<FileManagerPlaylist[]>({
     queryKey: ["playlists"],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/playlists`, { headers: getAuthHeaders() });
@@ -1107,7 +1125,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     enabled: canRead,
   });
 
-  const playlists = playlistsData || [];
+  const playlists: FileManagerPlaylist[] = playlistsData || [];
   const [activeFilter, setActiveFilter] = React.useState<"all" | "favorites" | "trash" | "recent">("all");
   const [activeTypeFilter, setActiveTypeFilter] = React.useState<"image" | "video" | "document" | "audio" | "model" | "archive" | "other" | null>(null);
   const [activePlaylistId, setActivePlaylistId] = React.useState<number | null>(null);
@@ -1249,7 +1267,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     console.log('isUploadOpen changed:', isUploadOpen);
   }, [isUploadOpen]);
 
-  const [selectedFile, setSelectedFile] = React.useState<any | null>(null); 
+  const [selectedFile, setSelectedFile] = React.useState<FileManagerFile | null>(null); 
   const [folderName, setFolderName] = React.useState("");
   const [uploadBaseName, setUploadBaseName] = React.useState("");
   const [uploadFile, setUploadFile] = React.useState<File | null>(null);
@@ -1285,15 +1303,15 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     enabled: canRead,
   });
 
-  const folderItems = React.useMemo(() => toCollectionItems<any>(data?.data?.folders), [data?.data?.folders]);
-  const fileItems = React.useMemo(() => toCollectionItems<any>(data?.data?.files), [data?.data?.files]);
+  const folderItems = React.useMemo(() => toCollectionItems<FileManagerFolder>(data?.data?.folders), [data?.data?.folders]);
+  const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
 
   React.useEffect(() => {
     if (!selectedFile || fileItems.length === 0) {
       return;
     }
 
-    const refreshedFile = fileItems.find((file: any) => file.id === selectedFile.id);
+    const refreshedFile = fileItems.find((file) => file.id === selectedFile.id);
     if (!refreshedFile) {
       return;
     }
@@ -1355,7 +1373,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   // ==============================================================================
   
   const renameMut = useMutation({
-    mutationFn: async ({ type, id, name }: any) => {
+    mutationFn: async ({ type, id, name }: RenameItemPayload) => {
         const res = await fetch(`${getBackendApiRoot()}/files/rename`, {
             method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ type, id, name })
@@ -1369,7 +1387,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
         setRenameTarget(null);
         setNewName("");
     },
-    onError: (err: any) => toast.error(err.message)
+    onError: (err: unknown) => toast.error(getErrorMessage(err, "Failed to rename item"))
   });
 
   const moveItemsMut = useMutation({
@@ -1388,7 +1406,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           setIsMoveModalOpen(false);
           setSelectedItems([]);
       },
-      onError: (err: any) => toast.error(err.message)
+      onError: (err: unknown) => toast.error(getErrorMessage(err, "Failed to rename item"))
   });
 
   const emptyTrashMut = useMutation({
@@ -1400,7 +1418,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   });
 
   const restoreItemsMut = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: FileManagerItemRef[]) => {
         const res = await fetch(`${getBackendApiRoot()}/files/trash/restore`, {
             method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ items })
@@ -1411,7 +1429,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   });
 
   const forceDeleteItemsMut = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: FileManagerItemRef[]) => {
         const res = await fetch(`${getBackendApiRoot()}/files/trash/force-delete`, {
             method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ items })
@@ -1422,7 +1440,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   });
 
   const shareLinkMut = useMutation({
-    mutationFn: async ({ type, id }: any) => {
+    mutationFn: async ({ type, id }: ShareItemPayload) => {
         const res = await fetch(`${getBackendApiRoot()}/files/${type}/${id}/share`, { method: 'POST', headers: getAuthHeaders() });
         if (!res.ok) throw new Error("Failed to generate link");
         return res.json();
@@ -1458,13 +1476,13 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       return res.json();
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["files"] }); toast.success("Edited image saved successfully!"); setSelectedFile(null); },
-    onError: (error: any) => {
-      if (error?.module === "image_editor") {
+    onError: (error: unknown) => {
+      if (error instanceof Error && 'module' in error && (error as ModuleCheckoutError).module === "image_editor") {
         setCheckoutModuleSlug("image_editor");
         return;
       }
 
-      toast.error(error?.message || "Failed to save edited image");
+      toast.error(getErrorMessage(error, "Failed to save edited image"));
     },
   });
 
@@ -1535,8 +1553,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       setIsAddToPlaylistOpen(false);
       setItemToAddToPlaylist(null);
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to add to playlist");
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, "Failed to add to playlist"));
     }
   });
 
@@ -1656,11 +1674,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       }
       setIsUploadOpen(false); setUploadFile(null); setCustomThumbnail(null); setUploadBaseName(""); setUploadProgress(0);
     },
-    onError: (err: any) => { toast.error(err.message, { duration: 8000 }); setUploadProgress(0); }
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, "Upload failed"), { duration: 8000 }); setUploadProgress(0); }
   });
 
   const uploadSubtitleMut = useMutation({
-    mutationFn: async ({ fileId, file, lang, label }: any) => {
+    mutationFn: async ({ fileId, file, lang, label }: SubtitleUploadPayload) => {
       const formData = new FormData();
       formData.append('subtitle', file);
       formData.append('language', lang);
@@ -1681,13 +1699,13 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       return res.json();
     },
     onSuccess: (data) => { queryClient.invalidateQueries({ queryKey: ["files"] }); toast.success("Subtitle track added successfully!"); setSelectedFile(data.file); setIsSubtitleModalOpen(false); setSubtitleFile(null); },
-    onError: (error: any) => {
-      if (error?.module === "video_player") {
+    onError: (error: unknown) => {
+      if (error instanceof Error && 'module' in error && (error as ModuleCheckoutError).module === "video_player") {
         setCheckoutModuleSlug("video_player");
         return;
       }
 
-      toast.error(error?.message || "Failed to upload subtitle");
+      toast.error(getErrorMessage(error, "Failed to upload subtitle"));
     },
   });
 
@@ -1701,7 +1719,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     },
     onSuccess: (data, deletedUuid) => {
       queryClient.invalidateQueries({ queryKey: ["files"] }); toast.success("Subtitle removed successfully");
-      if (selectedFile) { setSelectedFile({ ...selectedFile, media_details: { ...selectedFile.media_details, subtitles: selectedFile.media_details.subtitles.filter((s: any) => s.uuid !== deletedUuid) } }); }
+      if (selectedFile) { setSelectedFile({ ...selectedFile, media_details: { ...selectedFile.media_details, subtitles: (selectedFile.media_details?.subtitles || []).filter((s) => s.uuid !== deletedUuid) } }); }
     }
   });
 
@@ -1744,11 +1762,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   let allFiles = [...fileItems];
 
   // 🚀 Sorting Execution
-  const sortData = (a: any, b: any) => {
+  const sortData = (a: FileManagerSortable, b: FileManagerSortable) => {
       if (sortBy === 'name') {
-          const nameA = (a.name || a.media_details?.title || a.media_details?.name || "").toLowerCase();
-          const nameB = (b.name || b.media_details?.title || b.media_details?.name || "").toLowerCase();
-          return nameA.localeCompare(nameB);
+          const nameA = ('name' in a ? a.name : '') || a.media_details?.title || a.media_details?.name || "";
+          const nameB = ('name' in b ? b.name : '') || b.media_details?.title || b.media_details?.name || "";
+          return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
       }
       if (sortBy === 'size') return (b.media_details?.size || 0) - (a.media_details?.size || 0);
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
@@ -1759,12 +1777,12 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   // Search Filter
   if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      folders = folders.filter((f: any) => f.name.toLowerCase().includes(q));
-      allFiles = allFiles.filter((f: any) => (f.media_details?.title || f.media_details?.name || "").toLowerCase().includes(q));
+      folders = folders.filter((f) => f.name.toLowerCase().includes(q));
+      allFiles = allFiles.filter((f) => (f.media_details?.title || f.media_details?.name || "").toLowerCase().includes(q));
   }
 
   // Type Filter
-  const displayedFiles = allFiles.filter((file: any) => {
+  const displayedFiles = allFiles.filter((file) => {
     if (!activeTypeFilter) return true;
     const mime = file.media_details?.mime_type || '';
     if (activeTypeFilter === 'image') return mime.startsWith('image/');
@@ -1779,7 +1797,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const visibleFiles = showAllFiles ? displayedFiles : displayedFiles.slice(0, 5);
 
   const categoryStats = { image: { size: 0, count: 0 }, video: { size: 0, count: 0 }, document: { size: 0, count: 0 }, audio: { size: 0, count: 0 }, model: { size: 0, count: 0 }, archive: { size: 0, count: 0 }, other: { size: 0, count: 0 } };
-  allFiles.forEach((file: any) => {
+  allFiles.forEach((file) => {
       const mime = file.media_details?.mime_type || '';
       const size = file.media_details?.size || 0;
       if (mime.startsWith('image/')) { categoryStats.image.size += size; categoryStats.image.count++; }
@@ -1807,7 +1825,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     );
   }
 
-  const renderFilePreview = (file: any) => {
+  const renderFilePreview = (file: FileManagerFile) => {
     if (!file || !file.media_details) return null;
     const media = file.media_details;
     const mediaTitle = media.title || media.name;
@@ -1830,7 +1848,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
              src={safeUrl}
              fetchUrl={media.url?.includes('/api/v1/files/') ? media.url : `${getBackendApiRoot()}/files/${file.id}/download`}
              alt={mediaTitle}
-             onSaveEdited={canManage && hasImageEditor ? (f: any) => saveEditedImageMut.mutate({ file: f, originalId: file.id }) : undefined}
+             onSaveEdited={canManage && hasImageEditor ? (f: File) => saveEditedImageMut.mutate({ file: f, originalId: file.id }) : undefined}
              onUpgradeRequested={canManage && !hasImageEditor ? () => setCheckoutModuleSlug("image_editor") : undefined}
            />
         </div>
@@ -1838,12 +1856,12 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     }
     
     if (mime.startsWith('video/')) {
-      const videoFiles = fileItems.filter((f: any) => f.media_details?.mime_type?.startsWith('video/'));
-      const currentIndex = videoFiles.findIndex((f: any) => f.id === file.id);
+      const videoFiles = fileItems.filter((f) => f.media_details?.mime_type?.startsWith('video/'));
+      const currentIndex = videoFiles.findIndex((f) => f.id === file.id);
       const handleNext = () => { if (currentIndex < videoFiles.length - 1) setSelectedFile(videoFiles[currentIndex + 1]); };
       const handlePrev = () => { if (currentIndex > 0) setSelectedFile(videoFiles[currentIndex - 1]); };
-      const formattedSubtitles = (media.subtitles || []).map((sub: any) => ({ ...sub, src: sub.uuid ? `${getBackendApiRoot()}/files/subtitle/${sub.uuid}` : sub.src, srcLang: sub.srcLang || 'en', label: sub.label || 'Subtitle', default: sub.default || false }));
-      const formattedVersions = (media.video_versions || []).map((v: any) => ({ label: v.label, url: getStreamUrl(getStorageUrl(v.url)) }));
+      const formattedSubtitles = (media.subtitles || []).map((sub: FileManagerSubtitle) => ({ ...sub, src: sub.uuid ? `${getBackendApiRoot()}/files/subtitle/${sub.uuid}` : sub.src, srcLang: sub.srcLang || 'en', label: sub.label || 'Subtitle', default: sub.default || false }));
+      const formattedVersions = (media.video_versions || []).map((v: FileManagerVideoVersion) => ({ label: v.label, url: getStreamUrl(getStorageUrl(v.url)) }));
       const nativeSrc = getStreamUrl(safeUrl);
       const adaptiveStreamingReady = Boolean(media.hls_path);
 
@@ -1912,11 +1930,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
         );
       }
 
-      const audioFiles = fileItems.filter((f: any) => f.media_details?.mime_type?.startsWith('audio/'));
-      const currentIndex = audioFiles.findIndex((f: any) => f.id === file.id);
+      const audioFiles = fileItems.filter((f) => f.media_details?.mime_type?.startsWith('audio/'));
+      const currentIndex = audioFiles.findIndex((f) => f.id === file.id);
       const handleNext = () => { if (currentIndex < audioFiles.length - 1) setSelectedFile(audioFiles[currentIndex + 1]); };
       const handlePrev = () => { if (currentIndex > 0) setSelectedFile(audioFiles[currentIndex - 1]); };
-      const currentPlaylist = audioFiles.map((f: any) => ({
+      const currentPlaylist = audioFiles.map((f) => ({
         id: f.id,
      src: getStreamUrl(getStorageUrl(f.media_details?.url)),
         title: f.media_details?.title || f.media_details?.name || "Unknown Track",
@@ -1981,7 +1999,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           <div className="hidden lg:block h-px bg-border/50 w-full my-2"></div>
           <p className="hidden lg:block text-[10px] font-black uppercase text-muted-foreground tracking-widest px-3 mb-1">Playlists</p>
           <div className="flex lg:flex-col gap-1">
-            {playlists.map((pl: any) => (
+            {playlists.map((pl) => (
               <div key={pl.id} className="group/pl relative w-full flex-shrink-0 lg:w-full">
                 <div 
                   role="button"
@@ -2136,7 +2154,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                 <section className={cn(viewMode === 'list' && "bg-card/30 border border-border/50 rounded-[2rem] p-4")}>
                   {viewMode === 'grid' && <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 mb-4 px-2">Folders</h3>}
                   <div className={cn(viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4" : "flex flex-col gap-1")}>
-                    {folders.map((folder: any) => {
+                    {folders.map((folder) => {
                         const isSelected = selectedItems.some(i => i.id === folder.id && i.type === 'folder');
                         return (
                         <div key={folder.id} onClick={() => setCurrentFolderId(folder.id)} 
@@ -2218,7 +2236,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                   <>
                     <div className={cn(viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4" : "flex flex-col gap-1")}>
                       {/* Renders only the sliced array (either 5 or all) */}
-                      {visibleFiles.map((file: any) => {
+                      {visibleFiles.map((file) => {
                         const media = file.media_details;
                         const safeUrl = getStorageUrl(media?.thumbnail || media?.url);
                         const isSelected = selectedItems.some(i => i.id === file.id && i.type === 'file');
@@ -2337,7 +2355,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                   >
                     <option value="root">Root Directory</option>
                     {/* Ensure we aren't allowing a user to move a folder into itself */}
-                {folderItems.map((f: any) => {
+                {folderItems.map((f) => {
                         const isMovingSelf = itemsToMove.some(i => i.type === 'folder' && i.id === f.id);
                         return <option key={f.id} value={f.id.toString()} disabled={isMovingSelf}>{isMovingSelf ? `🚫 ` : `📁 `} {f.name}</option>
                     })}
@@ -2446,7 +2464,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                     <div className="space-y-4">
                         <div className="flex justify-between items-center"><h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground"><Subtitles className="h-3.5 w-3.5" /> Subtitles</h4><Badge variant="outline" className="text-[10px] bg-background">{selectedFile.media_details?.subtitles?.length || 0}</Badge></div>
                         <div className="space-y-2 min-w-0">
-                            {selectedFile.media_details?.subtitles?.map((sub: any, i: number) => (
+                            {selectedFile.media_details?.subtitles?.map((sub: FileManagerSubtitle, i: number) => (
                                 <div key={i} className="flex justify-between items-center bg-muted/20 p-2.5 rounded-xl border border-border/50 text-xs min-w-0 group hover:border-emerald-500/30 transition-colors">
                                     <span className="font-medium truncate mr-2 flex-1">{sub.label}</span>
                                     <div className="flex items-center gap-3 shrink-0">
@@ -2516,7 +2534,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           <DialogHeader className="shrink-0 border-b border-border/50 pb-4"><DialogTitle className="flex items-center gap-2"><UploadCloud className="h-5 w-5 text-emerald-500" /> Upload File</DialogTitle></DialogHeader>
           <form id="upload-file-form" onSubmit={handleUploadFile} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className="space-y-5 py-4 px-1">
-         <div className="grid grid-cols-2 gap-4 min-w-0"><div className="space-y-2 min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">Save in Folder</label><select value={uploadTargetFolder} onChange={(e) => setUploadTargetFolder(e.target.value)} className="w-full bg-muted/30 border border-border/50 h-10 rounded-xl text-sm px-3 focus:ring-2 focus:ring-emerald-500 outline-none truncate font-medium"><option value="root">Root Directory</option>{currentFolderId && <option value={currentFolderId.toString()}>Current Folder (ID: {currentFolderId})</option>}{folderItems.map((f: any) => (<option key={f.id} value={f.id.toString()}>Subfolder: {f.name}</option>))}</select></div><div className="space-y-2 min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">Base Name</label><Input value={uploadBaseName} onChange={e => setUploadBaseName(e.target.value)} placeholder="Optional" className="bg-muted/50 border-border/50 h-10 rounded-xl text-sm min-w-0" /></div></div>
+         <div className="grid grid-cols-2 gap-4 min-w-0"><div className="space-y-2 min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">Save in Folder</label><select value={uploadTargetFolder} onChange={(e) => setUploadTargetFolder(e.target.value)} className="w-full bg-muted/30 border border-border/50 h-10 rounded-xl text-sm px-3 focus:ring-2 focus:ring-emerald-500 outline-none truncate font-medium"><option value="root">Root Directory</option>{currentFolderId && <option value={currentFolderId.toString()}>Current Folder (ID: {currentFolderId})</option>}{folderItems.map((f) => (<option key={f.id} value={f.id.toString()}>Subfolder: {f.name}</option>))}</select></div><div className="space-y-2 min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">Base Name</label><Input value={uploadBaseName} onChange={e => setUploadBaseName(e.target.value)} placeholder="Optional" className="bg-muted/50 border-border/50 h-10 rounded-xl text-sm min-w-0" /></div></div>
               <div className="pt-2 min-w-0 w-full"><div onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleFileDrop} onClick={() => !uploadFileMut.isPending && fileInputRef.current?.click()} className={cn("border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center text-center transition-all overflow-hidden w-full relative min-h-[160px]", isDragging ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]" : "border-border/50 bg-muted/20", !uploadFileMut.isPending && "cursor-pointer hover:bg-muted/40 hover:border-emerald-500/50")}><input type="file" className="hidden" ref={fileInputRef} onChange={(e) => e.target.files && setUploadFile(e.target.files[0])} disabled={uploadFileMut.isPending} />{uploadFile ? (<div className="flex flex-col items-center w-full min-w-0 overflow-hidden relative z-10"><div className="relative"><FileIcon className={cn("h-12 w-12 text-emerald-500 mb-3 shrink-0 transition-transform duration-500", uploadProgress > 0 && "scale-110 animate-bounce")} /></div><p className="text-sm font-bold text-foreground truncate w-full text-center px-2 max-w-full drop-shadow-sm">{uploadFile.name}</p><p className="text-[10px] text-muted-foreground font-mono mt-1">{formatBytes(uploadFile.size)}</p>{uploadProgress > 0 && (<div className="w-full mt-6 space-y-2 px-2 shrink-0 animate-in fade-in zoom-in duration-300"><div className="flex justify-between items-end mb-1"><span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80 animate-pulse">Processing Chunk</span><span className="text-xl font-black text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">{uploadProgress}%</span></div><div className="relative h-3 w-full bg-background rounded-full overflow-hidden shadow-inner border border-border/50"><div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-300 rounded-full transition-all duration-300 ease-out shadow-[0_0_15px_rgba(52,211,153,0.8)]" style={{ width: `${uploadProgress}%` }}><div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite] bg-[length:200%_100%]" /></div></div></div>)}</div>) : (<div className="flex flex-col items-center opacity-70 group-hover:opacity-100 transition-opacity"><div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4 shadow-sm"><UploadCloud className="h-7 w-7 text-emerald-500" /></div><p className="text-sm font-bold text-foreground shrink-0">Click or drag a file to this area to upload</p><p className="text-xs text-muted-foreground mt-2">Support for videos, documents, and images</p></div>)}</div></div>
               {uploadFile && !uploadFile.type.startsWith('image/') && (
                 <div className="space-y-2 pt-4 border-t border-border/50 overflow-hidden min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground flex items-center gap-2"><ImagePlus className="h-3 w-3 shrink-0" /> Custom Thumbnail (Optional)</label><div className="flex items-center gap-3 w-full min-w-0"><Button type="button" variant="outline" className="h-10 border-dashed shrink-0 rounded-xl" onClick={() => thumbInputRef.current?.click()} disabled={uploadFileMut.isPending}>Select Cover</Button><span className="text-xs font-mono text-muted-foreground truncate flex-1 min-w-0" title={customThumbnail ? customThumbnail.name : 'None selected'}>{customThumbnail ? customThumbnail.name : 'None selected'}</span><input type="file" accept="image/*" className="hidden" ref={thumbInputRef} onChange={(e) => e.target.files && setCustomThumbnail(e.target.files[0])} /></div></div>
@@ -2537,7 +2555,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
             </div>
           </div>
           <div className="p-4 space-y-2 max-h-[40vh] overflow-y-auto custom-scrollbar bg-card/20">
-            {playlists.map((pl: any) => (
+            {playlists.map((pl) => (
               <button
                 key={pl.id}
                 onClick={() => itemToAddToPlaylist && addToPlaylistMut.mutate({ playlistId: pl.id, fileId: itemToAddToPlaylist.id })}
@@ -2604,7 +2622,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   );
 }
 
-function MetricCard({ icon, title, size, count, color, onClick, isActive }: any) {
+function MetricCard({ icon, title, size, count, color, onClick, isActive }: MetricCardProps) {
   return (
     <div onClick={onClick} className={cn("border p-3.5 rounded-2xl flex flex-col gap-2 min-w-0 transition-all cursor-pointer group", color, isActive ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-background scale-[1.02] shadow-md border-emerald-500/50" : "hover:bg-muted/50 hover:scale-[1.01]")}>
       <div className="flex items-center justify-between w-full"><div className="bg-background/80 p-2 rounded-xl border border-border/50 shadow-sm shrink-0">{icon}</div><Badge variant="outline" className="text-[9px] font-mono opacity-60 bg-transparent border-border/50">{count}</Badge></div>

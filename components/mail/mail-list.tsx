@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useMailStore } from '@/store/mail-store';
+import { useMailStore, MailCounts } from '@/store/mail-store';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import api from '@/lib/api';
@@ -94,7 +94,7 @@ export default function MailList() {
     try {
       await api.post('/mail/bulk', { ids, action });
       
-      const countUpdate: any = {};
+      const countUpdate: Partial<MailCounts> = {};
       const amount = ids.length;
 
       // Optimistic counters logic
@@ -140,7 +140,7 @@ export default function MailList() {
       adjustCounts(countUpdate);
       clearChecked();
       toast.success('Action applied to selected messages');
-    } catch (e: any) {
+    } catch {
       toast.error('Failed to apply bulk action');
     }
   };

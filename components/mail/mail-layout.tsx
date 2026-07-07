@@ -5,7 +5,7 @@ import MailSidebar from "./mail-sidebar";
 import MailList from "./mail-list";
 import MailDetail from "./mail-detail";
 import ComposeModal from "./compose-modal";
-import { useMailStore } from "@/store/mail-store";
+import { useMailStore, MailOnlineUser } from "@/store/mail-store";
 import { cn } from "@/lib/utils";
 import { initEcho } from "@/lib/echo";
 import { getAccessToken, getTenantId } from "@/lib/runtime-context";
@@ -27,12 +27,12 @@ export default function MailLayout() {
 
       echo
         .join(presenceChannelName)
-        .here((users: any[]) => setOnlineUsers(users))
-        .joining((joiningUser: any) => {
+        .here((users: MailOnlineUser[]) => setOnlineUsers(users))
+        .joining((joiningUser: MailOnlineUser) => {
           const current = useMailStore.getState().onlineUsers;
           setOnlineUsers([...current, joiningUser]);
         })
-        .leaving((leavingUser: any) => {
+        .leaving((leavingUser: MailOnlineUser) => {
           const current = useMailStore.getState().onlineUsers;
           setOnlineUsers(current.filter((user) => user.id !== leavingUser.id));
         });

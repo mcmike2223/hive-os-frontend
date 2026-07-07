@@ -12,7 +12,7 @@ import {
   fetchMailEncryptionConfig,
   getEncryptedMailBodyFallback,
 } from "@/lib/mail-e2ee";
-import { useMailStore } from "@/store/mail-store";
+import { useMailStore, MailParticipant, MailCounts } from "@/store/mail-store";
 
 type UnreadMailCountResponse = {
   count: number;
@@ -78,7 +78,7 @@ export function MailSyncProvider() {
       queryClient.invalidateQueries({ queryKey: ["recentMails"] });
     };
 
-    channel.listen(".mail.received", (event: any) => {
+    channel.listen(".mail.received", (event: { participantData?: MailParticipant }) => {
       void (async () => {
         const rawParticipant = event?.participantData;
 
@@ -90,7 +90,7 @@ export function MailSyncProvider() {
         const store = useMailStore.getState();
 
         if (store.activeFolder === "inbox" || store.activeFolder === "all") {
-          store.appendMail(participant as any);
+          store.appendMail(participant);
         }
 
         store.adjustCounts({ inbox: 1, inbox_unread: 1 });
@@ -118,7 +118,7 @@ export function MailSyncProvider() {
       })();
     });
 
-    channel.listen(".mail.sync", (event: any) => {
+    channel.listen(".mail.sync", (event: { action?: string; payload?: Record<string, unknown> }) => {
       const { action, payload } = event || {};
 
       if (!action || !payload) {
@@ -145,11 +145,11 @@ export function MailSyncProvider() {
             store.deleteMail(message_id);
             store.adjustCounts({ trash: -1 });
           } else {
-            store.updateMail(message_id, { folder: "trash" } as any);
+            store.updateMail(message_id, { folder: "trash" });
 
             if (store.activeFolder !== "trash") {
               store.deleteMail(message_id);
-              store.adjustCounts({ [store.activeFolder]: -1, trash: 1 } as any);
+              store.adjustCounts({ [store.activeFolder]: -1, trash: 1 } as Partial<MailCounts>);
             }
           }
           break;
@@ -161,62 +161,62 @@ export function MailSyncProvider() {
 
           switch (bulkAction) {
             case "trash":
-              store.bulkUpdateMails(ids, { folder: "trash" } as any);
+              store.bulkUpdateMails(ids, { folder: "trash" });
               if (store.activeFolder !== "trash") {
                 store.bulkDeleteMails(ids);
-                store.adjustCounts({ [store.activeFolder]: -amount, trash: amount } as any);
+                store.adjustCounts({ [store.activeFolder]: -amount, trash: amount } as Partial<MailCounts>);
               }
               break;
             case "delete":
               store.bulkDeleteMails(ids);
-              store.adjustCounts({ [store.activeFolder]: -amount } as any);
+              store.adjustCounts({ [store.activeFolder]: -amount } as Partial<MailCounts>);
               break;
             case "star":
-              store.bulkUpdateMails(ids, { is_starred: true } as any);
+              store.bulkUpdateMails(ids, { is_starred: true });
               store.adjustCounts({ starred: amount });
               break;
             case "unstar":
-              store.bulkUpdateMails(ids, { is_starred: false } as any);
+              store.bulkUpdateMails(ids, { is_starred: false });
               store.adjustCounts({ starred: -amount });
               break;
             case "read":
-              store.bulkUpdateMails(ids, { is_read: true } as any);
+              store.bulkUpdateMails(ids, { is_read: true });
               if (store.activeFolder === "inbox") {
                 store.adjustCounts({ inbox_unread: -amount });
               }
               break;
             case "unread":
-              store.bulkUpdateMails(ids, { is_read: false } as any);
+              store.bulkUpdateMails(ids, { is_read: false });
               if (store.activeFolder === "inbox") {
                 store.adjustCounts({ inbox_unread: amount });
               }
               break;
             case "archive":
-              store.bulkUpdateMails(ids, { folder: "archive" } as any);
+              store.bulkUpdateMails(ids, { folder: "archive" });
               if (store.activeFolder !== "archive") {
                 store.bulkDeleteMails(ids);
-                store.adjustCounts({ [store.activeFolder]: -amount, archive: amount } as any);
+                store.adjustCounts({ [store.activeFolder]: -amount, archive: amount } as Partial<MailCounts>);
               }
               break;
             case "spam":
-              store.bulkUpdateMails(ids, { folder: "spam" } as any);
+              store.bulkUpdateMails(ids, { folder: "spam" });
               if (store.activeFolder !== "spam") {
                 store.bulkDeleteMails(ids);
-                store.adjustCounts({ [store.activeFolder]: -amount, spam: amount } as any);
+                store.adjustCounts({ [store.activeFolder]: -amount, spam: amount } as Partial<MailCounts>);
               }
               break;
             case "inbox":
-              store.bulkUpdateMails(ids, { folder: "inbox" } as any);
+              store.bulkUpdateMails(ids, { folder: "inbox" });
               if (store.activeFolder !== "inbox") {
                 store.bulkDeleteMails(ids);
-                store.adjustCounts({ [store.activeFolder]: -amount, inbox: amount } as any);
+                store.adjustCounts({ [store.activeFolder]: -amount, inbox: amount } as Partial<MailCounts>);
               }
               break;
             case "important":
-              store.bulkUpdateMails(ids, { folder: "important" } as any);
+              store.bulkUpdateMails(ids, { folder: "important" });
               if (store.activeFolder !== "important") {
                 store.bulkDeleteMails(ids);
-                store.adjustCounts({ [store.activeFolder]: -amount, important: amount } as any);
+                store.adjustCounts({ [store.activeFolder]: -amount, important: amount } as Partial<MailCounts>);
               }
               break;
             default:
@@ -229,13 +229,13 @@ export function MailSyncProvider() {
 
         case "draft":
           if (payload.participantData) {
-            void decryptMailParticipant(payload.participantData as any).then((participant) => {
+            void decryptMailParticipant(payload.participantData as MailParticipant).then((participant) => {
               const currentStore = useMailStore.getState();
-              currentStore.updateMail(payload.message_id, participant as any);
+              currentStore.updateMail(payload.message_id, participant);
 
               if (!currentStore.mails.find((item) => item.mail_message_id === payload.message_id)) {
                 if (currentStore.activeFolder === "drafts") {
-                  currentStore.appendMail(participant as any);
+                  currentStore.appendMail(participant);
                 }
               }
 
@@ -257,8 +257,8 @@ export function MailSyncProvider() {
           }
 
           if (store.activeFolder === "sent" && payload.participantData) {
-            void decryptMailParticipant(payload.participantData as any).then((participant) => {
-              useMailStore.getState().appendMail(participant as any);
+            void decryptMailParticipant(payload.participantData as MailParticipant).then((participant) => {
+              useMailStore.getState().appendMail(participant);
             });
           }
           break;

@@ -34,8 +34,14 @@ const getTenantAwareEndpoint = (path: string) => {
   return `${base}${path}`;
 };
 
+type TopbarUser = {
+  name?: string;
+  avatar_path?: string | null;
+  avatar_url?: string | null;
+};
+
 // 🚀 SECURE TOPBAR AVATAR
-const SecureTopbarAvatar = ({ user, fallbackInitials, canViewProfile }: { user: any, fallbackInitials: string, canViewProfile: boolean }) => {
+const SecureTopbarAvatar = ({ user, fallbackInitials, canViewProfile }: { user: TopbarUser | null, fallbackInitials: string, canViewProfile: boolean }) => {
     const [blobUrl, setBlobUrl] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(true);
 
@@ -97,7 +103,7 @@ const SecureTopbarAvatar = ({ user, fallbackInitials, canViewProfile }: { user: 
 export function DashboardTopbar() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [localUser, setLocalUser] = useState<Record<string, any> | null>(null);
+  const [localUser, setLocalUser] = useState<TopbarUser | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { startTour } = useTour();

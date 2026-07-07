@@ -32,7 +32,7 @@ import { toast } from "sonner";
 
 /* -------------------- Types -------------------- */
 declare module "@tanstack/react-table" {
-  interface ColumnMeta<TData, TValue> {
+  interface ColumnMeta<TData, _TValue> {
     exportable?: boolean;
     printable?: boolean;
     exportValue?: (row: TData, index: number) => unknown;
@@ -42,7 +42,7 @@ declare module "@tanstack/react-table" {
 
 export interface CompanySettingsInfo {
   name?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface BrandingSettingsInfo {
@@ -52,8 +52,22 @@ export interface BrandingSettingsInfo {
   document_header_color?: string;
   company_tax_id?: string;
   pdf_logo?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
+
+export type DataTableQuery = {
+  page: number;
+  pageSize?: number;
+  search: string;
+  sortCol?: string | null;
+  sortDir?: "asc" | "desc" | null;
+};
+
+export type DataTableSelectionPayload<TData> = {
+  selectedRowIds: RowSelectionState;
+  selectedRowsOnPage: TData[];
+  selectedCountOnPage: number;
+};
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -63,7 +77,7 @@ interface DataTableProps<TData, TValue> {
   pageIndex?: number;
   pageSize?: number;
   pageSizeOptions?: number[];
-  onQueryChange: (q: any) => void;
+  onQueryChange: (q: DataTableQuery) => void;
   title?: string;
   description?: string;
   searchPlaceholder?: string;
@@ -72,7 +86,7 @@ interface DataTableProps<TData, TValue> {
   enableRowSelection?: boolean;
   getRowId?: (originalRow: TData, index: number) => string;
   selectedRowIds?: RowSelectionState;
-  onSelectionChange?: (payload: any) => void;
+  onSelectionChange?: (payload: DataTableSelectionPayload<TData>) => void;
   onDeleteRows?: (rows: TData[]) => Promise<void> | void;
   onRefresh?: () => void;
   onResetFilters?: () => void; 
@@ -88,7 +102,7 @@ interface DataTableProps<TData, TValue> {
   canExport?: boolean;
   canPrint?: boolean;
   canRefresh?: boolean;
-  renderSubComponent?: (props: { row: any }) => React.ReactNode;
+  renderSubComponent?: (props: { row: TData }) => React.ReactNode;
 }
 
 /* -------------------- Helper Functions -------------------- */
@@ -140,7 +154,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 async function getExportErrorMessage(error: unknown, fallback: string) {
   if (typeof error === "object" && error !== null) {
-    const maybeResponse = (error as any).response;
+    const maybeResponse = (error as { response?: { data?: unknown } }).response;
     let responseData = maybeResponse?.data;
 
     // If the response is a Blob (common in exports), try to read it as text/JSON
@@ -196,7 +210,7 @@ function escapeHtml(value: unknown) {
 }
 
 function buildExportBranding(
-  backendBranding: any,
+  backendBranding: BrandingSettingsInfo | null | undefined,
   backendLogoUrl?: string | null,
   brandingSettings?: BrandingSettingsInfo,
   companySettings?: CompanySettingsInfo
@@ -223,7 +237,7 @@ function buildExportBranding(
 
 // 🚀 UPDATED: Professional ERP Print Template matching Blade PDFs
 function printSimpleTable(
-  dataRows: any[],
+  dataRows: Record<string, unknown>[],
   title = "System Report",
   printWindow?: Window | null,
   branding: ExportBrandingPayload = {}
@@ -432,7 +446,7 @@ function DataTableInner<TData, TValue>({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const getParam = (key: string, fallback: any) => (!syncWithUrl ? fallback : (searchParams.get(key) || fallback));
+  const getParam = <T,>(key: string, fallback: T): T | string => (!syncWithUrl ? fallback : (searchParams.get(key) || fallback));
 
   const effectivePageIndex = syncWithUrl ? Number(getParam("page", pageIndex)) || 1 : Number(pageIndex) || 1;
   const effectivePageSize = syncWithUrl ? Number(getParam("limit", pageSize)) || 10 : Number(pageSize) || 10;
@@ -463,7 +477,7 @@ function DataTableInner<TData, TValue>({
   const showSelectionDelete = hasSelection && Boolean(onDeleteRows);
   const showSelectionToolbar = showSelectionCopy || showSelectionExport || showSelectionPrint || showSelectionDelete;
 
-  const updateUrl = React.useCallback((updates: Record<string, any>) => {
+  const updateUrl = React.useCallback((updates: Record<string, string | number | null | undefined>) => {
     if (!syncWithUrl) return;
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([k, v]) => (v == null || v === "") ? params.delete(k) : params.set(k, String(v)));
@@ -531,7 +545,10 @@ function DataTableInner<TData, TValue>({
       const rows = table.getRowModel().rows.filter(r => !!next[r.id]).map(r => r.original);
       onSelectionChange?.({ selectedRowIds: next, selectedRowsOnPage: rows, selectedCountOnPage: rows.length });
     },
-    getRowId: getRowId ?? ((row: any, i) => row.id ?? String(i)),
+    getRowId: getRowId ?? ((row: TData, i) => {
+      const record = row as { id?: string | number };
+      return record.id != null ? String(record.id) : String(i);
+    }),
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     onExpandedChange: setExpanded,
@@ -583,7 +600,7 @@ function DataTableInner<TData, TValue>({
     setBusy(true);
 
     const exportPromise = (async () => {
-      const params: any = { type };
+      const params: Record<string, string> = { type };
       if (fromSelection && selectedCount > 0) params.ids = Object.keys(effectiveRowSelection).join(",");
       
       const res = await api.get(exportEndpoint, { params, responseType: isFile ? "blob" : "json" });
@@ -609,7 +626,7 @@ function DataTableInner<TData, TValue>({
         if (type === "copy") {
           const keys = Object.keys(rows[0]).filter(k => !["id", "uuid", "user_id", "serial", "tenant_id", "logo_url"].includes(k));
           const headerString = ["#", ...keys.map(k => k.replace(/_/g, " ").toUpperCase())].join("\t");
-          const dataStrings = rows.map((r: any, i: number) => [i + 1, ...keys.map(k => r[k])].join("\t"));
+          const dataStrings = rows.map((r: Record<string, unknown>, i: number) => [i + 1, ...keys.map(k => r[k])].join("\t"));
 
           const prefixLines = [
             branding.app_title || "HIVE.OS",

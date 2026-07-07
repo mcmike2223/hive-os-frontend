@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useMailStore, MailFolder } from '@/store/mail-store';
+import { useMailStore, MailFolder, MailOnlineUser } from '@/store/mail-store';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Inbox, Send, Archive, Trash2, Star, Edit, Zap, Users, Tag, HardDrive } from 'lucide-react';
@@ -22,7 +22,7 @@ const navItems = [
 
 export default function MailSidebar() {
   const { activeFolder, setActiveFolder, setComposeOpen, counts, setCounts, onlineUsers } = useMailStore();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<MailOnlineUser | null>(null);
 
   const formatBytes = (bytes: number, decimals = 2) => {
     if (bytes === 0 || !bytes) return '0 B';
@@ -46,7 +46,7 @@ export default function MailSidebar() {
     fetchCounts();
     const userStr = localStorage.getItem('hive_user') || localStorage.getItem('user');
     if (userStr) {
-      try { setUser(JSON.parse(userStr)); } catch (e) {}
+      try { setUser(JSON.parse(userStr) as MailOnlineUser); } catch { /* ignore invalid stored user */ }
     }
     const interval = setInterval(fetchCounts, 60000);
     return () => clearInterval(interval);
