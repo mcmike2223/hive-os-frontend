@@ -31,6 +31,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
   
   const email = searchParams.get("email") || "";
   const token = searchParams.get("token") || "";
+  const hasResetCredentials = Boolean(email && token);
 
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -145,6 +146,23 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
         <p className="text-muted-foreground font-inter text-sm max-w-[300px]">Establish your permanent encryption key to secure your node identity.</p>
       </div>
 
+      {!hasResetCredentials ? (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <Alert className="bg-muted/30 border-border text-foreground">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <AlertDescription className="font-mono text-xs leading-relaxed">
+              This page completes a password reset from your email link. If you forgot your encryption key, request a recovery link first.
+            </AlertDescription>
+          </Alert>
+          <Button asChild className="w-full h-14 font-space font-bold uppercase tracking-widest shadow-xl shadow-primary/20">
+            <Link href="/forgot-password">Request Recovery Link</Link>
+          </Button>
+          <Button asChild variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+            <Link href="/sign-in">Back to Sign In</Link>
+          </Button>
+        </div>
+      ) : (
+        <>
       {error && (
         <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 text-destructive animate-in slide-in-from-top-4 duration-500">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -219,6 +237,8 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
           {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> ENCRYPTING...</> : <span className="flex items-center gap-2">{isReadyToSubmit ? "Apply Encryption" : "Awaiting Input"} <ChevronRight className={cn("h-4 w-4 transition-transform", isReadyToSubmit && "group-hover:translate-x-1")} /></span>}
         </Button>
       </form>
+        </>
+      )}
     </div>
   );
 }

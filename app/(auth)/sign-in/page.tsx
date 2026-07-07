@@ -207,7 +207,7 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center justify-between ml-1">
                    <Label htmlFor="password" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t('auth.login.encryption_key', 'Encryption Key')}</Label>
-                   <Link href="#" className="font-mono text-[9px] uppercase tracking-tighter text-primary/60 hover:text-primary transition-colors">{t('auth.login.forgot_key', 'Forgot Key?')}</Link>
+                   <Link href="/forgot-password" className="font-mono text-[9px] uppercase tracking-tighter text-primary/60 hover:text-primary transition-colors">{t('auth.login.forgot_key', 'Forgot Key?')}</Link>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
