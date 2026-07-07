@@ -393,7 +393,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
         return;
       }
 
-      useChatStore.getState().setTyping(payload.conversation_id, payload.user, Boolean(payload.is_typing));
+      useChatStore.getState().setTyping(Number(payload.conversation_id), { id: Number(payload.user.id), name: payload.user.name ?? "User" }, Boolean(payload.is_typing));
     });
 
     return () => {
@@ -403,7 +403,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
 
       if (isTypingRef.current) {
         channel.whisper('typing', {
-          conversation_id: activeConversationId,
+          conversation_id: activeConversationId ?? undefined,
           user: { id: currentUser.id, name: currentUser.name },
           is_typing: false,
         });
@@ -466,7 +466,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
     if (!canManageChat) {
       if (isTypingRef.current) {
         conversationChannelRef.current.whisper('typing', {
-          conversation_id: activeConversationId,
+          conversation_id: activeConversationId ?? undefined,
           user: { id: currentUser.id, name: currentUser.name },
           is_typing: false,
         });
@@ -479,7 +479,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
     if (!messageInput.trim()) {
       if (isTypingRef.current) {
         conversationChannelRef.current.whisper('typing', {
-          conversation_id: activeConversationId,
+          conversation_id: activeConversationId ?? undefined,
           user: { id: currentUser.id, name: currentUser.name },
           is_typing: false,
         });
@@ -491,7 +491,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
 
     if (!isTypingRef.current) {
       conversationChannelRef.current.whisper('typing', {
-        conversation_id: activeConversationId,
+        conversation_id: activeConversationId ?? undefined,
         user: { id: currentUser.id, name: currentUser.name },
         is_typing: true,
       });
@@ -508,7 +508,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
       }
 
       conversationChannelRef.current.whisper('typing', {
-        conversation_id: activeConversationId,
+        conversation_id: activeConversationId ?? undefined,
         user: { id: currentUser.id, name: currentUser.name },
         is_typing: false,
       });
@@ -523,7 +523,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
 
     if (conversationChannelRef.current && isTypingRef.current && currentUser) {
       conversationChannelRef.current.whisper('typing', {
-        conversation_id: activeConversationId,
+        conversation_id: activeConversationId ?? undefined,
         user: { id: currentUser.id, name: currentUser.name },
         is_typing: false,
       });

@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "@/store/use-translation";
 
-import { DataTable } from "@/components/datatable/data-table";
+import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -152,7 +152,7 @@ export default function InventoryWarehousesPage() {
   }, []);
 
   const handleTableQueryChange = React.useCallback(
-    (query: { page?: number; pageSize?: number; search?: string; sortCol?: string; sortDir?: string }) => {
+    (query: DataTableQuery) => {
       applyTableQuery({
         page: Number(query.page || 1),
         pageSize: Number(query.pageSize || 10),

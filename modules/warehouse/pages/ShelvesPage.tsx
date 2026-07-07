@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslation } from "@/store/use-translation";
 
-import { DataTable } from "@/components/datatable/data-table";
+import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -236,7 +236,7 @@ export function ShelvesPage() {
   }, []);
 
   const handleTableQueryChange = React.useCallback(
-    (query: { page?: number; pageSize?: number; search?: string; sortCol?: string; sortDir?: string }) => {
+    (query: DataTableQuery) => {
       applyTableQuery({
         page: Number(query.page || 1),
         pageSize: Number(query.pageSize || 10),
@@ -312,7 +312,7 @@ export function ShelvesPage() {
         cell: ({ row }) => {
           const r = readPayloadString(row.original, "rows", "0");
           const c = readPayloadString(row.original, "columns", "0");
-          return `${r} × ${c}`;
+          return `${r} Ã— ${c}`;
         },
         meta: { align: "right" as const },
       },
@@ -331,7 +331,7 @@ export function ShelvesPage() {
           const total = calculateTotalBoxes(row.original);
           return (
             <span className="font-semibold text-primary">
-              {total > 0 ? total : "—"}
+              {total > 0 ? total : "â€”"}
             </span>
           );
         },
@@ -345,7 +345,7 @@ export function ShelvesPage() {
           const counts = boxCountsData?.[row.original.id];
           return (
             <span className="font-mono text-orange-600 font-semibold">
-              {counts?.occupied ?? "—"}
+              {counts?.occupied ?? "â€”"}
             </span>
           );
         },
@@ -361,7 +361,7 @@ export function ShelvesPage() {
           const available = total - occupied;
           return (
             <span className="font-mono text-green-600 font-semibold">
-              {total > 0 ? available : "—"}
+              {total > 0 ? available : "â€”"}
             </span>
           );
         },

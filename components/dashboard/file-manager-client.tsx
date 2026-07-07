@@ -69,12 +69,18 @@ type FileManagerMediaDetails = {
   name?: string;
   mime_type?: string;
   size?: number;
+  human_size?: string;
+  download_name?: string;
   url?: string;
   thumbnail?: string;
   hls_path?: string;
   artist?: string;
   subtitles?: FileManagerSubtitle[];
   video_versions?: FileManagerVideoVersion[];
+};
+
+type ModuleCheckoutError = Error & {
+  module: string;
 };
 
 type FileManagerFolder = {
@@ -1762,13 +1768,18 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   let allFiles = [...fileItems];
 
   // 🚀 Sorting Execution
+  const getItemMediaDetails = (item: FileManagerSortable): FileManagerMediaDetails | undefined =>
+    "media_details" in item ? item.media_details : undefined;
+
   const sortData = (a: FileManagerSortable, b: FileManagerSortable) => {
+      const mediaA = getItemMediaDetails(a);
+      const mediaB = getItemMediaDetails(b);
       if (sortBy === 'name') {
-          const nameA = ('name' in a ? a.name : '') || a.media_details?.title || a.media_details?.name || "";
-          const nameB = ('name' in b ? b.name : '') || b.media_details?.title || b.media_details?.name || "";
+          const nameA = ('name' in a ? a.name : '') || mediaA?.title || mediaA?.name || "";
+          const nameB = ('name' in b ? b.name : '') || mediaB?.title || mediaB?.name || "";
           return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
       }
-      if (sortBy === 'size') return (b.media_details?.size || 0) - (a.media_details?.size || 0);
+      if (sortBy === 'size') return (mediaB?.size || 0) - (mediaA?.size || 0);
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
   };
   folders = folders.sort(sortData);
@@ -1828,7 +1839,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const renderFilePreview = (file: FileManagerFile) => {
     if (!file || !file.media_details) return null;
     const media = file.media_details;
-    const mediaTitle = media.title || media.name;
+    const mediaTitle = media.title || media.name || "Untitled";
     const mime = media.mime_type || '';
     const safeUrl = getStorageUrl(media.url);
     // Detect if this is a tenant-served file (uses authenticated API URL)
@@ -1860,8 +1871,21 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       const currentIndex = videoFiles.findIndex((f) => f.id === file.id);
       const handleNext = () => { if (currentIndex < videoFiles.length - 1) setSelectedFile(videoFiles[currentIndex + 1]); };
       const handlePrev = () => { if (currentIndex > 0) setSelectedFile(videoFiles[currentIndex - 1]); };
-      const formattedSubtitles = (media.subtitles || []).map((sub: FileManagerSubtitle) => ({ ...sub, src: sub.uuid ? `${getBackendApiRoot()}/files/subtitle/${sub.uuid}` : sub.src, srcLang: sub.srcLang || 'en', label: sub.label || 'Subtitle', default: sub.default || false }));
-      const formattedVersions = (media.video_versions || []).map((v: FileManagerVideoVersion) => ({ label: v.label, url: getStreamUrl(getStorageUrl(v.url)) }));
+      const formattedSubtitles = (media.subtitles || [])
+        .map((sub: FileManagerSubtitle) => ({
+          ...sub,
+          src: sub.uuid ? `${getBackendApiRoot()}/files/subtitle/${sub.uuid}` : (sub.src || ""),
+          srcLang: sub.srcLang || 'en',
+          label: sub.label || 'Subtitle',
+          default: sub.default || false,
+        }))
+        .filter((sub) => Boolean(sub.src));
+      const formattedVersions = (media.video_versions || [])
+        .map((v: FileManagerVideoVersion) => ({
+          label: v.label || 'Original',
+          url: getStreamUrl(getStorageUrl(v.url || "")),
+        }))
+        .filter((v) => Boolean(v.url));
       const nativeSrc = getStreamUrl(safeUrl);
       const adaptiveStreamingReady = Boolean(media.hls_path);
 
@@ -2298,7 +2322,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                               >
                                 <SimpleMenu trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-background/80 lg:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="h-4 w-4"/></Button>}>
                                   <MenuItem icon={<LinkIcon />} label="Share Link" onClick={() => shareLinkMut.mutate({type: "file", id: file.id})} />
-                                  <MenuItem icon={<Edit />} label="Rename" onClick={() => setRenameTarget({type: "file", id: file.id, name: media?.name})} />
+                                  <MenuItem icon={<Edit />} label="Rename" onClick={() => setRenameTarget({type: "file", id: file.id, name: media?.name || media?.title || "Untitled"})} />
                                   <MenuItem 
                                     icon={downloadingFileId === file.id ? <Loader2 className="h-4 w-4 animate-spin text-emerald-500" /> : <Download />} 
                                     label={downloadingFileId === file.id ? (downloadPhase === "downloading" ? (downloadProgress > 0 ? `Downloading: ${downloadProgress}%` : "Downloading...") : (downloadProgress > 0 ? `Preparing: ${downloadProgress}%` : "Preparing...")) : "Download"} 
@@ -2381,7 +2405,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
               </div>
               <DialogFooter className="gap-2 sm:justify-end">
                   <Button variant="ghost" className="rounded-xl" onClick={() => setRenameTarget(null)}>Cancel</Button>
-                  <Button disabled={renameMut.isPending || !newName} onClick={() => renameMut.mutate({ ...renameTarget, name: newName })} className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400 font-bold rounded-xl px-6">
+                  <Button disabled={renameMut.isPending || !newName || !renameTarget} onClick={() => { if (renameTarget && newName) renameMut.mutate({ ...renameTarget, name: newName }); }} className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400 font-bold rounded-xl px-6">
                       {renameMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Name"}
                   </Button>
               </DialogFooter>
@@ -2474,7 +2498,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                                             <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                                             <AlertDialogContent className="rounded-[2rem] border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl">
                                               <AlertDialogHeader><AlertDialogTitle>Delete Subtitle?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                                              <AlertDialogFooter><AlertDialogCancel className="rounded-xl border-border/50">Cancel</AlertDialogCancel><AlertDialogAction className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-md font-bold" onClick={() => deleteSubtitleMut.mutate(sub.uuid)}>Yes, delete it</AlertDialogAction></AlertDialogFooter>
+                                              <AlertDialogFooter><AlertDialogCancel className="rounded-xl border-border/50">Cancel</AlertDialogCancel><AlertDialogAction className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-md font-bold" onClick={() => { if (sub.uuid) deleteSubtitleMut.mutate(sub.uuid); }}>Yes, delete it</AlertDialogAction></AlertDialogFooter>
                                             </AlertDialogContent>
                                           </AlertDialog>
                                         )}

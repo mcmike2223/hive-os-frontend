@@ -29,7 +29,7 @@ import {
 } from "@/modules/shared/offline-mutations";
 import { fetchSubscriptionCatalog } from "@/modules/subscription/api";
 import { ModuleSubscriptionSummary } from "@/modules/subscription/components/module-subscription-summary";
-import type { TenantCustomModuleInput } from "@/modules/subscription/types";
+import type { TenantCustomModuleInput, TenantSelectedModule } from "@/modules/subscription/types";
 import { type VirtualFile } from "@/components/ui/code-editor";
 import { fetchTenants } from "@/modules/tenancy/api";
 import { TenantDomainManager } from "@/modules/tenancy/components/tenant-domain-manager";
@@ -73,7 +73,12 @@ type TenantRecord = {
     business_type?: string;
     business_type_meta?: { label?: string };
     subscribed_modules_count?: number;
-    subscribed_modules?: TenantCustomModuleInput[];
+    subscribed_modules?: TenantSelectedModule[];
+    subscription?: {
+        status?: string;
+        needs_renewal?: boolean;
+        expires_at?: string | null;
+    };
     is_active?: boolean;
     admin_active?: boolean;
     admin_email?: string;
@@ -291,7 +296,7 @@ const { data: subscriptionCatalogData } = useQuery({
         }
 
         const originalBusinessType =
-            businessTypeMap[editingTenant.business_type] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
+            businessTypeMap[editingTenant.business_type ?? ""] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
         const originalTemplate = resolveLandingTemplate(
             editingTenant.landing_page_template,
             originalBusinessType.default_template
@@ -473,9 +478,10 @@ const { data: subscriptionCatalogData } = useQuery({
 
     const toggleStatusMut = useOfflineMutation<unknown, Error, string>({
         definition: toggleTenantStatusOfflineMutationDefinition,
-        onSuccess: (data, id) => {
+        onSuccess: (data: unknown, id) => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
-            toast.success(data.message);
+            const message = (data as { message?: string })?.message;
+            toast.success(message ?? t('global.operation_success', "Operation completed."));
             triggerAudit('updated', `Operator toggled network status lock for Node ID: ${id}`);
         },
         onQueued: (id) => {
@@ -486,9 +492,10 @@ const { data: subscriptionCatalogData } = useQuery({
 
     const toggleAdminMut = useOfflineMutation<unknown, Error, string>({
         definition: toggleTenantAdminOfflineMutationDefinition,
-        onSuccess: (data, id) => {
+        onSuccess: (data: unknown, id) => {
             queryClient.invalidateQueries({ queryKey: ["tenants"] });
-            toast.success(data.message);
+            const message = (data as { message?: string })?.message;
+            toast.success(message ?? t('global.operation_success', "Operation completed."));
             triggerAudit('updated', `Operator modified Super Admin clearance state for Node ID: ${id}`);
         },
         onQueued: (id) => {
@@ -564,7 +571,7 @@ const { data: subscriptionCatalogData } = useQuery({
     };
     
     const openEdit = (tenant: TenantRecord) => {
-        const selectedBusinessType = businessTypeMap[tenant.business_type] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
+        const selectedBusinessType = businessTypeMap[tenant.business_type ?? ""] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
         const existingTemplate = resolveLandingTemplate(
             tenant.landing_page_template,
             selectedBusinessType.default_template
@@ -582,7 +589,7 @@ const { data: subscriptionCatalogData } = useQuery({
             is_custom: existingTemplate.meta?.is_custom
                 ?? (formatLandingTemplateJson(existingTemplate) !== formatLandingTemplateJson(sourceVariant.template)),
         });
-        setEditingTenant(tenant); setFormId(tenant.id); setFormName(tenant.name); setFormPlan(tenant.plan); setFormDomain(tenant.domain);
+        setEditingTenant(tenant); setFormId(tenant.id); setFormName(tenant.name ?? ""); setFormPlan(tenant.plan ?? "business"); setFormDomain(tenant.domain ?? "");
         setFormBusinessType(selectedBusinessType.key);
         writeLandingTemplate(hydratedTemplate, selectedBusinessType.default_template);
         setFormAdminEmail(tenant.admin_email || ""); setFormAdminName(""); setFormAdminPassword("");
@@ -649,10 +656,11 @@ const { data: subscriptionCatalogData } = useQuery({
         if (!isEdit) setFormDomain(sanitized ? `${sanitized}.${DEFAULT_TENANT_ROOT_DOMAIN}` : "");
     };
 
-    const getPlanBadge = (plan: string) => {
-        const p = plan?.toLowerCase();
+    const getPlanBadge = (plan?: string) => {
+        const displayPlan = plan || "business";
+        const p = displayPlan.toLowerCase();
         const colorClass = p === 'startup' ? "text-emerald-500 border-emerald-200" : p === 'business' ? "text-blue-500 border-blue-200" : "text-indigo-500 border-indigo-200";
-        return <Badge variant="outline" className={cn("uppercase text-[9px]", colorClass)}>{plan}</Badge>;
+        return <Badge variant="outline" className={cn("uppercase text-[9px]", colorClass)}>{displayPlan}</Badge>;
     };
 
     const columns = React.useMemo<ColumnDef<TenantRecord>[]>(() => [

@@ -10,7 +10,7 @@ import { Box, ClipboardCheck, Copy, DollarSign, ExternalLink, Eye, FileText, Inf
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { DataTable } from "@/components/datatable/data-table";
+import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -230,13 +230,7 @@ export default function InventoryProductsPage() {
   }, []);
 
   const handleTableQueryChange = React.useCallback(
-    (query: {
-      page?: number;
-      pageSize?: number;
-      search?: string;
-      sortCol?: string;
-      sortDir?: string;
-    }) => {
+    (query: DataTableQuery) => {
       applyTableQuery({
         page: Number(query.page || 1),
         pageSize: Number(query.pageSize || 10),

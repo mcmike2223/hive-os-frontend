@@ -199,7 +199,7 @@ function BrandAssetPickerModal({ isOpen, onClose, onSelect, access }: { isOpen: 
                         .file-picker-wrapper > div > div:nth-child(2) > div:nth-child(2) { display: none !important; }
                         .file-picker-wrapper > div { height: 100% !important; min-height: 100% !important; margin: 0 !important; }
                     `}} />
-                    <FileManagerClient isPickerMode={true} access={access} onFileSelect={(file) => onSelect(file.media_details?.url || file.url || file.path)} />
+                    <FileManagerClient isPickerMode={true} access={access} onFileSelect={(file) => onSelect(file.media_details?.url || file.url || file.path || '')} />
                 </div>
             </DialogContent>
         </Dialog>
@@ -339,7 +339,7 @@ function BrandSettings() {
             <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">{label}</Label>
             <div className="relative group p-1 rounded-2xl bg-card border-2 border-dashed border-border/50 hover:border-primary transition-all duration-300">
                 <div className={cn("rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden relative shadow-inner", wide ? "h-64" : "h-32")}>
-                    <SecureBrandAsset path={formData[targetKey]} previewUrl={previews[targetKey]} lastSaved={lastSaved} fallbackText={fallback} isWide={wide} className="w-full h-full" />
+                    <SecureBrandAsset path={typeof formData[targetKey] === 'string' ? formData[targetKey] : undefined} previewUrl={previews[targetKey]} lastSaved={lastSaved} fallbackText={fallback} isWide={wide} className="w-full h-full" />
                     <button type="button" onClick={() => { setActiveTarget(targetKey); setIsPickerOpen(true); }} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-all cursor-pointer z-10">
                         <Upload className="h-6 w-6 mb-1 animate-bounce" />
                         <span className="text-[10px] font-bold uppercase">{t('settings.change', 'Change')}</span>

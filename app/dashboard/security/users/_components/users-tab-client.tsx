@@ -86,6 +86,7 @@ export type UserForClient = {
   createdAt: string;
   isActive: boolean;
   avatarUrl?: string | null;
+  role?: string | null;
   userRoles: {
     id: string;
     roleId: string | null;
@@ -136,8 +137,8 @@ export function UsersTabClient(props: Props) {
 
   const isProtectedUser = React.useCallback((user: UserForClient | null | undefined) => {
     if (!user) return false;
-    if (user.id === "1" || user.id === 1) return true;
-    if (user.role && typeof user.role === "string" && user.role.includes("Super Admin")) return true;
+    if (user.id === "1") return true;
+    if (user.role && user.role.includes("Super Admin")) return true;
     if (user.userRoles && Array.isArray(user.userRoles)) {
       return user.userRoles.some((r) => r.role?.name === "Super Admin");
     }
@@ -198,11 +199,12 @@ export function UsersTabClient(props: Props) {
   const mapServerUserToClient = React.useCallback(
     (u: ServerUserRecord): UserForClient => ({
       id: String(u.id), 
-      name: u.name,
+      name: u.name ?? null,
       email: u.email,
       isActive: !!u.is_active,
-      createdAt: u.created_at,
+      createdAt: u.created_at ?? "",
       avatarUrl: getStorageUrl(u.avatar_path || u.avatar_url),
+      role: u.role ?? null,
       userRoles: (u.roles || []).map((r: ServerRoleRecord) => ({
         id: String(r.id),
         roleId: String(r.id),
@@ -582,7 +584,7 @@ export function UsersTabClient(props: Props) {
   }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule]);
 
   const getPrimaryRoleName = React.useCallback((u: UserForClient) => {
-    if (u.role && typeof u.role === "string") return u.role;
+    if (u.role) return u.role;
     if (u.userRoles && Array.isArray(u.userRoles) && u.userRoles.length > 0) return u.userRoles[0]?.role?.name || "Member";
     return "Member";
   }, []);

@@ -256,7 +256,7 @@ export default function BusinessTypesPage() {
         searchPlaceholder="Search business types..."
         enableRowSelection={true}
         selectedRowIds={selectedRows}
-        onSelectionChange={(rows) => setSelectedRows(rows)}
+        onSelectionChange={(payload) => setSelectedRows(payload.selectedRowIds)}
         onDeleteRows={handleDeleteRows}
         onRefresh={handleRefresh}
         exportEndpoint={exportUrl}

@@ -32,7 +32,8 @@ import { toast } from "sonner";
 
 /* -------------------- Types -------------------- */
 declare module "@tanstack/react-table" {
-  interface ColumnMeta<TData, _TValue> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData, TValue> {
     exportable?: boolean;
     printable?: boolean;
     exportValue?: (row: TData, index: number) => unknown;
@@ -167,12 +168,14 @@ async function getExportErrorMessage(error: unknown, fallback: string) {
       }
     }
 
-    if (typeof responseData?.message === "string" && responseData.message.trim()) {
-      return responseData.message;
+    const apiPayload = responseData as { message?: unknown; error?: unknown } | undefined;
+
+    if (typeof apiPayload?.message === "string" && apiPayload.message.trim()) {
+      return apiPayload.message;
     }
 
-    if (typeof responseData?.error === "string" && responseData.error.trim()) {
-      return responseData.error;
+    if (typeof apiPayload?.error === "string" && apiPayload.error.trim()) {
+      return apiPayload.error;
     }
 
     if (typeof responseData === "string" && responseData.trim()) {
@@ -231,7 +234,7 @@ function buildExportBranding(
     footer_text: String(merged.footer_text || companySettings?.name || "Powered by HIVE.OS"),
     document_header_color: normalizeExportHexColor(merged.document_header_color),
     company_tax_id: merged.company_tax_id ? String(merged.company_tax_id) : undefined,
-    logo_url: fallbackLogo,
+    logo_url: typeof fallbackLogo === "string" ? fallbackLogo : null,
   };
 }
 
@@ -487,12 +490,12 @@ function DataTableInner<TData, TValue>({
   const prevQueryRef = React.useRef<string>("");
 
   React.useEffect(() => {
-    const nextQuery = { 
+    const nextQuery: DataTableQuery = { 
       page: effectivePageIndex, 
       pageSize: effectivePageSize, 
       search: debouncedSearch, 
       sortCol: sorting[0]?.id, 
-      sortDir: sorting[0]?.desc ? "desc" : "asc" 
+      sortDir: sorting.length ? (sorting[0]?.desc ? "desc" : "asc") : null,
     };
     
     const queryStr = JSON.stringify(nextQuery);
@@ -778,7 +781,7 @@ function DataTableInner<TData, TValue>({
                     {row.getIsExpanded() && renderSubComponent && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length} className="p-0 border-b border-border/40 bg-muted/10">
-                          {renderSubComponent({ row })}
+                          {renderSubComponent({ row: row.original })}
                         </TableCell>
                       </TableRow>
                     )}
@@ -794,13 +797,13 @@ function DataTableInner<TData, TValue>({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/50 bg-muted/10">
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">Showing <span className="font-bold text-foreground">{totalEntries > 0 ? (effectivePageIndex - 1) * effectivePageSize + 1 : 0}</span> to <span className="font-bold text-foreground">{Math.min(effectivePageIndex * effectivePageSize, totalEntries)}</span> of <span className="font-bold text-foreground">{totalEntries}</span> entries</span>
-            <select className="h-9 rounded-lg border border-input bg-background px-3 text-xs font-medium cursor-pointer focus:ring-primary hidden sm:block" value={effectivePageSize} onChange={(e) => { if(syncWithUrl) updateUrl({ limit: e.target.value, page: 1 }); else onQueryChange({ pageSize: Number(e.target.value), page: 1 }); }}>
+            <select className="h-9 rounded-lg border border-input bg-background px-3 text-xs font-medium cursor-pointer focus:ring-primary hidden sm:block" value={effectivePageSize} onChange={(e) => { if(syncWithUrl) updateUrl({ limit: e.target.value, page: 1 }); else onQueryChange({ pageSize: Number(e.target.value), page: 1, search: debouncedSearch }); }}>
               {pageSizeOptions.map(n => <option key={n} value={n}>{n} Rows</option>)}
             </select>
           </div>
           
           <div className="flex items-center justify-center sm:justify-end gap-1.5">
-            <Button variant="outline" className="h-9 px-3 text-xs font-medium rounded-lg" onClick={() => syncWithUrl ? updateUrl({ page: effectivePageIndex - 1 }) : onQueryChange({ page: effectivePageIndex - 1 })} disabled={effectivePageIndex <= 1 || loading || busy}>Previous</Button>
+            <Button variant="outline" className="h-9 px-3 text-xs font-medium rounded-lg" onClick={() => syncWithUrl ? updateUrl({ page: effectivePageIndex - 1 }) : onQueryChange({ page: effectivePageIndex - 1, search: debouncedSearch })} disabled={effectivePageIndex <= 1 || loading || busy}>Previous</Button>
             
             <div className="flex items-center gap-1 hidden sm:flex">
               {getPaginationRange(effectivePageIndex, pageCount).map((pageNumber, idx) => {
@@ -811,7 +814,7 @@ function DataTableInner<TData, TValue>({
                     key={pageNumber}
                     variant={isCurrent ? "default" : "outline"}
                     className={cn("h-9 w-9 p-0 text-sm font-medium transition-all rounded-lg", isCurrent ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground")}
-                    onClick={() => syncWithUrl ? updateUrl({ page: Number(pageNumber) }) : onQueryChange({ page: Number(pageNumber) })}
+                    onClick={() => syncWithUrl ? updateUrl({ page: Number(pageNumber) }) : onQueryChange({ page: Number(pageNumber), search: debouncedSearch })}
                     disabled={loading || busy}
                   >
                     {pageNumber}
@@ -820,7 +823,7 @@ function DataTableInner<TData, TValue>({
               })}
             </div>
 
-            <Button variant="outline" className="h-9 px-3 text-xs font-medium rounded-lg" onClick={() => syncWithUrl ? updateUrl({ page: effectivePageIndex + 1 }) : onQueryChange({ page: effectivePageIndex + 1 })} disabled={effectivePageIndex >= pageCount || loading || busy}>Next</Button>
+            <Button variant="outline" className="h-9 px-3 text-xs font-medium rounded-lg" onClick={() => syncWithUrl ? updateUrl({ page: effectivePageIndex + 1 }) : onQueryChange({ page: effectivePageIndex + 1, search: debouncedSearch })} disabled={effectivePageIndex >= pageCount || loading || busy}>Next</Button>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "@/store/use-translation";
 
-import { DataTable } from "@/components/datatable/data-table";
+import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -96,7 +96,7 @@ function WarehouseShelvesList({ warehouse }: { warehouse: Warehouse }) {
                 <span className="font-semibold text-foreground text-sm">{shelf.name}</span>
                 <span className="text-sm text-muted-foreground ml-4">
                   {shelf.metadata?.rows && shelf.metadata?.columns 
-                    ? `(${shelf.metadata.rows} × ${shelf.metadata.columns} grid)`
+                    ? `(${shelf.metadata.rows} Ã— ${shelf.metadata.columns} grid)`
                     : ''
                   }
                 </span>
@@ -195,7 +195,7 @@ export function WarehousesPage() {
   }, []);
 
   const handleTableQueryChange = React.useCallback(
-    (query: { page?: number; pageSize?: number; search?: string; sortCol?: string; sortDir?: string }) => {
+    (query: DataTableQuery) => {
       applyTableQuery({
         page: Number(query.page || 1),
         pageSize: Number(query.pageSize || 10),
@@ -369,7 +369,7 @@ export function WarehousesPage() {
         pageIndex={tableQuery.page}
         pageSize={tableQuery.pageSize}
         enableRowSelection
-        renderSubComponent={({ row }) => <WarehouseShelvesList warehouse={row.original} />}
+        renderSubComponent={({ row }) => <WarehouseShelvesList warehouse={row} />}
         selectedRowIds={selectedRowIds}
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useMailStore, MailCounts } from '@/store/mail-store';
+import { useMailStore, MailCounts, MailFolder } from '@/store/mail-store';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import api from '@/lib/api';
@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { decryptMailParticipants } from '@/lib/mail-e2ee';
+
+type MailFolderCountKey = Exclude<MailFolder, 'all'>;
 
 export default function MailList() {
   const { 
@@ -94,40 +96,43 @@ export default function MailList() {
     try {
       await api.post('/mail/bulk', { ids, action });
       
-      const countUpdate: Partial<MailCounts> = {};
+      const countUpdate: Partial<MailCounts> & Partial<Record<MailFolderCountKey, number>> = {};
       const amount = ids.length;
+      const decrementActiveFolder = () => {
+        if (activeFolder !== 'all') countUpdate[activeFolder] = -amount;
+      };
 
       // Optimistic counters logic
       if (action === 'trash') {
          bulkUpdateMails(ids, { folder: 'trash' });
          if (activeFolder !== 'trash') bulkDeleteMails(ids);
-         if (activeFolder !== 'trash') countUpdate[activeFolder] = -amount;
+         if (activeFolder !== 'trash') decrementActiveFolder();
          countUpdate.trash = amount;
       } else if (action === 'delete') {
          bulkDeleteMails(ids);
-         countUpdate[activeFolder] = -amount;
+         decrementActiveFolder();
       } else if (action === 'star') {
          bulkUpdateMails(ids, { is_starred: true });
          countUpdate.starred = amount;
       } else if (action === 'archive') {
          bulkUpdateMails(ids, { folder: 'archive' });
          if (activeFolder !== 'archive') bulkDeleteMails(ids);
-         if (activeFolder !== 'archive') countUpdate[activeFolder] = -amount;
+         if (activeFolder !== 'archive') decrementActiveFolder();
          countUpdate.archive = amount;
       } else if (action === 'spam') {
          bulkUpdateMails(ids, { folder: 'spam' });
          if (activeFolder !== 'spam') bulkDeleteMails(ids);
-         if (activeFolder !== 'spam') countUpdate[activeFolder] = -amount;
+         if (activeFolder !== 'spam') decrementActiveFolder();
          countUpdate.spam = amount;
       } else if (action === 'inbox') {
          bulkUpdateMails(ids, { folder: 'inbox' });
          if (activeFolder !== 'inbox') bulkDeleteMails(ids);
-         if (activeFolder !== 'inbox') countUpdate[activeFolder] = -amount;
+         if (activeFolder !== 'inbox') decrementActiveFolder();
          countUpdate.inbox = amount;
       } else if (action === 'important') {
          bulkUpdateMails(ids, { folder: 'important' });
          if (activeFolder !== 'important') bulkDeleteMails(ids);
-         if (activeFolder !== 'important') countUpdate[activeFolder] = -amount;
+         if (activeFolder !== 'important') decrementActiveFolder();
          countUpdate.important = amount;
       } else if (action === 'read') {
          bulkUpdateMails(ids, { is_read: true });

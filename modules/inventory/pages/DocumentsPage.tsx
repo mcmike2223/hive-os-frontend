@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
 
-import { DataTable } from "@/components/datatable/data-table";
+import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
 import { Badge } from "@/components/ui/badge";
 import { fetchInventoryDocuments } from "@/modules/inventory/api";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
@@ -58,7 +58,7 @@ export default function InventoryDocumentsPage() {
   }, []);
 
   const handleTableQueryChange = React.useCallback(
-    (query: { page?: number; pageSize?: number; search?: string; sortCol?: string; sortDir?: string }) => {
+    (query: DataTableQuery) => {
       applyTableQuery({
         page: Number(query.page || 1),
         pageSize: Number(query.pageSize || 10),

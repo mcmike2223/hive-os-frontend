@@ -221,7 +221,7 @@ export function ChatSyncProvider() {
 
       switch (action) {
         case 'updated':
-          store.updateConversation(payload.conversation_id, payload.changes);
+          store.updateConversation(payload.conversation_id, payload.changes ?? {});
           break;
         case 'deleted': {
           const conversation = store.conversations.find(
@@ -256,7 +256,7 @@ export function ChatSyncProvider() {
         store.setOnlineUsers(store.onlineUsers.filter((userItem) => String(userItem.id) !== String(leavingUser.id)));
 
         Object.keys(store.typingUsers).forEach((conversationId) => {
-          store.setTyping(Number(conversationId), leavingUser, false);
+          store.setTyping(Number(conversationId), { id: leavingUser.id, name: leavingUser.name ?? "User" }, false);
         });
       });
 

@@ -16,6 +16,7 @@ import { getBackendStorageUrl } from '@/lib/runtime-context';
 import { useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { encryptMailDraft } from '@/lib/mail-e2ee';
+import api from '@/lib/api';
 
 export default function ComposeModal() {
   const { isComposeOpen, setComposeOpen, composeData, encryptionConfig } = useMailStore();
