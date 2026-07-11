@@ -345,8 +345,13 @@ export function WorkflowDecisionDialog({
 
       <SignaturePad
         open={isSignaturePadOpen}
-        onOpenChange={setIsSignaturePadOpen}
-        onSave={setSignatureData}
+        onOpenChange={(open) => {
+          setIsSignaturePadOpen(open);
+        }}
+        onSave={(data) => {
+          setSignatureData(data);
+          setIsSignaturePadOpen(false);
+        }}
       />
     </>
   );
