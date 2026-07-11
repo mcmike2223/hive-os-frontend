@@ -57,6 +57,7 @@ import { getBackendStorageUrl } from "@/lib/runtime-context";
 import { openSecureAssetInNewTab, SecureAssetImage } from "@/components/ui/secure-asset-image";
 import { getInventoryAssetPreviewUrl } from "@/modules/inventory/lib/product-assets";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type SortDirection = "asc" | "desc";
 type ProductStatus = "draft" | "published" | "archived";
@@ -201,9 +202,13 @@ export default function InventoryProductsPage() {
   const bulkStatusMutation = useMutation({
     mutationFn: ({ ids, status }: { ids: number[]; status: ProductStatus }) =>
       bulkUpdateInventoryProductsStatus(ids, status),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.saved", "Status updated."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
-      toast.success(t("inventory.common.saved", "Status updated."));
       clearSelection();
     },
     onError: (error: unknown) => {

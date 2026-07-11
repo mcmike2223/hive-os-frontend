@@ -49,6 +49,7 @@ import { DataTable } from "@/components/datatable/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
 import { Checkbox } from "@/components/ui/checkbox";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type PendingOrderItem = {
   menu_item_id: string;
@@ -149,9 +150,13 @@ export default function ServiceOrdersPage() {
 
   const createMutation = useMutation({
     mutationFn: createHospitalityServiceOrder,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Service order placed successfully",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "service-orders"] });
-      toast.success("Service order placed successfully");
       setIsCreateDialogOpen(false);
       resetCreateForm();
     },
@@ -163,9 +168,13 @@ export default function ServiceOrdersPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
       updateHospitalityServiceOrder(id, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Order updated successfully",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "service-orders"] });
-      toast.success("Order updated successfully");
       setIsDetailDialogOpen(false);
     },
     onError: (error: any) => {

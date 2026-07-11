@@ -78,6 +78,7 @@ type TableQuery = {
 
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 export type UserForClient = {
   id: string;
@@ -379,10 +380,14 @@ export function UsersTabClient(props: Props) {
 
   const createMut = useOfflineMutation<unknown, Error, UserOfflinePayload>({
     definition: createUserOfflineMutationDefinition,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t('users.user_provisioned', 'User provisioned'),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "unlinked-staff"] });
-      toast.success(t('users.user_provisioned', 'User provisioned'));
       setCreateDialogOpen(false);
     },
     onQueued: () => {
@@ -396,10 +401,14 @@ export function UsersTabClient(props: Props) {
 
   const updateMut = useOfflineMutation<unknown, Error, UserUpdateOfflinePayload>({
     definition: updateUserOfflineMutationDefinition,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t('users.user_updated', 'User updated'),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "unlinked-staff"] });
-      toast.success(t('users.user_updated', 'User updated'));
       setCreateDialogOpen(false);
     },
     onQueued: () => {
@@ -453,7 +462,11 @@ export function UsersTabClient(props: Props) {
       if (isOfflineMutationQueuedResult(result)) {
         return;
       }
-      toast.success(`${t('users.access', 'User access')} ${currentStatus ? t('global.locked', 'locked') : t('global.restored', 'restored')}`);
+      notifyMutationOutcome(result, {
+        savedMessage: `${t('users.access', 'User access')} ${currentStatus ? t('global.locked', 'locked') : t('global.restored', 'restored')}`,
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
     } catch {
       // toggleMut.onError already surfaces a toast for non-offline failures.
     }

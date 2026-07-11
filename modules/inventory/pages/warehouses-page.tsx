@@ -33,6 +33,7 @@ import {
   updateInventoryEntityRecord,
 } from "@/modules/inventory/api";
 import type { InventoryEntityRecord } from "@/modules/inventory/types";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type TableQueryState = {
   page: number;
@@ -110,8 +111,14 @@ export default function InventoryWarehousesPage() {
 
       return createInventoryEntityRecord("warehouses", payload);
     },
-    onSuccess: () => {
-      toast.success(form.id ? t("inventory.common.saved", "Warehouse updated.") : t("inventory.common.saved", "Warehouse created."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: form.id
+          ? t("inventory.common.saved", "Warehouse updated.")
+          : t("inventory.common.saved", "Warehouse created."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "warehouses"] });
       setSelectedRowIds({});
       closeModal();

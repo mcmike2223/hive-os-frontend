@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { splitHospitalityBill, closeHospitalityOrder } from "@/modules/hospitality/api";
 import type { HospitalityServiceOrder } from "@/modules/hospitality/types";
 import { cn } from "@/lib/utils";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 import InvoiceDialog from "@/modules/hospitality/components/invoice-dialog";
 import { DataTable } from "@/components/datatable/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -104,9 +105,13 @@ export default function CheckoutPage() {
 
   const closeOrderMutation = useMutation({
     mutationFn: closeHospitalityOrder,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Order closed successfully",
+        submittedMessage: "Order close submitted for approval",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "service-orders"] });
-      toast.success("Order closed successfully");
       setSelectedOrder(null);
     },
     onError: (error: any) => {
