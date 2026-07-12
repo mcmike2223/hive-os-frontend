@@ -3,13 +3,16 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Plus } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
 
 import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
 import { Badge } from "@/components/ui/badge";
-import { fetchInventoryDocuments } from "@/modules/inventory/api";
+import { Button } from "@/components/ui/button";
+import { fetchInventoryDocuments, createInventoryDocument } from "@/modules/inventory/api";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { InventoryDocumentFormModal } from "./components/inventory-document-form-modal";
 
 type TableQueryState = {
   page: number;
@@ -40,6 +43,7 @@ export default function InventoryDocumentsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [tableQuery, setTableQuery] = React.useState<TableQueryState>(DEFAULT_QUERY);
+  const [modalOpen, setModalOpen] = React.useState(false);
 
   const documentsQuery = useQuery({
     queryKey: ["inventory", "documents", tableQuery],
@@ -147,6 +151,10 @@ export default function InventoryDocumentsPage() {
             {t("inventory.docs.subtitle", "Track and approve stock adjustments, transfers, and records.")}
           </p>
         </div>
+        <Button className="rounded-full px-5" onClick={() => setModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          {t("inventory.docs.add_btn", "Create Document")}
+        </Button>
       </div>
 
       <DataTable
@@ -160,6 +168,8 @@ export default function InventoryDocumentsPage() {
         searchPlaceholder={t("inventory.docs.search_placeholder", "Search by document number or title...")}
         resourceName="documents"
       />
+
+      <InventoryDocumentFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

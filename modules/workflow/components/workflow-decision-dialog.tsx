@@ -26,6 +26,7 @@ export type ProductQaStatus = "pending" | "qa_passed" | "qa_failed" | "no_batche
 
 export type WorkflowDecisionSubject = {
   name?: string;
+  subtitle?: string;
   title?: string;
   document_number?: string;
   qa_status?: ProductQaStatus;
@@ -36,6 +37,7 @@ export type WorkflowDecisionSubject = {
     can_reject?: boolean;
     message?: string;
   };
+  payload?: Record<string, unknown> | null;
 };
 
 export type WorkflowDecisionDefinition = {
@@ -163,6 +165,7 @@ export function WorkflowDecisionDialog({
     || approval?.approvable?.document_number
     || approval?.approvable?.title
     || `Request #${approval?.id}`;
+  const subjectContext = approval?.approvable?.subtitle;
 
   const handleSubmit = async () => {
     if (!approval || !status) return;
@@ -220,6 +223,9 @@ export function WorkflowDecisionDialog({
             <div className="rounded-2xl border border-border/50 bg-muted/30 p-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workflow Subject</p>
               <p className="mt-1 font-bold">{subjectName}</p>
+              {subjectContext ? (
+                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">{subjectContext}</p>
+              ) : null}
               {gate.isProduct ? (
                 <div className="mt-3 rounded-xl border border-border/50 bg-background/70 p-3">
                   <Badge variant="outline" className={`rounded-full px-2 py-0 text-[10px] ${gate.meta.className}`}>
@@ -229,6 +235,29 @@ export function WorkflowDecisionDialog({
                 </div>
               ) : null}
             </div>
+
+            {approval?.approvable && (
+              <div className="rounded-2xl border border-border/50 bg-muted/30 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Request Details</p>
+                <div className="mt-3 space-y-2">
+                  {(() => {
+                    const payload = (approval.approvable as any).payload;
+                    if (!payload || typeof payload !== 'object') return <p className="text-sm text-muted-foreground">No payload data available</p>;
+                    return Object.entries(payload).map(([key, value]) => {
+                      if (key === 'id' || key === 'created_at' || key === 'updated_at') return null;
+                      const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                      return (
+                        <div key={key} className="flex justify-between items-start gap-4 text-sm">
+                          <span className="text-muted-foreground font-medium capitalize">{displayKey}:</span>
+                          <span className="font-medium text-right">{displayValue}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="workflow-decision-notes">

@@ -10,7 +10,8 @@ export type HospitalityZone = {
   tenant_id: string;
   name: string;
   description?: string | null;
-  locations: HospitalityLocation[];
+  locations_count?: number;
+  locations?: HospitalityLocation[];
 };
 
 export type HospitalityLocation = {
@@ -97,6 +98,7 @@ export type HospitalityMenuCategory = {
   id: number;
   name: string;
   slug?: string;
+  description?: string | null;
   color?: string | null;
   icon?: string | null;
   sort_order?: number | null;

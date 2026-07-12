@@ -14,10 +14,19 @@ export interface ApprovalRole {
   updated_at: string;
 }
 
+export interface WorkflowApprovalSubject {
+  name?: string;
+  subtitle?: string;
+  title?: string;
+  document_number?: string;
+  payload?: Record<string, unknown>;
+}
+
 export interface WorkflowApproval {
   id: number;
   approvable_type: string;
   approvable_id: number | string;
+  approvable?: WorkflowApprovalSubject | null;
   workflow_definition_id?: number | null;
   trigger_event?: string;
   status: "pending" | "approved" | "rejected";

@@ -228,3 +228,6 @@ export const fetchInventoryBatchQaResults = async (batchId: number) =>
 
 export const fetchInventoryDocuments = async (params: ListParams = {}) =>
   (await api.get<PaginatedResponse<any>>("/inventory/documents", { params })).data;
+
+export const createInventoryDocument = async (payload: Record<string, unknown>) =>
+  (await api.post<any>("/inventory/documents", payload)).data;
