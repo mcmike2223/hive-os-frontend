@@ -43,7 +43,7 @@ import {
   updateInventoryEntityRecord,
 } from "@/modules/inventory/api";
 import type { InventoryEntityRecord } from "@/modules/inventory/types";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type TableQueryState = {
   page: number;
@@ -226,8 +226,12 @@ export default function InventoryShelfBoxesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteInventoryEntityRecord("shelf-boxes", id),
-    onSuccess: () => {
-      toast.success(t("inventory.common.deleted", "Shelf box deleted."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Shelf box deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "shelf-boxes"] });
       setSelectedRowIds({});
     },
@@ -472,7 +476,12 @@ export default function InventoryShelfBoxesPage() {
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
           if (rows.length === 0) return;
-          await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          notifyBulkDeleteOutcomes(results, {
+            savedMessage: (count) => `${count} ${t("inventory.shelf_boxes.bulk_deleted_msg", "shelf box(es) deleted.")}`,
+            submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+            queryClient,
+          });
           clearSelection();
         }}
         onQueryChange={handleTableQueryChange}

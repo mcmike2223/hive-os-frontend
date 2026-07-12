@@ -35,7 +35,7 @@ import {
 } from "@/modules/inventory/api";
 import type { Supplier } from "@/modules/inventory/types";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type TableQueryState = {
   page: number;
@@ -137,8 +137,12 @@ export default function InventorySuppliersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteInventorySupplier,
-    onSuccess: () => {
-      toast.success(t("inventory.common.deleted", "Supplier deleted."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Supplier deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "suppliers"] });
       setSelectedRowIds({});
     },
@@ -388,7 +392,12 @@ export default function InventorySuppliersPage() {
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
           if (rows.length === 0) return;
-          await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          notifyBulkDeleteOutcomes(results, {
+            savedMessage: (count) => `${count} ${t("inventory.suppliers.bulk_deleted_msg", "supplier(s) deleted.")}`,
+            submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+            queryClient,
+          });
           clearSelection();
         }}
         onQueryChange={handleTableQueryChange}

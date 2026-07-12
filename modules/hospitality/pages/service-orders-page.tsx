@@ -49,7 +49,7 @@ import { DataTable } from "@/components/datatable/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
 import { Checkbox } from "@/components/ui/checkbox";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type PendingOrderItem = {
   menu_item_id: string;
@@ -330,8 +330,13 @@ export default function ServiceOrdersPage() {
   }, []);
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/hospitality/service-orders/${id}`),
-    onSuccess: () => {
+    mutationFn: async (id: number) => (await api.delete(`/hospitality/service-orders/${id}`)).data,
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Service order deleted.",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "service-orders"] });
     },
     onError: (error: any) => {
@@ -341,12 +346,16 @@ export default function ServiceOrdersPage() {
 
   const handleDeleteRows = useCallback(async (rows: HospitalityServiceOrder[]) => {
     try {
-      await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
-      toast.success(`${rows.length} order(s) deleted.`);
+      const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+      notifyBulkDeleteOutcomes(results, {
+        savedMessage: (count) => `${count} order(s) deleted.`,
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
     } catch {
       toast.error("An error occurred during deletion. Closed orders cannot be deleted.");
     }
-  }, [deleteMutation]);
+  }, [deleteMutation, queryClient]);
 
   const exportUrl = useMemo(() => {
     const params = new URLSearchParams();

@@ -177,9 +177,13 @@ export default function InventoryProductsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteInventoryProduct,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Product deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
-      toast.success(t("inventory.common.deleted", "Product deleted."));
       clearSelection();
     },
     onError: (error: unknown) => {

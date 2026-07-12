@@ -176,7 +176,7 @@ export default function WorkflowRulesPage() {
   const [targets, setTargets] = useState<WorkflowTarget[]>(APPROVABLE_MODELS.map((model) => ({
     ...model,
     model_type: model.value,
-    events: ["manual", "on_create", "on_update", "on_status_change", "submit_for_approval"],
+    events: ["manual", "on_create", "on_update", "on_delete", "on_status_change", "submit_for_approval"],
   })));
   const [users, setUsers] = useState<WorkflowUser[]>([]);
   const [roles, setRoles] = useState<WorkflowRole[]>([]);
@@ -345,10 +345,10 @@ export default function WorkflowRulesPage() {
   const selectedAssignmentTarget = targets.find((target) => target.value === manualAssignment.model_type);
   const ruleEvents = selectedRuleTarget?.events?.length
     ? selectedRuleTarget.events
-    : ["manual", "on_create", "on_update", "on_status_change", "submit_for_approval"];
+    : ["manual", "on_create", "on_update", "on_delete", "on_status_change", "submit_for_approval"];
   const assignmentEvents = selectedAssignmentTarget?.events?.length
     ? selectedAssignmentTarget.events
-    : ["manual", "on_create", "on_update", "on_status_change", "submit_for_approval"];
+    : ["manual", "on_create", "on_update", "on_delete", "on_status_change", "submit_for_approval"];
 
   return (
     <div className="p-6 space-y-6">

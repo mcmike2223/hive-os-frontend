@@ -52,7 +52,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
 import { initEcho } from "@/lib/echo";
 import { getAccessToken, getTenantId } from "@/lib/runtime-context";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
@@ -239,8 +239,13 @@ export default function ReservationsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/hospitality/reservations/${id}`),
-    onSuccess: () => {
+    mutationFn: async (id: number) => (await api.delete(`/hospitality/reservations/${id}`)).data,
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Reservation deleted.",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "reservations"] });
     },
     onError: (error: any) => {
@@ -334,12 +339,16 @@ export default function ReservationsPage() {
 
   const handleDeleteRows = useCallback(async (rows: HospitalityReservation[]) => {
     try {
-      await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
-      toast.success(`${rows.length} reservation(s) deleted.`);
+      const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+      notifyBulkDeleteOutcomes(results, {
+        savedMessage: (count) => `${count} reservation(s) deleted.`,
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
     } catch {
       toast.error("An error occurred during deletion.");
     }
-  }, [deleteMutation]);
+  }, [deleteMutation, queryClient]);
 
   const columns = useMemo<ColumnDef<HospitalityReservation>[]>(() => [
     {

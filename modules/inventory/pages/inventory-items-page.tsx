@@ -42,7 +42,7 @@ import {
 } from "@/modules/inventory/api";
 import type { InventoryItem, PaginatedResponse } from "@/modules/inventory/types";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type TableQueryState = {
   page: number;
@@ -173,8 +173,12 @@ export default function InventoryItemsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteInventoryItem,
-    onSuccess: () => {
-      toast.success(t("inventory.common.deleted", "Inventory item deleted."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Inventory item deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "items"] });
       setSelectedRowIds({});
     },
@@ -425,7 +429,12 @@ export default function InventoryItemsPage() {
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
           if (rows.length === 0) return;
-          await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          notifyBulkDeleteOutcomes(results, {
+            savedMessage: (count) => `${count} ${t("inventory.items.bulk_deleted_msg", "item(s) deleted.")}`,
+            submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+            queryClient,
+          });
           clearSelection();
         }}
         onQueryChange={handleTableQueryChange}

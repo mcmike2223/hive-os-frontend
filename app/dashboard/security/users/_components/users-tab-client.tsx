@@ -78,7 +78,7 @@ type TableQuery = {
 
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 export type UserForClient = {
   id: string;
@@ -481,17 +481,28 @@ export function UsersTabClient(props: Props) {
     try {
       const results = await Promise.all(validRows.map((r) => deleteMut.mutateAsync(Number(r.id))));
       const queuedCount = results.filter(isOfflineMutationQueuedResult).length;
+      const actionableResults = results.filter((result) => !isOfflineMutationQueuedResult(result));
+
       if (queuedCount === validRows.length) {
         toast.info(`${validRows.length} account deletion${validRows.length === 1 ? "" : "s"} queued for sync.`);
-      } else if (queuedCount === 0) {
-        toast.success(`${validRows.length} ${t('users.accounts_purged', 'accounts purged.')}`);
-      } else {
+        return;
+      }
+
+      if (queuedCount > 0) {
         toast.info(`${queuedCount} account deletion${queuedCount === 1 ? "" : "s"} queued. The rest were processed immediately.`);
+      }
+
+      if (actionableResults.length > 0) {
+        notifyBulkDeleteOutcomes(actionableResults, {
+          savedMessage: (count) => `${count} ${t('users.accounts_purged', 'accounts purged.')}`,
+          submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+          queryClient,
+        });
       }
     } catch {
       // deleteMut.onError already surfaces a toast for non-offline failures.
     }
-  }, [deleteMut, t]);
+  }, [deleteMut, queryClient, t]);
 
   const resetForm = React.useCallback(() => {
     setFormName(""); setFormEmail(""); setFormPassword(""); 
@@ -730,7 +741,7 @@ export function UsersTabClient(props: Props) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel className="rounded-xl">{t('global.cancel', 'Cancel')}</AlertDialogCancel>
-                      <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90" onClick={() => { void deleteMut.mutateAsync(Number(u.id)).then((result) => { if (isOfflineMutationQueuedResult(result)) { toast.info(`Offline: deletion for ${u.email} has been queued for sync.`); return; } toast.success(t('users.user_purged', 'User purged')); }).catch(() => {}); }}>{t('users.confirm_purge', 'Confirm Purge')}</AlertDialogAction>
+                      <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90" onClick={() => { void deleteMut.mutateAsync(Number(u.id)).then((result) => { if (isOfflineMutationQueuedResult(result)) { toast.info(`Offline: deletion for ${u.email} has been queued for sync.`); return; } notifyMutationOutcome(result, { savedMessage: t('users.user_purged', 'User purged'), submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."), queryClient, }); }).catch(() => {}); }}>{t('users.confirm_purge', 'Confirm Purge')}</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

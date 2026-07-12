@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Model3DViewer } from "@/components/ui/model-3d-viewer";
 import { SecureAssetImage, openSecureAssetInNewTab } from "@/components/ui/secure-asset-image";
 import { deleteInventoryProduct, fetchInventoryProduct } from "@/modules/inventory/api";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, 
@@ -69,10 +70,16 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteInventoryProduct(productId),
-    onSuccess: () => {
-      toast.success(t("inventory.common.deleted", "Product deleted."));
+    onSuccess: (data) => {
+      const outcome = notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Product deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
-      window.location.href = "/dashboard/inventory/catalog/products";
+      if (outcome === "saved") {
+        window.location.href = "/dashboard/inventory/catalog/products";
+      }
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete product.")));
