@@ -213,7 +213,7 @@ export default function WorkflowRulesPage() {
         fetchWorkflowTargets(),
       ]);
       setDefinitions((defsData || []) as WorkflowDefinitionRow[]);
-      setUsers((usersData.data || []) as WorkflowUser[]);
+      setUsers(((usersData as Record<string, unknown>).data || []) as WorkflowUser[]);
       setRoles((rolesData.data || []) as WorkflowRole[]);
       if (targetsData?.length) {
         setTargets(targetsData);

@@ -158,7 +158,7 @@ export function AssignApproversDialog({
     mutation.mutate(approversList);
   };
 
-  const users = (usersData?.data || []) as AssignableUser[];
+  const users = ((usersData as Record<string, unknown>)?.data || []) as AssignableUser[];
   const roles = (Array.isArray(rolesData) ? rolesData : []) as ApprovalRoleOption[];
   
   if (roles.length === 0) {

@@ -274,7 +274,7 @@ export function UsersTabClient(props: Props) {
       const res = await fetchUsers({
         page, pageSize, search: search.trim(), status: statusFilter, role: roleFilter,
         date_from: dateFrom, date_to: dateTo, sort_by: sortCol, sort_direction: sortDir, tenant_id: tenantId,
-      });
+      }) as Record<string, unknown>;
 
       let rawUsers = [];
       if (Array.isArray(res)) rawUsers = res;
@@ -282,14 +282,16 @@ export function UsersTabClient(props: Props) {
       else if (res.users && Array.isArray(res.users)) rawUsers = res.users;
 
       let total = rawUsers.length;
-      if (res.meta?.total !== undefined) total = res.meta.total;
-      else if (res.pagination?.total !== undefined) total = res.pagination.total;
-      else if (res.total !== undefined) total = res.total;
+      const meta = res.meta as Record<string, unknown> | undefined;
+      const pagination = res.pagination as Record<string, unknown> | undefined;
+      if (meta?.total !== undefined) total = meta.total as number;
+      else if (pagination?.total !== undefined) total = pagination.total as number;
+      else if (res.total !== undefined) total = res.total as number;
 
-      return { 
-          rows: rawUsers.map(mapServerUserToClient), 
+      return {
+          rows: rawUsers.map(mapServerUserToClient),
           total,
-          engine: res.meta?.engine || 'database' 
+          engine: meta?.engine as string || 'database'
       };
     },
     placeholderData: (prev) => prev,
