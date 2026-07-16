@@ -28,6 +28,7 @@ import {
   BarChart3,
   PieChart,
   Zap,
+  Github,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -290,6 +291,58 @@ function ProjectOverview({
               </div>
             </div>
 
+            {project.tech_stack && project.tech_stack.length > 0 && (
+              <div>
+                <p className="mb-3 text-sm font-semibold">{t("project_management.tech_stack", "Technology Stack")} :</p>
+                <div className="flex flex-wrap gap-2">
+                  {project.tech_stack.map((tech) => (
+                    <Badge key={tech} variant="outline" className="text-[10px] font-bold px-1.5 py-0 border-primary/20 bg-primary/5 text-primary/70">
+                      {tech}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {project.repository_url && (
+              <div>
+                <p className="mb-3 text-sm font-semibold">{t("project_management.repository", "Repository")} :</p>
+                <a
+                  href={project.repository_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <Github className="h-4 w-4" />
+                  {project.repository_url}
+                </a>
+              </div>
+            )}
+
+            {project.attachments && project.attachments.length > 0 && (
+              <div>
+                <p className="mb-3 text-sm font-semibold">{t("project_management.assets", "Assets")} :</p>
+                <div className="space-y-2">
+                  {project.attachments.map((attachment: any, index: number) => (
+                    attachment.path && (
+                      <div 
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                        onClick={() => {
+                          const url = `/dashboard/storage?path=${encodeURIComponent(attachment.path)}&backTo=${encodeURIComponent(`/dashboard/project-management/projects/${project.id}`)}`;
+                          console.log('Div clicked, navigating to:', url);
+                          window.location.href = url;
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                        {attachment.name}
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 border-t pt-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t("project_management.project_managers", "Project Manager(s)")}</p>
@@ -408,7 +461,15 @@ function ProjectOverview({
               )}
               {attachments.map((file, index) => (
                 <div key={`${file.path || file.name}-${index}`} className="grid grid-cols-[1fr_auto] items-center gap-3 p-3 hover:bg-muted/5 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div 
+                    className="flex items-center gap-3 min-w-0 cursor-pointer"
+                    onClick={() => {
+                      if (file.path) {
+                        const url = `/dashboard/storage?path=${encodeURIComponent(file.path)}&backTo=${encodeURIComponent(`/dashboard/project-management/projects/${project.id}`)}`;
+                        window.location.href = url;
+                      }
+                    }}
+                  >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/50 border">
                       <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -418,11 +479,6 @@ function ProjectOverview({
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button asChild variant="ghost" size="icon" className="h-8 w-8" aria-label="Open document">
-                      <Link href={file.url || "#"} target={file.url ? "_blank" : undefined}>
-                        <Paperclip className="h-4 w-4 text-sky-500" />
-                      </Link>
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

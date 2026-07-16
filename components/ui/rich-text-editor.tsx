@@ -661,11 +661,13 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       }
     }));
 
-    // Sync external changes (e.g., when clearing the form on complete)
+    // Sync external changes (e.g., when clearing the form on complete or loading from template)
     useEffect(() => {
       if (editor && value !== editor.getHTML()) {
          if (value === '') {
              editor.commands.setContent('');
+         } else {
+             editor.commands.setContent(value, false);
          }
       }
     }, [value, editor]);

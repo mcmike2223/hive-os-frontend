@@ -39,6 +39,7 @@ import {
 } from "@/modules/shared/offline-mutations";
 import { fetchRoles, fetchUsers } from "@/modules/identity/api";
 import api from "@/modules/shared/api/http";
+import { createRole, fetchPermissions } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -232,6 +233,7 @@ export function UsersTabClient(props: Props) {
   const [viewDialogOpen, setViewDialogOpen] = React.useState(false);
   const [isFileManagerOpen, setIsFileManagerOpen] = React.useState(false);
   const [comboboxOpen, setComboboxOpen] = React.useState(false);
+  const [createRoleDialogOpen, setCreateRoleDialogOpen] = React.useState(false);
 
   const [editingUser, setEditingUser] = React.useState<UserForClient | null>(null);
   const [viewUser, setViewUser] = React.useState<UserForClient | null>(null);
@@ -243,6 +245,8 @@ export function UsersTabClient(props: Props) {
   const [formRoleId, setFormRoleId] = React.useState<string>("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [formHospitalityStaffId, setFormHospitalityStaffId] = React.useState<string>("");
+  const [newRoleName, setNewRoleName] = React.useState("");
+  const [newRolePermissions, setNewRolePermissions] = React.useState<string[]>([]);
   
   const [formAvatarPath, setFormAvatarPath] = React.useState<string | null>(null); 
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -378,6 +382,31 @@ export function UsersTabClient(props: Props) {
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, t('global.operation_failed', "Failed to impersonate user.")));
     }
+  });
+
+  const { data: permissionsData, isLoading: isPermissionsLoading } = useQuery({
+    queryKey: ["permissions"],
+    queryFn: () => fetchPermissions(),
+    enabled: createRoleDialogOpen,
+  });
+
+  const createRoleMut = useMutation({
+    mutationFn: async (payload: { name: string; permissions: string[] }) => {
+      return createRole(payload);
+    },
+    onSuccess: async (data) => {
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      queryClient.invalidateQueries({ queryKey: ["roles-table"] });
+      toast.success(t('roles.established', "Clearance level established"));
+      setCreateRoleDialogOpen(false);
+      setNewRoleName("");
+      setNewRolePermissions([]);
+      // Select the newly created role
+      if (data?.id) {
+        setFormRoleId(String(data.id));
+      }
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err, t('global.operation_failed', "Failed to create role"))),
   });
 
   const createMut = useOfflineMutation<unknown, Error, UserOfflinePayload>({
@@ -996,7 +1025,14 @@ export function UsersTabClient(props: Props) {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="role" className={cn(fieldErrors.role && "text-destructive")}>{t('users.clearance_level', 'Clearance Level')} <span className="text-destructive">*</span></Label>
-                  <Select value={formRoleId} onValueChange={(val) => { setFormRoleId(val); if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: "" })); }} required>
+                  <Select value={formRoleId} onValueChange={(val) => { 
+                    if (val === "__create_new") {
+                      setCreateRoleDialogOpen(true);
+                    } else {
+                      setFormRoleId(val); 
+                      if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: "" })); 
+                    }
+                  }} required>
                     <SelectTrigger className={cn("bg-muted/30 h-11 transition-all", fieldErrors.role && "border-destructive focus:ring-destructive")}>
                       <SelectValue placeholder={t('users.select_role', "Select Role")} />
                     </SelectTrigger>
@@ -1021,6 +1057,12 @@ export function UsersTabClient(props: Props) {
                           <div className="flex items-center gap-2 font-medium">{r.name}</div>
                         </SelectItem>
                       ))}
+                      <SelectItem value="__create_new" className="cursor-pointer py-2.5 text-primary font-semibold">
+                        <div className="flex items-center gap-2">
+                          <PlusCircle className="h-4 w-4" />
+                          {t('users.create_new_role', 'Create New Role')}
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1078,6 +1120,84 @@ export function UsersTabClient(props: Props) {
                   <FileManagerClient isPickerMode={true} access={{ canRead: canBrowseAvatarLibrary, canManage: canManageStorage }} onFileSelect={handleFileSelect} />
               </div>
           </DialogContent>
+      </Dialog>
+
+      {/* CREATE NEW ROLE DIALOG */}
+      <Dialog open={createRoleDialogOpen} onOpenChange={setCreateRoleDialogOpen}>
+        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl">
+          <div className="px-6 py-5 border-b border-border/40 bg-muted/20">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Shield className="h-4 w-4 text-primary" />
+                </div>
+                {t('users.create_new_role', 'Create New Role')}
+              </DialogTitle>
+              <DialogDescription className="ml-10">{t('users.create_role_desc', 'Establish a new clearance level for system operators.')}</DialogDescription>
+            </DialogHeader>
+          </div>
+          
+          <form onSubmit={(e) => { e.preventDefault(); if (newRoleName.trim()) createRoleMut.mutate({ name: newRoleName.trim(), permissions: newRolePermissions }); }}>
+            <div className="px-6 py-6 space-y-6">
+              <div className="space-y-1.5">
+                <Label htmlFor="newRoleName">{t('users.role_name', 'Role Name')} <span className="text-destructive">*</span></Label>
+                <Input 
+                  id="newRoleName" 
+                  value={newRoleName} 
+                  onChange={(e) => setNewRoleName(e.target.value)} 
+                  placeholder="e.g. Project Manager" 
+                  className="bg-muted/30 h-11 transition-all"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>{t('users.permissions', 'Permissions')}</Label>
+                <div className="border border-border/40 rounded-xl bg-muted/20 p-4 max-h-[250px] overflow-y-auto">
+                  {isPermissionsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : permissionsData && permissionsData.length > 0 ? (
+                    <div className="space-y-2">
+                      {permissionsData.map((perm: any) => (
+                        <div key={perm.id} className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id={`perm-${perm.id}`}
+                            checked={newRolePermissions.includes(perm.name)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewRolePermissions([...newRolePermissions, perm.name]);
+                              } else {
+                                setNewRolePermissions(newRolePermissions.filter(p => p !== perm.name));
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-border/50 text-primary focus:ring-primary/50"
+                          />
+                          <label htmlFor={`perm-${perm.id}`} className="text-sm cursor-pointer select-none">
+                            {perm.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">{t('users.no_permissions', 'No permissions available')}</p>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">{t('users.permissions_desc', 'Select the permissions this role should have.')}</p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => { setCreateRoleDialogOpen(false); setNewRoleName(""); setNewRolePermissions([]); }} className="rounded-xl">{t('global.cancel', 'Cancel')}</Button>
+              <Button type="submit" disabled={createRoleMut.isPending || !newRoleName.trim()} className="rounded-xl px-8 shadow-lg font-bold transition-all bg-primary text-primary-foreground">
+                {createRoleMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('users.create_role_btn', 'Create Role')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>

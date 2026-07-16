@@ -84,16 +84,26 @@ export const projectApi = {
   updateProject: (id: string, data: ProjectPayload) => api.put<Project>(`${PM_PREFIX}/projects/${id}`, data).then(res => res.data),
   deleteProject: (id: string) => api.delete(`${PM_PREFIX}/projects/${id}`),
   getTemplates: () => api.get<Project[]>(`${PM_PREFIX}/templates`).then(res => res.data),
-  spawnProject: (templateId: string, data: { 
-    name: string, 
-    start_date?: string, 
+  spawnProject: (templateId: string, data: {
+    name: string,
+    start_date?: string,
     project_manager_ids?: string[],
+    assigned_to?: string[],
     budget?: number,
     currency?: string,
     hourly_rate?: number,
     estimated_hours?: number,
-    estimated_revenue?: number
-  }) => 
+    estimated_revenue?: number,
+    description?: string | null,
+    status?: string,
+    priority?: string,
+    end_date?: string | null,
+    client_stakeholder?: string | null,
+    tags?: string[] | null,
+    attachments?: any[] | null,
+    repository_url?: string | null | undefined,
+    tech_stack?: string[] | null | undefined
+  }) =>
     api.post<Project>(`${PM_PREFIX}/projects/${templateId}/spawn`, data).then(res => res.data),
 
   // Members

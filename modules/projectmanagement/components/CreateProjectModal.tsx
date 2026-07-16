@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CalendarIcon, Loader2, TagIcon, UserIcon, BriefcaseIcon, XCircleIcon, X, Github, Cpu, Terminal, Link as LinkIcon, Clock } from "lucide-react";
+import { CalendarIcon, Loader2, TagIcon, UserIcon, BriefcaseIcon, XCircleIcon, X, Github, Cpu, Terminal, Link as LinkIcon, Clock, Plus } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -170,7 +170,37 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     }
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    if (Object.keys(newErrors).length > 0) {
+      const fieldToTab: Record<string, string> = {
+        name: "general",
+        description: "general",
+        status: "general",
+        priority: "general",
+        tags: "general",
+        project_manager_ids: "team",
+        assigned_to: "team",
+        start_date: "team",
+        end_date: "team",
+        budget: "financials",
+        currency: "financials",
+        hourly_rate: "financials",
+        estimated_hours: "financials",
+        estimated_revenue: "financials",
+        repository_url: "engineering",
+        tech_stack: "engineering",
+      };
+      
+      const firstErrorField = Object.keys(newErrors)[0];
+      const targetTab = fieldToTab[firstErrorField];
+      if (targetTab) {
+        setActiveTab(targetTab);
+      }
+      
+      return false;
+    }
+    
+    return true;
   };
 
   // Sync state when project changes (for edit mode)
@@ -220,26 +250,46 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   });
 
   const spawnMutation = useMutation({
-    mutationFn: (data: { 
-      templateId: string, 
-      name: string, 
-      start_date?: string, 
+    mutationFn: (data: {
+      templateId: string,
+      name: string,
+      start_date?: string,
       project_manager_ids?: string[],
+      assigned_to?: string[],
       budget?: number,
       currency?: string,
       hourly_rate?: number,
       estimated_hours?: number,
-      estimated_revenue?: number
-    }) => 
-      projectApi.spawnProject(data.templateId, { 
-        name: data.name, 
+      estimated_revenue?: number,
+      description?: string | null,
+      status?: string,
+      priority?: string,
+      end_date?: string | null,
+      client_stakeholder?: string | null,
+      tags?: string[] | null,
+      attachments?: any[] | null,
+      repository_url?: string | null | undefined,
+      tech_stack?: string[] | null | undefined
+    }) =>
+      projectApi.spawnProject(data.templateId, {
+        name: data.name,
         start_date: data.start_date,
         project_manager_ids: data.project_manager_ids,
+        assigned_to: data.assigned_to,
         budget: data.budget,
         currency: data.currency,
         hourly_rate: data.hourly_rate,
         estimated_hours: data.estimated_hours,
-        estimated_revenue: data.estimated_revenue
+        estimated_revenue: data.estimated_revenue,
+        description: data.description || undefined,
+        status: data.status,
+        priority: data.priority,
+        end_date: data.end_date || undefined,
+        client_stakeholder: data.client_stakeholder || undefined,
+        tags: data.tags || undefined,
+        attachments: data.attachments || undefined,
+        repository_url: data.repository_url || undefined,
+        tech_stack: data.tech_stack || undefined
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -254,9 +304,12 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const mutation = useMutation({
     mutationFn: (data: CreateProjectPayload) => 
       project ? projectApi.updateProject(project.id, data) : projectApi.createProject(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project-summary"] });
+      if (variables.is_template) {
+        queryClient.invalidateQueries({ queryKey: ["project-templates"] });
+      }
       if (project) {
         queryClient.invalidateQueries({ queryKey: ["project", project.id] });
       }
@@ -304,11 +357,21 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         name: name.trim(),
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
         project_manager_ids: projectManagerIds,
-        budget: budget ? parseFloat(budget) : undefined,
+        assigned_to: assignedTo && assignedTo.length > 0 ? assignedTo : undefined,
+        budget: budget && budget !== "" ? parseFloat(budget) : undefined,
         currency: currency,
-        hourly_rate: hourlyRate ? parseFloat(hourlyRate) : undefined,
-        estimated_hours: estimatedHours ? parseFloat(estimatedHours) : undefined,
-        estimated_revenue: estimatedRevenue ? parseFloat(estimatedRevenue) : undefined,
+        hourly_rate: hourlyRate && hourlyRate !== "" ? parseFloat(hourlyRate) : undefined,
+        estimated_hours: estimatedHours && estimatedHours !== "" ? parseFloat(estimatedHours) : undefined,
+        estimated_revenue: estimatedRevenue && estimatedRevenue !== "" ? parseFloat(estimatedRevenue) : undefined,
+        description: description || undefined,
+        status: status || undefined,
+        priority: priority || undefined,
+        end_date: endDate ? format(endDate, "yyyy-MM-dd") : undefined,
+        client_stakeholder: clientStakeholder.trim() || undefined,
+        tags: tags && tags.length > 0 ? tags : undefined,
+        attachments: attachments && attachments.length > 0 ? attachments : undefined,
+        repository_url: isSoftwareDev ? (repositoryUrl || undefined) : undefined,
+        tech_stack: isSoftwareDev && techStack && techStack.length > 0 ? techStack : undefined,
       });
       return;
     }
@@ -352,22 +415,27 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     }
 
     setAttachments([...attachments, { path, name, url }]);
-    setIsFileManagerOpen(false);
-    toast.success("File attached");
+    setTimeout(() => setIsFileManagerOpen(false), 0);
   };
 
   const removeAttachment = (pathToRemove: string) => {
     setAttachments(attachments.filter(a => a.path !== pathToRemove));
   };
 
-  const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && tagInput.trim()) {
-      e.preventDefault();
+  const handleAddTag = () => {
+    if (tagInput.trim()) {
       const nextTag = tagInput.trim();
       if (!tags.includes(nextTag)) {
         setTags([...tags, nextTag]);
       }
       setTagInput("");
+    }
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
     }
   };
 
@@ -447,7 +515,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                         <Label className="text-primary font-black text-[9px] uppercase tracking-[0.2em]">{t('project_management.blueprint_selection', 'Blueprint Selection')}</Label>
                       </div>
                       <Select 
-                        value={selectedTemplateId || "none"} 
+                        value={selectedTemplateId || "none"}
                         onValueChange={(val) => {
                           setSelectedTemplateId(val === "none" ? null : val);
                           if (val !== "none") {
@@ -455,6 +523,26 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                             if (tModel) {
                               setName(tModel.name + " (Copy)");
                               setDescription(tModel.description || "");
+                              setStatus(tModel.status || "planning");
+                              const managerIds = tModel.members
+                                ?.filter((member) => member.role === 'manager' || member.role === 'owner')
+                                .map((member) => String(member.user_id)) || [];
+                              const primaryManagerId = tModel.project_manager_id ? [String(tModel.project_manager_id)] : [];
+                              setProjectManagerIds(Array.from(new Set([...managerIds, ...primaryManagerId])));
+                              setClientStakeholder(tModel.client_stakeholder || "");
+                              setStartDate(tModel.start_date ? new Date(tModel.start_date) : undefined);
+                              setEndDate(tModel.end_date ? new Date(tModel.end_date) : undefined);
+                              setPriority(tModel.priority || "medium");
+                              setAssignedTo(Array.from(new Set(tModel.members?.map((member) => String(member.user_id)) || [])));
+                              setTags(tModel.tags || []);
+                              setAttachments(tModel.attachments || []);
+                              setBudget(tModel.budget?.toString() || "");
+                              setCurrency(tModel.currency || "USD");
+                              setHourlyRate(tModel.hourly_rate?.toString() || "");
+                              setEstimatedHours(tModel.estimated_hours?.toString() || "");
+                              setEstimatedRevenue(tModel.estimated_revenue?.toString() || "");
+                              setRepositoryUrl(tModel.repository_url || "");
+                              setTechStack(tModel.tech_stack || []);
                             }
                           }
                         }}
@@ -608,10 +696,17 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           id="tags"
                           value={tagInput}
                           onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={handleAddTag}
+                          onKeyDown={handleTagKeyDown}
                           placeholder={t('project_management.add_tag', 'Add tag...')}
                           className="bg-transparent outline-none text-xs font-bold placeholder:text-muted-foreground/30 flex-1 min-w-[80px]"
                         />
+                        <button
+                          type="button"
+                          onClick={handleAddTag}
+                          className="text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -715,7 +810,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           </div>
                           <ComboboxContent anchor={managerAnchor} className="rounded-2xl border-border/40 shadow-2xl">
                             <ComboboxList>
-                              <ComboboxEmpty>{t('project_management.no_personnel_found', 'No personnel found.')}</ComboboxEmpty>
+                              {users.length === 0 && (
+                                <ComboboxEmpty>{t('project_management.no_personnel_found', 'No personnel found.')}</ComboboxEmpty>
+                              )}
                               {users.map((user) => (
                                 <ComboboxItem key={user.id} value={String(user.id)} className="rounded-xl font-bold text-xs">
                                   {user.name}
@@ -751,7 +848,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           </div>
                           <ComboboxContent anchor={assignedAnchor} className="rounded-2xl border-border/40 shadow-2xl">
                             <ComboboxList>
-                              <ComboboxEmpty>{t('project_management.no_personnel_found', 'No personnel found.')}</ComboboxEmpty>
+                              {users.length === 0 && (
+                                <ComboboxEmpty>{t('project_management.no_personnel_found', 'No personnel found.')}</ComboboxEmpty>
+                              )}
                               {users.map((user) => (
                                 <ComboboxItem key={user.id} value={String(user.id)} className="rounded-xl font-bold text-xs">
                                   {user.name}
@@ -1062,13 +1161,15 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen}>
-        <DialogContent className="sm:max-w-[1000px] h-[80vh] flex flex-col p-0 overflow-hidden">
+      <Dialog open={isFileManagerOpen} onOpenChange={(open) => {
+        setIsFileManagerOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-[1000px] h-[80vh] flex flex-col p-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <div className="flex items-center justify-between border-b px-6 py-4">
             <DialogTitle>Media Library</DialogTitle>
           </div>
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <FileManagerClient 
+          <div className="flex-1 overflow-y-auto min-h-0" onClick={(e) => e.stopPropagation()}>
+            <FileManagerClient
               isPickerMode={true}
               onFileSelect={handleFileSelect}
             />

@@ -54,7 +54,8 @@ import {
   TextQuote,
   Globe,
   Cpu,
-  CheckCircle2
+  CheckCircle2,
+  FileText
 } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
@@ -170,6 +171,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
+  const [attachments, setAttachments] = useState<{ path: string; name: string; url: string }[]>([]);
   const editorRef = useRef<RichTextEditorRef>(null);
 
   const normalizedMembers = useMemo(() => 
@@ -223,6 +225,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         environment: null,
         pr_url: "",
       });
+      setAttachments([]);
     }
   }, [isOpen, initialDueDate, form]);
 
@@ -250,7 +253,28 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       onClose();
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : t("project_management.error_occurred", "An error occurred"));
+      if (error instanceof Error) {
+        // Try to parse validation errors from the response
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.errors) {
+            const errorMessages = Object.entries(errorData.errors)
+              .map(([field, messages]) => {
+                const fieldLabel = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+                const message = Array.isArray(messages) ? messages[0] : messages;
+                return `${fieldLabel}: ${message}`;
+              })
+              .join('\n');
+            toast.error(errorMessages);
+            return;
+          }
+        } catch {
+          // Not a JSON error, fall through to generic message
+        }
+        toast.error(error.message);
+      } else {
+        toast.error(t("project_management.error_occurred", "An error occurred"));
+      }
     },
     onSettled: () => {
       setIsSubmitting(false);
@@ -266,22 +290,22 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
 
   const handleFileSelect = (file: SelectedMediaFile) => {
-    const rawUrl = file?.media_details?.url || file?.url || file?.path;
-    if (!rawUrl) {
-      toast.error(t("project_management.error_media_path", "Error: Could not extract media path from selection."));
+    const path = file?.media_details?.relative_path || file?.path;
+    const name = file?.media_details?.original_name || file?.name || path?.split("/").pop() || "Unnamed File";
+    const url = file?.media_details?.url || file?.url;
+
+    if (!path) {
+      toast.error("Could not extract file path");
       return;
     }
 
-    const isVideo = file?.mime_type?.startsWith('video/') || rawUrl.endsWith('.mp4') || rawUrl.endsWith('.webm');
-    const isAudio = file?.mime_type?.startsWith('audio/') || rawUrl.endsWith('.mp3') || rawUrl.endsWith('.wav');
-    const fullUrl = rawUrl.startsWith("http") ? rawUrl : (getBackendStorageUrl(rawUrl) || rawUrl);
-    
-    let mediaType: 'image' | 'video' | 'audio' = 'image';
-    if (isVideo) mediaType = 'video';
-    else if (isAudio) mediaType = 'audio';
+    if (attachments.some(a => a.path === path)) {
+      toast.error("File already attached");
+      return;
+    }
 
-    editorRef.current?.insertMedia(fullUrl, mediaType);
-    setIsFileManagerOpen(false);
+    setAttachments([...attachments, { path, name, url }]);
+    setTimeout(() => setIsFileManagerOpen(false), 0);
   };
 
   return (
@@ -753,12 +777,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
                     {/* Attachments Tab */}
                     <TabsContent value="attachments" className="mt-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full">
-                      <div className="border-2 border-dashed border-border/40 rounded-[2rem] p-12 flex flex-col items-center justify-center text-center group hover:border-primary/20 transition-all bg-muted/10">
+                      <div className="border-2 border-dashed border-border/40 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center group hover:border-primary/20 transition-all bg-muted/10">
                         <div className="p-4 rounded-full bg-primary/10 mb-4 group-hover:scale-110 transition-transform">
                           <Paperclip className="h-8 w-8 text-primary" />
                         </div>
                         <h4 className="text-lg font-bold mb-2">{t("project_management.digital_asset_library", "Digital Asset Library")}</h4>
-                        <p className="text-sm text-muted-foreground/60 max-w-[280px] mb-8 leading-relaxed">{t("project_management.digital_asset_desc", "Select technical documentation, design specs, or media assets from your cloud storage.")}</p>
+                        <p className="text-sm text-muted-foreground/60 max-w-[280px] mb-6 leading-relaxed">{t("project_management.digital_asset_desc", "Select technical documentation, design specs, or media assets from your cloud storage.")}</p>
                         <Button 
                           type="button" 
                           onClick={() => setIsFileManagerOpen(true)}
@@ -767,6 +791,33 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                           {t("project_management.open_asset_manager", "Open Asset Manager")}
                         </Button>
                       </div>
+                      
+                      {attachments.length > 0 && (
+                        <div className="grid grid-cols-1 gap-3">
+                          {attachments.map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between group bg-muted/5 p-4 rounded-2xl border border-border/40 hover:border-primary/20 transition-all shadow-sm">
+                              <div className="flex items-center gap-4 min-w-0">
+                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                  <FileText className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="min-w-0 space-y-0.5">
+                                  <p className="text-xs font-bold truncate">{file.name}</p>
+                                  <p className="text-[9px] text-muted-foreground/60 truncate font-black uppercase tracking-widest">{file.path}</p>
+                                </div>
+                              </div>
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                                className="h-8 w-8 text-muted-foreground/30 hover:text-destructive hover:bg-destructive/5 rounded-lg transition-all"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </TabsContent>
                   </div>
                 </Tabs>
@@ -805,10 +856,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
       {/* Embedded File Manager Dialog just for rich text uploads */}
       {isFileManagerOpen && (
-        <Dialog open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} modal={false}>
-          <DialogContent className="flex h-[85vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden rounded-[2.5rem] border-border/50 bg-background p-0 shadow-2xl z-[100]">
+        <Dialog open={isFileManagerOpen} onOpenChange={(open) => {
+          if (!open) setIsFileManagerOpen(false);
+        }} modal={false}>
+          <DialogContent 
+            className="flex h-[90vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden rounded-[2.5rem] border-border/50 bg-background p-0 shadow-2xl z-[100]"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
             <DialogTitle className="sr-only">{t("project_management.select_media_task", "Select Media for Task")}</DialogTitle>
-            <div className="flex-1 overflow-hidden relative file-picker-wrapper">
+            <div className="flex-1 overflow-hidden relative file-picker-wrapper" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
               <style
                 dangerouslySetInnerHTML={{
                   __html: `
