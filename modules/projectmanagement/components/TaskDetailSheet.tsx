@@ -21,6 +21,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -98,6 +99,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
   const [editEnvironment, setEditEnvironment] = useState<string>("none");
   const [editPrUrl, setEditPrUrl] = useState("");
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
+  const [isClosingFileManager, setIsClosingFileManager] = useState(false);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [composerAttachments, setComposerAttachments] = useState<any[]>([]);
   const [checklistItem, setChecklistItem] = useState("");
@@ -277,14 +279,20 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
 
   const updateTaskMutation = useMutation({
     mutationFn: (data: any) => projectApi.updateTask(taskId as string, data),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Update local state immediately with the result
+      if (result?.attachments) {
+        setAttachments(result.attachments);
+      }
+      // Then invalidate queries to refresh other data
       queryClient.invalidateQueries({ queryKey: ["project-task", taskId] });
       queryClient.invalidateQueries({ queryKey: ["project-projects"] });
-      setIsEditMode(false);
       toast.success("Task updated successfully");
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to update task");
+      // Revert to original state on error
+      setAttachments(task?.attachments || []);
     }
   });
 
@@ -728,17 +736,27 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] xl:max-w-[1400px] 2xl:max-w-[1600px] h-[90vh] p-0 bg-background border border-border/40 overflow-hidden flex flex-col rounded-2xl shadow-2xl">
+        <DialogContent className="w-[95vw] xl:max-w-[1400px] 2xl:max-w-[1600px] h-[90vh] p-0 bg-background border border-border/40 overflow-hidden flex flex-col rounded-2xl shadow-2xl" showCloseButton={false} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogTitle className="sr-only">{t('project_management.task_details', 'Task Details')}</DialogTitle>
           
-          <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/10 shrink-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/10 shrink-0 ">
             <h2 className="text-xl font-bold tracking-tight">{t('project_management.task_details', 'Task Details')}</h2>
-            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{t('project_management.task', 'Task')}</span><span>&gt;</span><span className="font-medium text-foreground">{t('project_management.task_details', 'Task Details')}</span>
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{t('project_management.task', 'Task')}</span><span>&gt;</span><span className="font-medium text-foreground">{t('project_management.task_details', 'Task Details')}</span>
+              </div>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenChange(false);
+                }}
+                className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <Button variant="ghost" size="icon" className="sm:hidden h-8 w-8" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
-            </Button>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -1158,10 +1176,20 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                       <div className="flex flex-col sm:flex-row sm:justify-between py-3 border-b border-border/50 gap-2 items-start sm:items-center">
                         <span className="font-semibold text-muted-foreground">{t('project_management.task_tags', 'Task Tags')} :</span>
                         <div className="flex flex-wrap gap-1.5">
-                          {(task.tags || ['UI/UX', 'Design']).map((tag: string, i: number) => (
-                            <Badge key={i} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">{tag}</Badge>
-                          ))}
-                        </div>
+  {task.tags?.length ? (
+    task.tags.map((tag: string, i: number) => (
+      <Badge
+        key={i}
+        variant="secondary"
+        className="bg-primary/10 text-primary hover:bg-primary/20"
+      >
+        {tag}
+      </Badge>
+    ))
+  ) : (
+    <span className="text-sm text-muted-foreground/60 italic">No tags</span>
+  )}
+</div>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:justify-between py-3 border-b border-border/50 gap-1">
                         <span className="font-semibold text-muted-foreground">{t('project_management.project_name', 'Project Name')} :</span>
@@ -1195,6 +1223,16 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                             <span className="text-xs text-muted-foreground italic">{t('project_management.unassigned', 'Unassigned')}</span>
                           )}
                         </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:justify-between py-3 border-b border-border/50 gap-1">
+                        <span className="font-semibold text-muted-foreground">{t('project_management.parent_task', 'Parent Task')} :</span>
+                        {task?.parent_task ? (
+                          <span className="font-semibold text-primary hover:underline cursor-pointer" onClick={() => window.location.href = `/dashboard/project-management/projects/${task.project_id}?taskId=${task.parent_task?.id}`}>
+                            {task.parent_task?.title}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground/60 italic">{t('project_management.no_parent_task', 'No parent task')}</span>
+                        )}
                       </div>
 
                       {isSoftwareDev && (
@@ -1340,7 +1378,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                                   <FileIcon className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="text-sm font-semibold truncate text-foreground/90">{file.file_entry?.name || file.name || 'Document'}</p>
+                                  <p className="text-sm font-semibold truncate text-foreground/90">{file.name || 'Document'}</p>
                                   <div className="flex items-center gap-2 mt-1">
                                     {file.status && (
                                       <Badge 
@@ -1362,7 +1400,12 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                                 </div>
                               </div>
                               <div className="flex gap-1 shrink-0">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setPreviewFile(file)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => {
+                                  if (file.path) {
+                                    const url = `/dashboard/storage?path=${encodeURIComponent(file.path)}&backTo=${encodeURIComponent(`/dashboard/project-management/projects/${task?.project_id}`)}`;
+                                    window.location.href = url;
+                                  }
+                                }}>
                                   <Eye className="w-4 h-4" />
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
@@ -1476,8 +1519,10 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen}>
-        <DialogContent className="sm:max-w-[1000px] h-[80vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+      <Dialog open={isFileManagerOpen} onOpenChange={(open) => {
+        setIsFileManagerOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-[1000px] h-[80vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <div className="flex items-center justify-between border-b border-border/40 px-6 py-4 bg-muted/20">
             <DialogTitle className="font-bold tracking-tight text-lg">Select Task Files</DialogTitle>
             <Button variant="ghost" size="icon" onClick={() => setIsFileManagerOpen(false)} className="rounded-full h-8 w-8">
@@ -1487,7 +1532,11 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
           <div className="flex-1 overflow-hidden">
             <FileManagerClient 
               isPickerMode={true}
-              onFileSelect={(file: any) => {
+              onFileSelect={(file: any, event?: React.MouseEvent) => {
+                if (event) {
+                  event.stopPropagation();
+                }
+                
                 if (filePickerContext === 'composer') {
                   setComposerAttachments(prev => [...prev, file]);
                 } else {
@@ -1498,8 +1547,6 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
 
                   if (path) {
                     const newAttachment = { 
-                      id: file.id, // Important for the backend
-                      file_id: file.id, 
                       path, 
                       name, 
                       url 
@@ -1507,15 +1554,22 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                     const currentAttachments = task?.attachments || [];
                     
                     if (!currentAttachments.some((a: any) => a.path === path)) {
+                      const newAttachments = [...currentAttachments, newAttachment];
+                      setAttachments(newAttachments);
                       updateTaskMutation.mutate({
-                        attachments: [...currentAttachments, newAttachment]
+                        attachments: newAttachments
                       });
                     } else {
                       toast.error("File already attached to this task");
                     }
                   }
                 }
-                setIsFileManagerOpen(false);
+                // Close the file manager after selection with delay to prevent parent modal closing
+                setIsClosingFileManager(true);
+                setTimeout(() => {
+                  setIsFileManagerOpen(false);
+                  setTimeout(() => setIsClosingFileManager(false), 100);
+                }, 200);
               }}
             />
           </div>

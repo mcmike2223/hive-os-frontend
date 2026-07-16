@@ -165,9 +165,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               </div>
               <div>
                 <Link href={`/dashboard/project-management/projects/${project.id}`} className="block">
-                  <h3 className="font-black text-xl tracking-tight leading-tight transition-colors group-hover:text-primary line-clamp-1">
-                    {project.name}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-black text-xl tracking-tight leading-tight transition-colors group-hover:text-primary line-clamp-1">
+                      {project.name}
+                    </h3>
+                    {project.is_template && (
+                      <Badge className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border-violet-500/20 shrink-0">
+                        Template
+                      </Badge>
+                    )}
+                  </div>
                 </Link>
                 <div className="flex items-center gap-2 mt-1.5">
                   <div className={cn(

@@ -139,7 +139,7 @@ function formatDate(value?: string | null, t?: (key: string, def?: string) => st
 
 function Panel({ title, action, children, id }: { title: string; action?: React.ReactNode; children: React.ReactNode; id?: string }) {
   return (
-    <section className="rounded-[2rem] border border-border/40 bg-card shadow-xl shadow-black/5 overflow-hidden" id={id}>
+    <section className="rounded-[2rem] border border-border/40 bg-card shadow-xl shadow-black/5" id={id}>
       <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4 bg-muted/20">
         <h2 className="border-l-4 border-primary pl-3 text-sm font-black uppercase tracking-widest">{title}</h2>
         {action}
@@ -285,7 +285,7 @@ function ProjectOverview({
             <div>
               <p className="mb-3 text-sm font-semibold">{t("project_management.skills", "Skills")} :</p>
               <div className="flex flex-wrap gap-2">
-                {(project.tags?.length ? project.tags : ["UI/UX", "JavaScript", "Responsive Design", "RESTful APIs"]).map((tag) => (
+                {(project.tags?.length ? project.tags : []).map((tag) => (
                   <Badge key={tag} variant="secondary" className="rounded-sm text-[11px]">{tag}</Badge>
                 ))}
               </div>
@@ -497,7 +497,7 @@ function ProjectOverview({
 
         <Panel title={t("project_management.project_team", "Project Team")} id="tour-pm-project-team">
           <div className="space-y-4">
-            <div className="flex flex-col sm:grid sm:grid-cols-[1fr_120px_auto] gap-2">
+            <div className="flex flex-col sm:grid sm:grid-cols-[1fr_140px_auto] gap-2">
               <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("project_management.add_member", "Add member")} />
@@ -510,7 +510,7 @@ function ProjectOverview({
               </Select>
               <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as MemberRole)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={t("project_management.member", "Member")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="member">{t("project_management.member", "Member")}</SelectItem>
@@ -954,8 +954,8 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
             {/* Ultra-premium Fade Masks */}
             <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-card/80 to-transparent z-20 pointer-events-none opacity-0 group-hover/scroller:opacity-100 transition-all duration-500" />
             <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-card/80 to-transparent z-20 pointer-events-none opacity-0 group-hover/scroller:opacity-100 transition-all duration-500" />
-            
-            <div className="overflow-x-auto custom-scrollbar-hide pb-0.5 px-2">
+
+            <div className="overflow-x-auto overflow-y-hidden custom-scrollbar-hide pb-0.5 px-2">
               <TabsList className="bg-transparent h-14 gap-1.5 p-0 flex-nowrap w-max relative">
                 {[
                   { id: 'overview', label: t('project_management.tab_overview', 'Overview'), icon: MessageSquare },
@@ -1097,7 +1097,9 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
         taskId={selectedTaskId}
         columns={columns}
         onOpenChange={(open) => {
-          if (!open) setSelectedTaskId(null);
+          if (!open) {
+            setSelectedTaskId(null);
+          }
         }}
       />
 

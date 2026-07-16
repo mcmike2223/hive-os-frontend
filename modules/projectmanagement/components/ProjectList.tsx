@@ -105,7 +105,14 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                   {project.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-black tracking-tight truncate group-hover:text-primary transition-colors">{project.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black tracking-tight truncate group-hover:text-primary transition-colors">{project.name}</h3>
+                    {project.is_template && (
+                      <Badge className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border-violet-500/20 shrink-0">
+                        Template
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">{project.description ? project.description.replace(/<[^>]*>/g, '').trim() : "No description provided."}</p>
                 </div>
                 

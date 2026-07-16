@@ -1,6 +1,6 @@
 "use client";
  
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { projectApi } from "../api";
 import {
@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CalendarIcon, Loader2, TagIcon, UserIcon, BriefcaseIcon, XCircleIcon, X, Github, Cpu, Terminal, Link as LinkIcon, Clock, Plus } from "lucide-react";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { RichTextEditor, RichTextEditorRef } from "@/components/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -137,6 +137,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [techStack, setTechStack] = useState<string[]>(project?.tech_stack || []);
   const [techInput, setTechInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const editorRef = useRef<RichTextEditorRef>(null);
 
   const { user: activeUser } = useUser();
   const isSoftwareDev = activeUser?.business_type?.toLowerCase()?.replace('-', ' ') === "software development";
@@ -415,6 +416,25 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     }
 
     setAttachments([...attachments, { path, name, url }]);
+
+    // Insert media into the rich text editor
+    if (editorRef.current && url) {
+      const extension = path.split('.').pop()?.toLowerCase();
+      let mediaType: 'image' | 'video' | 'audio' | 'raw' | 'document' = 'raw';
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) {
+        mediaType = 'document';
+      } else if (['mp4', 'webm', 'mov'].includes(extension || '')) {
+        mediaType = 'video';
+      } else if (['mp3', 'wav', 'ogg'].includes(extension || '')) {
+        mediaType = 'audio';
+      } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'odt', 'ods', 'odp', 'csv'].includes(extension || '')) {
+        mediaType = 'document';
+      }
+      
+      editorRef.current.insertMedia(url, mediaType);
+    }
+
     setTimeout(() => setIsFileManagerOpen(false), 0);
   };
 
@@ -601,9 +621,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.strategic_intent', 'Strategic Intent (Description)')}</Label>
                     <RichTextEditor 
+                      ref={editorRef}
                       value={description} 
                       onChange={setDescription} 
                       className="min-h-[140px] rounded-3xl border-border/40 bg-muted/5 focus:ring-primary/10 transition-all shadow-inner p-2"
+                      onOpenMediaPicker={() => setIsFileManagerOpen(true)}
                     />
                   </div>
 

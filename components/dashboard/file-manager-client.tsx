@@ -1314,17 +1314,13 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
 
   React.useEffect(() => {
-    if (initialFilePath && data?.data?.files) {
-      console.log('Looking for file with path:', initialFilePath);
-      console.log('Available files:', data.data.files);
-      const file = Array.isArray(data.data.files) ? data.data.files.find((f: FileManagerFile) => 
-        f.path === initialFilePath
-      ) : null;
+    if (initialFilePath && data?.data?.files?.data) {
+      const filesArray = data.data.files.data;
+      const file = filesArray.find((f: FileManagerFile) =>
+        (f.media_details as any)?.relative_path === initialFilePath || f.path === initialFilePath
+      ) || null;
       if (file) {
-        console.log('Found file:', file);
         setSelectedFile(file);
-      } else {
-        console.log('File not found in current folder');
       }
     }
   }, [initialFilePath, data]);

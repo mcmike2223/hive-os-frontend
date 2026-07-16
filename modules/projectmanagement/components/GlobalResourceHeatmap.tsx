@@ -138,17 +138,17 @@ export function GlobalResourceHeatmap() {
                               {data.count > 0 && data.count}
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="p-3 bg-popover/90 backdrop-blur-xl border-white/10 shadow-2xl rounded-xl">
+                          <TooltipContent side="top" className="p-3 bg-popover text-popover-foreground border-border shadow-2xl rounded-xl">
                             <div className="space-y-2">
-                              <p className="font-black text-xs border-b border-white/10 pb-1">{data.count} Tasks • {format(day, "PPP")}</p>
+                              <p className="font-black text-xs border-b border-border/10 pb-1">{data.count} Tasks • {format(day, "PPP")}</p>
                               {data.tasks.map((t: any) => (
-                                <div key={t.id} className="flex items-center gap-2 text-[10px] font-medium opacity-80">
+                                <div key={t.id} className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
                                   <div className="h-1 w-1 rounded-full bg-primary" />
                                   <span className="truncate max-w-[150px]">{t.title}</span>
                                   <span className="text-[9px] opacity-50 ml-auto">({t.project?.name})</span>
                                 </div>
                               ))}
-                              {data.count === 0 && <p className="text-[10px] opacity-50 italic">No tasks assigned</p>}
+                              {data.count === 0 && <p className="text-[10px] text-muted-foreground italic">No tasks assigned</p>}
                             </div>
                           </TooltipContent>
                         </Tooltip>

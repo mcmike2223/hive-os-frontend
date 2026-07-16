@@ -45,11 +45,13 @@ import {
   Smile,
   Maximize2,
   Minimize2,
-  X
+  X,
+  FileText,
+  Download
 } from 'lucide-react';
 
 export interface RichTextEditorRef {
-  insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw') => void;
+  insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw' | 'document') => void;
 }
 
 const ImageNodeView = (props: any) => {
@@ -66,7 +68,7 @@ const ImageNodeView = (props: any) => {
       <div className={cn("relative overflow-visible inline-block max-w-full", selected && "ring-2 ring-primary ring-offset-2 rounded-md")}>
         <img 
           src={node.attrs.src} 
-          alt={node.attrs.alt} 
+          alt={node.attrs.alt || 'Image'} 
           className="rounded-md w-full h-auto max-w-full border shadow-sm"
         />
         
@@ -146,7 +148,46 @@ const ImageNodeView = (props: any) => {
   );
 };
 
+const DocumentNodeView = (props: any) => {
+  const { node, deleteNode, selected } = props;
+  const fileName = node.attrs.src?.split('/').pop() || 'Document';
+  
+  return (
+    <NodeViewWrapper className="relative inline-block group my-2">
+      <div className="inline-flex items-center gap-3 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
+        <FileText className="h-5 w-5 text-primary" />
+        <span className="text-sm font-medium text-foreground">{fileName}</span>
+        <a 
+          href={node.attrs.src} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="p-1 hover:bg-primary/30 rounded-md transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Download className="h-4 w-4 text-primary" />
+        </a>
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "h-6 w-6 opacity-0 transition-opacity",
+            selected && "opacity-100",
+            "group-hover:opacity-100"
+          )}
+          onClick={(e) => {
+            e.preventDefault();
+            deleteNode();
+          }}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    </NodeViewWrapper>
+  );
+};
+
 const CustomImage = Image.extend({
+  name: 'image',
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -160,6 +201,38 @@ const CustomImage = Image.extend({
   },
   addNodeView() {
     return ReactNodeViewRenderer(ImageNodeView);
+  },
+});
+
+const Document = Node.create({
+  name: 'document',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  addOptions() {
+    return {
+      HTMLAttributes: {},
+    };
+  },
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+      },
+    };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-type="document"]',
+      },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'document' })];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(DocumentNodeView);
   },
 });
 
@@ -594,7 +667,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         Underline,
         Highlight,
         CustomImage.configure({
-          inline: true,
+          inline: false,
           allowBase64: true,
           HTMLAttributes: {
              class: 'rounded-md max-w-full my-4 border shadow-sm',
@@ -602,6 +675,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         }),
         VideoExtension,
         AudioExtension,
+        Document,
         Link.configure({
           openOnClick: false,
         }),
@@ -632,11 +706,19 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     });
 
     useImperativeHandle(ref, () => ({
-      insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw') => {
+      insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw' | 'document') => {
         if (!editor) return;
         
         if (type === 'image') {
-          editor.chain().focus().setImage({ src: url }).run();
+          editor.chain().focus().insertContent([
+            {
+              type: 'image',
+              attrs: { src: url }
+            },
+            {
+              type: 'paragraph'
+            }
+          ]).run();
         } else if (type === 'video') {
           editor.chain().focus().insertContent([
             {
@@ -657,17 +739,26 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
               type: 'paragraph'
             }
           ]).run();
+        } else if (type === 'document') {
+          editor.chain().focus().insertContent([
+            {
+              type: 'document',
+              attrs: { src: url }
+            },
+            {
+              type: 'paragraph'
+            }
+          ]).run();
         }
       }
     }));
 
-    // Sync external changes (e.g., when clearing the form on complete or loading from template)
     useEffect(() => {
       if (editor && value !== editor.getHTML()) {
          if (value === '') {
              editor.commands.setContent('');
          } else {
-             editor.commands.setContent(value, false);
+             editor.commands.setContent(value);
          }
       }
     }, [value, editor]);
