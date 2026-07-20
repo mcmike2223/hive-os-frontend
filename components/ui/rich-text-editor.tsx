@@ -667,7 +667,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
          if (value === '') {
              editor.commands.setContent('');
          } else {
-             editor.commands.setContent(value, false);
+             editor.commands.setContent(value, { emitUpdate: false });
          }
       }
     }, [value, editor]);

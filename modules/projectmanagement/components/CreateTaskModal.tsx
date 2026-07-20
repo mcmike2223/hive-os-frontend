@@ -123,10 +123,13 @@ const createTaskSchema = (projectStartDate?: Date, projectEndDate?: Date, t?: Tr
 
 type TaskFormValues = z.infer<ReturnType<typeof createTaskSchema>>;
 type SelectedMediaFile = {
+  name?: string | null;
   path?: string | null;
   url?: string | null;
   mime_type?: string | null;
   media_details?: {
+    relative_path?: string | null;
+    original_name?: string | null;
     url?: string | null;
   } | null;
 };
@@ -292,7 +295,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const handleFileSelect = (file: SelectedMediaFile) => {
     const path = file?.media_details?.relative_path || file?.path;
     const name = file?.media_details?.original_name || file?.name || path?.split("/").pop() || "Unnamed File";
-    const url = file?.media_details?.url || file?.url;
+    const url = file?.media_details?.url || file?.url || path || "";
 
     if (!path) {
       toast.error("Could not extract file path");
