@@ -40,6 +40,16 @@ export const inventoryModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "inventory",
+      translationKey: "nav.inventory_item_categories",
+      fallbackLabel: "Item Categories",
+      href: "/dashboard/inventory/inventory/categories",
+      icon: Shapes,
+      permissions: ["view_inventory", "manage_inventory"],
+      subscriptionSlug: "inventory_control",
+      placement: "primary",
+    },
+    {
+      moduleId: "inventory",
       translationKey: "nav.inventory_categories",
       fallbackLabel: "Product Categories",
       href: "/dashboard/inventory/catalog/categories",

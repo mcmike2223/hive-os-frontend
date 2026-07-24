@@ -296,7 +296,7 @@ export default function InventoryShelvesPage() {
     if (tableQuery.search) params.set("search", tableQuery.search);
     params.set("sortCol", tableQuery.sortCol);
     params.set("sortDir", tableQuery.sortDir);
-    return `/inventory/shelves/export?${params.toString()}`;
+    return `/api/v1/inventory/shelves/export?${params.toString()}`;
   }, [tableQuery.search, tableQuery.sortCol, tableQuery.sortDir]);
 
   const columns = React.useMemo<ColumnDef<InventoryEntityRecord>[]>(

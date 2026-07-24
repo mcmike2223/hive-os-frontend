@@ -28,21 +28,89 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import { warehouseApi } from "@/modules/warehouse/api";
-import { fetchInventoryProduct, fetchInventoryProducts } from "@/modules/inventory/api";
+import { fetchInventoryProduct, fetchInventoryProducts, fetchInventoryItems } from "@/modules/inventory/api";
+import type { InventoryItem, ProductDetailResponse, ProductRecord } from "@/modules/inventory/types";
 import type { WarehouseLocation } from "@/modules/warehouse/types";
+import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
-const readPayloadValue = (record: WarehouseLocation, key: string, fallback: any = null): any => {
-  const meta = record.metadata;
+type StorableListItem = {
+  id: number;
+  name: string;
+  sku: string;
+  quantityLabel: string;
+};
+
+type BoxAssignmentDialogProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  shelfId: number;
+  boxData: { row: number; col: number; record?: WarehouseLocation } | null;
+  onSave: (data: {
+    id?: number;
+    payload: {
+      name: string;
+      code: string;
+      type: "box";
+      parent_id: number;
+      is_active: boolean;
+      metadata: Record<string, unknown>;
+    };
+  }) => void;
+  isPending: boolean;
+  addProductId: string | null;
+  clearBoxMutation: {
+    isPending: boolean;
+    mutate: (boxId: number) => void;
+  };
+};
+
+const readPayloadValue = (record: WarehouseLocation | Record<string, unknown>, key: string, fallback: unknown = null): unknown => {
+  const meta = (record as WarehouseLocation).metadata;
   if (!meta || typeof meta !== "object") return fallback;
-  const val = (meta as Record<string, any>)[key];
+  const val = (meta as Record<string, unknown>)[key];
   return val ?? fallback;
 };
+
+const unwrapProductDetail = (
+  res: ProductDetailResponse | ProductRecord | null | undefined
+): ProductRecord | null => {
+  if (!res) return null;
+  if ("product" in res && res.product) return res.product;
+  if ("id" in res && "name" in res && "sku" in res) return res as ProductRecord;
+  return null;
+};
+
+const toStorableListItemFromProduct = (product: ProductRecord): StorableListItem => ({
+  id: product.id,
+  name: product.name,
+  sku: product.sku,
+  quantityLabel: String(product.quantity ?? ""),
+});
+
+const toStorableListItemFromInventoryItem = (item: InventoryItem): StorableListItem => ({
+  id: item.id,
+  name: item.name,
+  sku: item.sku,
+  quantityLabel: String(item.current_stock ?? ""),
+});
+
 
 export function ShelfBoxesPage() {
   const { t } = useTranslation();
@@ -90,14 +158,13 @@ export function ShelfBoxesPage() {
 
   const productsQuery = useQuery({
     queryKey: ["inventory", "products", "batch", allProductIds],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<number, ProductRecord>> => {
       if (allProductIds.length === 0) return {};
-      const promises = allProductIds.map(id => fetchInventoryProduct(id));
-      const results = await Promise.all(promises);
-      const map: Record<number, any> = {};
-      results.forEach((res: any, i) => {
-        if (res?.data) map[allProductIds[i]] = res.data;
-        else if (res) map[allProductIds[i]] = res;
+      const results = await Promise.all(allProductIds.map((id) => fetchInventoryProduct(id)));
+      const map: Record<number, ProductRecord> = {};
+      results.forEach((res, i) => {
+        const product = unwrapProductDetail(res);
+        if (product) map[allProductIds[i]] = product;
       });
       return map;
     },
@@ -112,10 +179,26 @@ export function ShelfBoxesPage() {
       }
       return warehouseApi.createLocation({ ...data.payload, warehouse_id: warehouseId });
     },
-    onSuccess: () => {
-      toast.success(t("inventory.common.saved", "Box updated successfully."));
+    onSuccess: (response: any) => {
+      const body = response?.data ?? response;
+      const outcome = notifyMutationOutcome(body, {
+        savedMessage: addProductId
+          ? t("inventory.shelf_boxes.assigned", "Product assigned to shelf successfully.")
+          : t("inventory.common.saved", "Box updated successfully."),
+        submittedMessage: t(
+          "inventory.shelf_boxes.pending_approval",
+          "Shelf assignment submitted for approval."
+        ),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["warehouse", "locations", "boxes", shelfId] });
+      queryClient.invalidateQueries({ queryKey: ["warehouse", "locations", "box-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
       setIsDialogOpen(false);
+      if (addProductId) {
+        router.push("/dashboard/inventory/catalog/products");
+      }
+      return outcome;
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? t("inventory.common.failed", "Error saving box."));
@@ -140,6 +223,8 @@ export function ShelfBoxesPage() {
     onSuccess: () => {
       toast.success("Box cleared successfully.");
       queryClient.invalidateQueries({ queryKey: ["warehouse", "locations", "boxes", shelfId] });
+      queryClient.invalidateQueries({ queryKey: ["warehouse", "locations", "box-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
       setIsDialogOpen(false);
     },
     onError: (err: any) => {
@@ -154,6 +239,8 @@ export function ShelfBoxesPage() {
     onSuccess: () => {
       toast.success("Box deleted successfully.");
       queryClient.invalidateQueries({ queryKey: ["warehouse", "locations", "boxes", shelfId] });
+      queryClient.invalidateQueries({ queryKey: ["warehouse", "locations", "box-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
       setIsDialogOpen(false);
     },
     onError: (err: any) => {
@@ -166,20 +253,20 @@ export function ShelfBoxesPage() {
   const availableCount = boxesDataAll.filter((b: any) => b.metadata?.status !== "occupied").length;
   const totalStoredQty = boxesDataAll.reduce((sum: number, b: any) => sum + (Number(b.metadata?.quantity_stored) || 0), 0);
 
-  const occupiedBoxes = boxesDataAll.filter((b: any) => b.metadata?.status === "occupied" && b.metadata?.storable_type === "product");
-  const uniqueProductsMap = new Map<number, { product: any; quantity: number; boxes: string[] }>();
-  occupiedBoxes.forEach((box: any) => {
+  const occupiedBoxes = boxesDataAll.filter((b: WarehouseLocation) => b.metadata?.status === "occupied" && b.metadata?.storable_type === "product");
+  const uniqueProductsMap = new Map<number, { product: ProductRecord | null; quantity: number; boxes: string[]; productId: number }>();
+  occupiedBoxes.forEach((box: WarehouseLocation) => {
     const pid = Number(box.metadata?.storable_id);
     const qty = Number(box.metadata?.quantity_stored) || 0;
     const pos = `R${box.metadata?.row}C${box.metadata?.column}`;
     const productsData = productsQuery.data;
-    const productInfo = productsData ? productsData[pid] : null;
+    const productInfo = productsData ? productsData[pid] ?? null : null;
     if (pid && uniqueProductsMap.has(pid)) {
       const existing = uniqueProductsMap.get(pid)!;
       existing.quantity += qty;
       existing.boxes.push(pos);
     } else if (pid) {
-      uniqueProductsMap.set(pid, { product: productInfo, quantity: qty, boxes: [pos] });
+      uniqueProductsMap.set(pid, { product: productInfo, quantity: qty, boxes: [pos], productId: pid });
     }
   });
   const uniqueProducts = Array.from(uniqueProductsMap.values());
@@ -217,9 +304,11 @@ export function ShelfBoxesPage() {
 
   // Map boxes to grid
   const boxMap = new Map<string, WarehouseLocation>();
-  const boxesData = Array.isArray(boxesQuery.data) ? boxesQuery.data : boxesQuery.data?.data || [];
+  const boxesData: WarehouseLocation[] = Array.isArray(boxesQuery.data)
+    ? boxesQuery.data
+    : [];
   
-  boxesData.forEach((box: WarehouseLocation) => {
+  boxesData.forEach((box) => {
     const r = readPayloadValue(box, "row");
     const c = readPayloadValue(box, "column");
     if (r != null && c != null) {
@@ -270,6 +359,29 @@ export function ShelfBoxesPage() {
            </Badge>
         </div>
       </div>
+
+      {/* Add Product Guidance Banner */}
+      {addProductId && (
+        <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-foreground">Assign Product to Box</p>
+              <p className="text-sm text-muted-foreground">Click on any box below to assign this product to it.</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/dashboard/warehouse/locations/shelves")}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/50 bg-background/40 p-4 backdrop-blur-xl">
@@ -351,7 +463,7 @@ export function ShelfBoxesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate">
-                    {item.product?.name || item.product?.product?.name || `Product #${item.product?.id || item.product}`}
+                    {item.product?.name || `Product #${item.productId}`}
                   </div>
                   <div className="text-xs text-muted-foreground flex gap-2">
                     <span>Qty: {item.quantity}</span>
@@ -399,10 +511,10 @@ export function ShelfBoxesPage() {
             const r = rowIndex + 1;
             const c = colIndex + 1;
             const box = boxMap.get(`${r}-${c}`);
-            const statusValue = readPayloadValue((box || {}) as WarehouseLocation, "status", "available");
+            const statusValue = String(readPayloadValue((box || {}) as WarehouseLocation, "status", "available") ?? "available");
             const storableType = readPayloadValue((box || {}) as WarehouseLocation, "storable_type");
             
-            const statusLabel = statusValue === 'occupied'
+            const statusLabel = statusValue === "occupied"
               ? t("inventory.shelf_boxes.occupied", "occupied")
               : statusValue === "reserved"
                 ? t("inventory.shelf_boxes.reserved", "reserved")
@@ -410,8 +522,18 @@ export function ShelfBoxesPage() {
 
             const storableId = box?.metadata?.storable_id;
             const storableTypeMeta = box?.metadata?.storable_type;
-            const prodInfo = (storableId && storableTypeMeta === 'product' ? (productsQuery.data as any)?.[Number(storableId)] : null);
-            const productName = prodInfo?.name || box?.name || (storableTypeMeta === 'product' ? `Product #${storableId}` : (storableTypeMeta === 'good' ? `Good #${storableId}` : ""));
+            const prodInfo =
+              storableId && storableTypeMeta === "product"
+                ? productsQuery.data?.[Number(storableId)] ?? null
+                : null;
+            const productName =
+              prodInfo?.name ||
+              box?.name ||
+              (storableTypeMeta === "product"
+                ? `Product #${storableId}`
+                : storableTypeMeta === "good"
+                  ? `Good #${storableId}`
+                  : "");
             const productSku = prodInfo?.sku || "";
             const matchesSearch = !searchQuery ||
               productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -458,7 +580,9 @@ export function ShelfBoxesPage() {
                         <div className="text-center">
                           <div className="truncate">{productName}</div>
                           <div className="text-[9px] font-mono text-muted-foreground">{productSku}</div>
-                          <div className="text-[9px] font-mono text-orange-600">Qty: {readPayloadValue(box, "quantity_stored", 0)}</div>
+                          <div className="text-[9px] font-mono text-orange-600">
+                            Qty: {String(readPayloadValue(box, "quantity_stored", 0) ?? 0)}
+                          </div>
                         </div>
                       ) : box.name}
                     </span>
@@ -488,7 +612,16 @@ export function ShelfBoxesPage() {
   );
 }
 
-function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPending, addProductId, clearBoxMutation }: any) {
+function BoxAssignmentDialog({
+  isOpen,
+  onClose,
+  shelfId,
+  boxData,
+  onSave,
+  isPending,
+  addProductId,
+  clearBoxMutation,
+}: BoxAssignmentDialogProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = React.useState({
     name: "",
@@ -500,13 +633,22 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
     notes: ""
   });
   const [productSearch, setProductSearch] = React.useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = React.useState(false);
 
   const productsQuery = useQuery({
-    queryKey: ["inventory", "products", "list", productSearch],
-    queryFn: async () => {
+    queryKey: ["inventory", "products", "list", productSearch, formData.storable_type],
+    queryFn: async (): Promise<StorableListItem[]> => {
       try {
+        if (formData.storable_type === "good") {
+          const res = await fetchInventoryItems({ search: productSearch || undefined, per_page: 50 });
+          const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+          return rows.map(toStorableListItemFromInventoryItem);
+        }
+
         const res = await fetchInventoryProducts({ search: productSearch || undefined, per_page: 50 });
-        return res.data || res || [];
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        return rows.map(toStorableListItemFromProduct);
       } catch {
         return [];
       }
@@ -514,22 +656,51 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
     enabled: true,
   });
 
-  const selectedProduct = React.useMemo(() => {
-    if (!formData.storable_id || !productsQuery.data) return null;
-    return productsQuery.data.find((p: any) => p.id === Number(formData.storable_id));
-  }, [formData.storable_id, productsQuery.data]);
+  const specificProductQuery = useQuery({
+    queryKey: ["inventory", "product", "detail", addProductId],
+    queryFn: async (): Promise<ProductRecord | null> => {
+      if (!addProductId) return null;
+      try {
+        const res = await fetchInventoryProduct(Number(addProductId));
+        return unwrapProductDetail(res);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!addProductId,
+  });
+
+  const selectedProduct = React.useMemo((): StorableListItem | null => {
+    if (!formData.storable_id) return null;
+    const fromList = productsQuery.data?.find((p) => p.id === Number(formData.storable_id));
+    if (fromList) return fromList;
+    const guided = specificProductQuery.data;
+    if (guided && guided.id === Number(formData.storable_id)) {
+      return toStorableListItemFromProduct(guided);
+    }
+    return null;
+  }, [formData.storable_id, productsQuery.data, specificProductQuery.data]);
 
   React.useEffect(() => {
     if (boxData?.record) {
       const box = boxData.record;
+      const existingStorableId = readPayloadValue(box, "storable_id", "");
+      const existingStatus = String(readPayloadValue(box, "status", "available") ?? "available");
+      const shouldPrefillAssign =
+        !!addProductId && !existingStorableId && existingStatus !== "occupied";
+
       setFormData({
         name: box.name || "",
         code: box.code || "",
-        status: readPayloadValue(box, "status", "available"),
-        storable_type: readPayloadValue(box, "storable_type", "product"),
-        storable_id: String(readPayloadValue(box, "storable_id", "")),
-        quantity_stored: String(readPayloadValue(box, "quantity_stored", "0")),
-        notes: readPayloadValue(box, "notes", "")
+        status: shouldPrefillAssign ? "occupied" : existingStatus,
+        storable_type: shouldPrefillAssign
+          ? "product"
+          : String(readPayloadValue(box, "storable_type", "product") ?? "product"),
+        storable_id: shouldPrefillAssign
+          ? String(addProductId)
+          : String(existingStorableId || ""),
+        quantity_stored: String(readPayloadValue(box, "quantity_stored", "0") ?? "0"),
+        notes: String(readPayloadValue(box, "notes", "") ?? "")
       });
     } else {
       setFormData({
@@ -544,9 +715,31 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
     }
   }, [boxData, shelfId, addProductId, t]);
 
+  // Prefill product search when guided assign product data loads
+  React.useEffect(() => {
+    if (!addProductId || !specificProductQuery.data) return;
+    const productName = specificProductQuery.data.name || "";
+    if (!productName) return;
+
+    const existingStorableId = boxData?.record
+      ? readPayloadValue(boxData.record, "storable_id", "")
+      : "";
+    if (!existingStorableId || String(existingStorableId) === String(addProductId)) {
+      setProductSearch(productName);
+    }
+  }, [addProductId, specificProductQuery.data, boxData?.record]);
+
   const handleSubmit = () => {
+    if (!boxData) return;
+
+    const storableId = Number(formData.storable_id) || null;
+    const hasStorable = !!storableId;
+    const status = hasStorable
+      ? (formData.status === "available" ? "occupied" : formData.status)
+      : formData.status;
+
     onSave({
-      id: boxData?.record?.id,
+      id: boxData.record?.id,
       payload: {
         name: formData.name,
         code: formData.code,
@@ -556,9 +749,9 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
         metadata: {
           row: boxData.row,
           column: boxData.col,
-          status: formData.status,
-          storable_type: formData.storable_type,
-          storable_id: Number(formData.storable_id) || null,
+          status,
+          storable_type: hasStorable ? formData.storable_type : null,
+          storable_id: storableId,
           quantity_stored: Number(formData.quantity_stored),
           notes: formData.notes
         }
@@ -567,7 +760,13 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(nextOpen) => {
+      if (!nextOpen && isDropdownOpen) {
+        setIsDropdownOpen(false);
+        return;
+      }
+      if (!nextOpen) onClose();
+    }}>
       <DialogContent className="sm:max-w-xl rounded-[2.5rem] border-border/40 bg-background/95 p-0 backdrop-blur-2xl">
         <div className="border-b border-border/20 px-8 py-6">
           <DialogHeader>
@@ -627,28 +826,38 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
                </SelectContent>
              </Select>
 </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Select Product</Label>
               <Input
                 placeholder="Search products..."
                 value={productSearch}
-                onChange={e => setProductSearch(e.target.value)}
+                onChange={e => {
+                  setProductSearch(e.target.value);
+                  setIsDropdownOpen(true);
+                }}
+                onFocus={() => setIsDropdownOpen(true)}
                 className="rounded-2xl border-border/40 bg-background/50"
               />
-              {productSearch && (
-                <div className="max-h-40 overflow-y-auto border border-border/40 rounded-xl bg-background">
-                  {productsQuery.data?.map((p: any) => (
+              {productSearch && isDropdownOpen && (
+                <div className="absolute z-50 w-full max-h-40 overflow-y-auto border border-border/40 rounded-xl bg-background shadow-lg mt-1">
+                  {productsQuery.data?.map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => {
-                        setFormData(prev => ({ ...prev, storable_id: String(p.id), name: p.name }));
+                        setFormData(prev => ({
+                          ...prev,
+                          storable_id: String(p.id),
+                          name: p.name,
+                          status: prev.status === "available" ? "occupied" : prev.status,
+                        }));
                         setProductSearch(p.name);
+                        setIsDropdownOpen(false);
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b border-border/20 last:border-0"
                     >
                       <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">SKU: {p.sku} | Qty: {p.quantity}</div>
+                      <div className="text-xs text-muted-foreground">SKU: {p.sku} | Qty: {p.quantityLabel}</div>
                     </button>
                   ))}
                 </div>
@@ -674,20 +883,36 @@ function BoxAssignmentDialog({ isOpen, onClose, shelfId, boxData, onSave, isPend
         <DialogFooter className="border-t border-border/20 bg-muted/20 px-8 py-6">
           {boxData?.record && (
             <div className="flex-1">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  if (confirm("Clear this box? This will remove the product/good from this box.")) {
-                    clearBoxMutation.mutate(boxData.record.id);
-                  }
-                }}
-                disabled={clearBoxMutation.isPending || isPending}
-                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-xl"
-              >
-                <Loader2 className={`mr-2 h-4 w-4 ${clearBoxMutation.isPending ? "animate-spin" : ""}`} />
-                Clear Box
-              </Button>
+              <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={clearBoxMutation.isPending || isPending}
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-xl"
+                  >
+                    <Loader2 className={`mr-2 h-4 w-4 ${clearBoxMutation.isPending ? "animate-spin" : ""}`} />
+                    Clear Box
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear Box?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will remove the product/good from this box.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="rounded-xl bg-orange-600 hover:bg-orange-700"
+                      onClick={() => clearBoxMutation.mutate(boxData.record!.id)}
+                    >
+                      Clear
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
           <Button variant="ghost" onClick={onClose} className="rounded-full font-bold">{t("inventory.common.cancel", "Cancel")}</Button>

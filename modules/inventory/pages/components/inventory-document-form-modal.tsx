@@ -65,6 +65,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
   const [items, setItems] = React.useState<DocumentItem[]>([
     { id: "1", inventory_item_id: "", description: "", quantity: "", unit: "", unit_price: "", total_price: "" },
   ]);
+  const [anyDropdownOpen, setAnyDropdownOpen] = React.useState(false);
 
   const { data: inventoryItemsData, isLoading: isLoadingItems } = useQuery({
     queryKey: ["inventory", "items"],
@@ -126,7 +127,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
       title: title || null,
       notes: notes || null,
       items: validItems.map((item) => ({
-        inventory_item_id: item.inventory_item_id || null,
+        inventory_item_id: item.inventory_item_id ? parseInt(item.inventory_item_id, 10) : null,
         description: item.description || null,
         quantity: parseFloat(item.quantity),
         unit: item.unit || null,
@@ -143,12 +144,29 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
     setTitle("");
     setNotes("");
     setItems([{ id: "1", inventory_item_id: "", description: "", quantity: "", unit: "", unit_price: "", total_price: "" }]);
+    setAnyDropdownOpen(false);
     onClose();
   };
 
+  const handleDialogOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      handleClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2rem]">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent 
+        className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2rem]"
+        onPointerDownOutside={(e) => {
+          // Prevent dialog from closing on outside clicks
+          e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          // Prevent dialog from closing on outside interactions
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Create Inventory Document</DialogTitle>
           <DialogDescription>
@@ -156,12 +174,19 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form 
+          onSubmit={handleSubmit} 
+          className="space-y-6"
+        >
           <div className="grid gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="documentType">Document Type *</Label>
-              <Select value={documentType} onValueChange={setDocumentType}>
-                <SelectTrigger id="documentType">
+              <Select 
+                value={documentType} 
+                onValueChange={setDocumentType}
+                onOpenChange={(open) => setAnyDropdownOpen(open)}
+              >
+                <SelectTrigger id="documentType" className="w-full">
                   <SelectValue placeholder="Select document type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -174,7 +199,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
@@ -184,7 +209,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
@@ -223,27 +248,33 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <Label htmlFor={`item-${item.id}-inventory`}>Inventory Item</Label>
                     <Select
                       value={item.inventory_item_id}
                       onValueChange={(value) => handleItemChange(item.id, "inventory_item_id", value)}
+                      onOpenChange={(open) => setAnyDropdownOpen(open)}
                       disabled={isLoadingItems}
                     >
-                      <SelectTrigger id={`item-${item.id}-inventory`}>
-                        <SelectValue placeholder="Select item" />
+                      <SelectTrigger id={`item-${item.id}-inventory`} className="w-full">
+                        <SelectValue placeholder="Select item" className="truncate" />
                       </SelectTrigger>
                       <SelectContent>
                         {inventoryItems.map((invItem: any) => (
                           <SelectItem key={invItem.id} value={String(invItem.id)}>
-                            {invItem.name} ({invItem.sku})
+                            <span
+                              className="block max-w-[240px] truncate"
+                              title={`${invItem.name} (${invItem.sku})`}
+                            >
+                              {invItem.name} ({invItem.sku})
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <Label htmlFor={`item-${item.id}-description`}>Description</Label>
                     <Input
                       id={`item-${item.id}-description`}
@@ -253,7 +284,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <Label htmlFor={`item-${item.id}-quantity`}>Quantity *</Label>
                     <Input
                       id={`item-${item.id}-quantity`}
@@ -267,7 +298,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <Label htmlFor={`item-${item.id}-unit`}>Unit</Label>
                     <Input
                       id={`item-${item.id}-unit`}
@@ -277,7 +308,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <Label htmlFor={`item-${item.id}-unitPrice`}>Unit Price</Label>
                     <Input
                       id={`item-${item.id}-unitPrice`}
@@ -290,7 +321,7 @@ export function InventoryDocumentFormModal({ open, onClose }: Props) {
                     />
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <Label htmlFor={`item-${item.id}-totalPrice`}>Total Price</Label>
                     <Input
                       id={`item-${item.id}-totalPrice`}

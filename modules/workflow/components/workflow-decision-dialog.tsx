@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { SignaturePad } from "@/components/ui/signature-pad";
 import { Textarea } from "@/components/ui/textarea";
 import { actionWorkflowApproval } from "../api";
+import { useBusinessType } from "@/hooks/use-business-type";
 
 export const PRODUCT_MODEL_TYPE = "Modules\\Inventory\\Models\\Product";
 
@@ -86,11 +87,12 @@ export const QA_STATUS_META: Record<ProductQaStatus, { label: string; className:
   },
 };
 
-export function getWorkflowApprovalGate(approval?: WorkflowDecisionApproval | null) {
+export function getWorkflowApprovalGate(approval?: WorkflowDecisionApproval | null, hasBusinessType?: (type: string) => boolean) {
   const definition = approval?.workflow_definition || approval?.workflowDefinition;
   const productGateEnabled = definition?.actions?.product_quality_gate?.enabled === true;
   const workflowGateEnabled = definition?.actions?.workflow_gate?.enabled === true;
-  const isProduct = approval?.approvable_type === PRODUCT_MODEL_TYPE && productGateEnabled;
+  const isWaterBottling = hasBusinessType?.("water-bottling") || false;
+  const isProduct = approval?.approvable_type === PRODUCT_MODEL_TYPE && productGateEnabled && isWaterBottling;
   const qaStatus = approval?.approvable?.workflow_gate?.qa_status || approval?.approvable?.qa_status || "pending";
   const meta = QA_STATUS_META[qaStatus] || QA_STATUS_META.pending;
 
@@ -145,6 +147,7 @@ export function WorkflowDecisionDialog({
   onOpenChange,
   onSubmitted,
 }: WorkflowDecisionDialogProps) {
+  const { hasBusinessType } = useBusinessType();
   const [decisionNotes, setDecisionNotes] = React.useState("");
   const [evidenceFiles, setEvidenceFiles] = React.useState<File[]>([]);
   const [signatureData, setSignatureData] = React.useState<string | null>(null);
@@ -160,7 +163,7 @@ export function WorkflowDecisionDialog({
     }
   }, [open, approval?.id, status]);
 
-  const gate = getWorkflowApprovalGate(approval);
+  const gate = getWorkflowApprovalGate(approval, hasBusinessType);
   const subjectName = approval?.approvable?.name
     || approval?.approvable?.document_number
     || approval?.approvable?.title
