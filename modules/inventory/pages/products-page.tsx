@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 
 import {
-  bulkDeleteInventoryProducts,
   bulkUpdateInventoryProductsStatus,
   deleteInventoryProduct,
   fetchInventoryProduct,
@@ -57,7 +56,7 @@ import { getBackendStorageUrl } from "@/lib/runtime-context";
 import { openSecureAssetInNewTab, SecureAssetImage } from "@/components/ui/secure-asset-image";
 import { getInventoryAssetPreviewUrl } from "@/modules/inventory/lib/product-assets";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type SortDirection = "asc" | "desc";
 type ProductStatus = "draft" | "published" | "archived";
@@ -151,6 +150,7 @@ export default function InventoryProductsPage() {
   const [detailSheetOpen, setDetailSheetOpen] = React.useState(false);
   const [detailProductId, setDetailProductId] = React.useState<number | null>(null);
   const [qaProduct, setQaProduct] = React.useState<ProductRecord | null>(null);
+  const [bulkDeleting, setBulkDeleting] = React.useState(false);
 
   const selectedIds = React.useMemo(
     () =>
@@ -188,18 +188,6 @@ export default function InventoryProductsPage() {
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete product.")));
-    },
-  });
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: number[]) => bulkDeleteInventoryProducts(ids),
-    onSuccess: (payload) => {
-      queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
-      toast.success(`${payload.deleted_count} ${t("inventory.products.bulk_deleted_msg", "product(s) deleted.")}`);
-      clearSelection();
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete selected products.")));
     },
   });
 
@@ -311,9 +299,24 @@ export default function InventoryProductsPage() {
         toast.error(t("inventory.common.select_at_least_one", "Select at least one product first."));
         return;
       }
-      await bulkDeleteMutation.mutateAsync(ids);
+
+      setBulkDeleting(true);
+      try {
+        const results = await Promise.all(ids.map((id) => deleteInventoryProduct(id)));
+        notifyBulkDeleteOutcomes(results, {
+          savedMessage: (count) => `${count} ${t("inventory.products.bulk_deleted_msg", "product(s) deleted.")}`,
+          submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+          queryClient,
+        });
+        queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
+        clearSelection();
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete selected products.")));
+      } finally {
+        setBulkDeleting(false);
+      }
     },
-    [bulkDeleteMutation, t]
+    [clearSelection, queryClient, t]
   );
 
   const columns = React.useMemo<ColumnDef<ProductRecord>[]>(
@@ -686,9 +689,9 @@ export default function InventoryProductsPage() {
                 <Button
                   variant="destructive"
                   className="rounded-xl shadow-lg shadow-red-500/20"
-                  disabled={selectedIds.length === 0 || bulkDeleteMutation.isPending}
+                  disabled={selectedIds.length === 0 || bulkDeleting || deleteMutation.isPending}
                 >
-                  {bulkDeleteMutation.isPending ? (
+                  {bulkDeleting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
                   {t("inventory.common.delete_selected", "Delete Selected")}
@@ -728,8 +731,8 @@ export default function InventoryProductsPage() {
         selectedRowIds={selectedRowIds}
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
-          const ids = rows.map((row) => row.id);
-          await handleBulkDelete(ids);
+          if (rows.length === 0) return;
+          await handleBulkDelete(rows.map((row) => row.id));
         }}
         onQueryChange={handleTableQueryChange}
         onRefresh={() => {

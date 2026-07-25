@@ -184,7 +184,12 @@ export const deleteInventoryProduct = async (id: number) =>
 
 export const bulkDeleteInventoryProducts = async (ids: number[]) =>
   (
-    await api.post<{ deleted_count: number }>("/inventory/products/bulk-delete", {
+    await api.post<{
+      deleted_count: number;
+      requires_approval?: boolean;
+      message?: string;
+      submissions?: unknown[];
+    }>("/inventory/products/bulk-delete", {
       ids,
     })
   ).data;
