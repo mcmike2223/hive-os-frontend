@@ -40,6 +40,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { Model3DViewer } from "@/components/ui/model-3d-viewer";
 import { SecureAssetImage } from "@/components/ui/secure-asset-image";
 import { getInventoryAssetPreviewUrl } from "@/modules/inventory/lib/product-assets";
+import { isWorkflowPendingSubmission, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type ModalMode = "create" | "edit" | "duplicate";
 type InventoryAssetSelection = {
@@ -405,13 +406,19 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
       return createInventoryProduct(data);
     },
     onSuccess: (product) => {
+      const outcome = notifyMutationOutcome(product, {
+        savedMessage: isEdit ? "Product updated." : isDuplicate ? "Product duplicated." : "Product created.",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
       queryClient.invalidateQueries({ queryKey: ["inventory", "products", "summary"] });
       if (productId) {
         queryClient.invalidateQueries({ queryKey: ["inventory", "products", "detail", productId] });
       }
-      toast.success(isEdit ? "Product updated." : isDuplicate ? "Product duplicated." : "Product created.");
-      onSaved?.(product);
+      if (outcome === "saved" && !isWorkflowPendingSubmission(product)) {
+        onSaved?.(product as ProductRecord);
+      }
       onClose();
     },
     onError: (error: unknown) => toast.error(getErrorMessage(error, "Failed to save product.")),

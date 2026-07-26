@@ -36,6 +36,7 @@ import type { ProductCategory } from "@/modules/inventory/types";
 import { fetchWorkflowApprovals } from "@/modules/workflow/api";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
 import type { WorkflowDecisionApproval } from "@/modules/workflow/components/workflow-decision-dialog";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type TableQueryState = {
   page: number;
@@ -145,8 +146,14 @@ export default function ProductCategoriesPage() {
 
       return createInventoryProductCategory(payload);
     },
-    onSuccess: () => {
-      toast.success(form.id ? t("inventory.common.saved", "Category updated.") : t("inventory.common.saved", "Category created."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: form.id
+          ? t("inventory.common.saved", "Category updated.")
+          : t("inventory.common.saved", "Category created."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "product-categories"] });
       queryClient.invalidateQueries({ queryKey: ["workflow", "product-category-approvals"] });
       closeModal();
@@ -158,8 +165,12 @@ export default function ProductCategoriesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteInventoryProductCategory,
-    onSuccess: () => {
-      toast.success(t("inventory.common.deleted", "Category deleted."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Category deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "product-categories"] });
       setSelectedRowIds({});
     },
@@ -361,7 +372,12 @@ export default function ProductCategoriesPage() {
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
           if (rows.length === 0) return;
-          await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          notifyBulkDeleteOutcomes(results, {
+            savedMessage: (count) => `${count} ${t("inventory.categories.bulk_deleted_msg", "category(ies) deleted.")}`,
+            submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+            queryClient,
+          });
           clearSelection();
         }}
         onQueryChange={handleTableQueryChange}

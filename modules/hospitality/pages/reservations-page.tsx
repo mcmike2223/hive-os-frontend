@@ -52,6 +52,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
 import { initEcho } from "@/lib/echo";
 import { getAccessToken, getTenantId } from "@/lib/runtime-context";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
@@ -188,9 +189,13 @@ export default function ReservationsPage() {
 
   const createMutation = useMutation({
     mutationFn: createHospitalityReservation,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Reservation booked successfully",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "reservations"] });
-      toast.success("Reservation booked successfully");
       setIsDialogOpen(false);
       resetForm();
     },
@@ -202,9 +207,13 @@ export default function ReservationsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
       updateHospitalityReservation(id, payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Reservation details updated",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "reservations"] });
-      toast.success("Reservation details updated");
       setIsDialogOpen(false);
       resetForm();
     },
@@ -216,9 +225,13 @@ export default function ReservationsPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       updateHospitalityReservation(id, { status }),
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
+      notifyMutationOutcome(data, {
+        savedMessage: `Reservation status set to ${variables.status}`,
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "reservations"] });
-      toast.success(`Reservation status set to ${variables.status}`);
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to update status");
@@ -226,8 +239,13 @@ export default function ReservationsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/hospitality/reservations/${id}`),
-    onSuccess: () => {
+    mutationFn: async (id: number) => (await api.delete(`/hospitality/reservations/${id}`)).data,
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: "Reservation deleted.",
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "reservations"] });
     },
     onError: (error: any) => {
@@ -321,12 +339,16 @@ export default function ReservationsPage() {
 
   const handleDeleteRows = useCallback(async (rows: HospitalityReservation[]) => {
     try {
-      await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
-      toast.success(`${rows.length} reservation(s) deleted.`);
+      const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+      notifyBulkDeleteOutcomes(results, {
+        savedMessage: (count) => `${count} reservation(s) deleted.`,
+        submittedMessage: "Submitted for approval.",
+        queryClient,
+      });
     } catch {
       toast.error("An error occurred during deletion.");
     }
-  }, [deleteMutation]);
+  }, [deleteMutation, queryClient]);
 
   const columns = useMemo<ColumnDef<HospitalityReservation>[]>(() => [
     {

@@ -60,7 +60,7 @@ export default function ApprovalRolesPage() {
         fetchUsers({ per_page: 100 })
       ]);
       setRoles((rolesData.data || []) as WorkflowApprovalRole[]);
-      setUsers((usersData.data || []) as WorkflowRoleUser[]);
+      setUsers(((usersData as Record<string, unknown>).data || []) as WorkflowRoleUser[]);
     } catch {
       toast.error("Failed to load roles and users.");
     } finally {

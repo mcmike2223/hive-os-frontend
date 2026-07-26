@@ -6,13 +6,24 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -165,7 +176,7 @@ export default function WorkflowRulesPage() {
   const [targets, setTargets] = useState<WorkflowTarget[]>(APPROVABLE_MODELS.map((model) => ({
     ...model,
     model_type: model.value,
-    events: ["manual", "on_create", "on_update", "on_status_change", "submit_for_approval"],
+    events: ["manual", "on_create", "on_update", "on_delete", "on_status_change", "submit_for_approval"],
   })));
   const [users, setUsers] = useState<WorkflowUser[]>([]);
   const [roles, setRoles] = useState<WorkflowRole[]>([]);
@@ -202,7 +213,7 @@ export default function WorkflowRulesPage() {
         fetchWorkflowTargets(),
       ]);
       setDefinitions((defsData || []) as WorkflowDefinitionRow[]);
-      setUsers((usersData.data || []) as WorkflowUser[]);
+      setUsers(((usersData as Record<string, unknown>).data || []) as WorkflowUser[]);
       setRoles((rolesData.data || []) as WorkflowRole[]);
       if (targetsData?.length) {
         setTargets(targetsData);
@@ -279,11 +290,21 @@ export default function WorkflowRulesPage() {
     }
   };
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this workflow rule?")) return;
+    setRuleToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!ruleToDelete) return;
     try {
-      await deleteWorkflowDefinition(id);
+      await deleteWorkflowDefinition(ruleToDelete);
       toast.success("Rule deleted");
+      setDeleteDialogOpen(false);
+      setRuleToDelete(null);
       loadData();
     } catch {
       toast.error("Delete failed");
@@ -324,10 +345,10 @@ export default function WorkflowRulesPage() {
   const selectedAssignmentTarget = targets.find((target) => target.value === manualAssignment.model_type);
   const ruleEvents = selectedRuleTarget?.events?.length
     ? selectedRuleTarget.events
-    : ["manual", "on_create", "on_update", "on_status_change", "submit_for_approval"];
+    : ["manual", "on_create", "on_update", "on_delete", "on_status_change", "submit_for_approval"];
   const assignmentEvents = selectedAssignmentTarget?.events?.length
     ? selectedAssignmentTarget.events
-    : ["manual", "on_create", "on_update", "on_status_change", "submit_for_approval"];
+    : ["manual", "on_create", "on_update", "on_delete", "on_status_change", "submit_for_approval"];
 
   return (
     <div className="p-6 space-y-6">
@@ -381,9 +402,27 @@ export default function WorkflowRulesPage() {
                   <Badge variant={def.is_active ? "default" : "outline"} className={def.is_active ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20" : ""}>
                     {def.is_active ? "Active" : "Inactive"}
                   </Badge>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(def.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog open={deleteDialogOpen && ruleToDelete === def.id} onOpenChange={(open) => { if (!open) { setDeleteDialogOpen(false); setRuleToDelete(null); } }}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(def.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-[2rem] bg-background/95 backdrop-blur-xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Workflow Rule?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the workflow rule <strong>"{def.name}"</strong>. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="rounded-xl bg-destructive hover:bg-destructive/90">
+                          Delete Rule
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardHeader>
               <CardContent className="bg-muted/30 py-6 border-y border-muted">
@@ -398,24 +437,25 @@ export default function WorkflowRulesPage() {
                   </div>
                   <div className="flex-1 min-w-[200px] space-y-1">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Approvers Sequence</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      {def.approver_ids?.map((uid: number) => {
-                        const user = users.find(u => u.id === uid);
-                        return (
-                          <Badge key={uid} variant="secondary" className="gap-1 px-2 py-1">
-                            <Users className="h-3 w-3" /> {user?.name || "User #" + uid}
-                          </Badge>
-                        );
-                      })}
-                      {def.approval_role_ids?.map((rid: number) => {
-                        const role = roles.find(r => r.id === rid);
-                        return (
-                          <Badge key={rid} variant="default" className="gap-1 px-2 py-1 bg-indigo-500">
-                            <Shield className="h-3 w-3" /> {role?.name || "Role #" + rid}
-                          </Badge>
-                        );
-                      })}
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+  {def.approver_ids?.map((approver: number | {id: number, sequence: number}) => {
+    const uid = typeof approver === 'number' ? approver : approver.id;
+    const user = users.find(u => u.id === uid);
+    return (
+      <Badge key={uid} variant="secondary" className="gap-1 px-2 py-1">
+        <Users className="h-3 w-3" /> {user?.name || `User #${uid}`}
+      </Badge>
+    );
+  })}
+  {def.approval_role_ids?.map((rid: number) => {
+    const role = roles.find(r => r.id === rid);
+    return (
+      <Badge key={rid} variant="default" className="gap-1 px-2 py-1 bg-indigo-500">
+        <Shield className="h-3 w-3" /> {role?.name || `Role #${rid}`}
+      </Badge>
+    );
+  })}
+</div>
                   </div>
                   <div className="space-y-1 text-center pr-4">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Required</span>
@@ -623,9 +663,9 @@ export default function WorkflowRulesPage() {
                 <Label>Minimum Required Approvals</Label>
                 <p className="text-[10px] text-muted-foreground">Number of approvals needed to complete the process.</p>
               </div>
-              <Input 
-                type="number" 
-                className="w-20 text-center font-bold" 
+              <Input
+                type="number"
+                className="w-24 text-center font-bold"
                 value={formData.required_approvals}
                 min={1}
                 onChange={(e) => setFormData({ ...formData, required_approvals: parseInt(e.target.value) || 1 })}

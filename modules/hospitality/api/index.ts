@@ -11,6 +11,7 @@ import type {
   HospitalityStaffShift,
   HospitalityWaitlistEntry,
   HospitalityFeedback,
+  HospitalityZone,
 } from "@/modules/hospitality/types";
 
 type Paginated<T> = {
@@ -79,6 +80,15 @@ export const deleteHospitalityMenuItem = async (id: number) =>
 
 export const fetchHospitalityMenuCategories = async (params: Record<string, unknown> = {}) =>
   unwrapList<HospitalityMenuCategory>((await api.get("/hospitality/menu-categories", { params })).data);
+
+export const createHospitalityMenuCategory = async (payload: Record<string, unknown>) =>
+  (await api.post<HospitalityMenuCategory>("/hospitality/menu-categories", payload)).data;
+
+export const updateHospitalityMenuCategory = async (id: number, payload: Record<string, unknown>) =>
+  (await api.put<HospitalityMenuCategory>(`/hospitality/menu-categories/${id}`, payload)).data;
+
+export const deleteHospitalityMenuCategory = async (id: number) =>
+  (await api.delete(`/hospitality/menu-categories/${id}`)).data;
 
 export const fetchHospitalityStaffShifts = async (params: Record<string, unknown> = {}) =>
   unwrapList<HospitalityStaffShift>((await api.get("/hospitality/staff-shifts", { params })).data);
@@ -154,6 +164,18 @@ export const fetchFloorPlan = async (params: Record<string, unknown> = {}) =>
 
 export const updateLocationStatus = async (id: number, status: string) =>
   (await api.patch(`/hospitality/space/locations/${id}/status`, { status })).data;
+
+export const fetchHospitalityZones = async (params: Record<string, unknown> = {}) =>
+  unwrapList<HospitalityZone>((await api.get("/hospitality/zones", { params })).data);
+
+export const createHospitalityZone = async (payload: Record<string, unknown>) =>
+  (await api.post<HospitalityZone>("/hospitality/zones", payload)).data;
+
+export const updateHospitalityZone = async (id: number, payload: Record<string, unknown>) =>
+  (await api.put<HospitalityZone>(`/hospitality/zones/${id}`, payload)).data;
+
+export const deleteHospitalityZone = async (id: number) =>
+  (await api.delete(`/hospitality/zones/${id}`)).data;
 
 export const fetchGuestList = async () =>
   (await api.get("/hospitality/door/guest-list")).data;

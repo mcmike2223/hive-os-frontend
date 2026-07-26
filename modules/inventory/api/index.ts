@@ -126,7 +126,19 @@ export const fetchInventoryItems = async (params: ListParams = {}) =>
     await api.get<PaginatedResponse<InventoryItem>>("/inventory/items", {
       params,
     })
-  ).data.data;
+  ).data;
+
+export const createInventoryItem = async (payload: Record<string, unknown>) =>
+  (await api.post<InventoryItem>("/inventory/items", payload)).data;
+
+export const updateInventoryItem = async (id: number, payload: Record<string, unknown>) =>
+  (await api.patch<InventoryItem>(`/inventory/items/${id}`, payload)).data;
+
+export const deleteInventoryItem = async (id: number) =>
+  (await api.delete(`/inventory/items/${id}`)).data;
+
+export const adjustInventoryItemStock = async (id: number, payload: Record<string, unknown>) =>
+  (await api.post(`/inventory/items/${id}/adjust-stock`, payload)).data;
 
 export const fetchInventoryProducts = async (params: ListParams = {}) =>
   (
@@ -216,3 +228,6 @@ export const fetchInventoryBatchQaResults = async (batchId: number) =>
 
 export const fetchInventoryDocuments = async (params: ListParams = {}) =>
   (await api.get<PaginatedResponse<any>>("/inventory/documents", { params })).data;
+
+export const createInventoryDocument = async (payload: Record<string, unknown>) =>
+  (await api.post<any>("/inventory/documents", payload)).data;

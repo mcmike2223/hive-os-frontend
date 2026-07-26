@@ -1,4 +1,4 @@
-import { LayoutDashboard, Sofa, CalendarCheck2, ReceiptText, Utensils, Map as MapIcon, Users, MessageSquare, CreditCard, GalleryHorizontalEnd } from "lucide-react";
+import { LayoutDashboard, Sofa, CalendarCheck2, ReceiptText, Utensils, Map as MapIcon, Users, MessageSquare, CreditCard, GalleryHorizontalEnd, Tag as TagIcon } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const hospitalityModule: FrontendModuleDefinition = {
@@ -14,6 +14,8 @@ export const hospitalityModule: FrontendModuleDefinition = {
     "/dashboard/hospitality/space",
     "/dashboard/hospitality/door",
     "/dashboard/hospitality/menu",
+    "/dashboard/hospitality/menu-categories",
+    "/dashboard/hospitality/zones",
     "/dashboard/hospitality/staff",
     "/dashboard/hospitality/crm",
     "/dashboard/hospitality/events",
@@ -37,6 +39,15 @@ export const hospitalityModule: FrontendModuleDefinition = {
       translationKey: "nav.hospitality_space",
       fallbackLabel: "Space Management",
       href: "/dashboard/hospitality/space",
+      icon: MapIcon,
+      subscriptionSlug: "hospitality",
+      placement: "primary",
+    },
+    {
+      moduleId: "hospitality",
+      translationKey: "nav.hospitality_zones",
+      fallbackLabel: "Zones",
+      href: "/dashboard/hospitality/zones",
       icon: MapIcon,
       subscriptionSlug: "hospitality",
       placement: "primary",
@@ -84,6 +95,15 @@ export const hospitalityModule: FrontendModuleDefinition = {
       fallbackLabel: "Menu Management",
       href: "/dashboard/hospitality/menu",
       icon: Utensils,
+      subscriptionSlug: "hospitality",
+      placement: "primary",
+    },
+    {
+      moduleId: "hospitality",
+      translationKey: "nav.hospitality_menu_categories",
+      fallbackLabel: "Menu Categories",
+      href: "/dashboard/hospitality/menu-categories",
+      icon: TagIcon,
       subscriptionSlug: "hospitality",
       placement: "primary",
     },

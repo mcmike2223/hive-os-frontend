@@ -33,6 +33,7 @@ import {
   updateInventoryEntityRecord,
 } from "@/modules/inventory/api";
 import type { InventoryEntityRecord } from "@/modules/inventory/types";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type TableQueryState = {
   page: number;
@@ -110,8 +111,14 @@ export default function InventoryWarehousesPage() {
 
       return createInventoryEntityRecord("warehouses", payload);
     },
-    onSuccess: () => {
-      toast.success(form.id ? t("inventory.common.saved", "Warehouse updated.") : t("inventory.common.saved", "Warehouse created."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: form.id
+          ? t("inventory.common.saved", "Warehouse updated.")
+          : t("inventory.common.saved", "Warehouse created."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "warehouses"] });
       setSelectedRowIds({});
       closeModal();
@@ -123,8 +130,12 @@ export default function InventoryWarehousesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteInventoryEntityRecord("warehouses", id),
-    onSuccess: () => {
-      toast.success(t("inventory.common.deleted", "Warehouse deleted."));
+    onSuccess: (data) => {
+      notifyMutationOutcome(data, {
+        savedMessage: t("inventory.common.deleted", "Warehouse deleted."),
+        submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+        queryClient,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory", "warehouses"] });
       setSelectedRowIds({});
     },
@@ -313,7 +324,12 @@ export default function InventoryWarehousesPage() {
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
           if (rows.length === 0) return;
-          await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          const results = await Promise.all(rows.map((row) => deleteMutation.mutateAsync(row.id)));
+          notifyBulkDeleteOutcomes(results, {
+            savedMessage: (count) => `${count} ${t("inventory.warehouses.bulk_deleted_msg", "warehouse(s) deleted.")}`,
+            submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+            queryClient,
+          });
           clearSelection();
         }}
         onQueryChange={handleTableQueryChange}

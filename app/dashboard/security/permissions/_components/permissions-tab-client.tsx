@@ -1,16 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Key, BookOpen, Shield } from "lucide-react";
+import { Key, BookOpen, Shield, RefreshCw, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/datatable/data-table";
 import { fetchPermissions } from "@/lib/api"; 
+import api from "@/modules/shared/api/http";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { useTranslation } from "@/store/use-translation"; // 🚀 Added Translation Hook
+import { useTranslation } from "@/store/use-translation";
+import { toast } from "sonner";
 
 type PermissionRecord = {
   id: number | string;
@@ -28,7 +31,8 @@ type TableQuery = {
 
 export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) {
   const isCentralAdmin = !tenantId;
-  const { t, locale } = useTranslation(); // 🚀 Grab translator AND locale
+  const { t, locale } = useTranslation();
+  const queryClient = useQueryClient();
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = useLocalStorage<number>("permissions_table_page_size", 10);
   const [search, setSearch] = React.useState("");
@@ -84,6 +88,21 @@ export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) 
     setSearch(""); setSortCol(null); setSortDir(null); setPage(1); setTableKey((prev) => prev + 1);
   }, []);
 
+  const seedPermissionsMut = useMutation({
+    mutationFn: async () => {
+      const endpoint = isCentralAdmin ? '/permissions/seed' : '/tenant/permissions/seed';
+      const res = await api.post(endpoint);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["permissions"] });
+      toast.success(data.message || t('permissions.seeded', 'Permissions seeded successfully'));
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || t('permissions.seed_failed', 'Failed to seed permissions'));
+    },
+  });
+
   const columns = React.useMemo<ColumnDef<PermissionRecord>[]>(() => [
     {
       id: "name", accessorKey: "name", header: t('permissions.col_code', "Capability Code"), enableSorting: true,
@@ -134,9 +153,25 @@ export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) 
             {t('permissions.subtitle', 'A read-only glossary of all hardcoded network capabilities available in the system.')}
           </p>
         </div>
-        <Badge variant="outline" className="px-4 py-1.5 text-xs font-mono uppercase tracking-widest border-dashed text-muted-foreground bg-background">
-          {processedData.length} {t('permissions.indexed', 'Indexed Protocols')}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {processedData.length === 0 && !isLoading && (
+            <Button 
+              onClick={() => seedPermissionsMut.mutate()} 
+              disabled={seedPermissionsMut.isPending}
+              className="rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold tracking-wide"
+            >
+              {seedPermissionsMut.isPending ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-5 w-5" />
+              )}
+              {t('permissions.seed_permissions', 'Seed Permissions')}
+            </Button>
+          )}
+          <Badge variant="outline" className="px-4 py-1.5 text-xs font-mono uppercase tracking-widest border-dashed text-muted-foreground bg-background">
+            {processedData.length} {t('permissions.indexed', 'Indexed Protocols')}
+          </Badge>
+        </div>
       </div>
 
       <DataTable

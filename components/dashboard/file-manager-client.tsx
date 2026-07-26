@@ -136,6 +136,7 @@ type FileManagerClientProps = {
   isPickerMode?: boolean;
   onFileSelect?: (file: FileManagerFile) => void;
   access?: { canRead: boolean; canManage: boolean };
+  initialFilePath?: string | null;
 };
 
 type MenuItemProps = {
@@ -1068,7 +1069,7 @@ export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, o
   );
 }
 
-export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, access }: FileManagerClientProps) {
+export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, access, initialFilePath }: FileManagerClientProps) {
   const queryClient = useQueryClient();
   const { playTrack, syncFavoriteStatus, currentTrack } = useGlobalAudio();
   const { hasAnyPermission, hasPermission } = usePermissions();
@@ -1311,6 +1312,22 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
 
   const folderItems = React.useMemo(() => toCollectionItems<FileManagerFolder>(data?.data?.folders), [data?.data?.folders]);
   const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
+
+  React.useEffect(() => {
+    if (initialFilePath && data?.data?.files) {
+      console.log('Looking for file with path:', initialFilePath);
+      console.log('Available files:', data.data.files);
+      const file = Array.isArray(data.data.files) ? data.data.files.find((f: FileManagerFile) => 
+        f.path === initialFilePath
+      ) : null;
+      if (file) {
+        console.log('Found file:', file);
+        setSelectedFile(file);
+      } else {
+        console.log('File not found in current folder');
+      }
+    }
+  }, [initialFilePath, data]);
 
   React.useEffect(() => {
     if (!selectedFile || fileItems.length === 0) {

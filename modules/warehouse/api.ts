@@ -21,4 +21,5 @@ export const warehouseApi = {
     // Stocks
     listStocks: (params?: Record<string, any>) => http.get(`${BASE_URL}/stocks`, { params }),
     listMovements: (params?: Record<string, any>) => http.get(`${BASE_URL}/stocks/movements`, { params }),
+    createMovement: (data: Record<string, unknown>) => http.post(`${BASE_URL}/stocks/movements`, data),
 };

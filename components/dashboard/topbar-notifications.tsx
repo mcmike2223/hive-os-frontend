@@ -244,7 +244,13 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
     }
 
     setIsOpen(false);
-    router.push(notification.url || "/dashboard/alerts");
+
+    // If it's a workflow approval notification that needs action, go to approvals page
+    if (notification.category === 'workflow' && (notification.data?.status === 'pending' || notification.title === 'Signature Required')) {
+      router.push('/dashboard/workflow/approvals');
+    } else {
+      router.push(notification.url || "/dashboard/alerts");
+    }
   };
 
   return (

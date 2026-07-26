@@ -207,7 +207,7 @@ function ManageUsersDialog({
     );
   };
 
-  const users = usersData?.data || [];
+  const users = ((usersData as Record<string, unknown>)?.data as Array<{ id: number; name: string; email: string; avatar_url?: string }>) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

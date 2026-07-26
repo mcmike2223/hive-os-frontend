@@ -1,4 +1,4 @@
-import { ClipboardCheck, LayoutDashboard, PackageSearch, Shapes, Tags, Truck } from "lucide-react";
+import { ClipboardCheck, LayoutDashboard, Package, PackageSearch, Shapes, Tags, Truck } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const inventoryModule: FrontendModuleDefinition = {
@@ -8,6 +8,7 @@ export const inventoryModule: FrontendModuleDefinition = {
   backendModule: "Modules\\Inventory",
   routePrefixes: [
     "/dashboard/inventory",
+    "/dashboard/inventory/inventory",
     "/dashboard/inventory/qa",
     "/dashboard/inventory/catalog/categories",
     "/dashboard/inventory/catalog/tags",
@@ -26,6 +27,16 @@ export const inventoryModule: FrontendModuleDefinition = {
       subscriptionSlug: "inventory_control",
       placement: "primary",
       tourId: "tour-nav-inventory",
+    },
+    {
+      moduleId: "inventory",
+      translationKey: "nav.inventory_items",
+      fallbackLabel: "Inventory Items",
+      href: "/dashboard/inventory/inventory",
+      icon: Package,
+      permissions: ["view_inventory", "manage_inventory"],
+      subscriptionSlug: "inventory_control",
+      placement: "primary",
     },
     {
       moduleId: "inventory",

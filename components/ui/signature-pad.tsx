@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "./button";
 import {
@@ -18,6 +19,7 @@ interface SignaturePadProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (base64Image: string) => void;
+  onClose?: () => void;
 }
 
 /**
@@ -69,7 +71,7 @@ function manuallyTrimCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement | null
   return trimmedCanvas;
 }
 
-export function SignaturePad({ open, onOpenChange, onSave }: SignaturePadProps) {
+export function SignaturePad({ open, onOpenChange, onSave, onClose }: SignaturePadProps) {
   const padRef = useRef<SignatureCanvas>(null);
   const [penColor] = useState("#000000");
 
@@ -84,7 +86,10 @@ export function SignaturePad({ open, onOpenChange, onSave }: SignaturePadProps) 
     padRef.current?.clear();
   };
 
-  const handleSave = () => {
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (padRef.current?.isEmpty()) return;
 
     const rawCanvas = padRef.current?.getCanvas();
@@ -106,60 +111,64 @@ export function SignaturePad({ open, onOpenChange, onSave }: SignaturePadProps) 
 
     const dataUrl = canvas.toDataURL("image/png");
     onSave(dataUrl);
-    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Draw Signature</DialogTitle>
-          <DialogDescription>
-            Use your mouse or touch screen to draw your signature below.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {createPortal(
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Draw Signature</DialogTitle>
+              <DialogDescription>
+                Use your mouse or touch screen to draw your signature below.
+              </DialogDescription>
+            </DialogHeader>
 
-        {/* Canvas area — forced to look like paper */}
-        <div className="border rounded-md bg-white relative cursor-crosshair overflow-hidden touch-none shadow-inner">
-          {/* Grid guide */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(to bottom, transparent calc(100% - 1px), hsl(var(--border)) 100%)",
-              backgroundSize: "100% 48px",
-              backgroundPosition: "0 32px",
-            }}
-          />
-          <SignatureCanvas
-            ref={padRef}
-            penColor={penColor}
-            canvasProps={{
-              className: "w-full h-[200px] signature-canvas",
-            }}
-            backgroundColor="transparent"
-          />
-        </div>
+            {/* Canvas area — forced to look like paper */}
+            <div className="border rounded-md bg-white relative cursor-crosshair overflow-hidden touch-none shadow-inner">
+              {/* Grid guide */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to bottom, transparent calc(100% - 1px), hsl(var(--border)) 100%)",
+                  backgroundSize: "100% 48px",
+                  backgroundPosition: "0 32px",
+                }}
+              />
+              <SignatureCanvas
+                ref={padRef}
+                penColor={penColor}
+                canvasProps={{
+                  className: "w-full h-[200px] signature-canvas",
+                }}
+                backgroundColor="transparent"
+              />
+            </div>
 
-        <p className="text-[11px] text-muted-foreground text-center -mt-1">
-          Tip: Your signature will be saved with a white background for better visibility.
-        </p>
+            <p className="text-[11px] text-muted-foreground text-center -mt-1">
+              Tip: Your signature will be saved with a white background for better visibility.
+            </p>
 
-        <DialogFooter className="flex items-center justify-between mt-2">
-          <Button variant="destructive" size="sm" onClick={handleClear} type="button">
-            <Eraser className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} type="button">
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleSave} type="button">
-              Insert Signature
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <DialogFooter className="flex items-center justify-between mt-2">
+              <Button variant="destructive" size="sm" onClick={handleClear} type="button">
+                <Eraser className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} type="button">
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave} type="button">
+                  Insert Signature
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>,
+        document.body
+      )}
+    </>
   );
 }

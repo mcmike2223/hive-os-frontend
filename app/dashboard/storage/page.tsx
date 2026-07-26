@@ -3,10 +3,11 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Layers, LockKeyhole } from "lucide-react";
+import { Layers, LockKeyhole, ArrowLeft } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { useTranslation } from "@/store/use-translation";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -16,9 +17,11 @@ import { useTenantModuleAccess } from "@/hooks/use-tenant-module-access";
 import { fetchCurrentTenantSubscriptions } from "@/modules/subscription/api";
 import { ModuleSubscriptionCheckoutDialog } from "@/modules/subscription/components/module-subscription-checkout-dialog";
 import type { TenantCatalogModule } from "@/modules/subscription/types";
+import { useSearchParams } from "next/navigation";
 
 export default function StoragePage() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const [tenantName, setTenantName] = useState<string>("Central Command");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const { hasPermission, hasAnyPermission, isLoaded } = usePermissions();
@@ -28,6 +31,10 @@ export default function StoragePage() {
   const tenantId = getTenantId();
   const isTenantWorkspace = Boolean(tenantId);
   const hasStorageWorkspace = !isTenantWorkspace || hasModule('media_library') || hasModule('file_manager') || hasModule('video_player') || hasModule('audio_player');
+  
+  // Get file path from URL query parameter
+  const initialFilePath = searchParams.get('path');
+  const backTo = searchParams.get('backTo');
 
   useEffect(() => {
     if (tenantId) {
@@ -116,7 +123,15 @@ export default function StoragePage() {
 
   return (
     <div className="h-full w-full space-y-2 animate-in fade-in duration-500">
-      <div className="flex w-full justify-end mb-2">
+      <div className="flex w-full justify-between items-center mb-2">
+        {backTo && (
+          <Link href={backTo}>
+            <Button variant="ghost" size="sm" className="h-8 gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              {t('global.back', 'Back')}
+            </Button>
+          </Link>
+        )}
         <Breadcrumbs
           items={[
             { label: "Hive.OS", href: "/dashboard", icon: <Home className="h-4 w-4" /> },
@@ -125,7 +140,11 @@ export default function StoragePage() {
         />
       </div>
 
-      <FileManagerClient tenantName={tenantName} access={{ canRead: canAccessStorage, canManage: canManageStorage }} />
+      <FileManagerClient 
+        tenantName={tenantName} 
+        access={{ canRead: canAccessStorage, canManage: canManageStorage }}
+        initialFilePath={initialFilePath}
+      />
     </div>
   );
 }

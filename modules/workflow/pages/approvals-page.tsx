@@ -43,6 +43,7 @@ interface WorkflowRole {
 
 interface WorkflowSubject {
   name?: string;
+  subtitle?: string;
   title?: string;
   document_number?: string;
   qa_status?: ProductQaStatus;
@@ -110,15 +111,19 @@ export default function ApprovalsPage() {
         const approvable = row.original.approvable;
         const type = row.original.approvable_type.split("\\").pop();
         const qaGate = getWorkflowApprovalGate(row.original);
+        
+        const displayName = approvable?.name || approvable?.document_number || approvable?.title || `${type} #${row.original.approvable_id ?? row.original.id}`;
+        const contextLabel = approvable?.subtitle || type;
+        
         return (
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <FileText className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-black tracking-tight">{approvable?.name || approvable?.document_number || approvable?.title || "Unnamed Subject"}</span>
+              <span className="font-black tracking-tight">{displayName}</span>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">{type}</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">{contextLabel}</span>
                 {qaGate.isProduct ? (
                   <Badge variant="outline" className={`rounded-full px-2 py-0 text-[10px] ${qaGate.meta.className}`}>
                     {qaGate.meta.label}
