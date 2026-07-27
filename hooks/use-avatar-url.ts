@@ -1,80 +1,63 @@
-//hooks/use-avatar-url.ts
 "use client";
 
-import { useState, useEffect } from "react";
-import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
-
-const getApiUrl = () => {
-  return getBackendApiRoot();
-};
+import { useEffect, useState } from "react";
+import {
+  getAccessToken,
+  getAuthHeaders,
+  getBackendApiRoot,
+  getWorkspaceScopeKey,
+} from "@/lib/runtime-context";
 
 function getFallback(name?: string) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name ?? "Operator")}&color=7F9CF5&background=EBF4FF`;
 }
 
-export function useAvatarUrl(user: { avatar_path?: string | null; name?: string } | null, refreshTrigger: number = 0) {
-  const [avatarSrc, setAvatarSrc] = useState<string>("");
+export function useAvatarUrl(
+  user: { avatar_path?: string | null; name?: string } | null,
+  refreshTrigger: number | string = 0,
+) {
+  const [avatarSrc, setAvatarSrc] = useState("");
+  const scopeKey = getWorkspaceScopeKey();
 
   useEffect(() => {
-    let isMounted = true;
+    let active = true;
+    let objectUrl: string | null = null;
 
     const load = async () => {
-      if (!user || !user.avatar_path) {
-        if (isMounted) setAvatarSrc(getFallback(user?.name));
-        return;
-      }
-
-      const token = getAccessToken();
-      if (!token) {
-        if (isMounted) setAvatarSrc(getFallback(user?.name));
+      if (!user?.avatar_path || !getAccessToken()) {
+        if (active) setAvatarSrc(getFallback(user?.name));
         return;
       }
 
       try {
-        console.log("🔍 [Avatar Hook] Requesting image from backend...");
-        
-        const res = await fetch(`${getApiUrl()}/profile/avatar?cb=${refreshTrigger}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-            // Removed 'Accept' header to prevent Laravel from accidentally formatting errors as HTML
-          },
-        });
+        const response = await fetch(
+          `${getBackendApiRoot()}/profile/avatar?cb=${encodeURIComponent(String(refreshTrigger))}`,
+          { headers: getAuthHeaders() },
+        );
 
-        if (!res.ok) {
-          const errText = await res.text();
-          console.error(`❌ [Avatar Hook] Backend rejected request. Status: ${res.status}. Response:`, errText);
-          if (isMounted) setAvatarSrc(getFallback(user?.name));
-          return;
+        if (!response.ok) {
+          throw new Error(`Avatar request failed with ${response.status}.`);
         }
 
-        const blob = await res.blob();
-        console.log(`✅ [Avatar Hook] Image downloaded! Size: ${blob.size} bytes | Type: ${blob.type}`);
-
-        // Failsafe: If the backend returns a JSON error masquerading as a 200 OK
-        if (blob.size === 0 || blob.type.includes('json') || blob.type.includes('text')) {
-            console.error("❌ [Avatar Hook] Downloaded data is empty or is not an image!");
-            if (isMounted) setAvatarSrc(getFallback(user?.name));
-            return;
+        const blob = await response.blob();
+        if (!blob.type.startsWith("image/") || blob.size === 0) {
+          throw new Error("Avatar response was not an image.");
         }
 
-        const objectUrl = URL.createObjectURL(blob);
-        if (isMounted) setAvatarSrc(objectUrl);
-
-      } catch (error) {
-        console.error("❌ [Avatar Hook] Network/CORS Error:", error);
-        if (isMounted) setAvatarSrc(getFallback(user?.name));
+        objectUrl = URL.createObjectURL(blob);
+        if (active) setAvatarSrc(objectUrl);
+      } catch {
+        if (active) setAvatarSrc(getFallback(user?.name));
       }
     };
 
-    load();
+    void load();
 
     return () => {
-      isMounted = false;
-      // Note: We deliberately DO NOT call URL.revokeObjectURL() here right now. 
-      // React 18 Strict Mode will kill the blob too early if we do. Let the browser garbage collect it.
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [user?.avatar_path, user?.name, refreshTrigger]);
+  }, [scopeKey, user?.avatar_path, user?.name, refreshTrigger]);
 
   return avatarSrc;
 }

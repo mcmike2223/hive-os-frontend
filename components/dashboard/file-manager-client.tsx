@@ -7,9 +7,9 @@ import { toast } from "sonner";
 import { enqueueFileUpload } from "@/lib/offline/file-upload-queue";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  Folder, Star, Share2, Trash2, Clock, Settings, Search, 
-  Image as ImageIcon, Video, FileText, Music, Plus, UploadCloud, 
-  File as FileIcon, Loader2, Download, Copy, CalendarDays, HardDrive, 
+  Folder, Star, Share2, Trash2, Clock, Settings, Search,
+  Image as ImageIcon, Video, FileText, Music, Plus, UploadCloud,
+  File as FileIcon, Loader2, Download, Copy, CalendarDays, HardDrive,
   ImagePlus, Type, Subtitles, ExternalLink, X, Info, Archive, ChevronDown, ChevronUp, Box,
   LayoutGrid, List, SortAsc, MoreVertical, Edit, FolderInput, RefreshCcw, AlertTriangle, Link as LinkIcon,
   Eraser, Wand2, Crop, Square, Monitor, FileImage, Sun, Contrast, Droplets, Palette, Save, RotateCw, FlipHorizontal, FlipVertical, ZoomOut, ZoomIn, Maximize, Minimize, Edit2, RotateCcw, DownloadCloud, Unlink, LockKeyhole, Layers
@@ -46,8 +46,8 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { DocumentViewer } from "@/components/ui/document-viewer";
 import { Model3DViewer } from "@/components/ui/model-3d-viewer";
+import { ImageViewer } from "@/components/ui/image-viewer";
 import { useGlobalAudio } from "@/context/global-audio-context";
-import type { LucideIcon } from "lucide-react";
 
 type FileManagerItemRef = { type: 'file' | 'folder'; id: number };
 
@@ -110,13 +110,6 @@ type FileManagerCatalogModule = {
 
 type FileManagerSortable = FileManagerFolder | FileManagerFile;
 
-type CropDragInfo = {
-  mouseX: number;
-  mouseY: number;
-  initialBox: { x: number; y: number; width: number; height: number };
-  scaleFactor: number;
-};
-
 type MetricCardProps = {
   icon: React.ReactNode;
   title: string;
@@ -136,7 +129,30 @@ type FileManagerClientProps = {
   isPickerMode?: boolean;
   onFileSelect?: (file: FileManagerFile) => void;
   access?: { canRead: boolean; canManage: boolean };
+  acceptedFileTypes?: string;
+  acceptedFileDescription?: string;
   initialFilePath?: string | null;
+};
+
+const matchesAcceptedFileTypes = (
+  name: string,
+  mimeType: string,
+  acceptedFileTypes?: string,
+) => {
+  if (!acceptedFileTypes) return true;
+
+  const normalizedName = name.toLowerCase();
+  const normalizedMimeType = mimeType.toLowerCase();
+
+  return acceptedFileTypes
+    .split(",")
+    .map((type) => type.trim().toLowerCase())
+    .filter(Boolean)
+    .some((type) => {
+      if (type.startsWith(".")) return normalizedName.endsWith(type);
+      if (type.endsWith("/*")) return normalizedMimeType.startsWith(type.slice(0, -1));
+      return normalizedMimeType === type;
+    });
 };
 
 type MenuItemProps = {
@@ -144,32 +160,6 @@ type MenuItemProps = {
   label: string;
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   danger?: boolean;
-};
-
-type ColorSliderProps = {
-  icon: LucideIcon;
-  value: number;
-  onChange: (value: number) => void;
-  min: number;
-  max: number;
-  label: string;
-};
-
-type TransformButtonProps = {
-  icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-  style?: React.CSSProperties;
-  active?: boolean;
-};
-
-type ImageViewerProps = {
-  src: string;
-  fetchUrl?: string;
-  alt?: string;
-  className?: string;
-  onSaveEdited?: (file: File) => void;
-  onUpgradeRequested?: () => void;
 };
 
 const getModuleCheckoutError = (error: unknown): ModuleCheckoutError | null => {
@@ -201,7 +191,7 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
 
         if (open) {
             document.addEventListener("mousedown", handleOutside);
-            window.addEventListener("scroll", handleScroll, true); 
+            window.addEventListener("scroll", handleScroll, true);
             window.addEventListener("resize", handleScroll);
         }
         return () => {
@@ -218,7 +208,7 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
             const rect = triggerRef.current.getBoundingClientRect();
             const menuWidth = 208; // 13rem = 208px
             const menuHeight = 260; // Estimated max height
-            
+
             const isLeftHalf = rect.left < (window.innerWidth / 2);
             const leftPos = isLeftHalf ? rect.left : (rect.right - menuWidth);
 
@@ -237,15 +227,15 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
            <div ref={triggerRef} onClick={toggleMenu} className="relative inline-block cursor-pointer z-50 overflow-visible">
                 {React.cloneElement(trigger, {
                     className: cn(
-                        trigger.props?.className, 
+                        trigger.props?.className,
                         open && "opacity-100 bg-background/80 ring-2 ring-emerald-500/50"
                     )
                 })}
             </div>
             {mounted && open && createPortal(
-              <div 
+              <div
                   ref={menuRef}
-                  onClick={(e) => { e.stopPropagation(); setOpen(false); }} 
+                  onClick={(e) => { e.stopPropagation(); setOpen(false); }}
                   className="fixed w-52 bg-background border border-border/50 rounded-xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] z-[999999] flex flex-col py-1.5 animate-in fade-in zoom-in-95 duration-100"
                   style={{ top: coords.top, left: coords.left }}
               >
@@ -258,16 +248,16 @@ const SimpleMenu = ({ children, trigger }: { children: React.ReactNode, trigger:
 }
 
 const MenuItem = ({ icon, label, onClick, danger }: MenuItemProps) => (
-    <button 
+    <button
         type="button"
-        onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }} 
+        onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}
         className={cn("flex items-center justify-start gap-3 w-full px-4 py-2.5 text-sm text-left hover:bg-muted/60 transition-colors font-medium", danger && "text-red-500 hover:bg-red-500/10")}
     >
         {React.cloneElement(icon, { className: "h-4 w-4 shrink-0" })} <span className="truncate">{label}</span>
     </button>
 )
 
-const CHUNK_SIZE = 5 * 1024 * 1024; 
+const CHUNK_SIZE = 5 * 1024 * 1024;
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0 || !bytes) return '0 Bytes';
@@ -339,7 +329,6 @@ const AuthImage = ({ src, alt, className, style, onError }: { src: string; alt?:
       revoked = true;
       if (currentBlob) URL.revokeObjectURL(currentBlob);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
   if (!isTenantUrl) {
@@ -370,713 +359,22 @@ const getDownloadNameFromDisposition = (contentDisposition: string | null, fallb
   return basicMatch?.[1] || fallback;
 };
 
-// ============================================================================
-// 🚀 INLINE IMAGE VIEWER COMPONENT
-// ============================================================================
-type EditTab = 'transform' | 'adjust' | 'export' | 'ai';
-
-const ColorSlider = ({ icon: Icon, value, onChange, min, max, label }: ColorSliderProps) => (
-  <div className="flex items-center gap-4 w-full">
-    <div className="flex items-center gap-2 w-28 shrink-0 text-muted-foreground">
-      <Icon className="h-4 w-4 text-yellow-500" />
-      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-    </div>
-    <input 
-      type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))}
-      className="flex-1 h-1.5 bg-muted rounded-full appearance-none accent-yellow-500 cursor-pointer" 
-    />
-    <span className="text-xs font-mono w-10 text-right text-muted-foreground">{value}%</span>
-  </div>
-);
-
-const TransformButton = ({ icon: Icon, label, onClick, style, active }: TransformButtonProps) => (
-  <Button 
-    variant="outline" 
-    onClick={onClick} 
-    className={cn("flex-1 rounded-xl h-10 gap-2 font-medium border-border/50 transition-all", active ? "bg-yellow-500/20 text-yellow-500 border-yellow-500" : "bg-background/50 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/50")} 
-    style={style}
-  >
-    <Icon className="h-4 w-4 shrink-0" />
-    <span className="truncate text-xs font-bold">{label}</span>
-  </Button>
-);
-
-export function ImageViewer({ src, fetchUrl, alt = "Image preview", className, onSaveEdited, onUpgradeRequested }: ImageViewerProps) {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const imageRef = React.useRef<HTMLImageElement>(null);
-  const cropWrapperRef = React.useRef<HTMLDivElement>(null);
-
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<EditTab>('transform');
-  const [isProcessing, setIsProcessing] = React.useState(false);
-  const [aiLoadingText, setAiLoadingText] = React.useState("");
-  
-  const [blobSrc, setBlobSrc] = React.useState<string>(''); 
-  const [isLoadingBlob, setIsLoadingBlob] = React.useState<boolean>(true);
-  const [isIsolatedMode, setIsIsolatedMode] = React.useState<boolean>(false); 
-
-  // Transform States
-  const [zoom, setZoom] = React.useState(1);
-  const [rotate, setRotate] = React.useState(0);
-  const [flipH, setFlipH] = React.useState(false);
-  const [flipV, setFlipV] = React.useState(false);
-  
-  // Color States
-  const [brightness, setBrightness] = React.useState(100);
-  const [contrast, setContrast] = React.useState(100);
-  const [saturation, setSaturation] = React.useState(100);
-  const [hue, setHue] = React.useState(0);
-
-  // Export States
-  const [resize, setResize] = React.useState({ w: 0, h: 0 });
-  const [maintainAspect, setMaintainAspect] = React.useState(true);
-  const [exportFormat, setExportFormat] = React.useState('image/jpeg');
-  const [exportQuality, setExportQuality] = React.useState(90);
-
-  // Crop States
-  const [natSize, setNatSize] = React.useState({ w: 0, h: 0 }); 
-  const [cropBox, setCropBox] = React.useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [activeHandle, setActiveHandle] = React.useState<string | null>(null); 
-  const dragStartInfo = React.useRef<CropDragInfo | null>(null); 
-
-  // Fetch secure Blob
-  React.useEffect(() => {
-    const fetchSecureBlob = async () => {
-      if (!fetchUrl) {
-        setBlobSrc(src);
-        setIsLoadingBlob(false);
-        return;
-      }
-      setIsLoadingBlob(true);
-      try {
-        const response = await fetch(fetchUrl, { headers: getAuthHeaders() });
-        if (!response.ok) throw new Error("Failed to secure image");
-        const blob = await response.blob();
-        setBlobSrc(URL.createObjectURL(blob));
-      } catch (error) {
-        setBlobSrc(src);
-      } finally {
-        setIsLoadingBlob(false);
-      }
-    };
-    fetchSecureBlob();
-  }, [src, fetchUrl]);
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isEditing) return;
-
-      if (e.key === 'Escape') {
-        setIsEditing(false);
-        resetEdits();
-      } else if (e.key === 'Enter') {
-        exportEditedImage();
-      } else if (activeTab === 'transform') {
-        const step = e.shiftKey ? 10 : 1;
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-          e.preventDefault(); 
-          setCropBox(prev => {
-            let { x, y } = prev;
-            const { width, height } = prev;
-            if (e.key === 'ArrowUp') y = Math.max(0, y - step);
-            if (e.key === 'ArrowDown') y = Math.min(natSize.h - height, y + step);
-            if (e.key === 'ArrowLeft') x = Math.max(0, x - step);
-            if (e.key === 'ArrowRight') x = Math.min(natSize.w - width, x + step);
-            return { x, y, width, height };
-          });
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isEditing, activeTab, natSize]);
-
-  const resetEdits = React.useCallback(() => {
-    setZoom(1); setRotate(0); setFlipH(false); setFlipV(false);
-    setBrightness(100); setContrast(100); setSaturation(100); setHue(0);
-    setExportFormat('image/jpeg'); setExportQuality(90);
-    setIsIsolatedMode(false); 
-    if (natSize.w > 0) {
-      setCropBox({ x: 0, y: 0, width: natSize.w, height: natSize.h });
-      setResize({ w: natSize.w, h: natSize.h });
-    }
-  }, [natSize]);
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
-    }
-  };
-
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    const w = img.naturalWidth;
-    const h = img.naturalHeight;
-    setNatSize({ w, h });
-    setCropBox({ x: 0, y: 0, width: w, height: h });
-    if (resize.w === 0) setResize({ w, h });
-  };
-
-  const applyCropRatio = (ratio: number | null) => {
-    if (!natSize.w || !natSize.h) return;
-    
-    if (ratio === null) {
-      setCropBox({ x: 0, y: 0, width: natSize.w, height: natSize.h });
-      setResize({ w: natSize.w, h: natSize.h });
-      setMaintainAspect(false);
-      return;
-    }
-
-    let newW = natSize.w;
-    let newH = natSize.w / ratio;
-
-    if (newH > natSize.h) {
-      newH = natSize.h;
-      newW = natSize.h * ratio;
-    }
-
-    const newX = (natSize.w - newW) / 2;
-    const newY = (natSize.h - newH) / 2;
-
-    setCropBox({ x: newX, y: newY, width: newW, height: newH });
-    setResize({ w: Math.round(newW), h: Math.round(newH) });
-    setMaintainAspect(true);
-  };
-
-  const applyPreset = (preset: string) => {
-    switch(preset) {
-      case 'normal': setBrightness(100); setContrast(100); setSaturation(100); setHue(0); break;
-      case 'bw': setBrightness(100); setContrast(120); setSaturation(0); setHue(0); break;
-      case 'vintage': setBrightness(90); setContrast(110); setSaturation(70); setHue(15); break;
-      case 'punch': setBrightness(105); setContrast(130); setSaturation(140); setHue(0); break;
-    }
-  };
-
-  // 🚀 PHOTO AI BACKGROUND REMOVAL API CALL
-  const removeBackgroundOnServer = async () => {
-      if (!blobSrc) return;
-      setIsProcessing(true);
-      setAiLoadingText("Isolating Subject...");
-      
-      try {
-          const response = await fetch(blobSrc);
-          const blob = await response.blob();
-          
-          const formData = new FormData();
-          formData.append('file', blob, 'image.png');
-
-          const apiRes = await fetch(`${getBackendApiRoot()}/files/remove-background`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: formData
-          });
-
-          if (!apiRes.ok) {
-            const errData = await apiRes.json().catch(() => null);
-            throw new Error(errData?.message || "Failed to process image on server. The model may still be downloading.");
-          }
-
-          const newBlob = await apiRes.blob();
-          const newUrl = URL.createObjectURL(newBlob);
-          
-          setBlobSrc(newUrl);
-          setExportFormat('image/png');
-          setIsIsolatedMode(true); 
-          toast.success("Background removed successfully!");
-
-      } catch (error: unknown) {
-          console.error(error);
-          toast.error(getErrorMessage(error, "Failed to remove background. Your model download probably timed out. Try again."));
-      } finally {
-          setIsProcessing(false);
-          setAiLoadingText("");
-      }
-  };
-
-  // 🚀 LOGO MAGIC WAND API CALL
-  const removeLogoBackground = async () => {
-      if (!blobSrc) return;
-      setIsProcessing(true);
-      setAiLoadingText("Scanning Logo Colors...");
-      
-      try {
-          const response = await fetch(blobSrc);
-          const imageBlob = await response.blob();
-          
-          const formData = new FormData();
-          formData.append('file', imageBlob, 'image.png');
-
-          const apiRes = await fetch(`${getBackendApiRoot()}/files/remove-logo-background`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: formData
-          });
-
-          if (!apiRes.ok) {
-            const errData = await apiRes.json().catch(() => null);
-            throw new Error(errData?.message || "Failed to process logo.");
-          }
-
-          const transparentBlob = await apiRes.blob();
-          const newUrl = URL.createObjectURL(transparentBlob);
-          
-          setBlobSrc(newUrl);
-          setExportFormat('image/png');
-          setIsIsolatedMode(true);
-          toast.success("Logo background punched out successfully!");
-
-      } catch (error: unknown) {
-          console.error(error);
-          toast.error(getErrorMessage(error, "Failed to remove logo background."));
-      } finally {
-          setIsProcessing(false);
-          setAiLoadingText("");
-      }
-  };
-
-  const trimCanvasTransparency = (originalCanvas: HTMLCanvasElement): HTMLCanvasElement => {
-    const ctx = originalCanvas.getContext('2d');
-    if (!ctx) return originalCanvas;
-
-    const w = originalCanvas.width;
-    const h = originalCanvas.height;
-    const imageData = ctx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-    const bytesPerRow = w * 4;
-
-    let minX = w, minY = h, maxX = 0, maxY = 0;
-    let foundNonTransparent = false;
-
-    for (let y = 0; y < h; y++) {
-      const rowOffset = y * bytesPerRow;
-      for (let x = 0; x < w; x++) {
-        const alpha = data[rowOffset + (x * 4) + 3];
-        if (alpha > 5) {
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-          foundNonTransparent = true;
-        }
-      }
-    }
-
-    if (!foundNonTransparent) return originalCanvas; 
-
-    const padding = 2;
-    minX = Math.max(0, minX - padding);
-    minY = Math.max(0, minY - padding);
-    maxX = Math.min(w, maxX + padding);
-    maxY = Math.min(h, maxY + padding);
-
-    const trimmedWidth = maxX - minX;
-    const trimmedHeight = maxY - minY;
-
-    const trimmedCanvas = document.createElement('canvas');
-    trimmedCanvas.width = trimmedWidth;
-    trimmedCanvas.height = trimmedHeight;
-    const trimmedCtx = trimmedCanvas.getContext('2d');
-    if (!trimmedCtx) return originalCanvas;
-
-    trimmedCtx.drawImage(originalCanvas, minX, minY, trimmedWidth, trimmedHeight, 0, 0, trimmedWidth, trimmedHeight);
-
-    return trimmedCanvas;
-  };
-
-  const exportEditedImage = () => {
-    const image = imageRef.current;
-    if (!image) return;
-    setIsProcessing(true);
-
-    setTimeout(async () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error("Could not get canvas context");
-
-        const dWidth = resize.w || cropBox.width;
-        const dHeight = resize.h || cropBox.height;
-        const isRotated = rotate % 180 !== 0;
-
-        canvas.width = isRotated ? dHeight : dWidth;
-        canvas.height = isRotated ? dWidth : dHeight;
-
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((rotate * Math.PI) / 180);
-        ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hue}deg)`;
-
-        ctx.drawImage(image, cropBox.x, cropBox.y, cropBox.width, cropBox.height, -dWidth / 2, -dHeight / 2, dWidth, dHeight);
-
-        if (isIsolatedMode) {
-            const finalCanvas = trimCanvasTransparency(canvas);
-            
-            finalCanvas.toBlob((blob) => {
-                if (!blob) {
-                    toast.error("Trimming Failed.");
-                    setIsProcessing(false); return;
-                }
-                const ext = 'png'; 
-                if (onSaveEdited) {
-                    const editedFile = new File([blob], `isolated_subject_${Date.now()}.${ext}`, { type: 'image/png' });
-                    onSaveEdited(editedFile);
-                    setIsProcessing(false);
-                }
-                resetEdits(); 
-            }, 'image/png'); 
-            return; 
-        }
-
-        const ext = exportFormat === 'image/jpeg' ? 'jpg' : exportFormat === 'image/png' ? 'png' : 'webp';
-
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            toast.error("Export Failed. Canvas could not process the image.");
-            setIsProcessing(false); return;
-          }
-          if (onSaveEdited) {
-            const editedFile = new File([blob], `edited_${Date.now()}.${ext}`, { type: exportFormat });
-            onSaveEdited(editedFile);
-            setIsProcessing(false);
-          } else {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url; link.download = `edited_${Date.now()}.${ext}`;
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-            URL.revokeObjectURL(url); setIsProcessing(false);
-          }
-        }, exportFormat, exportQuality / 100);
-      } catch (error) {
-        console.error("Canvas export failed:", error);
-        toast.error("Security Warning: Canvas was tainted by a CORS rule. The backend must allow local fetches.");
-        setIsProcessing(false);
-      }
-    }, 50);
-  };
-
-  const handleHandleMouseDown = (e: React.MouseEvent, handle: string) => {
-    e.stopPropagation();
-    if (!isEditing || !containerRef.current || !cropWrapperRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const wrapperRect = cropWrapperRef.current.getBoundingClientRect();
-    const scaleFactor = natSize.w / wrapperRect.width;
-
-    setActiveHandle(handle);
-    dragStartInfo.current = { mouseX: (e.clientX - containerRect.left), mouseY: (e.clientY - containerRect.top), initialBox: { ...cropBox }, scaleFactor };
-  };
-
-  const handleMouseMove = React.useCallback((e: MouseEvent) => {
-    if (!activeHandle || !isEditing || !containerRef.current || !dragStartInfo.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const scale = dragStartInfo.current.scaleFactor;
-    const { mouseX, mouseY, initialBox } = dragStartInfo.current;
-    
-    const currentMouseX = (e.clientX - containerRect.left);
-    const currentMouseY = (e.clientY - containerRect.top);
-    
-    const zoomAdjustedScale = scale / zoom;
-    const dxNatural = (currentMouseX - mouseX) * zoomAdjustedScale;
-    const dyNatural = (currentMouseY - mouseY) * zoomAdjustedScale;
-
-    let { x, y, width, height } = initialBox;
-    const minSize = 20 * scale; 
-
-    switch (activeHandle) {
-      case 'tl': x += dxNatural; y += dyNatural; width -= dxNatural; height -= dyNatural; break;
-      case 'tr': y += dyNatural; width += dxNatural; height -= dyNatural; break;
-      case 'bl': x += dxNatural; width -= dxNatural; height += dyNatural; break;
-      case 'br': width += dxNatural; height += dyNatural; break;
-      case 'n': y += dyNatural; height -= dyNatural; break;
-      case 'e': width += dxNatural; break;
-      case 's': height += dyNatural; break;
-      case 'w': x += dxNatural; width -= dxNatural; break;
-    }
-
-    if (width < minSize) { if (activeHandle.includes('w')) { x -= (minSize - width); width = minSize; } else { width = minSize; } }
-    if (height < minSize) { if (activeHandle.includes('n')) { y -= (minSize - height); height = minSize; } else { height = minSize; } }
-
-    if (x < 0) { width += x; x = 0; }
-    if (y < 0) { height += y; y = 0; }
-    if (x + width > natSize.w) { width = natSize.w - x; }
-    if (y + height > natSize.h) { height = natSize.h - y; }
-
-    setCropBox({ x, y, width, height });
-    setResize({ w: Math.round(width), h: Math.round(height) });
-  }, [activeHandle, isEditing, natSize, zoom]);
-
-  const handleMouseUp = React.useCallback(() => {
-    setActiveHandle(null);
-    dragStartInfo.current = null;
-  }, []);
-
-  React.useEffect(() => {
-    if (activeHandle) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
-    }
-  }, [activeHandle, handleMouseMove, handleMouseUp]);
-
-  const handleWidthChange = (val: number) => {
-    if (val < 10) val = 10;
-    if (maintainAspect && cropBox.width > 0) setResize({ w: val, h: Math.round(val * (cropBox.height / cropBox.width)) });
-    else setResize(r => ({ ...r, w: val }));
-  };
-
-  const handleHeightChange = (val: number) => {
-    if (val < 10) val = 10;
-    if (maintainAspect && cropBox.height > 0) setResize({ w: Math.round(val * (cropBox.width / cropBox.height)), h: val });
-    else setResize(r => ({ ...r, h: val }));
-  };
-
-  const renderHandle = (type: string, cssStyle: React.CSSProperties) => (
-    <div className="absolute h-4 w-4 bg-yellow-500 rounded-full shadow-lg z-20 cursor-move border-2 border-background hover:bg-yellow-400 hover:scale-125 transition-transform" style={cssStyle} onMouseDown={(e) => handleHandleMouseDown(e, type)} />
-  );
-
-  return (
-    <div ref={containerRef} className={cn("flex flex-col w-full h-full overflow-hidden transition-all duration-300", isFullscreen ? "rounded-none fixed inset-0 z-[100] h-screen bg-background" : "rounded-2xl", className)}>
-      <div className="flex items-center justify-between p-4 border-b border-border/50 bg-background/50 backdrop-blur shrink-0 z-10">
-        <div className="flex items-center gap-4 px-2 overflow-hidden">
-          <div className="h-10 w-10 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0 relative">
-            <ImageIcon className="h-5 w-5 text-yellow-500" />
-            {isEditing && <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span></span>}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-base font-black tracking-tight truncate" title={alt}>{alt}</span>
-            {natSize.w > 0 && <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{natSize.w} x {natSize.h}px Original</span>}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 shrink-0">
-          {!isEditing ? (
-            <>
-              <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} className="h-10 w-10 text-muted-foreground hover:text-yellow-500 hidden sm:flex"><ZoomOut className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.min(3, z + 0.25))} className="h-10 w-10 text-muted-foreground hover:text-yellow-500 hidden sm:flex"><ZoomIn className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-10 w-10 text-muted-foreground hover:text-yellow-500">{isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}</Button>
-              <div className="w-px h-6 bg-border/50 mx-2 hidden sm:block"></div>
-              {onSaveEdited ? (
-                <Button variant="outline" onClick={() => setIsEditing(true)} className="h-10 rounded-xl border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10 transition-colors font-bold px-6"><Edit2 className="h-4 w-4 mr-2" /> Edit Image</Button>
-              ) : null}
-              {!onSaveEdited && onUpgradeRequested ? (
-                <Button variant="outline" onClick={onUpgradeRequested} className="h-10 rounded-xl border-primary/30 text-primary hover:bg-primary/10 transition-colors font-bold px-6"><LockKeyhole className="h-4 w-4 mr-2" /> Subscribe to Edit</Button>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <div className="hidden md:flex items-center gap-2 mr-2">
-                <Badge variant="outline" className="font-mono bg-background">ESC = Cancel</Badge>
-                <Badge variant="outline" className="font-mono bg-background">ENTER = Save</Badge>
-              </div>
-              <Button variant="ghost" size="icon" onClick={resetEdits} className="h-10 w-10 text-red-500 hover:bg-red-500/10" title="Reset All Edits"><RotateCcw className="h-4 w-4" /></Button>
-              <Button variant="ghost" onClick={() => { setIsEditing(false); resetEdits(); }} className="h-10 text-muted-foreground hover:text-foreground rounded-xl px-4"><X className="h-4 w-4 mr-2" /> Cancel</Button>
-              <Button onClick={exportEditedImage} disabled={isProcessing} className="h-10 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black shadow-md font-black px-6 transition-all">{isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}{isProcessing ? 'Saving...' : 'Save as New'}</Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="relative flex-1 min-h-0 w-full bg-black/40 overflow-hidden flex items-center justify-center p-6">
-        {isLoadingBlob && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-yellow-500 z-50 bg-black/20 backdrop-blur-sm">
-                <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                <span className="text-xs font-bold font-mono tracking-widest uppercase">Fetching Secure File...</span>
-            </div>
-        )}
-
-        <div className="transition-transform duration-200 ease-out origin-center flex items-center justify-center max-w-full max-h-full" style={{ transform: `scale(${zoom}) rotate(${rotate}deg)` }}>
-          <div ref={cropWrapperRef} className={cn("relative shadow-2xl rounded-md flex items-center justify-center", activeTab === 'ai' ? "bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAHUlEQVQ4jWNgYGAQIYAJ8B8E8P//D4cTzRgG/QEAP0Q/waVv2YgAAAAASUVORK5CYII=')] bg-repeat" : "")} style={{ aspectRatio: natSize.w && natSize.h ? `${natSize.w}/${natSize.h}` : 'auto', maxHeight: '60vh', maxWidth: '100%' }}>
-            {blobSrc && (
-                <img 
-                  ref={imageRef} src={blobSrc} alt={alt} onLoad={handleImageLoad}
-                  className={cn("max-h-[60vh] max-w-full object-contain transition-all duration-200 rounded-md block pointer-events-none", natSize.w ? "w-full h-full" : "")}
-                  style={{ transform: `scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`, filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hue}deg)` }}
-                />
-            )}
-
-            {isEditing && natSize.w > 0 && activeTab !== 'ai' && (
-                <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none rounded-md">
-                    <div 
-                      className="absolute bg-transparent border-[3px] border-dashed border-yellow-500 pointer-events-auto cursor-move transition-none shadow-[0_0_0_9999px_rgba(0,0,0,0.65)]"
-                      style={{ left: `${(cropBox.x / natSize.w) * 100}%`, top: `${(cropBox.y / natSize.h) * 100}%`, width: `${(cropBox.width / natSize.w) * 100}%`, height: `${(cropBox.height / natSize.h) * 100}%` }}
-                    >
-                        {renderHandle('tl', { left: '-8px', top: '-8px' })}
-                        {renderHandle('tr', { right: '-8px', top: '-8px' })}
-                        {renderHandle('bl', { left: '-8px', bottom: '-8px' })}
-                        {renderHandle('br', { right: '-8px', bottom: '-8px' })}
-                        {renderHandle('n', { left: 'calc(50% - 8px)', top: '-8px' })}
-                        {renderHandle('e', { right: '-8px', top: 'calc(50% - 8px)' })}
-                        {renderHandle('s', { left: 'calc(50% - 8px)', bottom: '-8px' })}
-                        {renderHandle('w', { left: '-8px', top: 'calc(50% - 8px)' })}
-                    </div>
-                </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {isEditing && (
-        <div className="border-t border-border/50 bg-background/95 backdrop-blur shrink-0 animate-in slide-in-from-bottom-4 flex flex-col z-20">
-          
-          <div className="flex items-center justify-center gap-6 md:gap-8 px-4 border-b border-border/40 overflow-x-auto custom-scrollbar">
-             <button onClick={() => setActiveTab('transform')} className={cn("py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap", activeTab === 'transform' ? "border-yellow-500 text-yellow-500" : "border-transparent text-muted-foreground hover:text-foreground")}>Crop & Rotate</button>
-             <button onClick={() => setActiveTab('adjust')} className={cn("py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap", activeTab === 'adjust' ? "border-yellow-500 text-yellow-500" : "border-transparent text-muted-foreground hover:text-foreground")}>Filters</button>
-             <button onClick={() => setActiveTab('ai')} className={cn("py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap flex items-center gap-2", activeTab === 'ai' ? "border-purple-500 text-purple-500" : "border-transparent text-muted-foreground hover:text-purple-400")}><Wand2 className="h-3.5 w-3.5" /> AI Magic</button>
-             <button onClick={() => setActiveTab('export')} className={cn("py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap", activeTab === 'export' ? "border-yellow-500 text-yellow-500" : "border-transparent text-muted-foreground hover:text-foreground")}>Export Options</button>
-          </div>
-
-          <div className="p-6 w-full flex justify-center h-52 overflow-y-auto">
-            
-            {/* TRANSFORM & CROP TAB */}
-            {activeTab === 'transform' && (
-               <div className="flex flex-col items-center max-w-xl w-full space-y-5 pt-1">
-                 
-                 <div className="flex w-full gap-3">
-                   <TransformButton icon={RotateCw} label="Rotate Left" onClick={() => setRotate(r => r - 90)} style={{'transform':'scaleX(-1)'}} />
-                   <TransformButton icon={RotateCw} label="Rotate Right" onClick={() => setRotate(r => r + 90)} />
-                   <Button variant="outline" size="icon" onClick={() => setFlipH(!flipH)} className={cn("w-12 h-10 shrink-0 rounded-xl border-border/50 hover:text-yellow-500 transition-colors", flipH && "bg-yellow-500/10 text-yellow-500 border-yellow-500/50")} title="Flip Horizontal"><FlipHorizontal className="h-4 w-4" /></Button>
-                   <Button variant="outline" size="icon" onClick={() => setFlipV(!flipV)} className={cn("w-12 h-10 shrink-0 rounded-xl border-border/50 hover:text-yellow-500 transition-colors", flipV && "bg-yellow-500/10 text-yellow-500 border-yellow-500/50")} title="Flip Vertical"><FlipVertical className="h-4 w-4" /></Button>
-                 </div>
-
-                 <div className="w-full h-px bg-border/40 my-1"></div>
-                 
-                 <div className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground w-20">Crop Ratio</span>
-                    <div className="flex-1 flex gap-2 w-full">
-                       <TransformButton icon={Crop} label="Free" onClick={() => applyCropRatio(null)} />
-                       <TransformButton icon={Square} label="1:1" onClick={() => applyCropRatio(1)} />
-                       <TransformButton icon={Monitor} label="16:9" onClick={() => applyCropRatio(16/9)} />
-                       <TransformButton icon={FileImage} label="4:3" onClick={() => applyCropRatio(4/3)} />
-                    </div>
-                 </div>
-
-               </div>
-            )}
-
-            {/* FILTERS & ADJUST TAB */}
-            {activeTab === 'adjust' && (
-              <div className="flex flex-col items-center max-w-4xl w-full">
-                <div className="flex flex-wrap items-center gap-3 w-full justify-center mb-5">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-2">Presets</span>
-                   <Button variant="outline" size="sm" onClick={() => applyPreset('normal')} className="h-8 text-xs rounded-lg">Normal</Button>
-                   <Button variant="outline" size="sm" onClick={() => applyPreset('bw')} className="h-8 text-xs rounded-lg hover:text-white hover:bg-slate-800">B&W</Button>
-                   <Button variant="outline" size="sm" onClick={() => applyPreset('vintage')} className="h-8 text-xs rounded-lg hover:text-amber-700 hover:bg-amber-100 border-amber-200">Vintage</Button>
-                   <Button variant="outline" size="sm" onClick={() => applyPreset('punch')} className="h-8 text-xs rounded-lg hover:text-blue-500 hover:bg-blue-50 border-blue-200">Punch</Button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-4 w-full">
-                  <ColorSlider label="Brightness" icon={Sun} value={brightness} onChange={setBrightness} min={0} max={200} />
-                  <ColorSlider label="Contrast" icon={Contrast} value={contrast} onChange={setContrast} min={0} max={200} />
-                  <ColorSlider label="Saturation" icon={Droplets} value={saturation} onChange={setSaturation} min={0} max={200} />
-                  <ColorSlider label="Hue Tint" icon={Palette} value={hue} onChange={setHue} min={0} max={360} />
-                </div>
-              </div>
-            )}
-
-            {/* 🚀 NEW: AI MAGIC TAB (Dual Options) */}
-            {activeTab === 'ai' && (
-              <div className="flex flex-col items-center max-w-4xl w-full pt-2">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-                     
-                     {/* Option 1: AI For Photos */}
-                     <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-6 text-center w-full flex flex-col h-full">
-                        <div className="h-10 w-10 bg-purple-500/20 text-purple-500 rounded-full flex items-center justify-center mx-auto mb-3 shrink-0">
-                           <Eraser className="h-5 w-5" />
-                        </div>
-                        <h4 className="font-bold text-purple-500 mb-2 text-sm">AI Subject Isolation</h4>
-                        <p className="text-xs text-muted-foreground mb-4 flex-1">Best for real photos (people, cars, products). Uses deep learning to guess organic boundaries.</p>
-                        
-                        <Button onClick={removeBackgroundOnServer} disabled={isProcessing} className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl h-10 mt-auto shrink-0">
-                           {isProcessing && aiLoadingText.includes('Isolating') ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {aiLoadingText}</> : <><Wand2 className="h-4 w-4 mr-2" /> Photo AI</>}
-                        </Button>
-                     </div>
-
-                     {/* Option 2: PHP Magic Wand for Logos */}
-                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-6 text-center w-full flex flex-col h-full">
-                        <div className="h-10 w-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 shrink-0">
-                           <Crop className="h-5 w-5" />
-                        </div>
-                        <h4 className="font-bold text-blue-500 mb-2 text-sm">Logo &quot;Magic Wand&quot;</h4>
-                        <p className="text-xs text-muted-foreground mb-4 flex-1">Best for flat graphics and logos. Detects the background color and punches it out everywhere.</p>
-                        
-                        <Button onClick={removeLogoBackground} disabled={isProcessing} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl h-10 mt-auto shrink-0">
-                           {isProcessing && aiLoadingText.includes('Scanning') ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {aiLoadingText}</> : <><Square className="h-4 w-4 mr-2" /> Logo Cutout</>}
-                        </Button>
-                     </div>
-
-                 </div>
-              </div>
-            )}
-
-            {/* EXPORT SETTINGS TAB */}
-            {activeTab === 'export' && (
-              <div className="flex flex-col items-center max-w-2xl w-full space-y-6 pt-2">
-                <div className="flex flex-col sm:flex-row items-center w-full gap-4 sm:gap-8">
-                    
-                    {/* Format Selector */}
-                    <div className="flex-1 w-full space-y-2">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1"><Settings className="h-3 w-3 inline mr-1 -mt-0.5" /> Export Format</label>
-                        <select 
-                            value={exportFormat} 
-                            onChange={(e) => setExportFormat(e.target.value)}
-                            className="w-full bg-background border border-border/50 h-12 rounded-xl text-sm px-4 focus:ring-2 focus:ring-yellow-500 font-bold"
-                        >
-                            <option value="image/jpeg">JPEG (.jpg) - Smallest Size</option>
-                            <option value="image/png">PNG (.png) - Supports Transparency</option>
-                            <option value="image/webp">WEBP (.webp) - Web Optimized</option>
-                        </select>
-                    </div>
-
-                    {/* Compression Slider */}
-                    <div className="flex-1 w-full space-y-2">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1"><DownloadCloud className="h-3 w-3 inline mr-1 -mt-0.5" /> Compression Quality</label>
-                        <div className="flex items-center gap-4 bg-muted/20 h-12 px-4 rounded-xl border border-border/50 w-full">
-                            <input 
-                                type="range" min="10" max="100" value={exportQuality} 
-                                onChange={(e) => setExportQuality(Number(e.target.value))}
-                                disabled={exportFormat === 'image/png'} // PNG is lossless
-                                className="flex-1 h-1.5 bg-muted rounded-full appearance-none accent-yellow-500 cursor-pointer disabled:opacity-30" 
-                            />
-                            <span className={cn("text-xs font-mono font-bold w-10 text-right", exportFormat === 'image/png' ? 'text-muted-foreground/30' : 'text-foreground')}>{exportQuality}%</span>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div className="flex items-center gap-4 bg-muted/20 p-4 rounded-2xl border border-border/50 w-full justify-center">
-                  <div className="space-y-1.5 flex-1 max-w-[150px]">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Width (px)</label>
-                    <Input type="number" value={resize.w} onChange={(e) => handleWidthChange(Number(e.target.value))} className="bg-background font-mono font-bold text-center rounded-xl h-10 w-full text-sm border-border/50 focus-visible:ring-yellow-500" />
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => setMaintainAspect(!maintainAspect)} className={cn("mt-6 shrink-0 rounded-xl h-10 w-10 transition-colors", maintainAspect ? "text-yellow-500 bg-yellow-500/10" : "text-muted-foreground bg-muted")} title={maintainAspect ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}>
-                    {maintainAspect ? <LinkIcon className="h-5 w-5" /> : <Unlink className="h-5 w-5" />}
-                  </Button>
-                  <div className="space-y-1.5 flex-1 max-w-[150px]">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Height (px)</label>
-                    <Input type="number" value={resize.h} onChange={(e) => handleHeightChange(Number(e.target.value))} className="bg-background font-mono font-bold text-center rounded-xl h-10 w-full text-sm border-border/50 focus-visible:ring-yellow-500" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, access, initialFilePath }: FileManagerClientProps) {
+export function FileManagerClient({
+  tenantName,
+  isPickerMode,
+  onFileSelect,
+  access,
+  acceptedFileTypes,
+  acceptedFileDescription,
+  initialFilePath,
+}: FileManagerClientProps) {
   const queryClient = useQueryClient();
   const { playTrack, syncFavoriteStatus, currentTrack } = useGlobalAudio();
   const { hasAnyPermission, hasPermission } = usePermissions();
   const { hasModule } = useTenantModuleAccess();
   const tenantId = getTenantId();
   const isTenantWorkspace = Boolean(tenantId);
-  
+
   const canRead = access?.canRead ?? hasAnyPermission(["view_storage", "manage_storage"]);
   const canManage = access?.canManage ?? hasPermission("manage_storage");
   const hasVideoPlayer = !isTenantWorkspace || hasModule("video_player");
@@ -1120,6 +418,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const [downloadingFileId, setDownloadingFileId] = React.useState<number | null>(null);
   const [downloadProgress, setDownloadProgress] = React.useState<number>(0);
   const [downloadPhase, setDownloadPhase] = React.useState<"preparing" | "downloading" | null>(null);
+  const [downloadedBytes, setDownloadedBytes] = React.useState(0);
+  const [downloadTotalBytes, setDownloadTotalBytes] = React.useState(0);
 
   // --- Core State ---
   const { data: playlistsData } = useQuery<FileManagerPlaylist[]>({
@@ -1138,7 +438,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const [activePlaylistId, setActivePlaylistId] = React.useState<number | null>(null);
   const [currentFolderId, setCurrentFolderId] = React.useState<number | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
-  
+
   // --- Playlist Modal States ---
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = React.useState(false);
   const [itemToAddToPlaylist, setItemToAddToPlaylist] = React.useState<{id: number, type: 'file' | 'folder'} | null>(null);
@@ -1152,7 +452,9 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     setDownloadingFileId(fileId);
     setDownloadPhase("preparing");
     setDownloadProgress(0);
-    
+    setDownloadedBytes(0);
+    setDownloadTotalBytes(0);
+
     try {
       const apiRoot = getBackendApiRoot();
       const prepareUrl = `${apiRoot}/files/${fileId}/prepare-download`;
@@ -1160,29 +462,40 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       let didShowPreparingToast = false;
 
       const pollPreparation = async (): Promise<string | null> => {
-        const res = await fetch(prepareUrl, { headers: getAuthHeaders() });
-        const data = await res.json();
+        let res: Response;
+
+        try {
+          res = await fetch(prepareUrl, { headers: getAuthHeaders() });
+        } catch {
+          throw new Error('The media server is unavailable. Please wait a moment and try the download again.');
+        }
+
+        const data = await res.json().catch(() => null);
 
         if (!res.ok) {
-          throw new Error(data?.message || 'Download preparation failed.');
+          throw new Error(data?.message || `Download preparation failed (status ${res.status}).`);
         }
 
         if (data.status === 'ready') {
           return `${apiRoot}/files/${fileId}/download`;
         }
 
+        if (data.status === 'failed') {
+          throw new Error(data.message || 'The protected video could not be prepared.');
+        }
+
           if (data.status === 'processing' && attempt < 120) { // Max 6 minutes
             if (!didShowPreparingToast) {
               didShowPreparingToast = true;
-              toast.loading("Downloading your video...", { id: `download-${fileId}` });
+              toast.loading("Applying the protected video watermark...", { id: `download-${fileId}` });
             }
-            
+
             // Update the UI progress state
             if (typeof data.progress === 'number') {
               setDownloadProgress(data.progress);
               toast.loading(`Preparing download: ${data.progress}%`, { id: `download-${fileId}` });
             }
-            
+
             attempt++;
             const waitTime = (data.retry_after || 3) * 1000;
             await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -1193,7 +506,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       };
 
       const finalDownloadUrl = await pollPreparation();
-      
+
       if (finalDownloadUrl) {
         if (didShowPreparingToast) {
           toast.dismiss(`download-${fileId}`);
@@ -1201,14 +514,21 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
 
         setDownloadPhase("downloading");
         setDownloadProgress(0);
+        setDownloadedBytes(0);
+        setDownloadTotalBytes(0);
         toast.loading("Downloading file...", { id: `download-${fileId}` });
 
         await authenticatedDownload(finalDownloadUrl, {
           filename,
           headers: getAuthHeaders(),
-          onProgress: (progress) => {
+          onProgress: (progress, loadedBytes, totalBytes) => {
             setDownloadProgress(progress);
-            toast.loading(`Downloading file: ${progress}%`, { id: `download-${fileId}` });
+            setDownloadedBytes(loadedBytes);
+            setDownloadTotalBytes(totalBytes);
+            toast.loading(
+              `Downloading file: ${progress}% · ${formatBytes(loadedBytes, 1)} of ${formatBytes(totalBytes, 1)}`,
+              { id: `download-${fileId}` }
+            );
           },
         });
 
@@ -1221,6 +541,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       setDownloadingFileId(null);
       setDownloadPhase(null);
       setDownloadProgress(0);
+      setDownloadedBytes(0);
+      setDownloadTotalBytes(0);
     }
   }, [downloadingFileId]);
 
@@ -1230,7 +552,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = React.useState<"date" | "name" | "size">("date");
   const [selectedItems, setSelectedItems] = React.useState<{type: 'file'|'folder', id: number}[]>([]);
-  
+
   // --- Action Modal States ---
   const [renameTarget, setRenameTarget] = React.useState<{type: 'file'|'folder', id: number, name: string} | null>(null);
   const [newName, setNewName] = React.useState("");
@@ -1274,7 +596,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     console.log('isUploadOpen changed:', isUploadOpen);
   }, [isUploadOpen]);
 
-  const [selectedFile, setSelectedFile] = React.useState<FileManagerFile | null>(null); 
+  const [selectedFile, setSelectedFile] = React.useState<FileManagerFile | null>(null);
+  const [imageEditorActive, setImageEditorActive] = React.useState(false);
   const [folderName, setFolderName] = React.useState("");
   const [uploadBaseName, setUploadBaseName] = React.useState("");
   const [uploadFile, setUploadFile] = React.useState<File | null>(null);
@@ -1292,7 +615,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const thumbInputRef = React.useRef<HTMLInputElement>(null);
   const subtitleInputRef = React.useRef<HTMLInputElement>(null);
 
-  const MAX_STORAGE_BYTES = 5 * 1024 * 1024 * 1024; 
+  const MAX_STORAGE_BYTES = 5 * 1024 * 1024 * 1024;
 
   const { data, isLoading } = useQuery({
     queryKey: ["files", currentFolderId, activeFilter, activePlaylistId],
@@ -1314,20 +637,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
 
   React.useEffect(() => {
-    if (initialFilePath && data?.data?.files) {
-      console.log('Looking for file with path:', initialFilePath);
-      console.log('Available files:', data.data.files);
-      const file = Array.isArray(data.data.files) ? data.data.files.find((f: FileManagerFile) => 
-        f.path === initialFilePath
-      ) : null;
-      if (file) {
-        console.log('Found file:', file);
-        setSelectedFile(file);
-      } else {
-        console.log('File not found in current folder');
-      }
-    }
-  }, [initialFilePath, data]);
+    if (!initialFilePath) return;
+
+    const matchingFile = fileItems.find((file) => file.path === initialFilePath);
+    if (matchingFile) setSelectedFile(matchingFile);
+  }, [fileItems, initialFilePath]);
 
   React.useEffect(() => {
     if (!selectedFile || fileItems.length === 0) {
@@ -1394,7 +708,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   // ==============================================================================
   // 🚀 ADVANCED MUTATIONS (Rename, Move, Trash Management)
   // ==============================================================================
-  
+
   const renameMut = useMutation({
     mutationFn: async ({ type, id, name }: RenameItemPayload) => {
         const res = await fetch(`${getBackendApiRoot()}/files/rename`, {
@@ -1535,7 +849,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       // Synchronize with Global Audio Context if this is an audio file
       if (variables.type === 'file' && currentTrack && currentTrack.id === variables.id) {
         // Update the internal state of the audio context to match the new backend state
-        syncFavoriteStatus(variables.id, data.is_favorite); 
+        syncFavoriteStatus(variables.id, data.is_favorite);
       }
 
       if (selectedFile && selectedFile.id === variables.id && variables.type === 'file') {
@@ -1615,6 +929,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   const uploadFileMut = useMutation({
     mutationFn: async (): Promise<{ queued: boolean }> => {
       if (!uploadFile) throw new Error("No file selected");
+      if (!matchesAcceptedFileTypes(uploadFile.name, uploadFile.type, acceptedFileTypes)) {
+        throw new Error(
+          `Unsupported file type. Select ${acceptedFileDescription || acceptedFileTypes}.`,
+        );
+      }
 
       const offlineFields: Record<string, string> = {};
       if (uploadTargetFolder !== "root") offlineFields.folder_id = uploadTargetFolder;
@@ -1750,7 +1069,38 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
   // --- UI Handlers ---
   const handleCreateFolder = (e: React.FormEvent) => { e.preventDefault(); if (!canManage || !folderName.trim()) return; createFolderMut.mutate(folderName); };
   const handleUploadFile = (e: React.FormEvent) => { e.preventDefault(); if (!canManage) return; if (!uploadFile) return toast.error("Please select a file"); uploadFileMut.mutate(); };
-  const handleFileDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (!canManage) return; if (e.dataTransfer.files && e.dataTransfer.files[0]) setUploadFile(e.dataTransfer.files[0]); };
+  const selectUploadFile = (candidate: File | undefined) => {
+    if (!candidate) return;
+    if (!matchesAcceptedFileTypes(candidate.name, candidate.type, acceptedFileTypes)) {
+      setUploadFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      toast.error(
+        `Unsupported file type. Select ${acceptedFileDescription || acceptedFileTypes}.`,
+      );
+      return;
+    }
+    setUploadFile(candidate);
+  };
+  const handleFileDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (!canManage) return; selectUploadFile(e.dataTransfer.files?.[0]); };
+  const handlePickerFileSelect = (file: FileManagerFile) => {
+    if (!isPickerMode || !onFileSelect) {
+      setSelectedFile(file);
+      return;
+    }
+
+    const media = file.media_details;
+    const name = media?.download_name || media?.name || "";
+    const mimeType = media?.mime_type || "";
+
+    if (!matchesAcceptedFileTypes(name, mimeType, acceptedFileTypes)) {
+      toast.error(
+        `This file cannot be attached here. Select ${acceptedFileDescription || acceptedFileTypes}.`,
+      );
+      return;
+    }
+
+    onFileSelect(file);
+  };
   const handleSubtitleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!canManage) return;
     if (!hasVideoPlayer) {
@@ -1797,7 +1147,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
       }
       if (sortBy === 'size') return (mediaB?.size || 0) - (mediaA?.size || 0);
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   };
   folders = folders.sort(sortData);
   allFiles = allFiles.sort(sortData);
@@ -1859,11 +1209,9 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     const mediaTitle = media.title || media.name || "Untitled";
     const mime = media.mime_type || '';
     const safeUrl = getStorageUrl(media.url);
-    // Detect if this is a tenant-served file (uses authenticated API URL)
+    // Direct sources are authorized inside the reusable players. HLS keeps
+    // authenticated request headers while MP4/audio use short-lived URLs.
     let hlsUrl = '';
-    // Only use HLS on central — on tenant sessions the HLS endpoint cannot resolve
-    // tenant tokens via auth:sanctum (tokens live in tenant DB, not central).
-    // Tenant videos fall back to the authenticated /media/stream/{id}?token= URL.
     if (media.hls_path) {
         const cleanPath = media.hls_path.replace(/^\/?(storage\/)?/, '');
         hlsUrl = `${getBackendApiRoot()}/files/stream/${cleanPath.split('/')[0]}/playlist.m3u8`;
@@ -1878,11 +1226,12 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
              alt={mediaTitle}
              onSaveEdited={canManage && hasImageEditor ? (f: File) => saveEditedImageMut.mutate({ file: f, originalId: file.id }) : undefined}
              onUpgradeRequested={canManage && !hasImageEditor ? () => setCheckoutModuleSlug("image_editor") : undefined}
+             onEditingChange={setImageEditorActive}
            />
         </div>
       );
     }
-    
+
     if (mime.startsWith('video/')) {
       const videoFiles = fileItems.filter((f) => f.media_details?.mime_type?.startsWith('video/'));
       const currentIndex = videoFiles.findIndex((f) => f.id === file.id);
@@ -1900,10 +1249,10 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       const formattedVersions = (media.video_versions || [])
         .map((v: FileManagerVideoVersion) => ({
           label: v.label || 'Original',
-          url: getStreamUrl(getStorageUrl(v.url || "")),
+          url: getStorageUrl(v.url || ""),
         }))
         .filter((v) => Boolean(v.url));
-      const nativeSrc = getStreamUrl(safeUrl);
+      const nativeSrc = safeUrl;
       const adaptiveStreamingReady = Boolean(media.hls_path);
 
       if (!hasVideoPlayer) {
@@ -1933,18 +1282,18 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
             </div>
           )}
           {hlsUrl || safeUrl ? (
-             <VideoPlayer 
+             <VideoPlayer
                 src={hlsUrl || nativeSrc}
                 nativeSrc={nativeSrc}
-                poster={getStorageUrl(media.thumbnail)} 
-                className="w-full h-full" 
+                poster={getStorageUrl(media.thumbnail)}
+                className="w-full h-full"
                 title={mediaTitle}
-                authToken={typeof window !== 'undefined' ? localStorage.getItem('hive_token') : null} 
-                watermark={watermarkText} 
-                onNext={currentIndex < videoFiles.length - 1 ? handleNext : undefined} 
-                onPrevious={currentIndex > 0 ? handlePrev : undefined} 
-                subtitles={formattedSubtitles} 
-                videoVersions={formattedVersions} 
+                authToken={typeof window !== 'undefined' ? localStorage.getItem('hive_token') : null}
+                watermark={watermarkText}
+                onNext={currentIndex < videoFiles.length - 1 ? handleNext : undefined}
+                onPrevious={currentIndex > 0 ? handlePrev : undefined}
+                subtitles={formattedSubtitles}
+                videoVersions={formattedVersions}
                 rememberProgress
                 resumeKey={`file-entry:${file.id}`}
                 playbackRates={[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]}
@@ -1977,14 +1326,14 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       const handlePrev = () => { if (currentIndex > 0) setSelectedFile(audioFiles[currentIndex - 1]); };
       const currentPlaylist = audioFiles.map((f) => ({
         id: f.id,
-     src: getStreamUrl(getStorageUrl(f.media_details?.url)),
+        src: getStorageUrl(f.media_details?.url),
         title: f.media_details?.title || f.media_details?.name || "Unknown Track",
         artist: f.media_details?.artist || "HIVE.OS Audio",
         coverArt: getStorageUrl(f.media_details?.thumbnail),
         isFavorite: f.is_favorite,
         downloadUrl: `${getBackendApiRoot()}/files/${f.id}/download`,
       }));
-   const streamSrc = getStreamUrl(safeUrl);
+      const streamSrc = safeUrl;
 
       return (
         <div className="flex flex-col items-center justify-center rounded-2xl h-full min-h-[350px] border border-border/50 shadow-inner w-full overflow-hidden relative bg-muted/10">
@@ -1999,7 +1348,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
     }
 
     if (mime === 'application/pdf') return <div className="h-full w-full min-h-[60vh] rounded-2xl overflow-hidden border border-border/50"><PdfViewer src={getStreamUrl(safeUrl)} title={mediaTitle} /></div>;
-    
+
     if (mime.startsWith('model/') || (mime === 'application/octet-stream' && (media.name?.toLowerCase().endsWith('.glb') || media.name?.toLowerCase().endsWith('.gltf')))) {
       return <div className="h-full w-full min-h-[75vh] rounded-2xl overflow-hidden border border-border/50"><Model3DViewer src={getStreamUrl(safeUrl)} alt={mediaTitle} /></div>;
     }
@@ -2012,7 +1361,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
       "flex flex-col lg:flex-row gap-4 lg:gap-6 w-full text-foreground",
       isPickerMode ? "h-full" : "min-h-[700px] lg:h-[calc(100vh-6rem)]"
     )}>
-      
+
       {/* 🚀 SIDEBAR (Responsive) */}
       <div className="w-full lg:w-64 shrink-0 flex flex-col gap-4 lg:gap-6 bg-card/40 border border-border/50 rounded-[2rem] p-4 lg:p-5 backdrop-blur-xl overflow-hidden">
         <div>
@@ -2036,13 +1385,13 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           <button onClick={() => { setActiveFilter("recent"); setActiveTypeFilter(null); setActivePlaylistId(null); }} className={cn("whitespace-nowrap flex-shrink-0 lg:w-full flex items-center gap-3 px-4 lg:px-3 py-2.5 rounded-xl text-sm font-bold transition-all", activeFilter === "recent" ? "bg-emerald-500/10 text-emerald-500" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}>
             <Clock className="h-4 w-4" /> Recent Files
           </button>
-          
+
           <div className="hidden lg:block h-px bg-border/50 w-full my-2"></div>
           <p className="hidden lg:block text-[10px] font-black uppercase text-muted-foreground tracking-widest px-3 mb-1">Playlists</p>
           <div className="flex lg:flex-col gap-1">
             {playlists.map((pl) => (
               <div key={pl.id} className="group/pl relative w-full flex-shrink-0 lg:w-full">
-                <div 
+                <div
                   role="button"
                   tabIndex={0}
                   onClick={() => { setActiveFilter("all"); setActivePlaylistId(pl.id); setCurrentFolderId(null); setActiveTypeFilter(null); }}
@@ -2053,7 +1402,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                     <Music className="h-3.5 w-3.5" /> {pl.name}
                   </div>
                   {canManage && (
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); deletePlaylistMut.mutate(pl.id); }}
                       className="opacity-0 group-hover/pl:opacity-100 p-1 hover:bg-red-500/20 rounded-md text-red-500 transition-all ml-2"
                       title="Delete Playlist"
@@ -2085,7 +1434,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
 
       {/* 🚀 MAIN CONTENT */}
       <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
-        
+
         {/* 🚀 DYNAMIC TOP BAR (Bulk Actions vs Standard) */}
         {canManage && selectedItems.length > 0 ? (
             <div className="flex flex-col sm:flex-row items-center justify-between bg-emerald-500/10 border border-emerald-500/30 p-4 sm:px-6 rounded-[2rem] lg:rounded-[2.5rem] backdrop-blur-xl shadow-lg animate-in slide-in-from-top-4 gap-4 shrink-0">
@@ -2095,7 +1444,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedItems([])} className="text-emerald-500 hover:bg-emerald-500/20 whitespace-nowrap"><X className="h-4 w-4 mr-2"/> Clear</Button>
-                    
+
                     {activeFilter === 'trash' ? (
                         <>
                             <Button size="sm" variant="outline" className="border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10 rounded-xl whitespace-nowrap" onClick={() => restoreItemsMut.mutate(selectedItems)}>
@@ -2140,7 +1489,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                         <MenuItem icon={<HardDrive />} label="File Size" onClick={() => setSortBy('size')} />
                     </SimpleMenu>
                     <div className="w-px h-6 bg-border/50 hidden sm:block mx-1"></div>
-                    
+
                     {/* Action Buttons */}
                     {canManage && (activeFilter === 'trash' ? (
                         <Button onClick={() => emptyTrashMut.mutate()} disabled={folders.length === 0 && allFiles.length === 0} className="rounded-xl h-10 px-4 font-bold bg-red-500 text-white hover:bg-red-600 shadow-sm flex-1 sm:flex-none">
@@ -2189,7 +1538,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
             <div className="flex items-center justify-center h-40"><Loader2 className="h-10 w-10 animate-spin text-emerald-500" /></div>
           ) : (
             <div className={cn(viewMode === 'list' && "space-y-4")}>
-              
+
               {/* --- FOLDERS --- */}
               {activeFilter !== "recent" && !activeTypeFilter && folders.length > 0 && (
                 <section className={cn(viewMode === 'list' && "bg-card/30 border border-border/50 rounded-[2rem] p-4")}>
@@ -2198,11 +1547,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                     {folders.map((folder) => {
                         const isSelected = selectedItems.some(i => i.id === folder.id && i.type === 'folder');
                         return (
-                        <div key={folder.id} onClick={() => setCurrentFolderId(folder.id)} 
-                             className={cn("bg-card/40 border rounded-2xl cursor-pointer transition-all relative group flex", 
+                        <div key={folder.id} onClick={() => setCurrentFolderId(folder.id)}
+                             className={cn("bg-card/40 border rounded-2xl cursor-pointer transition-all relative group flex",
                              viewMode === 'grid' ? "flex-col p-4 hover:shadow-md hover:-translate-y-0.5" : "flex-row items-center gap-4 p-2 pr-4 hover:bg-muted/40",
                              isSelected ? "border-emerald-500 ring-1 ring-emerald-500/50 bg-emerald-500/5" : "border-border/40 hover:border-emerald-500/40")}>
-                          
+
                           {/* Checkbox Overlay */}
                           {canManage && (
                             <div className={cn("absolute z-20 transition-opacity", viewMode === 'grid' ? "top-3 left-3" : "left-4 relative top-0", isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 lg:opacity-0")}>
@@ -2213,7 +1562,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                           <div className={cn("rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0", viewMode === 'grid' ? "h-10 w-10 mb-3 mx-auto relative z-10" : "h-10 w-10 ml-8")}>
                             <Folder className="h-5 w-5 fill-emerald-500/20" />
                           </div>
-                          
+
                           <h4 className="font-bold text-sm truncate flex-1 text-center sm:text-left">{folder.name}</h4>
                           {viewMode === 'list' && <span className="text-xs text-muted-foreground font-mono w-32 hidden md:block text-right">{new Date(folder.created_at).toLocaleDateString()}</span>}
 
@@ -2283,11 +1632,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                         const isSelected = selectedItems.some(i => i.id === file.id && i.type === 'file');
 
                         return (
-                          <div key={file.id} onClick={() => isPickerMode && onFileSelect ? onFileSelect(file) : setSelectedFile(file)}
-                               className={cn("bg-card border rounded-2xl group cursor-pointer transition-all relative flex min-w-0", 
+                          <div key={file.id} onClick={() => handlePickerFileSelect(file)}
+                               className={cn("bg-card border rounded-2xl group cursor-pointer transition-all relative flex min-w-0",
                                viewMode === 'grid' ? "flex-col p-3 hover:shadow-md hover:-translate-y-0.5" : "flex-row items-center gap-4 p-2 pr-4 hover:bg-muted/40",
                                isSelected ? "border-emerald-500 ring-1 ring-emerald-500/50 bg-emerald-500/5" : "border-border/50 hover:border-emerald-500/40")}>
-                            
+
                             {/* Checkbox Overlay */}
                             {canManage && (
                               <div className={cn("absolute z-20 transition-opacity", viewMode === 'grid' ? "top-3 left-3" : "left-4 relative top-0", isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 lg:opacity-0")}>
@@ -2340,10 +1689,10 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                                 <SimpleMenu trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-background/80 lg:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="h-4 w-4"/></Button>}>
                                   <MenuItem icon={<LinkIcon />} label="Share Link" onClick={() => shareLinkMut.mutate({type: "file", id: file.id})} />
                                   <MenuItem icon={<Edit />} label="Rename" onClick={() => setRenameTarget({type: "file", id: file.id, name: media?.name || media?.title || "Untitled"})} />
-                                  <MenuItem 
-                                    icon={downloadingFileId === file.id ? <Loader2 className="h-4 w-4 animate-spin text-emerald-500" /> : <Download />} 
-                                    label={downloadingFileId === file.id ? (downloadPhase === "downloading" ? (downloadProgress > 0 ? `Downloading: ${downloadProgress}%` : "Downloading...") : (downloadProgress > 0 ? `Preparing: ${downloadProgress}%` : "Preparing...")) : "Download"} 
-                                    onClick={() => downloadFile(file.id, file.media_details?.download_name || file.media_details?.name || 'download')} 
+                                  <MenuItem
+                                    icon={downloadingFileId === file.id ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-emerald-500" /> : <Download aria-hidden="true" />}
+                                    label={downloadingFileId === file.id ? (downloadPhase === "downloading" ? (downloadProgress > 0 ? `Downloading: ${downloadProgress}%` : "Downloading...") : (downloadProgress > 0 ? `Preparing: ${downloadProgress}%` : "Preparing...")) : "Download"}
+                                    onClick={() => downloadFile(file.id, file.media_details?.download_name || file.media_details?.name || 'download')}
                                   />
                                   <MenuItem icon={<Star className={cn(file.is_favorite && "fill-yellow-500 text-yellow-500")} />} label={file.is_favorite ? "Unfavorite" : "Favorite"} onClick={() => toggleFavoriteMut.mutate({ type: 'file', id: file.id })} />
                                   <MenuItem icon={<Music />} label="Add to Playlist" onClick={() => { setItemToAddToPlaylist({id: file.id, type: 'file'}); setIsAddToPlaylistOpen(true); }} />
@@ -2364,7 +1713,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                         )
                       })}
                     </div>
-                    
+
                     {/* Big "Show All" bottom button if there are hidden files */}
                     {!showAllFiles && displayedFiles.length > 5 && viewMode === 'grid' && (
                         <div className="mt-6 flex justify-center">
@@ -2389,8 +1738,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
               <DialogHeader><DialogTitle>Move Items</DialogTitle></DialogHeader>
               <div className="py-4">
                   <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block mb-2">Destination Folder</label>
-                  <select 
-                    value={moveTargetFolder} 
+                  <select
+                    value={moveTargetFolder}
                     onChange={(e) => setMoveTargetFolder(e.target.value)}
                     className="w-full bg-muted/30 border border-border/50 h-12 rounded-xl text-sm px-3 focus:ring-2 focus:ring-emerald-500 outline-none truncate font-medium"
                   >
@@ -2470,6 +1819,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
         if (!open) {
            setSelectedFile(null);
            setSubtitleFile(null);
+           setImageEditorActive(false);
         }
       }}>
         <DialogContent className="sm:max-w-5xl md:max-w-[1400px] lg:max-w-[1600px] w-[98vw] md:w-full p-0 overflow-hidden bg-background/95 backdrop-blur-2xl border-border/50 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.4)] flex flex-col max-h-[95vh] z-[9999]" overlayClassName="z-[9998]">
@@ -2477,11 +1827,11 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
 
           {selectedFile && (
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0 w-full">
-              <div className="flex-1 bg-muted/5 p-4 md:p-6 flex items-center justify-center relative md:border-r border-border/50 overflow-hidden min-h-[40vh] w-full">
+              <div className={cn("flex flex-1 items-center justify-center overflow-hidden bg-muted/5 relative min-h-[40vh] w-full", imageEditorActive ? "p-0" : "p-4 md:border-r md:p-6")}>
                 {renderFilePreview(selectedFile)}
               </div>
 
-              <div className="w-full md:w-80 lg:w-96 flex flex-col bg-card/40 shrink-0 overflow-y-auto scrollbar-thin border-t md:border-t-0 border-border/50 relative">
+              {!imageEditorActive ? <div className="w-full md:w-80 lg:w-96 flex flex-col bg-card/40 shrink-0 overflow-y-auto scrollbar-thin border-t md:border-t-0 border-border/50 relative">
                 <Button variant="ghost" size="icon" onClick={() => setSelectedFile(null)} className="absolute top-4 right-4 z-50 rounded-full h-8 w-8 hover:bg-destructive hover:text-white transition-colors" title="Close Preview"><X className="h-4 w-4" /></Button>
 
                 <div className="p-6 border-b border-border/50 min-w-0 sticky top-0 bg-card/80 backdrop-blur-xl z-10">
@@ -2535,13 +1885,13 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
 
                 <div className="p-6 border-t border-border/50 bg-background/40 space-y-3 shrink-0 mt-auto sticky bottom-0 z-10 backdrop-blur-xl">
                   <Button
-                    className="w-full rounded-xl shadow-md font-bold h-11 bg-emerald-500 text-emerald-950 hover:bg-emerald-400 transition-all disabled:opacity-70"
+                    className="w-full rounded-xl shadow-md font-bold h-11 bg-emerald-500 text-emerald-950 hover:bg-emerald-400 transition-all disabled:opacity-70 focus-visible:ring-emerald-950 dark:focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     disabled={downloadingFileId === selectedFile.id}
                     onClick={() => downloadFile(selectedFile.id, selectedFile.media_details?.download_name || selectedFile.media_details?.name || 'download')}
                   >
                     {downloadingFileId === selectedFile.id
-                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {downloadPhase === "downloading" ? (downloadProgress > 0 ? `Downloading: ${downloadProgress}%` : "Downloading...") : (downloadProgress > 0 ? `Preparing: ${downloadProgress}%` : "Preparing...")}</>
-                      : <><Download className="h-4 w-4 mr-2" /> Download File</>}
+                      ? <><Loader2 aria-hidden="true" className="h-4 w-4 mr-2 animate-spin" /> {downloadPhase === "downloading" ? (downloadProgress > 0 ? `Downloading: ${downloadProgress}%` : "Downloading...") : (downloadProgress > 0 ? `Preparing: ${downloadProgress}%` : "Preparing...")}</>
+                      : <><Download aria-hidden="true" className="h-4 w-4 mr-2" /> Download File</>}
                   </Button>
                   {downloadingFileId === selectedFile.id && (
                     <div className="space-y-2">
@@ -2549,12 +1899,26 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                         <span>{downloadPhase === "downloading" ? "Downloading file" : "Preparing secure download"}</span>
                         <span>{downloadProgress}%</span>
                       </div>
-                      <Progress value={downloadProgress} className="h-2 rounded-full bg-muted/40" />
+                      {downloadPhase === "downloading" && downloadTotalBytes > 0 && (
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {formatBytes(downloadedBytes, 1)} of {formatBytes(downloadTotalBytes, 1)} downloaded
+                        </p>
+                      )}
+                      <Progress
+                        value={downloadProgress}
+                        className="h-2 rounded-full bg-muted/40"
+                        aria-label={downloadPhase === "downloading" ? "File download progress" : "Secure download preparation progress"}
+                        aria-valuetext={`${downloadProgress}%`}
+                      />
+                      <span className="sr-only" role="status" aria-atomic="true">
+                        {downloadPhase === "downloading" ? "Download" : "Download preparation"}{' '}
+                        {Math.floor(downloadProgress / 10) * 10}% complete.
+                      </span>
                     </div>
                   )}
                   {canManage && <Button variant="outline" className={cn("w-full rounded-xl h-11 transition-all font-bold border-border/50 hover:bg-muted", selectedFile.is_favorite ? "border-yellow-500 text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20" : "")} onClick={() => toggleFavoriteMut.mutate({ type: 'file', id: selectedFile.id })}><Star className={cn("h-4 w-4 mr-2 shrink-0", selectedFile.is_favorite && "fill-yellow-500")} /> <span className="truncate">{selectedFile.is_favorite ? 'Unfavorite' : 'Favorite'}</span></Button>}
                 </div>
-              </div>
+              </div> : null}
             </div>
           )}
         </DialogContent>
@@ -2576,7 +1940,7 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           <form id="upload-file-form" onSubmit={handleUploadFile} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className="space-y-5 py-4 px-1">
          <div className="grid grid-cols-2 gap-4 min-w-0"><div className="space-y-2 min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">Save in Folder</label><select value={uploadTargetFolder} onChange={(e) => setUploadTargetFolder(e.target.value)} className="w-full bg-muted/30 border border-border/50 h-10 rounded-xl text-sm px-3 focus:ring-2 focus:ring-emerald-500 outline-none truncate font-medium"><option value="root">Root Directory</option>{currentFolderId && <option value={currentFolderId.toString()}>Current Folder (ID: {currentFolderId})</option>}{folderItems.map((f) => (<option key={f.id} value={f.id.toString()}>Subfolder: {f.name}</option>))}</select></div><div className="space-y-2 min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">Base Name</label><Input value={uploadBaseName} onChange={e => setUploadBaseName(e.target.value)} placeholder="Optional" className="bg-muted/50 border-border/50 h-10 rounded-xl text-sm min-w-0" /></div></div>
-              <div className="pt-2 min-w-0 w-full"><div onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleFileDrop} onClick={() => !uploadFileMut.isPending && fileInputRef.current?.click()} className={cn("border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center text-center transition-all overflow-hidden w-full relative min-h-[160px]", isDragging ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]" : "border-border/50 bg-muted/20", !uploadFileMut.isPending && "cursor-pointer hover:bg-muted/40 hover:border-emerald-500/50")}><input type="file" className="hidden" ref={fileInputRef} onChange={(e) => e.target.files && setUploadFile(e.target.files[0])} disabled={uploadFileMut.isPending} />{uploadFile ? (<div className="flex flex-col items-center w-full min-w-0 overflow-hidden relative z-10"><div className="relative"><FileIcon className={cn("h-12 w-12 text-emerald-500 mb-3 shrink-0 transition-transform duration-500", uploadProgress > 0 && "scale-110 animate-bounce")} /></div><p className="text-sm font-bold text-foreground truncate w-full text-center px-2 max-w-full drop-shadow-sm">{uploadFile.name}</p><p className="text-[10px] text-muted-foreground font-mono mt-1">{formatBytes(uploadFile.size)}</p>{uploadProgress > 0 && (<div className="w-full mt-6 space-y-2 px-2 shrink-0 animate-in fade-in zoom-in duration-300"><div className="flex justify-between items-end mb-1"><span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80 animate-pulse">Processing Chunk</span><span className="text-xl font-black text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">{uploadProgress}%</span></div><div className="relative h-3 w-full bg-background rounded-full overflow-hidden shadow-inner border border-border/50"><div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-300 rounded-full transition-all duration-300 ease-out shadow-[0_0_15px_rgba(52,211,153,0.8)]" style={{ width: `${uploadProgress}%` }}><div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite] bg-[length:200%_100%]" /></div></div></div>)}</div>) : (<div className="flex flex-col items-center opacity-70 group-hover:opacity-100 transition-opacity"><div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4 shadow-sm"><UploadCloud className="h-7 w-7 text-emerald-500" /></div><p className="text-sm font-bold text-foreground shrink-0">Click or drag a file to this area to upload</p><p className="text-xs text-muted-foreground mt-2">Support for videos, documents, and images</p></div>)}</div></div>
+              <div className="pt-2 min-w-0 w-full"><div onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleFileDrop} onClick={() => !uploadFileMut.isPending && fileInputRef.current?.click()} className={cn("border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center text-center transition-all overflow-hidden w-full relative min-h-[160px]", isDragging ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]" : "border-border/50 bg-muted/20", !uploadFileMut.isPending && "cursor-pointer hover:bg-muted/40 hover:border-emerald-500/50")}><input type="file" accept={acceptedFileTypes} className="hidden" ref={fileInputRef} onChange={(e) => selectUploadFile(e.target.files?.[0])} disabled={uploadFileMut.isPending} />{uploadFile ? (<div className="flex flex-col items-center w-full min-w-0 overflow-hidden relative z-10"><div className="relative"><FileIcon className={cn("h-12 w-12 text-emerald-500 mb-3 shrink-0 transition-transform duration-500", uploadProgress > 0 && "scale-110 animate-bounce")} /></div><p className="text-sm font-bold text-foreground truncate w-full text-center px-2 max-w-full drop-shadow-sm">{uploadFile.name}</p><p className="text-[10px] text-muted-foreground font-mono mt-1">{formatBytes(uploadFile.size)}</p>{uploadProgress > 0 && (<div className="w-full mt-6 space-y-2 px-2 shrink-0 animate-in fade-in zoom-in duration-300"><div className="flex justify-between items-end mb-1"><span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80 animate-pulse">Processing Chunk</span><span className="text-xl font-black text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">{uploadProgress}%</span></div><div className="relative h-3 w-full bg-background rounded-full overflow-hidden shadow-inner border border-border/50"><div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-300 rounded-full transition-all duration-300 ease-out shadow-[0_0_15px_rgba(52,211,153,0.8)]" style={{ width: `${uploadProgress}%` }}><div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite] bg-[length:200%_100%]" /></div></div></div>)}</div>) : (<div className="flex flex-col items-center opacity-70 group-hover:opacity-100 transition-opacity"><div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4 shadow-sm"><UploadCloud className="h-7 w-7 text-emerald-500" /></div><p className="text-sm font-bold text-foreground shrink-0">Click or drag a file to this area to upload</p><p className="text-xs text-muted-foreground mt-2">{acceptedFileDescription ? `Accepted: ${acceptedFileDescription}` : "Support for videos, documents, and images"}</p></div>)}</div></div>
               {uploadFile && !uploadFile.type.startsWith('image/') && (
                 <div className="space-y-2 pt-4 border-t border-border/50 overflow-hidden min-w-0"><label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground flex items-center gap-2"><ImagePlus className="h-3 w-3 shrink-0" /> Custom Thumbnail (Optional)</label><div className="flex items-center gap-3 w-full min-w-0"><Button type="button" variant="outline" className="h-10 border-dashed shrink-0 rounded-xl" onClick={() => thumbInputRef.current?.click()} disabled={uploadFileMut.isPending}>Select Cover</Button><span className="text-xs font-mono text-muted-foreground truncate flex-1 min-w-0" title={customThumbnail ? customThumbnail.name : 'None selected'}>{customThumbnail ? customThumbnail.name : 'None selected'}</span><input type="file" accept="image/*" className="hidden" ref={thumbInputRef} onChange={(e) => e.target.files && setCustomThumbnail(e.target.files[0])} /></div></div>
               )}
@@ -2630,10 +1994,10 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
           <DialogFooter className="p-8 pt-6 border-t border-border/40 bg-pink-500/5 flex flex-col gap-4">
              <div className="relative w-full">
                 <Music className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="New Playlist Name..." 
+                <Input
+                  placeholder="New Playlist Name..."
                   id="new-playlist-input"
-                  className="rounded-[1.25rem] h-12 bg-background border-border/50 focus-visible:ring-pink-500 pl-11 shadow-inner font-bold" 
+                  className="rounded-[1.25rem] h-12 bg-background border-border/50 focus-visible:ring-pink-500 pl-11 shadow-inner font-bold"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       const val = (e.target as HTMLInputElement).value;
@@ -2641,8 +2005,8 @@ export function FileManagerClient({ tenantName, isPickerMode, onFileSelect, acce
                     }
                   }}
                 />
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="absolute right-1 top-1 h-10 w-10 p-0 rounded-xl bg-pink-500 hover:bg-pink-400 text-white shadow-lg shadow-pink-500/20"
                   onClick={() => {
                     const input = document.getElementById('new-playlist-input') as HTMLInputElement;

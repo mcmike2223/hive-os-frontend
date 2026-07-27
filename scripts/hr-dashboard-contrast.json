@@ -1,0 +1,118 @@
+{
+  "checks": [
+    {
+      "id": "primary-text-on-paper",
+      "foreground": "#020617",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "secondary-text-on-paper",
+      "foreground": "#475569",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "primary-text-on-dark",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "secondary-text-on-dark",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "live-accent-on-dark",
+      "foreground": "#fcd34d",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "workforce-metric",
+      "foreground": "#1e40af",
+      "background": "#eff6ff",
+      "type": "text-normal"
+    },
+    {
+      "id": "payroll-metric",
+      "foreground": "#065f46",
+      "background": "#ecfdf5",
+      "type": "text-normal"
+    },
+    {
+      "id": "recruiting-metric",
+      "foreground": "#78350f",
+      "background": "#fffbeb",
+      "type": "text-normal"
+    },
+    {
+      "id": "exception-metric",
+      "foreground": "#991b1b",
+      "background": "#fef2f2",
+      "type": "text-normal"
+    },
+    {
+      "id": "chart-blue-light",
+      "foreground": "#1d4ed8",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-green-light",
+      "foreground": "#047857",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-amber-light",
+      "foreground": "#b45309",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-purple-light",
+      "foreground": "#7c3aed",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-red-light",
+      "foreground": "#b91c1c",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-blue-dark",
+      "foreground": "#1d4ed8",
+      "background": "#020617",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-green-dark",
+      "foreground": "#047857",
+      "background": "#020617",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-amber-dark",
+      "foreground": "#b45309",
+      "background": "#020617",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-purple-dark",
+      "foreground": "#7c3aed",
+      "background": "#020617",
+      "type": "graphic"
+    },
+    {
+      "id": "chart-red-dark",
+      "foreground": "#b91c1c",
+      "background": "#020617",
+      "type": "graphic"
+    }
+  ]
+}

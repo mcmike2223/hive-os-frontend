@@ -34,7 +34,7 @@ export function usePermissions() {
     return () => window.removeEventListener("hive_security_cleared", loadFromStorage);
   }, [loadFromStorage]);
 
-  const isSuperAdmin = useMemo(() => roles.includes('Super Admin') || roles.includes('Admin'), [roles]);
+  const isSuperAdmin = useMemo(() => roles.includes('Super Admin') || roles.includes('Admin') || roles.includes('Tenant Admin'), [roles]);
 
   const hasPermission = useCallback((permission: string) => {
     if (isSuperAdmin) return true;

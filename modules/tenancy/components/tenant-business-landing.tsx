@@ -16,6 +16,19 @@ import {
 
 type BrandSettings = {
   app_title?: string | null;
+  abbreviation?: string | null;
+  motto?: string | null;
+  mission?: string | null;
+  vision?: string | null;
+  core_value?: string | null;
+  product?: string | null;
+  address?: string | null;
+  website?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+  fax_number?: string | null;
+  po_box?: string | null;
+  tin_number?: string | null;
   logo_light?: string | null;
   logo_dark?: string | null;
   footer_text?: string | null;

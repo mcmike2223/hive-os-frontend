@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [
+    "app/dashboard/human-resources/**/*.tsx",
+    "modules/humanresources/**/*.ts",
+    "components/ui/**/*.tsx",
+    "hooks/use-permissions.ts",
+    "lib/runtime-context.ts",
+    "lib/utils.ts",
+    "next-env.d.ts"
+  ],
+  "exclude": ["node_modules"]
+}

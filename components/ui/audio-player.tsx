@@ -28,7 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Track, useGlobalAudio } from "@/context/global-audio-context";
 
-interface AudioPlayerProps {
+export interface AudioPlayerProps {
   id?: string | number;
   src?: string;
   title?: string;
@@ -39,7 +39,7 @@ interface AudioPlayerProps {
   variant?: "default" | "mini";
   onToggleMinimize?: () => void;
   onClose?: () => void;
-  dragProps?: React.HTMLAttributes<HTMLDivElement>;
+  dragProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
   onNext?: () => void;
   onPrevious?: () => void;
   isFavorite?: boolean;
@@ -118,12 +118,12 @@ export function AudioPlayer({
   } = useGlobalAudio();
 
   const externalTrack = useMemo<Track | null>(() => {
-    if (!propSrc || propId === undefined) {
+    if (!propSrc) {
       return null;
     }
 
     return {
-      id: propId,
+      id: propId ?? `source:${propSrc}`,
       src: propSrc,
       title: propTitle || "Unknown Track",
       artist: propArtist || "HIVE.OS Audio",
@@ -169,9 +169,9 @@ export function AudioPlayer({
   const ghostButtonClass =
     "text-muted-foreground transition-all hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/5";
   const softPanelClass =
-    "border border-border/60 bg-background/70 dark:border-white/10 dark:bg-white/5";
+    "border border-slate-500 bg-background/70 dark:border-slate-500 dark:bg-white/5";
   const overlayClass =
-    "absolute inset-0 z-30 flex flex-col border border-border/60 bg-background/95 text-foreground backdrop-blur-2xl animate-in duration-300 dark:border-white/10 dark:bg-black/90";
+    "absolute inset-0 z-30 flex flex-col border border-slate-500 bg-background/95 text-foreground backdrop-blur-2xl animate-in duration-300 dark:border-slate-500 dark:bg-black/90";
 
   useEffect(() => {
     setLocalFavorite(Boolean(resolvedTrack?.isFavorite ?? propIsFavorite));
@@ -291,6 +291,9 @@ export function AudioPlayer({
 
     const nextFavorite = !activeFavorite;
     setLocalFavorite(nextFavorite);
+    if (numericTrackId === null) {
+      return;
+    }
     await toggleFavorite(resolvedTrack.id, activeFavorite);
   };
 
@@ -351,12 +354,15 @@ export function AudioPlayer({
   const canManipulateTimeline = !isExternalMode || isCurrentResolvedTrack;
 
   return (
-    <div
+    <section
+      data-audio-player
+      aria-label={`Audio player: ${resolvedTrack.title}`}
+      tabIndex={0}
       className={cn(
-        "relative overflow-hidden text-foreground ring-1 ring-black/5 shadow-[0_28px_80px_-36px_rgba(15,23,42,0.45)] transition-all dark:ring-white/5",
-        "border border-border/60 bg-background/95 backdrop-blur-3xl dark:border-white/10 dark:bg-card/85",
+        "relative overflow-hidden text-foreground ring-1 ring-black/5 shadow-[0_28px_80px_-36px_rgba(15,23,42,0.45)] transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500 dark:ring-white/5 [&_button]:min-h-11 [&_button]:min-w-11 [&_button]:touch-manipulation [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-emerald-600 [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-offset-background",
+        "border border-slate-500 bg-background/95 backdrop-blur-3xl dark:border-slate-500 dark:bg-card/85",
         isMiniVariant
-          ? "flex w-[340px] items-center gap-2 rounded-full p-2"
+          ? "flex w-[min(94vw,380px)] items-center gap-2 rounded-[1.75rem] p-3"
           : "w-full max-w-md rounded-[2.4rem] p-6",
         !isMiniVariant
           ? "bg-gradient-to-br from-background via-background/95 to-muted/60 dark:from-card/95 dark:via-card/90 dark:to-card/70"
@@ -379,21 +385,23 @@ export function AudioPlayer({
       ) : null}
 
       {variant === "mini" ? (
-        <div className="relative z-10 flex w-full items-center gap-3">
+        <div className="relative z-10 flex w-full flex-wrap items-center gap-3">
           {dragProps ? (
-            <div
+            <button
+              type="button"
               data-audio-drag-handle
               {...dragProps}
+              aria-label={dragProps["aria-label"] || "Move audio player"}
               className={cn(
-                "flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-full bg-muted/70 text-muted-foreground active:cursor-grabbing dark:bg-white/5",
+                "flex h-11 w-11 shrink-0 cursor-grab items-center justify-center rounded-full bg-muted/70 text-muted-foreground active:cursor-grabbing dark:bg-white/5",
                 dragProps.className,
               )}
             >
               <GripHorizontal className="h-4 w-4" />
-            </div>
+            </button>
           ) : null}
 
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 dark:border-white/10">
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 dark:border-white/10">
             {resolvedTrack.coverArt ? (
               <img
                 src={resolvedTrack.coverArt}
@@ -404,7 +412,7 @@ export function AudioPlayer({
                 )}
               />
             ) : (
-              <Music className="h-4 w-4 text-emerald-500" />
+              <Music className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
             )}
             {effectiveBuffering ? (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm dark:bg-black/45">
@@ -415,14 +423,15 @@ export function AudioPlayer({
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-black leading-tight">{resolvedTrack.title}</p>
-            <p className="truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground/70">
+            <p className="truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
               {resolvedTrack.artist || "HIVE.OS Audio"}
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="order-last flex w-full items-center justify-center gap-3 border-t border-border/60 pt-2 dark:border-white/10">
             <button
               onClick={handlePrevious}
+              aria-label="Previous track"
               className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/5"
               title="Previous"
             >
@@ -430,6 +439,7 @@ export function AudioPlayer({
             </button>
             <button
               onClick={handlePlayPause}
+              aria-label={isTrackPlaying ? "Pause audio" : "Play audio"}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 active:scale-90"
               title={isTrackPlaying ? "Pause" : "Play"}
             >
@@ -441,6 +451,7 @@ export function AudioPlayer({
             </button>
             <button
               onClick={handleNext}
+              aria-label="Next track"
               className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/5"
               title="Next"
             >
@@ -448,9 +459,11 @@ export function AudioPlayer({
             </button>
             <button
               onClick={() => void handleFavorite()}
+              aria-label="Favorite track"
+              aria-pressed={activeFavorite}
               className={cn(
                 "rounded-full p-1 transition-colors",
-                activeFavorite ? "text-emerald-500" : "text-muted-foreground hover:text-emerald-500",
+                activeFavorite ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-400",
               )}
               title={activeFavorite ? "Unfavorite" : "Favorite"}
             >
@@ -458,10 +471,11 @@ export function AudioPlayer({
             </button>
           </div>
 
-          <div className="flex items-center gap-1 border-l border-border/60 pl-2 dark:border-white/10">
+          <div className="ml-auto flex items-center gap-1">
             {onToggleMinimize ? (
               <button
                 onClick={onToggleMinimize}
+                aria-label="Expand audio player"
                 className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/5"
                 title="Expand player"
               >
@@ -471,6 +485,7 @@ export function AudioPlayer({
             {onClose ? (
               <button
                 onClick={onClose}
+                aria-label="Close audio player"
                 className="rounded-full p-1 text-muted-foreground transition-colors hover:text-destructive"
                 title="Close player"
               >
@@ -484,9 +499,11 @@ export function AudioPlayer({
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               {dragProps ? (
-                <div
+                <button
+                  type="button"
                   data-audio-drag-handle
                   {...dragProps}
+                  aria-label={dragProps["aria-label"] || "Move audio player"}
                   className={cn(
                     "flex h-9 w-9 cursor-grab items-center justify-center rounded-2xl bg-muted/70 text-muted-foreground active:cursor-grabbing dark:bg-white/5",
                     dragProps.className,
@@ -494,16 +511,16 @@ export function AudioPlayer({
                   title="Move player"
                 >
                   <GripHorizontal className="h-4 w-4" />
-                </div>
+                </button>
               ) : null}
               <div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-500/80">
+                  <span className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">
                     Premium Audio
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground/70">
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                   {queueBadgeLabel}
                 </p>
               </div>
@@ -512,10 +529,12 @@ export function AudioPlayer({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleQueueToggle}
+                aria-label="Audio queue"
+                aria-expanded={showQueue}
                 className={cn(
                   "relative rounded-2xl p-2 transition-all",
                   showQueue
-                    ? "bg-emerald-500/15 text-emerald-500"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
                     : ghostButtonClass,
                 )}
                 title="Queue"
@@ -530,6 +549,7 @@ export function AudioPlayer({
               {onToggleMinimize ? (
                 <button
                   onClick={onToggleMinimize}
+                  aria-label="Minimize audio player"
                   className={cn("rounded-2xl p-2", ghostButtonClass)}
                   title="Minimize"
                 >
@@ -539,6 +559,7 @@ export function AudioPlayer({
               {onClose ? (
                 <button
                   onClick={onClose}
+                  aria-label="Close audio player"
                   className="rounded-2xl p-2 text-muted-foreground transition-all hover:bg-destructive hover:text-white"
                   title="Close"
                 >
@@ -561,20 +582,20 @@ export function AudioPlayer({
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500/20 to-sky-500/20">
-                  <Music className="h-10 w-10 text-emerald-500" />
+                  <Music className="h-10 w-10 text-emerald-700 dark:text-emerald-400" />
                 </div>
               )}
               {effectiveBuffering ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm dark:bg-black/55">
-                  <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                  <Loader2 className="h-6 w-6 animate-spin text-emerald-700 dark:text-emerald-400" />
                 </div>
               ) : null}
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-xl font-black tracking-tight" title={resolvedTrack.title}>
+              <p className="truncate text-xl font-black tracking-tight" title={resolvedTrack.title}>
                 {resolvedTrack.title}
-              </h2>
+              </p>
               <p className="truncate text-sm font-medium text-muted-foreground">
                 {resolvedTrack.artist || "HIVE.OS Audio"}
               </p>
@@ -582,10 +603,12 @@ export function AudioPlayer({
               <div className="mt-4 flex items-center gap-2">
                 <button
                   onClick={toggleShuffle}
+                  aria-label="Shuffle playback"
+                  aria-pressed={isShuffle}
                   className={cn(
                     "rounded-xl p-1.5 transition-all",
                     isShuffle
-                      ? "bg-emerald-500/10 text-emerald-500"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                       : ghostButtonClass,
                   )}
                   title="Shuffle"
@@ -594,10 +617,11 @@ export function AudioPlayer({
                 </button>
                 <button
                   onClick={cycleRepeatMode}
+                  aria-label={`Repeat mode: ${repeatMode}`}
                   className={cn(
                     "relative rounded-xl p-1.5 transition-all",
                     repeatMode !== "none"
-                      ? "bg-emerald-500/10 text-emerald-500"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                       : ghostButtonClass,
                   )}
                   title="Repeat"
@@ -619,6 +643,7 @@ export function AudioPlayer({
                 <button
                   onClick={() => seekBy(-10)}
                   disabled={!canManipulateTimeline}
+                  aria-label="Back 10 seconds"
                   className="rounded-xl p-1.5 text-muted-foreground transition-all hover:bg-muted/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/5"
                   title="Back 10 seconds"
                 >
@@ -627,6 +652,7 @@ export function AudioPlayer({
                 <button
                   onClick={() => seekBy(10)}
                   disabled={!canManipulateTimeline}
+                  aria-label="Forward 10 seconds"
                   className="rounded-xl p-1.5 text-muted-foreground transition-all hover:bg-muted/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/5"
                   title="Forward 10 seconds"
                 >
@@ -645,9 +671,11 @@ export function AudioPlayer({
                 value={effectiveProgress}
                 disabled={!canManipulateTimeline}
                 onChange={(event) => seekToPercent(Number(event.target.value))}
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/10"
+                aria-label="Audio position"
+                aria-valuetext={`${formatTime(effectiveCurrentTime)} of ${formatTime(effectiveDuration)}`}
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-white/10"
               />
-            <div className="flex items-center justify-between px-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70">
+            <div className="flex items-center justify-between px-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
               <span>{formatTime(effectiveCurrentTime)}</span>
               <span>{formatTime(effectiveDuration)}</span>
             </div>
@@ -657,6 +685,7 @@ export function AudioPlayer({
             <div className="flex w-24 items-center gap-2">
               <button
                 onClick={toggleMute}
+                aria-label={isMuted ? "Unmute audio" : "Mute audio"}
                 className="text-muted-foreground transition-colors hover:text-foreground"
                 title={isMuted ? "Unmute" : "Mute"}
               >
@@ -673,20 +702,24 @@ export function AudioPlayer({
                 step="0.01"
                 value={isMuted ? 0 : volume}
                 onChange={(event) => setVolume(Number(event.target.value))}
-                className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-muted accent-emerald-500 dark:bg-white/10"
+                aria-label="Audio volume"
+                aria-valuetext={`${Math.round((isMuted ? 0 : volume) * 100)} percent`}
+                className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-muted accent-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-white/10"
               />
             </div>
 
             <div className="flex items-center gap-8">
               <button
                 onClick={handlePrevious}
-                className="text-muted-foreground transition-all hover:scale-110 hover:text-emerald-500 active:scale-90"
+                aria-label="Previous track"
+                className="text-muted-foreground transition-all hover:scale-110 hover:text-emerald-700 dark:hover:text-emerald-400 active:scale-90"
                 title="Previous"
               >
                 <SkipBack className="h-6 w-6 fill-current" />
               </button>
               <button
                 onClick={handlePlayPause}
+                aria-label={isTrackPlaying ? "Pause audio" : "Play audio"}
                 className="group flex h-16 w-16 items-center justify-center rounded-[2rem] bg-emerald-500 text-emerald-950 shadow-[0_0_40px_rgba(16,185,129,0.3)] transition-all hover:scale-105 hover:bg-emerald-400 active:scale-95"
                 title={isTrackPlaying ? "Pause" : "Play"}
               >
@@ -698,7 +731,8 @@ export function AudioPlayer({
               </button>
               <button
                 onClick={handleNext}
-                className="text-muted-foreground transition-all hover:scale-110 hover:text-emerald-500 active:scale-90"
+                aria-label="Next track"
+                className="text-muted-foreground transition-all hover:scale-110 hover:text-emerald-700 dark:hover:text-emerald-400 active:scale-90"
                 title="Next"
               >
                 <SkipForward className="h-6 w-6 fill-current" />
@@ -708,30 +742,38 @@ export function AudioPlayer({
             <div className="flex w-32 items-center justify-end gap-1">
               <button
                 onClick={() => void handleFavorite()}
+                aria-label="Favorite track"
+                aria-pressed={activeFavorite}
                 className={cn(
                   "rounded-xl p-2 transition-all",
                   activeFavorite
-                    ? "scale-110 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.45)]"
+                    ? "scale-110 text-rose-700 drop-shadow-[0_0_8px_rgba(190,18,60,0.35)] dark:text-rose-400"
                     : ghostButtonClass,
                 )}
                 title={activeFavorite ? "Unfavorite" : "Favorite"}
               >
                 <Heart className={cn("h-5 w-5", activeFavorite && "fill-current")} />
               </button>
-              <button
-                onClick={handlePlaylistsToggle}
-                className={cn(
-                  "rounded-xl p-2 transition-all",
-                  showPlaylists
-                    ? "bg-emerald-500/15 text-emerald-500"
-                    : ghostButtonClass,
-                )}
-                title="Playlists"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
+              {numericTrackId !== null ? (
+                <button
+                  onClick={handlePlaylistsToggle}
+                  aria-label="Playlists"
+                  aria-expanded={showPlaylists}
+                  className={cn(
+                    "rounded-xl p-2 transition-all",
+                    showPlaylists
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                      : ghostButtonClass,
+                  )}
+                  title="Playlists"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              ) : null}
               <button
                 onClick={handleMenuToggle}
+                aria-label="Track options"
+                aria-expanded={showMenu}
                 className={cn(
                   "rounded-xl p-2 transition-all",
                   showMenu
@@ -748,7 +790,7 @@ export function AudioPlayer({
       )}
 
       {effectiveError ? (
-        <div className="absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs font-bold text-destructive">
+        <div role="alert" className="absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-red-700 bg-red-50 px-4 py-3 text-xs font-bold text-red-800 dark:border-red-400 dark:bg-red-950 dark:text-red-200">
           This track could not be played. Try another file or re-upload the audio.
         </div>
       ) : null}
@@ -761,6 +803,7 @@ export function AudioPlayer({
             </h3>
             <button
               onClick={() => setShowMenu(false)}
+              aria-label="Close track options"
               className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/10"
             >
               <X className="h-4 w-4" />
@@ -768,28 +811,30 @@ export function AudioPlayer({
           </div>
 
           <div className="grid gap-3">
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                setShowPlaylists(true);
-              }}
-              className={cn(
-                "group flex items-center gap-4 rounded-3xl p-5 transition-all hover:border-emerald-500/20 hover:bg-emerald-500/10",
-                softPanelClass,
-              )}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-500 transition-transform group-hover:scale-110">
-                <FolderPlus className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-bold text-foreground">
-                  {isInAnyPlaylist ? "Manage Playlists" : "Add to Playlist"}
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                  Stable library organization
-                </span>
-              </div>
-            </button>
+            {numericTrackId !== null ? (
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowPlaylists(true);
+                }}
+                className={cn(
+                  "group flex items-center gap-4 rounded-3xl p-5 transition-all hover:border-emerald-500/20 hover:bg-emerald-500/10",
+                  softPanelClass,
+                )}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-800 transition-transform group-hover:scale-110 dark:text-emerald-300">
+                  <FolderPlus className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-bold text-foreground">
+                    {isInAnyPlaylist ? "Manage Playlists" : "Add to Playlist"}
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Stable library organization
+                  </span>
+                </div>
+              </button>
+            ) : null}
 
             <button
               onClick={handleAddToQueue}
@@ -798,7 +843,7 @@ export function AudioPlayer({
                 softPanelClass,
               )}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 transition-transform group-hover:scale-110">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-800 transition-transform group-hover:scale-110 dark:text-sky-300">
                 <ListMusic className="h-5 w-5" />
               </div>
               <div className="flex flex-col items-start">
@@ -819,7 +864,7 @@ export function AudioPlayer({
                 softPanelClass,
               )}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-400 transition-transform group-hover:scale-110">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-800 transition-transform group-hover:scale-110 dark:text-blue-300">
                 <Download className="h-5 w-5" />
               </div>
               <div className="flex flex-col items-start">
@@ -836,11 +881,12 @@ export function AudioPlayer({
       {showPlaylists ? (
         <div className={cn(overlayClass, "p-6 fade-in slide-in-from-right-10")}>
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-500">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
               Playlists
             </h3>
             <button
               onClick={() => setShowPlaylists(false)}
+              aria-label="Close playlists"
               className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/10"
             >
               <X className="h-4 w-4" />
@@ -868,8 +914,8 @@ export function AudioPlayer({
                       className={cn(
                         "flex flex-1 items-center justify-between rounded-2xl border p-4 transition-all",
                         included
-                          ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-500"
-                          : "border-border/60 bg-background/70 hover:border-emerald-500/20 hover:bg-emerald-500/10 dark:border-white/10 dark:bg-white/5",
+                          ? "border-emerald-700 bg-emerald-500/20 text-emerald-800 dark:border-emerald-400 dark:text-emerald-300"
+                          : "border-slate-500 bg-background/70 hover:border-emerald-700 hover:bg-emerald-500/10 dark:border-slate-500 dark:bg-white/5 dark:hover:border-emerald-400",
                       )}
                     >
                       <span className="text-sm font-bold text-left text-foreground">
@@ -883,7 +929,8 @@ export function AudioPlayer({
                     </button>
                     <button
                       onClick={() => void deletePlaylist(playlistItem.id)}
-                      className="rounded-2xl border border-border/60 bg-background/70 p-4 text-muted-foreground transition-all hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-500 dark:border-white/10 dark:bg-white/5"
+                      aria-label={`Delete playlist ${playlistItem.name}`}
+                      className="rounded-2xl border border-slate-500 bg-background/70 p-4 text-muted-foreground transition-all hover:border-rose-700 hover:bg-rose-500/10 hover:text-rose-700 dark:border-slate-500 dark:bg-white/5 dark:hover:border-rose-400 dark:hover:text-rose-400"
                       title="Delete playlist"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -895,8 +942,12 @@ export function AudioPlayer({
           </div>
 
           <div className="mt-6 border-t border-border/60 pt-5 dark:border-white/10">
+            <label htmlFor="audio-new-playlist" className="mb-2 block text-xs font-bold text-foreground">
+              New playlist name
+            </label>
             <div className="flex gap-2">
               <input
+                id="audio-new-playlist"
                 value={newPlaylistName}
                 onChange={(event) => setNewPlaylistName(event.target.value)}
                 onKeyDown={(event) => {
@@ -905,11 +956,12 @@ export function AudioPlayer({
                   }
                 }}
                 placeholder="New playlist name..."
-                className="flex-1 rounded-xl border border-border/60 bg-background/80 px-4 py-2 text-sm text-foreground outline-none transition-all focus:border-emerald-500/40 dark:border-white/10 dark:bg-white/5"
+                className="min-w-0 flex-1 rounded-xl border border-slate-500 bg-background/80 px-4 py-2 text-sm text-foreground outline-none transition-all focus:border-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-slate-500 dark:bg-white/5"
               />
               <button
                 onClick={() => void handleCreatePlaylist()}
                 disabled={!newPlaylistName.trim()}
+                aria-label="Create playlist"
                 className="rounded-xl bg-emerald-500 p-2 text-emerald-950 transition-all hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus className="h-5 w-5" />
@@ -930,7 +982,7 @@ export function AudioPlayer({
         >
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-500">
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
                 Up Next
               </h3>
               <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
@@ -948,6 +1000,7 @@ export function AudioPlayer({
               ) : null}
               <button
                 onClick={() => setShowQueue(false)}
+                aria-label="Close audio queue"
                 className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/10"
               >
                 <X className="h-4 w-4" />
@@ -981,7 +1034,7 @@ export function AudioPlayer({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <Music className="h-4 w-4 text-emerald-500" />
+                        <Music className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -995,7 +1048,8 @@ export function AudioPlayer({
                   </button>
                   <button
                     onClick={() => removeFromQueue(trackItem.id)}
-                    className="rounded-full p-1 text-muted-foreground opacity-0 transition-all hover:bg-rose-500/10 hover:text-rose-500 group-hover:opacity-100"
+                    aria-label={`Remove ${trackItem.title} from queue`}
+                    className="rounded-full p-1 text-muted-foreground opacity-100 transition-all hover:bg-rose-500/10 hover:text-rose-500 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                     title="Remove from queue"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -1021,6 +1075,6 @@ export function AudioPlayer({
           background: rgba(255, 255, 255, 0.12);
         }
       `}</style>
-    </div>
+    </section>
   );
 }

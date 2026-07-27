@@ -1,5 +1,13 @@
 const HIVE_CONTEXT_KEY = "hive_context";
 const HIVE_CONTEXT_SIGNATURE_KEY = "hive_context_signature";
+const SIGNED_STREAM_REFRESH_BUFFER_SECONDS = 30;
+
+type SignedStreamCacheEntry = {
+  url: string;
+  expiresAt: number;
+};
+
+const signedStreamCache = new Map<string, SignedStreamCacheEntry>();
 
 export const getStoredHiveContext = (): string | null => {
   if (typeof window === "undefined") return null;
@@ -295,9 +303,9 @@ const getLocalPathname = (url: string): string => {
 };
 
 /**
- * Converts a standard file serve URL into a signed media stream URL.
- * This allows native media players and 3D viewers to access protected
- * tenant media without manually adding Authorization headers.
+ * Legacy synchronous media URL adapter used by viewers that cannot await a
+ * signed URL. Reusable audio/video players should use
+ * getSignedMediaStreamUrl so the bearer token never enters the media URL.
  */
 export const getStreamUrl = (url: string | null | undefined): string => {
   if (!url) return "";
@@ -310,7 +318,7 @@ export const getStreamUrl = (url: string | null | undefined): string => {
   const apiRoot = getBackendApiRoot();
   const token =
     typeof window !== "undefined" ? localStorage.getItem("hive_token") : null;
-  const tenantId = getStoredHiveContext();
+  const tenantId = getTenantId();
   const tenantSignature = getStoredHiveContextSignature();
 
   const params = new URLSearchParams();
@@ -323,6 +331,90 @@ export const getStreamUrl = (url: string | null | undefined): string => {
   }
 
   return `${apiRoot}/media/stream/${fileId}?${params.toString()}`;
+};
+
+const extractMediaFileId = (url: string): string | null => {
+  const match = url.match(
+    /\/api\/v1\/(?:files\/(\d+)\/serve|media\/stream\/(\d+))/,
+  );
+
+  return match?.[1] ?? match?.[2] ?? null;
+};
+
+const readSignedStreamExpiry = (url: string): number | null => {
+  try {
+    const expiresAt = Number(new URL(url, getBackendOrigin()).searchParams.get("exp"));
+    return Number.isFinite(expiresAt) && expiresAt > 0 ? expiresAt : null;
+  } catch {
+    return null;
+  }
+};
+
+type SignedStreamOptions = {
+  forceRefresh?: boolean;
+};
+
+/**
+ * Exchanges a protected file URL for a short-lived stream URL that native
+ * audio/video elements can use without exposing the session bearer token.
+ * Public and non-file URLs are returned unchanged.
+ */
+export const getSignedMediaStreamUrl = async (
+  url: string | null | undefined,
+  options: SignedStreamOptions = {},
+): Promise<string> => {
+  if (!url) return "";
+
+  const fileId = extractMediaFileId(url);
+  if (!fileId) return url;
+
+  const now = Math.floor(Date.now() / 1000);
+  const currentExpiry = readSignedStreamExpiry(url);
+
+  if (
+    !options.forceRefresh &&
+    currentExpiry !== null &&
+    currentExpiry > now + SIGNED_STREAM_REFRESH_BUFFER_SECONDS
+  ) {
+    return url;
+  }
+
+  const cacheKey = `${getWorkspaceScopeKey()}:file:${fileId}`;
+  const cached = signedStreamCache.get(cacheKey);
+  if (
+    !options.forceRefresh &&
+    cached &&
+    cached.expiresAt > now + SIGNED_STREAM_REFRESH_BUFFER_SECONDS
+  ) {
+    return cached.url;
+  }
+
+  const response = await fetch(
+    `${getBackendApiRoot()}/files/${fileId}/signed-stream-url`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Unable to authorize media playback (status ${response.status}).`);
+  }
+
+  const payload = (await response.json()) as {
+    url?: unknown;
+    expires_at?: unknown;
+  };
+  const signedUrl = typeof payload.url === "string" ? payload.url : "";
+  const expiresAt = Number(payload.expires_at);
+
+  if (!signedUrl || !Number.isFinite(expiresAt) || expiresAt <= now) {
+    throw new Error("The media server returned an invalid stream authorization.");
+  }
+
+  signedStreamCache.set(cacheKey, { url: signedUrl, expiresAt });
+
+  return signedUrl;
 };
 
 const getStorageAssetPath = (url: string | null | undefined): string | null => {

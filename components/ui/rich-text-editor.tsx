@@ -49,7 +49,11 @@ import {
 } from 'lucide-react';
 
 export interface RichTextEditorRef {
-  insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw') => void;
+  insertMedia: (
+    url: string,
+    type: 'image' | 'video' | 'audio' | 'raw',
+    altText?: string,
+  ) => void;
 }
 
 const ImageNodeView = (props: any) => {
@@ -169,6 +173,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   onOpenMediaPicker?: () => void;
+  appearance?: 'app' | 'document';
 }
 
 const FontSize = Extension.create({
@@ -274,10 +279,12 @@ const AudioExtension = Node.create({
   },
 });
 
-const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, toggleFullscreen }: { editor: any, onOpenMediaPicker?: () => void, onOpenSignaturePad: () => void, isFullscreen: boolean, toggleFullscreen: () => void }) => {
+const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, toggleFullscreen, appearance }: { editor: any, onOpenMediaPicker?: () => void, onOpenSignaturePad: () => void, isFullscreen: boolean, toggleFullscreen: () => void, appearance: 'app' | 'document' }) => {
   if (!editor) {
     return null;
   }
+
+  const isDocumentSurface = appearance === 'document';
 
   const handleLink = () => {
     const previousUrl = editor.getAttributes('link').href;
@@ -433,7 +440,19 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-[4px] p-1.5 bg-muted/30 border-b shrink-0">
+    <div
+      className={cn(
+        "flex shrink-0 flex-wrap items-center gap-1 border-b p-1.5",
+        isDocumentSurface
+          ? "border-slate-500 bg-slate-100 text-slate-950"
+          : "border-border bg-muted/30",
+      )}
+    >
+      {isDocumentSurface ? (
+        <span className="px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+          Font
+        </span>
+      ) : null}
       <Select
         value={editor.getAttributes('textStyle').fontFamily || "default"}
         onValueChange={(val) => {
@@ -441,7 +460,15 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
           else editor.chain().focus().setFontFamily(val).run();
         }}
       >
-        <SelectTrigger className="h-7 w-[120px] text-xs">
+        <SelectTrigger
+          aria-label="Font"
+          className={cn(
+            "w-[120px] text-xs",
+            isDocumentSurface
+              ? "!h-11 !border-slate-500 !bg-white !text-slate-950 focus:ring-2 focus:ring-slate-800 dark:!border-slate-500 dark:!bg-white dark:!text-slate-950"
+              : "h-7",
+          )}
+        >
           <SelectValue placeholder="Font" />
         </SelectTrigger>
         <SelectContent>
@@ -450,6 +477,11 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
         </SelectContent>
       </Select>
 
+      {isDocumentSurface ? (
+        <span className="px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+          Size
+        </span>
+      ) : null}
       <Select
         value={editor.getAttributes('textStyle').fontSize || "default"}
         onValueChange={(val) => {
@@ -457,7 +489,15 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
           else (editor.chain().focus() as any).setFontSize(val).run();
         }}
       >
-        <SelectTrigger className="h-7 w-[75px] text-xs">
+        <SelectTrigger
+          aria-label="Size"
+          className={cn(
+            "w-[75px] text-xs",
+            isDocumentSurface
+              ? "!h-11 !border-slate-500 !bg-white !text-slate-950 focus:ring-2 focus:ring-slate-800 dark:!border-slate-500 dark:!bg-white dark:!text-slate-950"
+              : "h-7",
+          )}
+        >
           <SelectValue placeholder="Size" />
         </SelectTrigger>
         <SelectContent>
@@ -466,13 +506,21 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
         </SelectContent>
       </Select>
 
-      <div className="relative flex items-center justify-center p-1 hover:bg-muted rounded-md transition-colors overflow-hidden h-7 w-7">
-        <Baseline className="absolute z-0 h-[16px] w-[16px] pointer-events-none" style={{ color: editor.getAttributes('textStyle').color || "currentColor" }} />
-        <input 
-           type="color" 
+      <div
+        className={cn(
+          "relative flex items-center justify-center overflow-hidden rounded-md p-1 transition-colors",
+          isDocumentSurface
+            ? "h-11 w-11 border border-slate-500 bg-white text-slate-700 hover:bg-slate-200 hover:text-slate-950 focus-within:ring-2 focus-within:ring-slate-800"
+            : "h-7 w-7 hover:bg-muted",
+        )}
+      >
+        <Baseline aria-hidden="true" className="pointer-events-none absolute z-0 h-4 w-4 drop-shadow-[0_0_1px_rgb(15,23,42)]" style={{ color: editor.getAttributes('textStyle').color || "currentColor" }} />
+        <input
+           type="color"
            onInput={e => editor.chain().focus().setColor(e.currentTarget.value).run()}
            value={editor.getAttributes('textStyle').color || "#000000"}
-           className="absolute inset-0 w-10 h-10 -ml-2 -mt-2 opacity-0 cursor-pointer z-10"
+           aria-label="Text color"
+           className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
            title="Text Color"
         />
       </div>
@@ -494,13 +542,21 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
             }}
             disabled={btn.disabled}
             className={cn(
-              "h-7 w-7 text-muted-foreground hover:text-foreground",
-              btn.isActive && "bg-muted text-foreground font-bold shadow-sm"
+              isDocumentSurface
+                ? "h-11 w-11 text-slate-700 hover:bg-slate-200 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-800"
+                : "h-7 w-7 text-muted-foreground hover:text-foreground",
+              btn.isActive && (
+                isDocumentSurface
+                  ? "bg-slate-200 font-bold text-slate-950 shadow-sm"
+                  : "bg-muted font-bold text-foreground shadow-sm"
+              )
             )}
             title={btn.title}
+            aria-label={btn.title}
+            aria-pressed={typeof btn.isActive === 'boolean' ? btn.isActive : undefined}
             type="button"
           >
-            {btn.icon}
+            <span aria-hidden="true">{btn.icon}</span>
           </Button>
         );
       })}
@@ -509,8 +565,19 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Insert Emoji">
-            <Smile className="h-[15px] w-[15px] text-amber-500" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              isDocumentSurface
+                ? "h-11 w-11 text-amber-700 hover:bg-amber-100 hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-slate-800"
+                : "h-7 w-7 text-muted-foreground hover:text-foreground",
+            )}
+            aria-label="Insert Emoji"
+            title="Insert Emoji"
+            type="button"
+          >
+            <Smile aria-hidden="true" className="h-[15px] w-[15px]" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[350px] p-0" align="end" sideOffset={5} onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -528,33 +595,48 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+        className={cn(
+          isDocumentSurface
+            ? "h-11 w-11 text-slate-700 hover:bg-slate-200 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-800"
+            : "h-7 w-7 text-muted-foreground hover:text-foreground",
+        )}
+        aria-label="Add Signature"
         title="Add Signature"
         type="button"
         onClick={onOpenSignaturePad}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        <span aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        </span>
       </Button>
 
       <div className="flex-1" />
-      <Button 
-         variant="ghost" 
-         size="icon" 
-         className="h-7 w-7 text-muted-foreground hover:text-foreground" 
-         onClick={toggleFullscreen} 
+      <Button
+         variant="ghost"
+         size="icon"
+         className={cn(
+           isDocumentSurface
+             ? "h-11 w-11 text-slate-700 hover:bg-slate-200 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-800"
+             : "h-7 w-7 text-muted-foreground hover:text-foreground",
+         )}
+         onClick={toggleFullscreen}
+         aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
          type="button"
       >
-         {isFullscreen ? <Minimize2 className="h-[15px] w-[15px]" /> : <Maximize2 className="h-[15px] w-[15px]" />}
+         <span aria-hidden="true">
+           {isFullscreen ? <Minimize2 className="h-[15px] w-[15px]" /> : <Maximize2 className="h-[15px] w-[15px]" />}
+         </span>
       </Button>
     </div>
   );
 };
 
 export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
-  ({ value, onChange, placeholder = "Write something...", className, onOpenMediaPicker }, ref) => {
+  ({ value, onChange, placeholder = "Write something...", className, onOpenMediaPicker, appearance = 'app' }, ref) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isSignatureOpen, setIsSignatureOpen] = useState(false);
+    const isDocumentSurface = appearance === 'document';
     
     const editor = useEditor({
       immediatelyRender: false,
@@ -563,7 +645,9 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           heading: {
             levels: [1, 2, 3],
             HTMLAttributes: {
-              class: 'font-bold mt-6 mb-2 !leading-tight text-foreground',
+              class: isDocumentSurface
+                ? 'font-bold mt-6 mb-2 !leading-tight text-slate-950'
+                : 'font-bold mt-6 mb-2 !leading-tight text-foreground',
             },
           },
           bulletList: {
@@ -578,12 +662,16 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           },
           blockquote: {
             HTMLAttributes: {
-              class: 'border-l-4 border-primary/50 bg-muted/40 text-muted-foreground italic pl-4 py-2 my-4 rounded-r-md',
+              class: isDocumentSurface
+                ? 'border-l-4 border-cyan-800 bg-slate-100 text-slate-800 italic pl-4 py-2 my-4 rounded-r-md'
+                : 'border-l-4 border-primary/50 bg-muted/40 text-muted-foreground italic pl-4 py-2 my-4 rounded-r-md',
             },
           },
           codeBlock: {
             HTMLAttributes: {
-              class: 'bg-muted/60 rounded-md p-4 my-4 font-mono text-sm border shadow-inner',
+              class: isDocumentSurface
+                ? 'rounded-md border border-slate-500 bg-slate-100 p-4 my-4 font-mono text-sm text-slate-950 shadow-inner'
+                : 'bg-muted/60 rounded-md p-4 my-4 font-mono text-sm border shadow-inner',
             },
           },
         }),
@@ -619,9 +707,14 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       editorProps: {
         attributes: {
           class: cn(
-            "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[220px] p-4",
+            "prose prose-sm max-w-none p-4 focus:outline-none",
+            isDocumentSurface
+              ? "min-h-[160px] prose-slate text-slate-950 caret-slate-950"
+              : "min-h-[220px] dark:prose-invert",
             "prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg",
-            "prose-p:leading-relaxed prose-a:text-primary prose-a:underline",
+            isDocumentSurface
+              ? "prose-p:leading-relaxed prose-a:text-cyan-800 prose-a:underline"
+              : "prose-p:leading-relaxed prose-a:text-primary prose-a:underline",
             className
           ),
         },
@@ -632,11 +725,15 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     });
 
     useImperativeHandle(ref, () => ({
-      insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw') => {
+      insertMedia: (
+        url: string,
+        type: 'image' | 'video' | 'audio' | 'raw',
+        altText?: string,
+      ) => {
         if (!editor) return;
         
         if (type === 'image') {
-          editor.chain().focus().setImage({ src: url }).run();
+          editor.chain().focus().setImage({ src: url, alt: altText || 'Letter media' }).run();
         } else if (type === 'video') {
           editor.chain().focus().insertContent([
             {
@@ -674,8 +771,15 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 
     return (
       <div className={cn(
-        "border border-input overflow-hidden rounded-md flex flex-col bg-background transition-shadow shadow-sm max-w-[100vw]",
-        isFullscreen ? "fixed inset-0 z-[100] rounded-none border-none shadow-xl" : "focus-within:ring-1 focus-within:ring-ring"
+        "flex max-w-[100vw] flex-col overflow-hidden rounded-md border transition-shadow shadow-sm",
+        isDocumentSurface
+          ? "border-slate-500 bg-white text-slate-950"
+          : "border-input bg-background",
+        isFullscreen
+          ? "fixed inset-0 z-[100] rounded-none border-none shadow-xl"
+          : isDocumentSurface
+            ? "focus-within:ring-2 focus-within:ring-slate-800"
+            : "focus-within:ring-1 focus-within:ring-ring"
       )}>
         <SignaturePad
           open={isSignatureOpen}
@@ -690,12 +794,31 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
            onOpenSignaturePad={() => setIsSignatureOpen(true)}
            isFullscreen={isFullscreen}
            toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+           appearance={appearance}
         />
-        <div 
-           className={cn("overflow-y-auto cursor-text text-sm flex-1", isFullscreen ? "h-full bg-muted/10 p-8" : "max-h-[50dvh]")} 
+        <div
+           className={cn(
+             "cursor-text text-sm",
+             isFullscreen
+               ? isDocumentSurface
+                 ? "h-full flex-1 overflow-y-auto bg-slate-200 p-8"
+                 : "h-full flex-1 overflow-y-auto bg-muted/10 p-8"
+               : isDocumentSurface
+                 ? "h-[300px] flex-none overflow-y-scroll [scrollbar-color:#64748b_#e2e8f0] [scrollbar-gutter:stable] [scrollbar-width:thin]"
+                 : "max-h-[50dvh] flex-1 overflow-y-auto",
+           )}
            onClick={() => editor?.commands.focus()}
         >
-          <div className={cn(isFullscreen && "max-w-[1000px] mx-auto bg-background rounded-md shadow-sm border p-4 min-h-[800px]")}>
+          <div
+            className={cn(
+              isFullscreen && "mx-auto min-h-[800px] max-w-[1000px] rounded-md border p-4 shadow-sm",
+              isFullscreen && (
+                isDocumentSurface
+                  ? "border-slate-500 bg-white text-slate-950"
+                  : "bg-background"
+              ),
+            )}
+          >
             <EditorContent editor={editor} />
           </div>
         </div>

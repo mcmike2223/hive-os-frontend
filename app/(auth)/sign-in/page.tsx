@@ -183,8 +183,15 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm mx-auto space-y-10 mt-12 lg:mt-0">
           <div className="space-y-3">
-            <Badge variant="outline" className="font-mono text-[10px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">{t('auth.login.establishing_uplink', 'ESTABLISHING UPLINK...')}</Badge>
+            <Badge variant="outline" className="font-mono text-[10px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">
+              {brandSettings?.abbreviation ? brandSettings.abbreviation.toUpperCase() : t('auth.login.establishing_uplink', 'ESTABLISHING UPLINK...')}
+            </Badge>
             <h1 className="text-4xl font-space font-black tracking-tighter sm:text-5xl">{t('auth.login.command', 'Command')} <span className="text-primary">{t('auth.login.access', 'Access')}</span></h1>
+            {brandSettings?.motto && (
+              <p className="text-xs font-bold text-primary/80 uppercase tracking-wider font-mono">
+                {brandSettings.motto}
+              </p>
+            )}
             <p className="text-muted-foreground text-sm max-w-[320px]">{authWelcomeMessage}</p>
           </div>
 

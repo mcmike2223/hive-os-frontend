@@ -4,13 +4,24 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Music, Pause, Play, X } from "lucide-react";
 
 import { useGlobalAudio } from "@/context/global-audio-context";
+import { getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { AudioPlayer } from "./audio-player";
 
-const POSITION_STORAGE_KEY = "hive_audio_player_pos_v2";
-const MINIMIZED_STORAGE_KEY = "hive_audio_player_minimized";
+const POSITION_STORAGE_PREFIX = "hive_audio_player_pos_v3";
+const MINIMIZED_STORAGE_PREFIX = "hive_audio_player_minimized_v2";
 const PADDING = 24;
-const MINI_WIDTH = 340;
+const MINI_WIDTH = 380;
+const MINI_HEIGHT = 112;
 const FULL_WIDTH = 420;
+
+const getFloatingPlayerStorageKeys = () => {
+  const workspaceScope = getWorkspaceScopeKey();
+
+  return {
+    position: `${POSITION_STORAGE_PREFIX}:${workspaceScope}`,
+    minimized: `${MINIMIZED_STORAGE_PREFIX}:${workspaceScope}`,
+  };
+};
 
 type PlayerPosition = {
   x: number;
@@ -72,7 +83,7 @@ export function FloatingPlayer() {
       return;
     }
 
-    const savedMinimized = window.localStorage.getItem(MINIMIZED_STORAGE_KEY);
+    const savedMinimized = window.localStorage.getItem(getFloatingPlayerStorageKeys().minimized);
     if (savedMinimized !== null) {
       setIsMinimized(savedMinimized === "true");
     }
@@ -83,9 +94,9 @@ export function FloatingPlayer() {
       return;
     }
 
-    const savedRaw = window.localStorage.getItem(POSITION_STORAGE_KEY);
+    const savedRaw = window.localStorage.getItem(getFloatingPlayerStorageKeys().position);
     const rect = wrapperRef.current?.getBoundingClientRect();
-    const heightHint = rect?.height ?? (isMinimized ? 68 : 520);
+    const heightHint = rect?.height ?? (isMinimized ? MINI_HEIGHT : 520);
 
     if (savedRaw) {
       try {
@@ -107,7 +118,7 @@ export function FloatingPlayer() {
 
     const handleResize = () => {
       const rect = wrapperRef.current?.getBoundingClientRect();
-      const nextHeight = rect?.height ?? (isMinimized ? 68 : 520);
+      const nextHeight = rect?.height ?? (isMinimized ? MINI_HEIGHT : 520);
       setPosition((previous) =>
         previous
           ? clampPosition(previous, widthHint, nextHeight)
@@ -124,7 +135,10 @@ export function FloatingPlayer() {
       return;
     }
 
-    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
+    window.localStorage.setItem(
+      getFloatingPlayerStorageKeys().position,
+      JSON.stringify(position),
+    );
   }, [position]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -154,7 +168,7 @@ export function FloatingPlayer() {
 
     const rect = wrapperRef.current?.getBoundingClientRect();
     const nextWidth = rect?.width ?? widthHint;
-    const nextHeight = rect?.height ?? (isMinimized ? 68 : 520);
+    const nextHeight = rect?.height ?? (isMinimized ? MINI_HEIGHT : 520);
 
     const nextPosition = clampPosition(
       {
@@ -179,11 +193,39 @@ export function FloatingPlayer() {
     }
   };
 
+  const handleDragKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const movement = event.shiftKey ? 32 : 12;
+    const delta = {
+      ArrowLeft: { x: -movement, y: 0 },
+      ArrowRight: { x: movement, y: 0 },
+      ArrowUp: { x: 0, y: -movement },
+      ArrowDown: { x: 0, y: movement },
+    }[event.key];
+
+    if (!delta) return;
+
+    event.preventDefault();
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    const nextWidth = rect?.width ?? widthHint;
+    const nextHeight = rect?.height ?? (isMinimized ? MINI_HEIGHT : 520);
+    setPosition((previous) => {
+      const base = previous ?? getDefaultPosition(nextWidth, nextHeight);
+      return clampPosition(
+        { x: base.x + delta.x, y: base.y + delta.y },
+        nextWidth,
+        nextHeight,
+      );
+    });
+  };
+
   const handleToggleMinimize = () => {
     setIsMinimized((previous) => {
       const nextState = !previous;
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(MINIMIZED_STORAGE_KEY, String(nextState));
+        window.localStorage.setItem(
+          getFloatingPlayerStorageKeys().minimized,
+          String(nextState),
+        );
       }
       return nextState;
     });
@@ -191,7 +233,7 @@ export function FloatingPlayer() {
 
   const handleOpenPlayer = () => {
     if (!position && typeof window !== "undefined") {
-      setPosition(getDefaultPosition(widthHint, isMinimized ? 68 : 520));
+      setPosition(getDefaultPosition(widthHint, isMinimized ? MINI_HEIGHT : 520));
     }
 
     showFloatingPlayer();
@@ -203,10 +245,11 @@ export function FloatingPlayer() {
 
   if (!isFloatingPlayerOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
-        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/95 p-2 pr-3 text-foreground shadow-[0_28px_80px_-36px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-white/10 dark:bg-card/90">
+      <aside aria-label={`Background audio: ${currentTrack.title}`} className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="flex items-center gap-2 rounded-full border border-slate-500 bg-background/95 p-2 pr-3 text-foreground shadow-[0_28px_80px_-36px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-500 dark:bg-card/90 [&_button]:min-h-11 [&_button]:min-w-11 [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-emerald-600 [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-offset-background">
           <button
             onClick={togglePlay}
+            aria-label={isPlaying ? "Pause audio" : "Play audio"}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 active:scale-95"
             title={isPlaying ? "Pause" : "Play"}
           >
@@ -219,6 +262,7 @@ export function FloatingPlayer() {
 
           <button
             onClick={handleOpenPlayer}
+            aria-label="Expand audio player"
             className="flex min-w-0 items-center gap-3 rounded-full px-2 py-1 text-left transition-colors hover:bg-muted/70 dark:hover:bg-white/5"
             title="Open player"
           >
@@ -230,7 +274,7 @@ export function FloatingPlayer() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <Music className="h-4 w-4 text-emerald-500" />
+                <Music className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
               )}
             </div>
 
@@ -246,6 +290,7 @@ export function FloatingPlayer() {
 
           <button
             onClick={handleOpenPlayer}
+            aria-label="Expand audio player"
             className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/5"
             title="Expand player"
           >
@@ -254,13 +299,14 @@ export function FloatingPlayer() {
 
           <button
             onClick={closePlayer}
+            aria-label="Stop audio playback"
             className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-destructive hover:text-white"
             title="Stop playback"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </aside>
     );
   }
 
@@ -281,7 +327,11 @@ export function FloatingPlayer() {
         variant={isMinimized ? "mini" : "default"}
         onToggleMinimize={handleToggleMinimize}
         onClose={closePlayer}
-        dragProps={{ title: "Drag audio player" }}
+        dragProps={{
+          title: "Move audio player with pointer or arrow keys",
+          "aria-label": "Move audio player",
+          onKeyDown: handleDragKeyDown,
+        }}
       />
     </div>
   );

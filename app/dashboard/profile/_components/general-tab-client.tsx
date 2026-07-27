@@ -1,12 +1,25 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Camera, Upload, Loader2, Shield, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import {
+  Camera,
+  Upload,
+  Loader2,
+  Shield,
+  Image as ImageIcon,
+  CheckCircle2,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
@@ -14,7 +27,11 @@ import { ProfileWorkspaceSkeleton } from "@/components/ui/loading-states";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePermissions } from "@/hooks/use-permissions";
 import { logFrontendAction } from "@/lib/api";
-import { getAuthHeaders, getBackendApiRoot, getBackendStorageUrl } from "@/lib/runtime-context";
+import {
+  getAuthHeaders,
+  getBackendApiRoot,
+  getWorkspaceScopeKey,
+} from "@/lib/runtime-context";
 import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +42,12 @@ type UserProfile = {
 };
 
 type PickerFile = {
-  media_details?: { url?: string };
+  id?: number;
+  media_details?: {
+    url?: string;
+    relative_path?: string;
+    mime_type?: string;
+  };
   url?: string;
   path?: string;
   mime_type?: string;
@@ -59,36 +81,47 @@ function SecureBlobAvatar({
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
-    if (previewUrl) {
-      setBlobUrl(previewUrl);
-      setIsFetching(false);
-      return;
-    }
-
-    if (!canFetch) {
-      setBlobUrl(null);
-      setIsFetching(false);
-      return;
-    }
-
     let isMounted = true;
     let objectUrl: string | null = null;
 
-    const fetchSecureAvatar = async () => {
+    const fetchAvatar = async () => {
       setIsFetching(true);
 
+      // Data or blob URLs don't need network fetching
+      if (
+        previewUrl &&
+        (previewUrl.startsWith("data:") || previewUrl.startsWith("blob:"))
+      ) {
+        setBlobUrl(previewUrl);
+        setIsFetching(false);
+        return;
+      }
+
+      // Determine fetch URL
+      let targetUrl: string | null = null;
+      if (previewUrl) {
+        if (previewUrl.startsWith("http")) {
+          targetUrl = previewUrl;
+        } else {
+          targetUrl = `${getBackendApiRoot()}${previewUrl.startsWith("/") ? "" : "/"}${previewUrl}`;
+        }
+      } else if (canFetch) {
+        targetUrl = `${getBackendApiRoot()}/profile/avatar?cb=${lastSaved}`;
+      }
+
+      if (!targetUrl) {
+        setBlobUrl(null);
+        setIsFetching(false);
+        return;
+      }
+
       try {
-        const res = await fetch(`${getBackendApiRoot()}/profile/avatar?cb=${lastSaved}`, {
+        const res = await fetch(targetUrl, {
           headers: getAuthHeaders(),
         });
 
         if (!res.ok) {
-          throw new Error(`Backend returned ${res.status}`);
-        }
-
-        const contentType = res.headers.get("content-type");
-        if (!contentType?.startsWith("image/")) {
-          throw new Error(`Expected image, got: ${contentType}`);
+          throw new Error(`Avatar fetch returned ${res.status}`);
         }
 
         const blob = await res.blob();
@@ -99,7 +132,12 @@ function SecureBlobAvatar({
         }
       } catch {
         if (isMounted) {
-          setBlobUrl(null);
+          // If fetch with headers failed, fallback to direct previewUrl if it's http
+          if (previewUrl && previewUrl.startsWith("http")) {
+            setBlobUrl(previewUrl);
+          } else {
+            setBlobUrl(null);
+          }
         }
       } finally {
         if (isMounted) {
@@ -108,7 +146,7 @@ function SecureBlobAvatar({
       }
     };
 
-    fetchSecureAvatar();
+    fetchAvatar();
 
     return () => {
       isMounted = false;
@@ -139,12 +177,14 @@ function SecureBlobAvatar({
 
 export function GeneralTabClient() {
   const queryClient = useQueryClient();
+  const scopeKey = getWorkspaceScopeKey();
   const { hasAnyPermission, hasPermission } = usePermissions();
 
   const canViewProfile = hasAnyPermission(["view_profile", "edit_profile"]);
   const canEditProfile = hasPermission("edit_profile");
   const canManageStorage = hasPermission("manage_storage");
-  const canBrowseAvatarLibrary = canEditProfile || hasAnyPermission(["view_storage", "manage_storage"]);
+  const canBrowseAvatarLibrary =
+    canEditProfile || hasAnyPermission(["view_storage", "manage_storage"]);
 
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
   const [name, setName] = useState("");
@@ -154,7 +194,7 @@ export function GeneralTabClient() {
   const [lastSaved, setLastSaved] = useState<number>(Date.now());
 
   const { data: user, isLoading: isFetchingUser } = useQuery({
-    queryKey: ["authUserProfile"],
+    queryKey: ["authUserProfile", scopeKey],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/user`, {
         headers: getAuthHeaders(),
@@ -172,9 +212,10 @@ export function GeneralTabClient() {
   useEffect(() => {
     if (!user) return;
 
-    setName((prev) => prev || user.name || "");
-    setEmail((prev) => prev || user.email || "");
-    setAvatarPath((prev) => prev || user.avatar_path || null);
+    setName(user.name || "");
+    setEmail(user.email || "");
+    setAvatarPath(user.avatar_path || null);
+    setPreviewUrl(null);
   }, [user]);
 
   const updateProfileMut = useMutation({
@@ -201,9 +242,20 @@ export function GeneralTabClient() {
     onSuccess: (data) => {
       toast.success("Profile saved successfully!");
       setPreviewUrl(null);
-      queryClient.setQueryData(["authUserProfile"], data.user);
+      if (data.user?.avatar_path) {
+        setAvatarPath(data.user.avatar_path);
+      }
+      queryClient.setQueryData(["authUserProfile", scopeKey], {
+        ...data.user,
+        avatar_revision: Date.now(),
+      });
+      queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
       setLastSaved(Date.now());
-      logFrontendAction({ module: "Profile Update", action: "updated", description: "Updated basic profile." }).catch(() => {});
+      logFrontendAction({
+        module: "Profile Update",
+        action: "updated",
+        description: "Updated basic profile.",
+      }).catch(() => {});
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed to update profile"));
@@ -220,13 +272,19 @@ export function GeneralTabClient() {
     if (!canEditProfile) return;
 
     const rawUrl = file?.media_details?.url || file?.url || file?.path;
+    const relativePath = file?.media_details?.relative_path;
     if (!rawUrl) {
       toast.error("Error: Could not extract image path from selection.");
       return;
     }
 
-    setAvatarPath(extractPathFromUrl(rawUrl));
-    setPreviewUrl(rawUrl.startsWith("http") ? rawUrl : (getBackendStorageUrl(rawUrl) || rawUrl));
+    if (!file.media_details?.mime_type?.startsWith("image/")) {
+      toast.error("Select an image file for your profile picture.");
+      return;
+    }
+
+    setAvatarPath(relativePath || extractPathFromUrl(rawUrl));
+    setPreviewUrl(rawUrl);
     setIsFileManagerOpen(false);
     toast.success("Avatar selected! Click 'Save Protocol' to apply.");
   };
@@ -238,7 +296,10 @@ export function GeneralTabClient() {
   return (
     <>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <Card id="tour-profile-avatar" className="relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl">
+        <Card
+          id="tour-profile-avatar"
+          className="relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl"
+        >
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
           <CardHeader className="text-center">
             <CardTitle className="text-lg">Operator Avatar</CardTitle>
@@ -262,7 +323,9 @@ export function GeneralTabClient() {
                     className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center bg-black/60 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                   >
                     <Upload className="mb-1 h-8 w-8 animate-bounce" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Change</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">
+                      Change
+                    </span>
                   </button>
                 )}
               </div>
@@ -282,20 +345,29 @@ export function GeneralTabClient() {
           </CardContent>
         </Card>
 
-        <Card id="tour-profile-info" className="relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl md:col-span-2">
+        <Card
+          id="tour-profile-info"
+          className="relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl md:col-span-2"
+        >
           <CardHeader>
             <CardTitle className="text-lg">Basic Information</CardTitle>
-            <CardDescription>Update your contact details and registered name.</CardDescription>
+            <CardDescription>
+              Update your contact details and registered name.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdateProfile} className="space-y-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-2.5">
-                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <Label
+                    htmlFor="name"
+                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                  >
                     Full Name
                   </Label>
                   <Input
                     id="name"
+                    autoComplete="name"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="E.g. Sarah Connor"
@@ -305,12 +377,16 @@ export function GeneralTabClient() {
                   />
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <Label
+                    htmlFor="email"
+                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                  >
                     Encrypted Email
                   </Label>
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="operator@system.os"
@@ -323,7 +399,10 @@ export function GeneralTabClient() {
 
               {!canEditProfile && (
                 <p className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                  Profile editing is locked for your current role. You can review your details here, but changes require the <strong className="text-foreground">edit_profile</strong> permission.
+                  Profile editing is locked for your current role. You can
+                  review your details here, but changes require the{" "}
+                  <strong className="text-foreground">edit_profile</strong>{" "}
+                  permission.
                 </p>
               )}
 
@@ -354,8 +433,12 @@ export function GeneralTabClient() {
               <ImageIcon className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-black tracking-tight text-foreground">Select Profile Picture</h2>
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">Browse existing media or upload if your storage role allows it.</p>
+              <h2 className="text-xl font-black tracking-tight text-foreground">
+                Select Profile Picture
+              </h2>
+              <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                Browse existing media or upload if your storage role allows it.
+              </p>
             </div>
           </div>
           <div className="file-picker-wrapper relative flex-1 overflow-hidden bg-muted/10 p-4 sm:p-6">
@@ -370,6 +453,8 @@ export function GeneralTabClient() {
             <FileManagerClient
               isPickerMode={true}
               onFileSelect={handleFileSelect}
+              acceptedFileTypes="image/*"
+              acceptedFileDescription="an image file"
               access={{
                 canRead: canBrowseAvatarLibrary,
                 canManage: canManageStorage,

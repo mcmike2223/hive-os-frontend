@@ -14,7 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/lib/errors";
 import EmojiPicker from "emoji-picker-react";
-import { FileManagerClient, ImageViewer } from "@/components/dashboard/file-manager-client";
+import { FileManagerClient } from "@/components/dashboard/file-manager-client";
+import { ImageViewer } from "@/components/ui/image-viewer";
 import { VideoPlayer } from "@/components/ui/video-player";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
@@ -499,7 +500,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
     if (mime.startsWith('video/')) {
       return (
         <div className="flex aspect-video w-full items-center justify-center bg-black rounded-2xl border border-border/50 overflow-hidden shadow-inner relative">
-          <VideoPlayer src={getStreamUrl(safeUrl)} nativeSrc={getStreamUrl(safeUrl)} className="w-full h-full" title={mediaTitle} authToken={typeof window !== 'undefined' ? localStorage.getItem('hive_token') : null} />
+          <VideoPlayer src={safeUrl} nativeSrc={safeUrl} className="w-full h-full" title={mediaTitle} authToken={typeof window !== 'undefined' ? localStorage.getItem('hive_token') : null} />
         </div>
       );
     }

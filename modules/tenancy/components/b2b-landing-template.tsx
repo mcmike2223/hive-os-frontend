@@ -85,6 +85,19 @@ import { AddToCartButton } from "@/modules/b2b-marketplace/cart/AddToCartButton"
 
 type B2BBrandSettings = {
   app_title?: string | null;
+  abbreviation?: string | null;
+  motto?: string | null;
+  mission?: string | null;
+  vision?: string | null;
+  core_value?: string | null;
+  product?: string | null;
+  address?: string | null;
+  website?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+  fax_number?: string | null;
+  po_box?: string | null;
+  tin_number?: string | null;
   logo_light?: string | null;
   logo_dark?: string | null;
   footer_text?: string | null;
@@ -2015,29 +2028,25 @@ export default function B2BLandingTemplate({
                 </div>
                 <div>
                   <p className="text-sm font-black tracking-tight">{brandName}</p>
+                  {brandSettings?.abbreviation && (
+                    <p className="text-[9px] text-primary uppercase tracking-widest font-mono font-bold">
+                      {brandSettings.abbreviation}
+                    </p>
+                  )}
                   <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Marketplace</p>
                 </div>
               </Link>
               <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-                The world's most trusted B2B sourcing platform. Verified suppliers, escrow payments, and end-to-end logistics in 184 countries.
+                {brandSettings?.motto || "The world's most trusted B2B sourcing platform. Verified suppliers, escrow payments, and end-to-end logistics in 184 countries."}
               </p>
-              <div className="flex items-center gap-2 mt-4">
-                {[
-                  { icon: Globe2, label: "EN" },
-                  { icon: Mail, label: "Contact" },
-                  { icon: Phone, label: "Call" },
-                ].map((s) => {
-                  const Icon = s.icon;
-                  return (
-                    <button
-                      key={s.label}
-                      className="h-9 w-9 rounded-full border border-border/60 hover:border-primary hover:text-primary flex items-center justify-center transition-colors"
-                    >
-                      <Icon className="h-4 w-4" />
-                    </button>
-                  );
-                })}
-              </div>
+              {(brandSettings?.address || brandSettings?.email || brandSettings?.phone_number || brandSettings?.tin_number) && (
+                <div className="mt-3 text-[11px] text-muted-foreground space-y-1">
+                  {brandSettings?.address && <p className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary shrink-0" /> {brandSettings.address}</p>}
+                  {brandSettings?.email && <p className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-primary shrink-0" /> {brandSettings.email}</p>}
+                  {brandSettings?.phone_number && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-primary shrink-0" /> {brandSettings.phone_number}</p>}
+                  {brandSettings?.tin_number && <p className="font-mono text-[10px]">TIN: {brandSettings.tin_number}</p>}
+                </div>
+              )}
             </div>
 
             <div>

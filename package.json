@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "verify:media": "node scripts/check-media-playback-contexts.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

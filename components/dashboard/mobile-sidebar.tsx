@@ -27,6 +27,7 @@ import {
   Warehouse,
   X,
   GraduationCap,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +58,10 @@ import {
 } from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
 
-type SidebarIcon = React.ComponentType<{ className?: string }>;
+type SidebarIcon = React.ComponentType<{
+  className?: string;
+  "aria-hidden"?: boolean;
+}>;
 
 const MODULE_IDS = new Set([
   "inventory",
@@ -66,6 +70,7 @@ const MODULE_IDS = new Set([
   "workflow",
   "projectmanagement",
   "lms",
+  "humanresources",
   "b2b-marketplace",
 ]);
 
@@ -78,7 +83,9 @@ const APP_PATH_PREFIXES = [
 ];
 
 const isAppPath = (href: string) =>
-  APP_PATH_PREFIXES.some((prefix) => href === prefix || href.startsWith(`${prefix}/`));
+  APP_PATH_PREFIXES.some(
+    (prefix) => href === prefix || href.startsWith(`${prefix}/`),
+  );
 
 const SecureMobileLogo = ({
   path,
@@ -88,6 +95,7 @@ const SecureMobileLogo = ({
   fallbackTitle?: string;
 }) => {
   const { t } = useTranslation();
+  const mobileNavRef = React.useRef<HTMLDivElement>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -145,25 +153,23 @@ const SecureMobileLogo = ({
     };
   }, [path]);
 
-  if (blobUrl) {
-    return (
-      <div className="relative flex h-10 min-w-0 items-center transition-transform group-hover:scale-105">
-        <img
-          src={blobUrl}
-          alt="Brand Logo"
-          className="h-full w-auto max-w-[170px] object-contain"
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="group flex min-w-0 items-center gap-3">
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
-        <Command className="h-5 w-5" />
-      </div>
+      {blobUrl ? (
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-card/60 p-1 shadow-md transition-transform group-hover:scale-105">
+          <img
+            src={blobUrl}
+            alt="Brand Logo"
+            className="h-full w-auto object-contain"
+          />
+        </div>
+      ) : (
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
+          <Command className="h-5 w-5" />
+        </div>
+      )}
       <div className="min-w-0 leading-tight">
-        <div className="max-w-[170px] truncate font-space text-base font-black tracking-tighter">
+        <div className="max-w-[170px] truncate font-space text-base font-black tracking-tighter" title={fallbackTitle || "HIVE.OS"}>
           {fallbackTitle || "HIVE.OS"}
         </div>
         <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -183,6 +189,7 @@ export function MobileSidebar() {
   const { hasChatWorkspace, hasMailboxModule } = useChatAccess();
   const { hasBusinessType } = useBusinessType();
   const { t } = useTranslation();
+  const mobileNavRef = React.useRef<HTMLDivElement>(null);
 
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -198,6 +205,7 @@ export function MobileSidebar() {
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
+  const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
   const canAccessConverter =
@@ -297,7 +305,9 @@ export function MobileSidebar() {
   const filteredNav = useMemo(() => {
     if (!isMounted) return [];
 
-    return DASHBOARD_NAV.filter((item) => hasAccess(item) && matchesSearch(item));
+    return DASHBOARD_NAV.filter(
+      (item) => hasAccess(item) && matchesSearch(item),
+    );
   }, [hasAccess, isMounted, matchesSearch]);
 
   const filteredSecondary = useMemo(() => {
@@ -318,11 +328,11 @@ export function MobileSidebar() {
     () =>
       isMounted
         ? DASHBOARD_SECONDARY.filter(
-          (item) =>
-            item.moduleId === "projectmanagement" &&
-            hasAccess(item) &&
-            matchesSearch(item),
-        )
+            (item) =>
+              item.moduleId === "projectmanagement" &&
+              hasAccess(item) &&
+              matchesSearch(item),
+          )
         : [],
     [hasAccess, isMounted, matchesSearch],
   );
@@ -331,9 +341,11 @@ export function MobileSidebar() {
     () =>
       isMounted
         ? DASHBOARD_SECONDARY.filter(
-          (item) =>
-            item.moduleId === "workflow" && hasAccess(item) && matchesSearch(item),
-        )
+            (item) =>
+              item.moduleId === "workflow" &&
+              hasAccess(item) &&
+              matchesSearch(item),
+          )
         : [],
     [hasAccess, isMounted, matchesSearch],
   );
@@ -342,9 +354,9 @@ export function MobileSidebar() {
     () =>
       isMounted
         ? DASHBOARD_SECONDARY.filter(
-          (item) =>
-            item.moduleId === "lms" && hasAccess(item) && matchesSearch(item),
-        )
+            (item) =>
+              item.moduleId === "lms" && hasAccess(item) && matchesSearch(item),
+          )
         : [],
     [hasAccess, isMounted, matchesSearch],
   );
@@ -356,15 +368,18 @@ export function MobileSidebar() {
       ...workflowFromSecondary,
       ...lmsFromSecondary,
     ],
-    [filteredNav, projectManagementFromSecondary, workflowFromSecondary, lmsFromSecondary],
+    [
+      filteredNav,
+      projectManagementFromSecondary,
+      workflowFromSecondary,
+      lmsFromSecondary,
+    ],
   );
 
   const standardNavItems = useMemo(
     () =>
       filteredNav.filter(
-        (item) =>
-          !MODULE_IDS.has(item.moduleId ?? "") &&
-          !isAppPath(item.href),
+        (item) => !MODULE_IDS.has(item.moduleId ?? "") && !isAppPath(item.href),
       ),
     [filteredNav],
   );
@@ -402,6 +417,9 @@ export function MobileSidebar() {
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
   );
+  const humanResourcesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "humanresources",
+  );
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard/inventory")) {
@@ -438,10 +456,24 @@ export function MobileSidebar() {
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
+    if (pathname.startsWith("/dashboard/human-resources")) {
+      setIsModulesOpen(true);
+      setIsHumanResourcesOpen(true);
+    }
 
     if (isAppPath(pathname)) {
       setIsAppsOpen(true);
     }
+
+    const timer = setTimeout(() => {
+      const activeItem = mobileNavRef.current?.querySelector(
+        ".bg-primary, .bg-primary\\/10, .bg-amber-500\\/15"
+      );
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   const isActive = useCallback(
@@ -468,18 +500,22 @@ export function MobileSidebar() {
         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground font-semibold",
     );
 
-  const dropdownTriggerClass = (openState: boolean) =>
+  const dropdownTriggerClass = (openState: boolean, isActiveSection?: boolean) =>
     cn(
-      "group flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 outline-none",
-      openState
+      "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+      isActiveSection
+        ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
+        : openState
         ? "bg-muted/40 text-foreground"
         : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
     );
 
-  const nestedTriggerClass = (openState: boolean) =>
+  const nestedTriggerClass = (openState: boolean, isActiveModule?: boolean) =>
     cn(
-      "group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none",
-      openState
+      "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+      isActiveModule
+        ? "bg-amber-500/15 text-amber-500 font-extrabold border border-amber-500/30 shadow-sm"
+        : openState
         ? "bg-muted/30 text-foreground"
         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
     );
@@ -491,7 +527,11 @@ export function MobileSidebar() {
 
     return (
       <SheetClose asChild key={item.href}>
-        <Link id={item.tourId} href={item.href} className={mainItemClass(active)}>
+        <Link
+          id={item.tourId}
+          href={item.href}
+          className={mainItemClass(active)}
+        >
           <Icon
             className={cn(
               "h-4 w-4 shrink-0",
@@ -511,7 +551,11 @@ export function MobileSidebar() {
 
     return (
       <SheetClose asChild key={item.href}>
-        <Link id={item.tourId} href={item.href} className={nestedItemClass(active)}>
+        <Link
+          id={item.tourId}
+          href={item.href}
+          className={nestedItemClass(active)}
+        >
           <Icon className="h-4 w-4 shrink-0" />
           <span className="truncate">{label}</span>
         </Link>
@@ -533,23 +577,34 @@ export function MobileSidebar() {
     onToggle: () => void;
   }) => {
     if (items.length === 0) return null;
+    const sectionId = `mobile-module-${items[0]?.moduleId ?? "section"}`;
+    const isAnyItemActive = items.some((item) => isActive(item.href));
 
     return (
       <div className="flex flex-col gap-1">
-        <button onClick={onToggle} className={nestedTriggerClass(openState)}>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={openState}
+          aria-controls={sectionId}
+          className={nestedTriggerClass(openState, isAnyItemActive)}
+        >
           <div className="flex items-center gap-3">
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon aria-hidden={true} className="h-4 w-4 shrink-0" />
             <span className="truncate">{label}</span>
           </div>
           {openState ? (
-            <ChevronDown className="h-4 w-4 opacity-50" />
+            <ChevronDown aria-hidden="true" className="h-4 w-4 opacity-50" />
           ) : (
-            <ChevronRight className="h-4 w-4 opacity-50" />
+            <ChevronRight aria-hidden="true" className="h-4 w-4 opacity-50" />
           )}
         </button>
 
         {openState && (
-          <div className="flex flex-col gap-1 pl-4 animate-in slide-in-from-top-1 duration-200">
+          <div
+            id={sectionId}
+            className="flex flex-col gap-1 pl-4 animate-in slide-in-from-top-1 duration-200"
+          >
             {items.map(renderNestedItem)}
           </div>
         )}
@@ -576,7 +631,9 @@ export function MobileSidebar() {
               className="flex flex-1 items-center gap-3 overflow-hidden"
             >
               <ListTodo className="h-4 w-4 shrink-0 text-primary" />
-              <span className="truncate font-bold text-foreground">{t("nav.project_management", "Project Management")}</span>
+              <span className="truncate font-bold text-foreground">
+                {t("nav.project_management", "Project Management")}
+              </span>
             </Link>
           </SheetClose>
           <button
@@ -600,7 +657,9 @@ export function MobileSidebar() {
             <SheetClose asChild>
               <Link
                 href="/dashboard/project-management"
-                className={nestedItemClass(pathname === "/dashboard/project-management")}
+                className={nestedItemClass(
+                  pathname === "/dashboard/project-management",
+                )}
               >
                 <LayoutDashboard className="h-4 w-4 shrink-0" />
                 <span>{t("nav.pm_overview", "Overview")}</span>
@@ -637,7 +696,9 @@ export function MobileSidebar() {
                 className="h-8 w-full gap-1.5 rounded-lg text-[11px] font-bold shadow-sm shadow-primary/20"
                 onClick={() => {
                   closeSheet();
-                  router.push("/dashboard/project-management/projects?create=true");
+                  router.push(
+                    "/dashboard/project-management/projects?create=true",
+                  );
                 }}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -682,10 +743,12 @@ export function MobileSidebar() {
         className="z-[100] h-dvh w-[300px] max-w-[86vw] border-0 bg-transparent p-0 shadow-none outline-none [&>button]:hidden"
       >
         <SheetHeader className="sr-only">
-          <SheetTitle>{t("nav.dashboard_nav", "Dashboard navigation")}</SheetTitle>
+          <SheetTitle>
+            {t("nav.dashboard_nav", "Dashboard navigation")}
+          </SheetTitle>
         </SheetHeader>
 
-        <div className="m-3 flex h-[calc(100dvh-1.5rem)] min-h-0 flex-col overflow-hidden rounded-[1.25rem] border border-border/50 bg-card/40 p-2 shadow-2xl backdrop-blur-xl glass-panel">
+        <div ref={mobileNavRef} className="m-3 flex h-[calc(100dvh-1.5rem)] min-h-0 flex-col overflow-y-auto rounded-[1.25rem] border border-border/50 bg-card/40 p-2 shadow-2xl backdrop-blur-xl glass-panel custom-scrollbar">
           <div id="tour-sidebar-brand" className="mb-2 shrink-0">
             <div className="relative flex items-center justify-between gap-3 px-1 py-1">
               <SheetClose asChild>
@@ -712,7 +775,10 @@ export function MobileSidebar() {
             </div>
           </div>
 
-          <div id="tour-sidebar-search" className="group relative mt-3 shrink-0 px-1">
+          <div
+            id="tour-sidebar-search"
+            className="group relative mt-3 shrink-0 px-1"
+          >
             <Search className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <input
               type="text"
@@ -753,21 +819,37 @@ export function MobileSidebar() {
                     <button
                       id="tour-nav-modules"
                       onClick={() => setIsModulesOpen((value) => !value)}
+                      aria-expanded={isModulesOpen}
+                      aria-controls="mobile-module-sections"
                       className={dropdownTriggerClass(isModulesOpen)}
                     >
                       <div className="flex items-center gap-3">
-                        <Boxes className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{t("nav.modules", "Modules")}</span>
+                        <Boxes
+                          aria-hidden="true"
+                          className="h-4 w-4 shrink-0"
+                        />
+                        <span className="truncate">
+                          {t("nav.modules", "Modules")}
+                        </span>
                       </div>
                       {isModulesOpen ? (
-                        <ChevronDown className="h-4 w-4 opacity-50" />
+                        <ChevronDown
+                          aria-hidden="true"
+                          className="h-4 w-4 opacity-50"
+                        />
                       ) : (
-                        <ChevronRight className="h-4 w-4 opacity-50" />
+                        <ChevronRight
+                          aria-hidden="true"
+                          className="h-4 w-4 opacity-50"
+                        />
                       )}
                     </button>
 
                     {isModulesOpen && (
-                      <div className="mt-1 flex flex-col gap-1 pl-4 animate-in slide-in-from-top-2 duration-200">
+                      <div
+                        id="mobile-module-sections"
+                        className="mt-1 flex flex-col gap-1 pl-4 animate-in slide-in-from-top-2 duration-200"
+                      >
                         {renderModuleSection({
                           items: inventoryModuleItems,
                           label: t("nav.inventory", "Inventory"),
@@ -781,7 +863,8 @@ export function MobileSidebar() {
                           label: t("nav.hospitality", "Hospitality"),
                           icon: Utensils,
                           openState: isHospitalityOpen,
-                          onToggle: () => setIsHospitalityOpen((value) => !value),
+                          onToggle: () =>
+                            setIsHospitalityOpen((value) => !value),
                         })}
 
                         {renderModuleSection({
@@ -790,6 +873,15 @@ export function MobileSidebar() {
                           icon: Warehouse,
                           openState: isWarehouseOpen,
                           onToggle: () => setIsWarehouseOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: humanResourcesModuleItems,
+                          label: t("nav.human_resources", "Human Resources"),
+                          icon: UsersRound,
+                          openState: isHumanResourcesOpen,
+                          onToggle: () =>
+                            setIsHumanResourcesOpen((value) => !value),
                         })}
 
                         {renderProjectManagementSection()}
@@ -815,7 +907,8 @@ export function MobileSidebar() {
                           label: t("nav.b2bMarketplace", "B2B Marketplace"),
                           icon: Boxes,
                           openState: isB2BMarketplaceOpen,
-                          onToggle: () => setIsB2BMarketplaceOpen((value) => !value),
+                          onToggle: () =>
+                            setIsB2BMarketplaceOpen((value) => !value),
                         })}
                       </div>
                     )}
@@ -853,7 +946,9 @@ export function MobileSidebar() {
                               "/dashboard/tools/converters",
                               "Converters",
                               RefreshCcw,
-                              pathname.startsWith("/dashboard/tools/converters"),
+                              pathname.startsWith(
+                                "/dashboard/tools/converters",
+                              ),
                               "tour-nav-converters-hub",
                             )}
 
@@ -910,7 +1005,10 @@ export function MobileSidebar() {
 
                       return (
                         <SheetClose asChild key={item.href}>
-                          <Link href={item.href} className={mainItemClass(active)}>
+                          <Link
+                            href={item.href}
+                            className={mainItemClass(active)}
+                          >
                             <Icon className="h-4 w-4 shrink-0" />
                             <span className="truncate">{label}</span>
                           </Link>

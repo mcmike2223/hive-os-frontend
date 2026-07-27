@@ -39,11 +39,21 @@ export function WorkflowDashboardPage() {
   useEffect(() => {
     Promise.all([fetchWorkflowTargets(), fetchApprovalRoles({ per_page: 100 }), fetchUsers({ per_page: 100 }), fetchWorkflowDefinitions(), fetchWorkflowDashboard()])
       .then(([targetData, roleData, userData, definitionData, dashboardData]) => {
-        setTargets(targetData || []);
+        const loadedTargets = targetData || [];
+        setTargets(loadedTargets);
         setRoles(((roleData as { data?: Option[] })?.data || []) as Option[]);
         setUsers(((userData as { data?: Option[] })?.data || []) as Option[]);
         setDefinitions((definitionData || []) as Definition[]);
         setDashboard(dashboardData);
+        const requestedModule = new URLSearchParams(window.location.search).get("module");
+        const requestedTarget = requestedModule
+          ? loadedTargets.find((item) => item.module_slug === requestedModule)
+          : undefined;
+        if (requestedTarget) {
+          setSelectedTarget(requestedTarget.value);
+          setEvent(requestedTarget.events[0] || "");
+          setName(`${requestedTarget.label} approval`);
+        }
       })
       .catch(() => setError("Workflow options could not be loaded. Check your connection and try again."))
       .finally(() => setBusy(false));

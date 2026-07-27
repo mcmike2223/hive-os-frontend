@@ -142,6 +142,7 @@ export function SignaturePad({ open, onOpenChange, onSave, onClose }: SignatureP
                 penColor={penColor}
                 canvasProps={{
                   className: "w-full h-[200px] signature-canvas",
+                  "aria-label": "Signature drawing area",
                 }}
                 backgroundColor="transparent"
               />
@@ -153,7 +154,7 @@ export function SignaturePad({ open, onOpenChange, onSave, onClose }: SignatureP
 
             <DialogFooter className="flex items-center justify-between mt-2">
               <Button variant="destructive" size="sm" onClick={handleClear} type="button">
-                <Eraser className="h-4 w-4 mr-2" />
+                <Eraser aria-hidden="true" className="h-4 w-4 mr-2" />
                 Clear
               </Button>
               <div className="flex gap-2">

@@ -1,0 +1,94 @@
+{
+  "checks": [
+    {
+      "id": "body-text-light",
+      "foreground": "#0f172a",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "secondary-text-light",
+      "foreground": "#475569",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "primary-button-light",
+      "foreground": "#ffffff",
+      "background": "#115e59",
+      "type": "text-normal"
+    },
+    {
+      "id": "phase-label-light",
+      "foreground": "#115e59",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "warning-text-light",
+      "foreground": "#92400e",
+      "background": "#fffbeb",
+      "type": "text-normal"
+    },
+    {
+      "id": "success-text-light",
+      "foreground": "#047857",
+      "background": "#ecfdf5",
+      "type": "text-normal"
+    },
+    {
+      "id": "error-text-light",
+      "foreground": "#b91c1c",
+      "background": "#fef2f2",
+      "type": "text-normal"
+    },
+    {
+      "id": "form-border-light",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "body-text-dark",
+      "foreground": "#f8fafc",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "secondary-text-dark",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "focus-ring-dark",
+      "foreground": "#fcd34d",
+      "background": "#020617",
+      "type": "ui"
+    },
+    {
+      "id": "form-border-dark",
+      "foreground": "#94a3b8",
+      "background": "#020617",
+      "type": "ui"
+    },
+    {
+      "id": "success-text-dark",
+      "foreground": "#d1fae5",
+      "background": "#022c22",
+      "type": "text-normal"
+    },
+    {
+      "id": "warning-text-dark",
+      "foreground": "#fef3c7",
+      "background": "#451a03",
+      "type": "text-normal"
+    },
+    {
+      "id": "error-text-dark",
+      "foreground": "#fee2e2",
+      "background": "#450a0a",
+      "type": "text-normal"
+    }
+  ]
+}

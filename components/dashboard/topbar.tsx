@@ -5,10 +5,14 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, LogOut, Maximize, Minimize, HelpCircle, Loader2 } from "lucide-react";
+import { Search, LogOut, Maximize, Minimize, HelpCircle } from "lucide-react";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MobileSidebar } from "./mobile-sidebar";
@@ -20,10 +24,16 @@ import { GlobalSearch } from "./global-search";
 import { TopbarMailIcon } from "./topbar-mail";
 import { TopbarNotificationsIcon } from "./topbar-notifications";
 import { ChatNotificationIcon } from "./chat-notification-icon";
-import { getAccessToken, getBackendApiRoot, getTenantHeaders, isTenantSession } from "@/lib/runtime-context";
+import {
+  getAccessToken,
+  getBackendApiRoot,
+  getTenantHeaders,
+  getWorkspaceScopeKey,
+} from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
 import { usePermissions } from "@/hooks/use-permissions";
 import { PROFILE_ROUTE_PERMISSIONS } from "@/lib/route-permissions";
+import { useAvatarUrl } from "@/hooks/use-avatar-url";
 
 const getApiUrl = () => {
   return getBackendApiRoot();
@@ -38,66 +48,40 @@ type TopbarUser = {
   name?: string;
   avatar_path?: string | null;
   avatar_url?: string | null;
+  updated_at?: string | null;
+  avatar_revision?: number;
 };
 
 // 🚀 SECURE TOPBAR AVATAR
-const SecureTopbarAvatar = ({ user, fallbackInitials, canViewProfile }: { user: TopbarUser | null, fallbackInitials: string, canViewProfile: boolean }) => {
-    const [blobUrl, setBlobUrl] = useState<string | null>(null);
-    const [isFetching, setIsFetching] = useState(true);
+const SecureTopbarAvatar = ({
+  user,
+  fallbackInitials,
+  canViewProfile,
+}: {
+  user: TopbarUser | null;
+  fallbackInitials: string;
+  canViewProfile: boolean;
+}) => {
+  const avatarUrl = useAvatarUrl(
+    canViewProfile ? user : null,
+    user?.avatar_revision ?? user?.updated_at ?? 0,
+  );
 
-    useEffect(() => {
-        if (!canViewProfile) {
-            setBlobUrl(null);
-            setIsFetching(false);
-            return;
-        }
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={`${user?.name || "Operator"} profile picture`}
+        className="h-full w-full object-cover"
+      />
+    );
+  }
 
-        if (user && !user.avatar_path && !user.avatar_url) {
-            setBlobUrl(null);
-            setIsFetching(false);
-            return;
-        }
-
-        let isMounted = true;
-        const fetchSecureAvatar = async () => {
-            setIsFetching(true);
-            try {
-                const token = getAccessToken();
-                const res = await fetch(`${getTenantAwareEndpoint('/profile/avatar')}?cb=${Date.now()}`, {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', ...getTenantHeaders() }
-                });
-
-                if (await handleAuthFailureResponse(res)) {
-                    return;
-                }
-
-                if (!res.ok) throw new Error("No avatar found");
-
-                const contentType = res.headers.get('content-type');
-                if (!contentType?.startsWith('image/')) throw new Error("Not an image");
-
-                const blob = await res.blob();
-                if (isMounted) setBlobUrl(URL.createObjectURL(blob));
-            } catch (err) {
-                if (isMounted) setBlobUrl(null);
-            } finally {
-                if (isMounted) setIsFetching(false);
-            }
-        };
-
-        fetchSecureAvatar();
-        return () => { isMounted = false; };
-    }, [canViewProfile, user?.avatar_path, user?.avatar_url]);
-
-    if (isFetching && !blobUrl) {
-        return <Loader2 className="h-4 w-4 animate-spin text-primary-foreground/50 m-auto" />;
-    }
-
-    if (blobUrl) {
-        return <img src={blobUrl} alt={user?.name || "Avatar"} className="h-full w-full object-cover" />;
-    }
-
-    return <AvatarFallback className="bg-primary text-primary-foreground font-black tracking-widest">{fallbackInitials}</AvatarFallback>;
+  return (
+    <AvatarFallback className="bg-primary text-primary-foreground font-black tracking-widest">
+      {fallbackInitials}
+    </AvatarFallback>
+  );
 };
 
 export function DashboardTopbar() {
@@ -110,22 +94,27 @@ export function DashboardTopbar() {
   const { t } = useTranslation();
   const { hasAnyPermission } = usePermissions();
   const canViewProfile = hasAnyPermission([...PROFILE_ROUTE_PERMISSIONS]);
+  const scopeKey = getWorkspaceScopeKey();
   const { data: serverUser } = useQuery({
-      queryKey: ['authUserProfile'],
-      queryFn: async () => {
-          const token = getAccessToken();
-          if (!token) throw new Error("No token");
-          const res = await fetch(getTenantAwareEndpoint('/user'), {
-              headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', ...getTenantHeaders() }
-          });
-          if (await handleAuthFailureResponse(res)) {
-              throw new Error("Session invalidated");
-          }
-          if (!res.ok) throw new Error("Failed to fetch user data");
-          return res.json();
-      },
-      staleTime: 300000,
-      enabled: canViewProfile,
+    queryKey: ["authUserProfile", scopeKey],
+    queryFn: async () => {
+      const token = getAccessToken();
+      if (!token) throw new Error("No token");
+      const res = await fetch(getTenantAwareEndpoint("/user"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          ...getTenantHeaders(),
+        },
+      });
+      if (await handleAuthFailureResponse(res)) {
+        throw new Error("Session invalidated");
+      }
+      if (!res.ok) throw new Error("Failed to fetch user data");
+      return res.json();
+    },
+    staleTime: 300000,
+    enabled: canViewProfile,
   });
 
   const activeUser = serverUser || localUser;
@@ -134,9 +123,11 @@ export function DashboardTopbar() {
     const storedUser = localStorage.getItem("hive_user");
     if (storedUser) setLocalUser(JSON.parse(storedUser));
 
-    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const handleFullscreenChange = () =>
+      setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const handleLogout = () => {
@@ -147,7 +138,9 @@ export function DashboardTopbar() {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => console.error(err));
+      document.documentElement
+        .requestFullscreen()
+        .catch((err) => console.error(err));
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
     }
@@ -155,53 +148,263 @@ export function DashboardTopbar() {
 
   const triggerMasterTour = () => {
     const possibleSteps = [
-        // Sidebar Navigation
-        { target: '#tour-sidebar-brand', title: t('tour.sidebar_brand_title', 'HIVE.OS Control Hub'), content: t('tour.sidebar_brand_desc', 'This is your central command console.'), placement: 'right' as const },
-        { target: '#tour-sidebar-search', title: t('tour.sidebar_search_title', 'Sidebar Search'), content: t('tour.sidebar_search_desc', 'Quickly find and filter navigation menus.'), placement: 'right' as const },
-        { target: '#tour-nav-overview', title: t('nav.dashboard', 'Dashboard'), content: t('tour.overview_desc', 'View real-time telemetry, revenue, and active staff metrics.'), placement: 'right' as const },
-        { target: '#tour-nav-audit', title: t('nav.audit_logs', 'WORM Audit Ledger'), content: t('tour.audit_desc', 'Every system action is cryptographically sealed here.'), placement: 'right' as const },
-        { target: '#tour-nav-security', title: t('nav.security', 'Identity & Access'), content: t('tour.security_desc', 'Manage operator clearances, roles, and granular security.'), placement: 'right' as const },
-        { target: '#tour-nav-tenants', title: t('nav.tenants', 'Node Management'), content: t('tour.tenants_desc', 'Provision, monitor, and configure active tenant databases.'), placement: 'right' as const },
-        { target: '#tour-nav-landing-templates', title: t('nav.landing_templates', 'Landing Templates'), content: t('tour.landing_templates_desc', 'Configure global landing templates and themes for tenants.'), placement: 'right' as const },
-        
-        // Modules Group
-        { target: '#tour-nav-modules', title: t('tour.modules_group_title', 'Feature Modules'), content: t('tour.modules_group_desc', 'Explore core operational modules like Inventory Logistics and Service Operations.'), placement: 'right' as const },
-        { target: '#tour-nav-inventory', title: t('nav.inventory', 'Supply Chain Matrix'), content: t('tour.inventory_desc', 'Manage assets, products, and warehouse logistics with tenant-aware precision.'), placement: 'right' as const },
-        { target: '#tour-nav-hospitality', title: t('nav.hospitality', 'Service Operations'), content: t('tour.hospitality_desc', 'Real-time table management, reservations, and service orders for lounges.'), placement: 'right' as const },
-        
-        // Apps & Tools Group
-        { target: '#tour-nav-apps', title: t('tour.apps_group_title', 'Apps & Tools'), content: t('tour.apps_group_desc', 'Access utility applications like Document Processing and internal Secure Comms.'), placement: 'right' as const },
-        { target: '#tour-nav-converter', title: t('tour.converter_title', 'Asset Processing'), content: t('tour.converter_desc', 'Convert and digitize documents into high-fidelity PDF formats.'), placement: 'right' as const },
-        { target: '#tour-nav-mail', title: t('tour.mail_title', 'Secure Comms'), content: t('tour.mail_desc', 'Internal encrypted messaging between system operators.'), placement: 'right' as const },
-        
-        // Secondary Navigation
-        { target: '#tour-nav-storage', title: t('nav.storage', 'Storage Infrastructure'), content: t('tour.storage_desc', 'Monitor tenant-aware file systems and volume capacities.'), placement: 'right' as const },
-        { target: '#tour-nav-settings', title: t('nav.settings', 'Global Preferences'), content: t('tour.settings_desc', 'Configure deep system parameters and UI themes.'), placement: 'right' as const },
-        { target: '#tour-nav-api-docs', title: t('nav.api_docs', 'API Docs'), content: t('tour.api_docs_desc', 'Explore the live API schema to integrate external applications.'), placement: 'right' as const },
-        
-        // Topbar Actions
-        { target: '#tour-topbar-search', title: t('tour.topbar_search_title', 'Global Command Search'), content: t('tour.topbar_search_desc', 'Instantly locate node configurations or specific system logs.'), placement: 'bottom' as const },
-        { target: '#tour-topbar-language', title: t('tour.topbar_language_title', 'Interface Language'), content: t('tour.topbar_language_desc', 'Switch the dashboard matrix to your preferred language.'), placement: 'bottom' as const },
-        { target: '#tour-topbar-theme', title: t('tour.topbar_theme_title', 'Interface Theme'), content: t('tour.topbar_theme_desc', 'Toggle between light mode and dark mode.'), placement: 'bottom' as const },
-        { target: '#tour-topbar-fullscreen', title: t('tour.topbar_fullscreen_title', 'Focus Mode'), content: t('tour.topbar_fullscreen_desc', 'Expand the dashboard to fill your entire screen.'), placement: 'bottom' as const },
-        { target: '#tour-topbar-notifications', title: t('tour.topbar_notifications_title', 'System Alerts'), content: t('tour.topbar_notifications_desc', 'View real-time security alerts and task notifications.'), placement: 'bottom' as const },
-        { target: '#tour-topbar-profile', title: t('tour.topbar_profile_title', 'Operator Profile'), content: t('tour.topbar_profile_desc', 'Manage your settings and safely disconnect your node.'), placement: 'bottom-end' as const },
-        
-        // Dashboard Body Elements
-        { target: '#tour-body-stats', title: t('tour.body_stats_title', 'System Metrics'), content: t('tour.body_stats_desc', 'Instant overview of active nodes, users, roles, and core capabilities.'), placement: 'bottom' as const },
-        { target: '#tour-body-telemetry', title: t('tour.body_telemetry_title', 'Live Telemetry'), content: t('tour.body_telemetry_desc', 'Real-time performance graph tracking system requests and overall network health.'), placement: 'right' as const },
-        { target: '#tour-body-modules', title: t('tour.body_modules_title', 'Module Health'), content: t('tour.body_modules_desc', 'Status, latency, and throughput metrics for active microservices.'), placement: 'left' as const },
-        { target: '#tour-body-audit', title: t('tour.body_audit_title', 'Audit Ledger'), content: t('tour.body_audit_desc', 'Live stream of cryptographically sealed actions performed across the network.'), placement: 'top' as const }
+      // Sidebar Navigation
+      {
+        target: "#tour-sidebar-brand",
+        title: t("tour.sidebar_brand_title", "HIVE.OS Control Hub"),
+        content: t(
+          "tour.sidebar_brand_desc",
+          "This is your central command console.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-sidebar-search",
+        title: t("tour.sidebar_search_title", "Sidebar Search"),
+        content: t(
+          "tour.sidebar_search_desc",
+          "Quickly find and filter navigation menus.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-overview",
+        title: t("nav.dashboard", "Dashboard"),
+        content: t(
+          "tour.overview_desc",
+          "View real-time telemetry, revenue, and active staff metrics.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-audit",
+        title: t("nav.audit_logs", "WORM Audit Ledger"),
+        content: t(
+          "tour.audit_desc",
+          "Every system action is cryptographically sealed here.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-security",
+        title: t("nav.security", "Identity & Access"),
+        content: t(
+          "tour.security_desc",
+          "Manage operator clearances, roles, and granular security.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-tenants",
+        title: t("nav.tenants", "Node Management"),
+        content: t(
+          "tour.tenants_desc",
+          "Provision, monitor, and configure active tenant databases.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-landing-templates",
+        title: t("nav.landing_templates", "Landing Templates"),
+        content: t(
+          "tour.landing_templates_desc",
+          "Configure global landing templates and themes for tenants.",
+        ),
+        placement: "right" as const,
+      },
+
+      // Modules Group
+      {
+        target: "#tour-nav-modules",
+        title: t("tour.modules_group_title", "Feature Modules"),
+        content: t(
+          "tour.modules_group_desc",
+          "Explore core operational modules like Inventory Logistics and Service Operations.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-inventory",
+        title: t("nav.inventory", "Supply Chain Matrix"),
+        content: t(
+          "tour.inventory_desc",
+          "Manage assets, products, and warehouse logistics with tenant-aware precision.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-hospitality",
+        title: t("nav.hospitality", "Service Operations"),
+        content: t(
+          "tour.hospitality_desc",
+          "Real-time table management, reservations, and service orders for lounges.",
+        ),
+        placement: "right" as const,
+      },
+
+      // Apps & Tools Group
+      {
+        target: "#tour-nav-apps",
+        title: t("tour.apps_group_title", "Apps & Tools"),
+        content: t(
+          "tour.apps_group_desc",
+          "Access utility applications like Document Processing and internal Secure Comms.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-converter",
+        title: t("tour.converter_title", "Asset Processing"),
+        content: t(
+          "tour.converter_desc",
+          "Convert and digitize documents into high-fidelity PDF formats.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-mail",
+        title: t("tour.mail_title", "Secure Comms"),
+        content: t(
+          "tour.mail_desc",
+          "Internal encrypted messaging between system operators.",
+        ),
+        placement: "right" as const,
+      },
+
+      // Secondary Navigation
+      {
+        target: "#tour-nav-storage",
+        title: t("nav.storage", "Storage Infrastructure"),
+        content: t(
+          "tour.storage_desc",
+          "Monitor tenant-aware file systems and volume capacities.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-settings",
+        title: t("nav.settings", "Global Preferences"),
+        content: t(
+          "tour.settings_desc",
+          "Configure deep system parameters and UI themes.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-nav-api-docs",
+        title: t("nav.api_docs", "API Docs"),
+        content: t(
+          "tour.api_docs_desc",
+          "Explore the live API schema to integrate external applications.",
+        ),
+        placement: "right" as const,
+      },
+
+      // Topbar Actions
+      {
+        target: "#tour-topbar-search",
+        title: t("tour.topbar_search_title", "Global Command Search"),
+        content: t(
+          "tour.topbar_search_desc",
+          "Instantly locate node configurations or specific system logs.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-language",
+        title: t("tour.topbar_language_title", "Interface Language"),
+        content: t(
+          "tour.topbar_language_desc",
+          "Switch the dashboard matrix to your preferred language.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-theme",
+        title: t("tour.topbar_theme_title", "Interface Theme"),
+        content: t(
+          "tour.topbar_theme_desc",
+          "Toggle between light mode and dark mode.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-fullscreen",
+        title: t("tour.topbar_fullscreen_title", "Focus Mode"),
+        content: t(
+          "tour.topbar_fullscreen_desc",
+          "Expand the dashboard to fill your entire screen.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-notifications",
+        title: t("tour.topbar_notifications_title", "System Alerts"),
+        content: t(
+          "tour.topbar_notifications_desc",
+          "View real-time security alerts and task notifications.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-profile",
+        title: t("tour.topbar_profile_title", "Operator Profile"),
+        content: t(
+          "tour.topbar_profile_desc",
+          "Manage your settings and safely disconnect your node.",
+        ),
+        placement: "bottom-end" as const,
+      },
+
+      // Dashboard Body Elements
+      {
+        target: "#tour-body-stats",
+        title: t("tour.body_stats_title", "System Metrics"),
+        content: t(
+          "tour.body_stats_desc",
+          "Instant overview of active nodes, users, roles, and core capabilities.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-body-telemetry",
+        title: t("tour.body_telemetry_title", "Live Telemetry"),
+        content: t(
+          "tour.body_telemetry_desc",
+          "Real-time performance graph tracking system requests and overall network health.",
+        ),
+        placement: "right" as const,
+      },
+      {
+        target: "#tour-body-modules",
+        title: t("tour.body_modules_title", "Module Health"),
+        content: t(
+          "tour.body_modules_desc",
+          "Status, latency, and throughput metrics for active microservices.",
+        ),
+        placement: "left" as const,
+      },
+      {
+        target: "#tour-body-audit",
+        title: t("tour.body_audit_title", "Audit Ledger"),
+        content: t(
+          "tour.body_audit_desc",
+          "Live stream of cryptographically sealed actions performed across the network.",
+        ),
+        placement: "top" as const,
+      },
     ];
 
-    const activeSteps = possibleSteps.filter(step => document.querySelector(step.target));
+    const activeSteps = possibleSteps.filter((step) =>
+      document.querySelector(step.target),
+    );
 
-    startTour(activeSteps.map(step => ({ ...step, disableBeacon: true })));
+    startTour(activeSteps.map((step) => ({ ...step, disableBeacon: true })));
   };
 
   const userInitials = activeUser?.name
-      ? activeUser.name.substring(0, 2).toUpperCase()
-      : "OP";
+    ? activeUser.name.substring(0, 2).toUpperCase()
+    : "OP";
 
   return (
     <header className="sticky top-0 z-40 mb-4 px-2 sm:px-0">
@@ -210,25 +413,27 @@ export function DashboardTopbar() {
 
         <div className="glass-panel rounded-2xl md:rounded-[2rem] px-3 py-2 md:px-5 md:py-3 backdrop-blur-2xl border border-border/50 bg-card/40 relative z-10 shadow-lg">
           <div className="flex items-center justify-between gap-2 md:gap-3">
-
             <div className="flex min-w-0 items-center gap-2 md:gap-3">
               <div className="lg:hidden shrink-0 scale-90 sm:scale-100">
                 <MobileSidebar />
               </div>
-              <div id="tour-topbar-search" className="hidden lg:flex lg:items-center">
+              <div
+                id="tour-topbar-search"
+                className="hidden lg:flex lg:items-center"
+              >
                 <GlobalSearch />
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-
               <Button
                 id="tour-topbar-help"
                 variant="ghost"
                 className="h-10 px-3 rounded-xl shrink-0 text-primary bg-primary/10 hover:bg-primary/20 font-bold hidden md:flex items-center gap-2 transition-all transform active:scale-95"
                 onClick={triggerMasterTour}
               >
-                <HelpCircle className="h-4 w-4" /> {t('topbar.system_tour', 'System Tour')}
+                <HelpCircle className="h-4 w-4" />{" "}
+                {t("topbar.system_tour", "System Tour")}
               </Button>
 
               <div className="flex items-center gap-0.5 sm:gap-1">
@@ -244,7 +449,11 @@ export function DashboardTopbar() {
                   className="h-10 w-10 rounded-xl p-0 shrink-0 text-muted-foreground hover:text-foreground hidden sm:flex items-center justify-center transform active:scale-95 transition-transform"
                   onClick={toggleFullscreen}
                 >
-                  {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                  {isFullscreen ? (
+                    <Minimize className="h-5 w-5" />
+                  ) : (
+                    <Maximize className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
 
@@ -256,35 +465,56 @@ export function DashboardTopbar() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button id="tour-topbar-profile" variant="ghost" className="h-10 rounded-xl px-1 sm:px-2 hover:bg-muted/50 transition-colors transform active:scale-95">
+                  <Button
+                    id="tour-topbar-profile"
+                    variant="ghost"
+                    className="h-10 rounded-xl px-1 sm:px-2 hover:bg-muted/50 transition-colors transform active:scale-95"
+                  >
                     <Avatar className="h-8 w-8 border border-border/50 shrink-0 shadow-sm bg-muted flex items-center justify-center overflow-hidden ring-2 ring-transparent transition-all group-hover:ring-primary/20">
-                      <SecureTopbarAvatar user={activeUser} fallbackInitials={userInitials} canViewProfile={canViewProfile} />
+                      <SecureTopbarAvatar
+                        user={activeUser}
+                        fallbackInitials={userInitials}
+                        canViewProfile={canViewProfile}
+                      />
                     </Avatar>
                     <div className="ml-2 hidden text-left md:block">
-                      <div className="text-xs font-bold leading-4 truncate max-w-[100px] lg:max-w-[150px]">{activeUser?.name || "Operator"}</div>
+                      <div className="text-xs font-bold leading-4 truncate max-w-[100px] lg:max-w-[150px]">
+                        {activeUser?.name || "Operator"}
+                      </div>
                       <div className="text-[10px] text-muted-foreground font-mono leading-4 truncate max-w-[100px] lg:max-w-[150px]">
                         {activeUser?.email || "sys@hive.os"}
                       </div>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 z-[100] rounded-2xl border-border/60 shadow-xl p-2 mt-2">
-                  <DropdownMenuLabel className="font-space font-bold">{t('topbar.my_account', 'My Account')}</DropdownMenuLabel>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 z-[100] rounded-2xl border-border/60 shadow-xl p-2 mt-2"
+                >
+                  <DropdownMenuLabel className="font-space font-bold">
+                    {t("topbar.my_account", "My Account")}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {canViewProfile && (
                     <>
-                      <DropdownMenuItem onClick={() => router.push("/dashboard/profile")} className="cursor-pointer font-medium rounded-xl mb-1">
-                        {t('topbar.profile_settings', 'Profile Settings')}
+                      <DropdownMenuItem
+                        onClick={() => router.push("/dashboard/profile")}
+                        className="cursor-pointer font-medium rounded-xl mb-1"
+                      >
+                        {t("topbar.profile_settings", "Profile Settings")}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive font-bold cursor-pointer rounded-xl focus:text-destructive focus:bg-destructive/10 mt-1">
-                    <LogOut className="mr-2 h-4 w-4" /> {t('nav.disconnect', 'Disconnect Node')}
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-destructive font-bold cursor-pointer rounded-xl focus:text-destructive focus:bg-destructive/10 mt-1"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />{" "}
+                    {t("nav.disconnect", "Disconnect Node")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
             </div>
           </div>
         </div>

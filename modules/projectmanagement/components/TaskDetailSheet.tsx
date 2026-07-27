@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isToday, isYesterday, isSameDay, isThisYear } from "date-fns";
-import { FileManagerClient, ImageViewer } from "@/components/dashboard/file-manager-client";
+import { FileManagerClient } from "@/components/dashboard/file-manager-client";
+import { ImageViewer } from "@/components/ui/image-viewer";
 import { VideoPlayer } from "@/components/ui/video-player";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
@@ -1595,7 +1596,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                 if (mime.startsWith('video/')) {
                   return (
                     <div className="w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-border/30 bg-black">
-                      <VideoPlayer src={RuntimeContext.getStreamUrl(safeUrl)} />
+                      <VideoPlayer src={safeUrl} />
                     </div>
                   );
                 }
@@ -1603,7 +1604,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                 if (mime.startsWith('audio/')) {
                   return (
                     <div className="w-full max-w-xl p-8 bg-background/50 backdrop-blur-md rounded-3xl border border-border/30 shadow-2xl">
-                      <AudioPlayer src={RuntimeContext.getStreamUrl(safeUrl)} title={file.name} />
+                      <AudioPlayer src={safeUrl} title={file.name} />
                     </div>
                   );
                 }

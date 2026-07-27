@@ -13,7 +13,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { authenticatedDownload } from "@/lib/authenticated-download";
-import { getAuthHeaders, getBackendApiRoot, getAccessToken } from "@/lib/runtime-context";
+import {
+  getAccessToken,
+  getAuthHeaders,
+  getBackendApiRoot,
+  getSignedMediaStreamUrl,
+  getWorkspaceScopeKey,
+} from "@/lib/runtime-context";
 
 export type Track = {
   id: string | number;
@@ -82,8 +88,8 @@ type AudioContextType = {
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-const SETTINGS_STORAGE_KEY = "hive_audio_settings_v3";
-const SESSION_STORAGE_KEY = "hive_audio_session_v3";
+const SETTINGS_STORAGE_PREFIX = "hive_audio_settings_v4";
+const SESSION_STORAGE_PREFIX = "hive_audio_session_v4";
 const MAX_HISTORY_ITEMS = 30;
 const MAX_QUEUE_ITEMS = 200;
 
@@ -129,6 +135,15 @@ const readJson = <T,>(key: string, fallback: T): T => {
   } catch {
     return fallback;
   }
+};
+
+export const getAudioStorageKeys = () => {
+  const workspaceScope = getWorkspaceScopeKey();
+
+  return {
+    settings: `${SETTINGS_STORAGE_PREFIX}:${workspaceScope}`,
+    session: `${SESSION_STORAGE_PREFIX}:${workspaceScope}`,
+  };
 };
 
 const trackEquals = (left: Track | null | undefined, right: Track | null | undefined) =>
@@ -184,6 +199,8 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   const pendingSeekRef = useRef<number | null>(null);
   const restoredSessionRef = useRef(false);
   const lastSavedSecondRef = useRef<number>(-1);
+  const storageKeysRef = useRef<ReturnType<typeof getAudioStorageKeys> | null>(null);
+  const streamRefreshAttemptRef = useRef(false);
 
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [playlist, setPlaylist] = useState<Track[]>([]);
@@ -201,6 +218,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   const [duration, setDuration] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [resolvedTrackSrc, setResolvedTrackSrc] = useState<string | null>(null);
 
   const currentTrackRef = useRef<Track | null>(currentTrack);
   const playlistRef = useRef<Track[]>(playlist);
@@ -234,14 +252,17 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [repeatMode]);
 
   useEffect(() => {
-    const settings = readJson<PersistedSettings>(SETTINGS_STORAGE_KEY, defaultSettings);
+    const storageKeys = getAudioStorageKeys();
+    storageKeysRef.current = storageKeys;
+
+    const settings = readJson<PersistedSettings>(storageKeys.settings, defaultSettings);
     setVolumeState(clamp(settings.volume ?? defaultSettings.volume, 0, 1));
     setIsMuted(Boolean(settings.isMuted));
     setIsShuffle(Boolean(settings.isShuffle));
     setRepeatMode(settings.repeatMode ?? defaultSettings.repeatMode);
     setPlaybackRateState(clamp(settings.playbackRate ?? defaultSettings.playbackRate, 0.5, 2));
 
-    const session = readJson<PersistedSession | null>(SESSION_STORAGE_KEY, null);
+    const session = readJson<PersistedSession | null>(storageKeys.session, null);
     if (session) {
       setCurrentTrack(normalizeTrack(session.currentTrack));
       setPlaylist(normalizeTrackList(session.playlist));
@@ -266,7 +287,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       playbackRate,
     };
 
-    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(payload));
+    const storageKeys = storageKeysRef.current;
+    if (storageKeys) {
+      window.localStorage.setItem(storageKeys.settings, JSON.stringify(payload));
+    }
   }, [volume, isMuted, isShuffle, repeatMode, playbackRate]);
 
   useEffect(() => {
@@ -275,7 +299,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     }
 
     if (!currentTrack && playlist.length === 0 && queue.length === 0 && history.length === 0) {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      const storageKeys = storageKeysRef.current;
+      if (storageKeys) {
+        window.localStorage.removeItem(storageKeys.session);
+      }
       return;
     }
 
@@ -287,7 +314,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       currentTime,
     };
 
-    window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+    const storageKeys = storageKeysRef.current;
+    if (storageKeys) {
+      window.localStorage.setItem(storageKeys.session, JSON.stringify(payload));
+    }
   }, [currentTrack, playlist, queue, history, currentTime]);
 
   const fetchPlaylists = useCallback(async () => {
@@ -345,7 +375,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       currentTime: time,
     };
 
-    window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+    const storageKeys = storageKeysRef.current;
+    if (storageKeys) {
+      window.localStorage.setItem(storageKeys.session, JSON.stringify(payload));
+    }
   }, []);
 
   const syncTrackFavorite = useCallback((trackId: string | number, favorite: boolean) => {
@@ -596,7 +629,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     setIsFloatingPlayerOpen(false);
 
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      const storageKeys = storageKeysRef.current;
+      if (storageKeys) {
+        window.localStorage.removeItem(storageKeys.session);
+      }
     }
   }, []);
 
@@ -906,31 +942,62 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) {
-      return;
-    }
+    let cancelled = false;
 
-    if (!currentTrack) {
-      if (!audio.paused) {
-        audio.pause();
-      }
+    streamRefreshAttemptRef.current = false;
+    setResolvedTrackSrc(null);
 
+    if (audio) {
+      audio.pause();
       if (audio.getAttribute("src")) {
         audio.removeAttribute("src");
         audio.load();
       }
-      return;
     }
 
-    if (audio.getAttribute("src") !== currentTrack.src) {
-      audio.src = currentTrack.src;
-      audio.load();
+    if (!currentTrack?.src) {
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [currentTrack]);
+
+    setHasError(false);
+    setIsBuffering(true);
+
+    void getSignedMediaStreamUrl(currentTrack.src)
+      .then((authorizedSrc) => {
+        if (!cancelled) {
+          setResolvedTrackSrc(authorizedSrc);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setHasError(true);
+        setIsBuffering(false);
+        setIsPlaying(false);
+        toast.error(error instanceof Error ? error.message : "Audio playback authorization failed.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.src]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !currentTrack) {
+    if (!audio || !resolvedTrackSrc) {
+      return;
+    }
+
+    if (audio.getAttribute("src") !== resolvedTrackSrc) {
+      audio.src = resolvedTrackSrc;
+      audio.load();
+    }
+  }, [resolvedTrackSrc]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !currentTrack || !resolvedTrackSrc) {
       return;
     }
 
@@ -942,7 +1009,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     }
 
     audio.pause();
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack, isPlaying, resolvedTrackSrc]);
 
   useEffect(() => {
     if (!("mediaSession" in navigator)) {
@@ -987,8 +1054,14 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       if (
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLButtonElement ||
+        target instanceof HTMLSelectElement ||
         target?.isContentEditable
       ) {
+        return;
+      }
+
+      if (!target?.closest("[data-audio-player]")) {
         return;
       }
 
@@ -1093,11 +1166,37 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [duration, resolveNextTrack, startTrack]);
 
   const handleError = useCallback(() => {
+    const track = currentTrackRef.current;
+    const audio = audioRef.current;
+
+    if (track && !streamRefreshAttemptRef.current) {
+      streamRefreshAttemptRef.current = true;
+      pendingSeekRef.current = audio?.currentTime ?? currentTime;
+      setIsBuffering(true);
+
+      void getSignedMediaStreamUrl(track.src, { forceRefresh: true })
+        .then((authorizedSrc) => {
+          if (authorizedSrc === resolvedTrackSrc) {
+            throw new Error("The refreshed stream URL did not change.");
+          }
+
+          setHasError(false);
+          setResolvedTrackSrc(authorizedSrc);
+        })
+        .catch(() => {
+          setHasError(true);
+          setIsBuffering(false);
+          setIsPlaying(false);
+          toast.error("Audio playback failed for this track.");
+        });
+      return;
+    }
+
     setHasError(true);
     setIsBuffering(false);
     setIsPlaying(false);
     toast.error("Audio playback failed for this track.");
-  }, []);
+  }, [currentTime, resolvedTrackSrc]);
 
   const progress = useMemo(() => {
     if (!duration || duration <= 0) {

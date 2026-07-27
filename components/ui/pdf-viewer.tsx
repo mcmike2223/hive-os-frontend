@@ -227,8 +227,18 @@ export function PdfViewer({
           )}
 
           {allowDownload && (
-            <Button variant="ghost" size="icon" onClick={() => window.open(src, '_blank')} className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors hidden sm:flex" title="Open in New Tab">
-              <ExternalLink className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (resolvedSrc) window.open(resolvedSrc, '_blank', 'noopener,noreferrer');
+              }}
+              disabled={!resolvedSrc}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors hidden sm:flex"
+              title="Open PDF in New Tab"
+              aria-label="Open PDF in New Tab"
+            >
+              <ExternalLink aria-hidden="true" className="h-4 w-4" />
             </Button>
           )}
           
@@ -267,7 +277,7 @@ export function PdfViewer({
           </div>
         ) : resolvedSrc ? (
           <iframe 
-            src={`${resolvedSrc}#toolbar=0&navpanes=0&scrollbar=0`} 
+            src={`${resolvedSrc}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`} 
             className="w-full h-full border-none absolute inset-0" 
             title={title}
             onLoad={() => setIsLoading(false)}

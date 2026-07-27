@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -27,6 +27,7 @@ import {
   LayoutDashboard,
   Utensils,
   GraduationCap,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -99,35 +100,29 @@ const SecureSidebarLogo = ({
     };
   }, [path]);
 
-  if (blobUrl)
-    return (
-      <div
-        className={cn(
-          "relative flex items-center justify-center transition-transform group-hover:scale-105",
-          collapsed ? "h-10 w-10" : "h-10",
-        )}
-      >
-        <img
-          src={blobUrl}
-          alt="Brand Logo"
-          className="h-full w-auto object-contain"
-        />
-      </div>
-    );
-
   return (
     <div
       className={cn(
-        "group flex items-center gap-3",
+        "group flex items-center gap-3 min-w-0",
         collapsed ? "justify-center" : "",
       )}
     >
-      <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
-        <Command className="h-5 w-5" />
-      </div>
+      {blobUrl ? (
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-card/60 p-1 shadow-md transition-transform group-hover:scale-105">
+          <img
+            src={blobUrl}
+            alt="Brand Logo"
+            className="h-full w-auto object-contain"
+          />
+        </div>
+      ) : (
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
+          <Command className="h-5 w-5" />
+        </div>
+      )}
       {!collapsed && (
-        <div className="leading-tight">
-          <div className="text-base font-black tracking-tighter font-space truncate max-w-[160px]">
+        <div className="leading-tight min-w-0 flex-1">
+          <div className="text-base font-black tracking-tighter font-space truncate max-w-[160px]" title={fallbackTitle || "HIVE.OS"}>
             {fallbackTitle || "HIVE.OS"}
           </div>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
@@ -182,6 +177,7 @@ function SidebarInner({
   const [isMounted, setIsMounted] = useState(false);
   const [isTenantNode, setIsTenantNode] = useState(false);
 
+  const navRef = useRef<HTMLElement>(null);
   const [isModulesOpen, setIsModulesOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isWarehouseOpen, setIsWarehouseOpen] = useState(false);
@@ -190,6 +186,7 @@ function SidebarInner({
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
+  const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const canAccessConverter =
@@ -320,6 +317,7 @@ function SidebarInner({
         item.moduleId === "workflow" ||
         item.moduleId === "projectmanagement" ||
         item.moduleId === "lms" ||
+        item.moduleId === "humanresources" ||
         item.moduleId === "b2b-marketplace",
     ),
     ...projectManagementFromSecondary,
@@ -334,6 +332,7 @@ function SidebarInner({
       item.moduleId !== "workflow" &&
       item.moduleId !== "projectmanagement" &&
       item.moduleId !== "lms" &&
+      item.moduleId !== "humanresources" &&
       item.moduleId !== "b2b-marketplace" &&
       item.href !== "/dashboard/landing-templates",
   );
@@ -357,6 +356,9 @@ function SidebarInner({
   );
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
+  );
+  const humanResourcesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "humanresources",
   );
 
   useEffect(() => {
@@ -388,6 +390,10 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
+    if (pathname.startsWith("/dashboard/human-resources")) {
+      setIsModulesOpen(true);
+      setIsHumanResourcesOpen(true);
+    }
     if (
       pathname.startsWith("/dashboard/tools/converter") ||
       pathname.startsWith("/dashboard/tools/converters") ||
@@ -397,6 +403,16 @@ function SidebarInner({
     ) {
       setIsAppsOpen(true);
     }
+
+    const timer = setTimeout(() => {
+      const activeItem = navRef.current?.querySelector(
+        ".hive-sidebar-nested-active, .hive-sidebar-nav-active"
+      );
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   const brand = useMemo(() => {
@@ -482,6 +498,7 @@ function SidebarInner({
       )}
 
       <nav
+        ref={navRef}
         id="tour-sidebar-nav"
         className="mt-3 flex-1 space-y-1 overflow-y-auto min-h-0 py-1 pr-1 custom-scrollbar"
       >
@@ -558,31 +575,59 @@ function SidebarInner({
                 <button
                   id="tour-nav-modules"
                   onClick={() => setIsModulesOpen(!isModulesOpen)}
-                  className="group flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 hive-sidebar-section-idle outline-none"
+                  aria-expanded={isModulesOpen}
+                  aria-controls="desktop-module-sections"
+                  className={cn(
+                    "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    (pathname.startsWith("/dashboard/inventory") ||
+                     pathname.startsWith("/dashboard/hospitality") ||
+                     pathname.startsWith("/dashboard/warehouse") ||
+                     pathname.startsWith("/dashboard/project-management") ||
+                     pathname.startsWith("/dashboard/workflow") ||
+                     pathname.startsWith("/dashboard/learning-management") ||
+                     pathname.startsWith("/dashboard/b2b-marketplace") ||
+                     pathname.startsWith("/dashboard/human-resources"))
+                      ? "hive-sidebar-nav-active font-extrabold"
+                      : "hive-sidebar-section-idle"
+                  )}
                 >
                   <div className="flex items-center gap-3">
-                    <Boxes className="h-4 w-4 shrink-0" />
+                    <Boxes aria-hidden="true" className="h-4 w-4 shrink-0" />
                     <span className="truncate">
                       {t("nav.modules", "Modules")}
                     </span>
                   </div>
                   {isModulesOpen ? (
-                    <ChevronDown className="h-4 w-4 opacity-50" />
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="h-4 w-4 opacity-50"
+                    />
                   ) : (
-                    <ChevronRight className="h-4 w-4 opacity-50" />
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="h-4 w-4 opacity-50"
+                    />
                   )}
                 </button>
 
                 {isModulesOpen && (
-                  <div className="flex flex-col gap-1 pl-4 mt-1 animate-in slide-in-from-top-2 duration-200">
+                  <div
+                    id="desktop-module-sections"
+                    className="flex flex-col gap-1 pl-4 mt-1 animate-in slide-in-from-top-2 duration-200"
+                  >
                     {inventoryModuleItems.length > 0 && (
                       <div className="flex flex-col gap-1">
                         <button
                           onClick={() => setIsInventoryOpen(!isInventoryOpen)}
-                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/inventory")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <Boxes className="h-4 w-4 shrink-0" />
+                            <Boxes className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/inventory") ? "text-primary font-bold" : "")} />
                             <span className="truncate">
                               {t("nav.inventory", "Inventory")}
                             </span>
@@ -635,10 +680,15 @@ function SidebarInner({
                           onClick={() =>
                             setIsHospitalityOpen(!isHospitalityOpen)
                           }
-                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/hospitality")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <Utensils className="h-4 w-4 shrink-0" />
+                            <Utensils className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/hospitality") ? "text-primary font-bold" : "")} />
                             <span className="truncate">
                               {t("nav.hospitality", "Hospitality")}
                             </span>
@@ -689,10 +739,15 @@ function SidebarInner({
                       <div className="flex flex-col gap-1">
                         <button
                           onClick={() => setIsWarehouseOpen(!isWarehouseOpen)}
-                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/warehouse")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <Warehouse className="h-4 w-4 shrink-0" />
+                            <Warehouse className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/warehouse") ? "text-primary font-bold" : "")} />
                             <span className="truncate">
                               {t("nav.warehouse", "Warehouse Logic")}
                             </span>
@@ -739,16 +794,108 @@ function SidebarInner({
                       </div>
                     )}
 
+                    {humanResourcesModuleItems.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <h3>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setIsHumanResourcesOpen(!isHumanResourcesOpen)
+                            }
+                            aria-expanded={isHumanResourcesOpen}
+                            aria-controls="desktop-human-resources-links"
+                            className={cn(
+                              "group flex min-h-11 w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-amber-800 dark:focus-visible:ring-amber-400",
+                              pathname.startsWith("/dashboard/human-resources")
+                                ? "border border-amber-800 bg-amber-500/15 font-extrabold text-amber-800 shadow-sm dark:border-amber-400 dark:text-amber-400"
+                                : "hive-sidebar-subsection-idle"
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <UsersRound
+                                aria-hidden="true"
+                                className={cn(
+                                  "h-4 w-4 shrink-0",
+                                  pathname.startsWith("/dashboard/human-resources")
+                                    ? "text-amber-800 dark:text-amber-400"
+                                    : ""
+                                )}
+                              />
+                              <span className="truncate">
+                                {t("nav.human_resources", "Human Resources")}
+                              </span>
+                            </div>
+                            {isHumanResourcesOpen ? (
+                              <ChevronDown
+                                aria-hidden="true"
+                                className="h-4 w-4 opacity-50"
+                              />
+                            ) : (
+                              <ChevronRight
+                                aria-hidden="true"
+                                className="h-4 w-4 opacity-50"
+                              />
+                            )}
+                          </button>
+                        </h3>
+                        <div
+                          id="desktop-human-resources-links"
+                          hidden={!isHumanResourcesOpen}
+                          className="flex flex-col gap-1 pl-4"
+                        >
+                          {humanResourcesModuleItems.map((item) => {
+                            const active =
+                              pathname === item.href ||
+                              (item.href !== "/dashboard/human-resources" &&
+                                pathname.startsWith(`${item.href}/`));
+                            const Icon = item.icon;
+                            const label = t(
+                              item.translationKey,
+                              item.fallbackLabel,
+                            );
+                            return (
+                              <Link
+                                key={item.href}
+                                id={item.tourId}
+                                href={item.href}
+                                aria-current={active ? "page" : undefined}
+                                className={cn(
+                                  "group flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                                  active
+                                    ? "hive-sidebar-nested-active"
+                                    : "hive-sidebar-nested-idle",
+                                )}
+                              >
+                                <Icon
+                                  aria-hidden="true"
+                                  className="h-4 w-4 shrink-0"
+                                />
+                                <span className="truncate">{label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {projectManagementModuleItems.length > 0 && (
                       <div className="flex flex-col gap-1">
-                        <div className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 text-muted-foreground hover:bg-muted/50 hover:text-foreground">
+                        <div className={cn(
+                          "group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200",
+                          pathname.startsWith("/dashboard/project-management")
+                            ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}>
                           <Link
                             href="/dashboard/project-management"
                             className="flex items-center gap-3 flex-1 overflow-hidden"
                           >
                             <ListTodo className="h-4 w-4 shrink-0 text-primary" />
                             <span className="truncate font-bold text-foreground">
-                              {t("nav.project_management", "Project Management")}
+                              {t(
+                                "nav.project_management",
+                                "Project Management",
+                              )}
                             </span>
                           </Link>
                           <button
@@ -838,10 +985,15 @@ function SidebarInner({
                       <div className="flex flex-col gap-1">
                         <button
                           onClick={() => setIsWorkflowOpen(!isWorkflowOpen)}
-                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/workflow")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <CheckCircle className="h-4 w-4 shrink-0" />
+                            <CheckCircle className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/workflow") ? "text-primary font-bold" : "")} />
                             <span className="truncate">
                               {t("nav.workflow", "Workflow")}
                             </span>
@@ -892,10 +1044,15 @@ function SidebarInner({
                       <div className="flex flex-col gap-1">
                         <button
                           onClick={() => setIsLmsOpen(!isLmsOpen)}
-                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/learning-management")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <GraduationCap className="h-4 w-4 shrink-0" />
+                            <GraduationCap className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/learning-management") ? "text-primary font-bold" : "")} />
                             <span className="truncate">
                               {t("nav.lms", "LMS")}
                             </span>
@@ -945,11 +1102,18 @@ function SidebarInner({
                     {b2bMarketplaceModuleItems.length > 0 && (
                       <div className="flex flex-col gap-1">
                         <button
-                          onClick={() => setIsB2BMarketplaceOpen(!isB2BMarketplaceOpen)}
-                          className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hive-sidebar-subsection-idle outline-none"
+                          onClick={() =>
+                            setIsB2BMarketplaceOpen(!isB2BMarketplaceOpen)
+                          }
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/b2b-marketplace")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <Boxes className="h-4 w-4 shrink-0" />
+                            <Boxes className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/b2b-marketplace") ? "text-primary font-bold" : "")} />
                             <span className="truncate">
                               {t("nav.b2bMarketplace", "B2B Marketplace")}
                             </span>
@@ -1098,7 +1262,9 @@ function SidebarInner({
                       )}
                     >
                       <RefreshCcw className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{t("nav.tools_converters", "Converters")}</span>
+                      <span className="truncate">
+                        {t("nav.tools_converters", "Converters")}
+                      </span>
                     </Link>
                   )}
                   {canAccessConverter && (

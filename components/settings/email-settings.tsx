@@ -37,6 +37,7 @@ export function EmailSettings() {
         mail_port: 587,
         mail_username: '',
         mail_password: '',
+        mail_password_configured: false,
         mail_encryption: 'tls',
         mail_from_address: '',
         mail_from_name: '',
@@ -92,7 +93,6 @@ export function EmailSettings() {
                             <SelectContent>
                                 <SelectItem value="smtp">SMTP</SelectItem>
                                 <SelectItem value="sendmail">Sendmail</SelectItem>
-                                <SelectItem value="mailgun">Mailgun</SelectItem>
                                 <SelectItem value="postmark">Postmark</SelectItem>
                                 <SelectItem value="ses">Amazon SES</SelectItem>
                             </SelectContent>
@@ -119,12 +119,13 @@ export function EmailSettings() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_username', 'Username')}</Label>
-                        <Input value={formData.mail_username} onChange={e => setFormData(p => ({...p, mail_username: e.target.value}))} className="bg-muted/30 h-12 rounded-xl font-mono" />
+                        <Label htmlFor="mail-username" className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_username', 'Username')}</Label>
+                        <Input id="mail-username" autoComplete="username" value={formData.mail_username} onChange={e => setFormData(p => ({...p, mail_username: e.target.value}))} className="bg-muted/30 h-12 rounded-xl font-mono" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_password', 'Password')}</Label>
-                        <Input type="password" value={formData.mail_password} onChange={e => setFormData(p => ({...p, mail_password: e.target.value}))} className="bg-muted/30 h-12 rounded-xl font-mono" />
+                        <Label htmlFor="mail-password" className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_password', 'Password')}</Label>
+                        <Input id="mail-password" type="password" autoComplete="new-password" value={formData.mail_password} onChange={e => setFormData(p => ({...p, mail_password: e.target.value}))} aria-describedby="mail-password-help" className="bg-muted/30 h-12 rounded-xl font-mono" />
+                        <p id="mail-password-help" className="text-xs text-muted-foreground">{formData.mail_password_configured ? "A password is saved. Leave this blank to keep it." : "Enter the SMTP password for this workspace."}</p>
                     </div>
                     <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_encryption', 'Encryption')}</Label>
@@ -199,7 +200,7 @@ export function EmailSettings() {
                                         </div>
                                         <Input
                                             type="number"
-value={(formData as Record<string, number | string>)[key] || ''}                                            onChange={e => setFormData(p => ({...p, [key]: parseInt(e.target.value)||0}))}
+value={(formData as Record<string, number | string | boolean>)[key] as number | string || ''}                                            onChange={e => setFormData(p => ({...p, [key]: parseInt(e.target.value)||0}))}
                                             className="bg-white/50 dark:bg-background/50 h-11 rounded-xl font-mono text-sm"
                                             placeholder={`${def} MB (plan default)`}
                                         />

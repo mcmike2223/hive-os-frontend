@@ -191,7 +191,8 @@ export function BrandSettings() {
         logo_light: '', logo_dark: '', favicon: '', sidebar_icon: '', app_title: '', footer_text: '',
         primary_color: '#10b981', auth_background_image: '', auth_welcome_message: '', font_family: 'Inter',
         meta_description: '', og_image: '', hide_watermark: false, document_header_color: '#1e293b',
-        company_tax_id: '', pdf_logo: ''
+        company_tax_id: '', pdf_logo: '',
+        letterhead_header_url: '', letterhead_footer_url: ''
     });
 
     const [previews, setPreviews] = useState<Record<string, string>>({});
@@ -346,13 +347,17 @@ export function BrandSettings() {
             </div>
 
             <div id="tour-settings-brand-docs" className="p-8 border border-border/50 rounded-[2rem] bg-card/40 backdrop-blur-md shadow-sm transition-all animate-in fade-in slide-in-from-bottom-6">
-                <div className="mb-8 flex items-center gap-3"><div className="h-10 w-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500"><FileText className="h-5 w-5" /></div><div><h2 className="text-2xl font-space font-black tracking-tight text-foreground">{t('settings.doc_branding', 'Document Branding')}</h2><p className="text-sm text-muted-foreground mt-1">{t('settings.doc_branding_desc', 'Headers and logos applied to exported Payslips and Waybills.')}</p></div></div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
-                    <BrandImageSelector label={t('settings.pdf_logo', 'PDF Logo (High Contrast)')} targetKey="pdf_logo" fallbackText={t('settings.use_main_logo', 'USE MAIN LOGO')} />
-                    <div className="col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.company_tin', 'Company TIN / Tax ID')}</Label><Input value={formData.company_tax_id} onChange={(e) => setFormData(prev => ({...prev, company_tax_id: e.target.value}))} placeholder="0001234567" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-bold" /></div>
-                        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.pdf_header_color', 'PDF Header Color')}</Label><div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input"><input type="color" value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" /><Input value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="border-none h-8 bg-transparent shadow-none font-mono uppercase" /></div></div>
-                    </div>
+                <div className="mb-8 flex items-center gap-3"><div className="h-10 w-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500"><FileText className="h-5 w-5" /></div><div><h2 className="text-2xl font-space font-black tracking-tight text-foreground">{t('settings.doc_branding', 'Document & Letterhead Branding')}</h2><p className="text-sm text-muted-foreground mt-1">{t('settings.doc_branding_desc', 'Upload Official Letterhead Header & Footer images from your File Manager.')}</p></div></div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <BrandImageSelector label={t('settings.pdf_logo', 'PDF Logo')} targetKey="pdf_logo" fallbackText={t('settings.use_main_logo', 'USE MAIN LOGO')} />
+                    <BrandImageSelector label="Letterhead Header Banner" targetKey="letterhead_header_url" fallbackText="NO HEADER BANNER" />
+                    <BrandImageSelector label="Letterhead Footer Banner" targetKey="letterhead_footer_url" fallbackText="NO FOOTER BANNER" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-border/50">
+                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.company_tin', 'Company TIN / Tax ID')}</Label><Input value={formData.company_tax_id} onChange={(e) => setFormData(prev => ({...prev, company_tax_id: e.target.value}))} placeholder="0001234567" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-bold" /></div>
+                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.pdf_header_color', 'PDF Header Color')}</Label><div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input"><input type="color" value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" /><Input value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="border-none h-8 bg-transparent shadow-none font-mono uppercase" /></div></div>
                 </div>
             </div>
 

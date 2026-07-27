@@ -10,7 +10,11 @@ import {
   AlertCircle, PictureInPicture, RotateCcw, RotateCw, Repeat, Keyboard, ListVideo
 } from 'lucide-react';
 import { getErrorMessage } from '@/lib/errors';
-import { getAuthHeaders } from '@/lib/runtime-context';
+import {
+  getAuthHeaders,
+  getSignedMediaStreamUrl,
+  getWorkspaceScopeKey,
+} from '@/lib/runtime-context';
 import { cn } from '@/lib/utils';
 
 export interface SubtitleTrack {
@@ -30,9 +34,9 @@ export interface VideoChapter {
   label: string;
 }
 
-interface VideoPlayerProps {
-  src: string;
-  nativeSrc?: string;          // Optional direct MP4/native URL used when HLS playback is unavailable
+export interface VideoPlayerProps {
+  src: string;                 // HLS, public media, or a protected /files/{id}/serve URL
+  nativeSrc?: string;          // Optional direct MP4/protected URL used when HLS playback is unavailable
   poster?: string;
   className?: string;
   watermark?: string | null;   // Brand app title shown as floating Udemy-style watermark; null hides it
@@ -53,6 +57,17 @@ interface VideoPlayerProps {
 type PiPSupportMode = 'standard' | 'webkit' | 'none';
 type PlayerQualityLevel = { label?: string; height?: number; url?: string | string[] };
 const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|\?)/i;
+
+const getProgressIdentity = (src: string, resumeKey?: string): string => {
+  if (resumeKey) return resumeKey;
+
+  try {
+    const parsed = new URL(src, 'http://hive.local');
+    return parsed.pathname;
+  } catch {
+    return src.split(/[?#]/, 1)[0] || 'video';
+  }
+};
 
 // ============================================================================
 // 🎬 FLOATING WATERMARK — Udemy-style moving brand watermark
@@ -79,10 +94,11 @@ function FloatingWatermark({ text }: { text: string }) {
   const [visible, setVisible] = React.useState(true);
 
   React.useEffect(() => {
+    let fadeTimeout: ReturnType<typeof setTimeout> | null = null;
     const timer = setInterval(() => {
       // Fade out → change zone → fade in
       setVisible(false);
-      const fadeTimeout = setTimeout(() => {
+      fadeTimeout = setTimeout(() => {
         setZoneIdx(prev => {
           // Pick a different zone each time
           let next = Math.floor(Math.random() * WATERMARK_ZONES.length);
@@ -91,10 +107,12 @@ function FloatingWatermark({ text }: { text: string }) {
         });
         setVisible(true);
       }, 600); // matches CSS transition duration
-      return () => clearTimeout(fadeTimeout);
     }, WATERMARK_INTERVAL_MS);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (fadeTimeout) clearTimeout(fadeTimeout);
+    };
   }, []);
 
   const zone = WATERMARK_ZONES[zoneIdx];
@@ -156,6 +174,9 @@ export function VideoPlayer({
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pipPendingRef = useRef(false);
+  const streamRefreshAttemptRef = useRef(false);
+  const hlsRecoveryAttemptRef = useRef(false);
+  const pendingStreamSeekRef = useRef<number | null>(null);
   const lastSavedProgressRef = useRef(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -196,6 +217,8 @@ export function VideoPlayer({
   const [resumeAt, setResumeAt] = useState<number | null>(null);
   const [showRemainingTime, setShowRemainingTime] = useState(false);
   const [pipSupportMode, setPipSupportMode] = useState<PiPSupportMode>('none');
+  const [authorizedSrc, setAuthorizedSrc] = useState('');
+  const [authorizedNativeSrc, setAuthorizedNativeSrc] = useState<string | undefined>(undefined);
 
   const playAnimTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const seekAnimTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -209,7 +232,9 @@ export function VideoPlayer({
   const activeChapterIndex = orderedChapters.reduce((currentIndex, chapter, index) => (
     currentSeconds >= chapter.time ? index : currentIndex
   ), -1);
-  const progressStorageKey = rememberProgress ? `hive-video-progress:${resumeKey || src}` : null;
+  const progressStorageKey = rememberProgress
+    ? `hive-video-progress:${getWorkspaceScopeKey()}:${getProgressIdentity(src, resumeKey)}`
+    : null;
   const availablePlaybackRates = Array.from(new Set(playbackRates)).sort((a, b) => a - b);
   const isHlsSource = HLS_PLAYLIST_PATTERN.test(src);
   const hasSelectableDirectQualities = !isHlsSource && qualityLevels.length > 1;
@@ -338,6 +363,39 @@ export function VideoPlayer({
   }, [progressStorageKey]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    streamRefreshAttemptRef.current = false;
+    hlsRecoveryAttemptRef.current = false;
+    setAuthorizedSrc('');
+    setAuthorizedNativeSrc(undefined);
+    setHasError(false);
+    setIsBuffering(true);
+
+    const authorizeSources = async () => {
+      const [nextSrc, nextNativeSrc] = await Promise.all([
+        isHlsSource ? Promise.resolve(src) : getSignedMediaStreamUrl(src),
+        nativeSrc ? getSignedMediaStreamUrl(nativeSrc) : Promise.resolve(undefined),
+      ]);
+
+      if (cancelled) return;
+      setAuthorizedSrc(nextSrc);
+      setAuthorizedNativeSrc(nextNativeSrc);
+    };
+
+    void authorizeSources().catch((error) => {
+      if (cancelled) return;
+      setIsBuffering(false);
+      setHasError(true);
+      toast.error(error instanceof Error ? error.message : 'Video playback authorization failed.');
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isHlsSource, nativeSrc, src]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const handleBeforeUnload = () => {
@@ -375,7 +433,7 @@ export function VideoPlayer({
   // 3. Mount Video Source (HLS vs Native)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !authorizedSrc) return;
 
     setIsBuffering(true);
     setIsPlaying(false);
@@ -386,8 +444,48 @@ export function VideoPlayer({
 
     const useHls = isHlsSource;
     const handleCanPlay = () => setIsBuffering(false);
-    const handleLoadedMetadata = () => setIsBuffering(false);
+    const handleLoadedMetadata = () => {
+      if (pendingStreamSeekRef.current !== null) {
+        video.currentTime = Math.min(
+          pendingStreamSeekRef.current,
+          video.duration || pendingStreamSeekRef.current,
+        );
+        pendingStreamSeekRef.current = null;
+      }
+      setIsBuffering(false);
+    };
     const handleNativeError = () => {
+      const refreshTarget = isHlsSource ? nativeSrc : src;
+      if (refreshTarget && !streamRefreshAttemptRef.current) {
+        streamRefreshAttemptRef.current = true;
+        const resumeTime = video.currentTime || 0;
+        void getSignedMediaStreamUrl(refreshTarget, { forceRefresh: true })
+          .then((refreshedSrc) => {
+            const currentAuthorizedSource = isHlsSource
+              ? authorizedNativeSrc
+              : authorizedSrc;
+            if (refreshedSrc === currentAuthorizedSource) {
+              setIsBuffering(false);
+              setHasError(true);
+              return;
+            }
+
+            pendingStreamSeekRef.current = resumeTime;
+            setHasError(false);
+            setIsBuffering(true);
+            if (isHlsSource) {
+              setAuthorizedNativeSrc(refreshedSrc);
+            } else {
+              setAuthorizedSrc(refreshedSrc);
+            }
+          })
+          .catch(() => {
+            setIsBuffering(false);
+            setHasError(true);
+          });
+        return;
+      }
+
       setIsBuffering(false);
       setHasError(true);
     };
@@ -405,24 +503,53 @@ export function VideoPlayer({
           }
         });
         hlsRef.current = hls;
-        hls.loadSource(src);
+        hls.loadSource(authorizedSrc);
         hls.attachMedia(video);
         
         hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
            setIsBuffering(false);
-           setQualityLevels(data.levels); 
+           hlsRecoveryAttemptRef.current = false;
+           setQualityLevels(data.levels);
         });
         hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => setActiveQuality(data.level));
         hls.on(Hls.Events.ERROR, (event, data) => {
            if (data.fatal) {
              switch(data.type) {
                case Hls.ErrorTypes.NETWORK_ERROR:
-                 console.warn("HLS Network Error, attempting recovery...");
-                 hls.startLoad();
+                 if (!hlsRecoveryAttemptRef.current) {
+                   hlsRecoveryAttemptRef.current = true;
+                   hls.startLoad();
+                 } else if (authorizedNativeSrc) {
+                   pendingStreamSeekRef.current = video.currentTime || 0;
+                   hls.destroy();
+                   hlsRef.current = null;
+                   video.addEventListener('canplay', handleCanPlay);
+                   video.addEventListener('loadedmetadata', handleLoadedMetadata);
+                   video.addEventListener('error', handleNativeError);
+                   video.src = authorizedNativeSrc;
+                   video.load();
+                 } else {
+                   setIsBuffering(false);
+                   setHasError(true);
+                 }
                  break;
                case Hls.ErrorTypes.MEDIA_ERROR:
-                 console.warn("HLS Media Error, attempting recovery...");
-                 hls.recoverMediaError();
+                 if (!hlsRecoveryAttemptRef.current) {
+                   hlsRecoveryAttemptRef.current = true;
+                   hls.recoverMediaError();
+                 } else if (authorizedNativeSrc) {
+                   pendingStreamSeekRef.current = video.currentTime || 0;
+                   hls.destroy();
+                   hlsRef.current = null;
+                   video.addEventListener('canplay', handleCanPlay);
+                   video.addEventListener('loadedmetadata', handleLoadedMetadata);
+                   video.addEventListener('error', handleNativeError);
+                   video.src = authorizedNativeSrc;
+                   video.load();
+                 } else {
+                   setIsBuffering(false);
+                   setHasError(true);
+                 }
                  break;
                default:
                  hls.destroy();
@@ -435,22 +562,24 @@ export function VideoPlayer({
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Safari native HLS
-        video.src = src;
+        video.src = authorizedSrc;
         video.addEventListener('loadedmetadata', handleLoadedMetadata);
         video.addEventListener('error', handleNativeError);
-      } else if (nativeSrc) {
-        video.src = nativeSrc;
+      } else if (authorizedNativeSrc) {
+        video.src = authorizedNativeSrc;
         video.load();
         video.addEventListener('canplay', handleCanPlay);
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
         video.addEventListener('error', handleNativeError);
       } else {
         setIsBuffering(false);
         setHasError(true);
       }
     } else {
-      video.src = src;
+      video.src = authorizedSrc;
       video.load();
       video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
       video.addEventListener('error', handleNativeError);
     }
 
@@ -464,7 +593,7 @@ export function VideoPlayer({
         hlsRef.current = null;
       }
     };
-  }, [authToken, isHlsSource, nativeSrc, src]);
+  }, [authToken, authorizedNativeSrc, authorizedSrc, isHlsSource, nativeSrc, src]);
 
   // 4. Inject Subtitles
   useEffect(() => {
@@ -695,7 +824,23 @@ export function VideoPlayer({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+      const container = containerRef.current;
+      const activeElement = document.activeElement as HTMLElement | null;
+      const playerOwnsFocus = Boolean(
+        container &&
+        (container.contains(activeElement) || document.fullscreenElement === container)
+      );
+      if (!playerOwnsFocus) return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLButtonElement ||
+        target instanceof HTMLSelectElement ||
+        target instanceof HTMLAnchorElement ||
+        target?.isContentEditable
+      ) return;
       if (!videoRef.current) return;
 
       if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
@@ -839,6 +984,7 @@ export function VideoPlayer({
   };
 
   const handleVideoClick = (e: ReactMouseEvent<HTMLVideoElement>) => {
+    containerRef.current?.focus({ preventScroll: true });
     if (e.detail === 1) {
         clickTimeoutRef.current = setTimeout(() => togglePlay(), 200);
     } else if (e.detail === 2) {
@@ -863,7 +1009,7 @@ export function VideoPlayer({
   };
 
   // 5. Change Quality
-  const changeQuality = (levelIndex: number) => {
+  const changeQuality = async (levelIndex: number) => {
       if (hlsRef.current) {
           hlsRef.current.currentLevel = levelIndex;
           setActiveQuality(levelIndex);
@@ -881,10 +1027,20 @@ export function VideoPlayer({
           const selectedSource = qualityLevels[levelIndex]?.url;
           if (typeof selectedSource !== 'string') return;
 
+          let authorizedQualitySource: string;
+          try {
+            setIsBuffering(true);
+            authorizedQualitySource = await getSignedMediaStreamUrl(selectedSource);
+          } catch (error) {
+            setIsBuffering(false);
+            toast.error(error instanceof Error ? error.message : 'Unable to authorize this video quality.');
+            return;
+          }
+
           const currentPos = video.currentTime;
           const wasPlaying = !video.paused;
 
-          video.src = selectedSource;
+          video.src = authorizedQualitySource;
           video.load();
 
           const restorePlayback = () => {
@@ -925,12 +1081,14 @@ export function VideoPlayer({
       : "!cursor-none [&_*]:!cursor-none";
 
   return (
-    <div 
-      ref={containerRef} 
+    <section
+      ref={containerRef}
+      data-video-player
+      aria-label={title ? `Video player: ${title}` : 'Video player'}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative group bg-black overflow-hidden flex items-center justify-center w-full focus:outline-none transition-all duration-300", 
+        "relative group bg-black overflow-hidden flex items-center justify-center w-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white [&_button]:min-h-11 [&_button]:min-w-11 [&_button]:touch-manipulation [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-white [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-offset-black",
         isFullscreen ? "rounded-none border-none" : "rounded-[2rem] border border-border/50 shadow-inner",
         cursorStateClass,
         className
@@ -967,7 +1125,7 @@ export function VideoPlayer({
       )}
 
       {hasError && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/90 p-6 text-center">
+        <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/90 p-6 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4 opacity-80" />
           <p className="text-white font-bold">Media Playback Error</p>
           <p className="text-zinc-400 text-xs mt-2 max-w-sm">The browser cannot play this video format directly. Try downloading the raw file instead.</p>
@@ -1205,17 +1363,20 @@ export function VideoPlayer({
                   </div>
                 )}
                 
-                <input 
-                  type="range" min="0" max="100" value={progress || 0} 
+                <input
+                  type="range" min="0" max="100" value={progress || 0}
                   onChange={handleSeek}
                   onMouseMove={handleProgressMouseMove}
                   onMouseLeave={handleProgressMouseLeave}
-                  className="w-full h-1.5 bg-white/20 rounded-full appearance-none accent-primary hover:h-2.5 transition-all duration-300 z-10 relative shadow-[0_0_10px_hsl(var(--primary)_/_0.5)] !cursor-pointer [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer" 
+                  aria-label="Video position"
+                  aria-valuetext={`${currentTime} of ${duration}`}
+                  className="w-full h-1.5 bg-white/20 rounded-full appearance-none accent-primary hover:h-2.5 transition-all duration-300 z-10 relative shadow-[0_0_10px_hsl(var(--primary)_/_0.5)] !cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setShowRemainingTime((prev) => !prev)}
+                aria-label={showRemainingTime ? 'Show total video duration' : 'Show remaining video time'}
                 className="text-xs font-mono text-white/80 w-16 text-center hover:text-white transition-colors"
                 title={showRemainingTime ? 'Show total duration' : 'Show remaining time'}
               >
@@ -1226,48 +1387,52 @@ export function VideoPlayer({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-5">
                 
-                <button type="button" onClick={onPrevious} disabled={!onPrevious} className={cn("transition-colors", onPrevious ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed")} title="Previous">
+                <button type="button" onClick={onPrevious} disabled={!onPrevious} aria-label="Previous video" className={cn("transition-colors", onPrevious ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed")} title="Previous">
                   <SkipBack className="h-5 w-5 fill-current" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => seekBy(-skipSeconds)}
+                  aria-label={`Back ${skipSeconds} seconds`}
                   className="text-white/80 hover:text-white transition-transform hover:scale-110"
                   title={`Back ${skipSeconds} seconds (J)`}
                 >
                   <RotateCcw className="h-5 w-5" />
                 </button>
 
-                <button type="button" onClick={togglePlay} className="text-white hover:text-primary transition-all drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] mx-1 transform hover:scale-110" title={isPlaying ? "Pause (Space)" : "Play (Space)"}>
+                <button type="button" onClick={togglePlay} aria-label={isPlaying ? "Pause video" : "Play video"} className="text-white hover:text-primary transition-all drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] mx-1 transform hover:scale-110" title={isPlaying ? "Pause (Space)" : "Play (Space)"}>
                   {isPlaying ? <Pause className="h-8 w-8 fill-current" /> : <Play className="h-8 w-8 fill-current" />}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => seekBy(skipSeconds)}
+                  aria-label={`Forward ${skipSeconds} seconds`}
                   className="text-white/80 hover:text-white transition-transform hover:scale-110"
                   title={`Forward ${skipSeconds} seconds (L)`}
                 >
                   <RotateCw className="h-5 w-5" />
                 </button>
 
-                <button type="button" onClick={onNext} disabled={!onNext} className={cn("transition-colors", onNext ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed")} title="Next">
+                <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next video" className={cn("transition-colors", onNext ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed")} title="Next">
                   <SkipForward className="h-5 w-5 fill-current" />
                 </button>
 
                 <div className="flex items-center gap-2 group/vol ml-4">
-                  <button type="button" onClick={toggleMute} className="text-white hover:text-primary transition-colors" title="Mute (m)">
+                  <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute video" : "Mute video"} className="text-white hover:text-primary transition-colors" title={isMuted ? "Unmute (m)" : "Mute (m)"}>
                     {isMuted || volume === 0 ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
                   </button>
-                  <input 
-                    type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} 
+                  <input
+                    type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       setVolume(val);
                       if (videoRef.current) { videoRef.current.volume = val; videoRef.current.muted = val === 0; setIsMuted(val === 0); }
                     }}
-                    className="w-0 opacity-0 group-hover/vol:w-20 group-hover/vol:opacity-100 h-1.5 bg-white/20 rounded-full appearance-none accent-primary transition-all duration-300"
+                    aria-label="Video volume"
+                    aria-valuetext={`${Math.round((isMuted ? 0 : volume) * 100)} percent`}
+                    className="w-16 sm:w-20 opacity-100 h-1.5 bg-white/20 rounded-full appearance-none accent-primary transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   />
                 </div>
               </div>
@@ -1279,6 +1444,8 @@ export function VideoPlayer({
                     <button
                       type="button"
                       onClick={() => handleMenuToggle('chapters')}
+                      aria-label="Video chapters"
+                      aria-expanded={showChapters}
                       className={cn("transition-colors", activeChapterIndex !== -1 ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")}
                       title="Chapters"
                     >
@@ -1292,6 +1459,7 @@ export function VideoPlayer({
                             <button
                               type="button"
                               onClick={() => jumpRelativeChapter(-1)}
+                              aria-label="Previous chapter"
                               className="rounded-full border border-border/60 p-1 text-foreground/80 transition-colors hover:text-primary hover:border-primary/40"
                               title="Previous chapter (P)"
                             >
@@ -1300,6 +1468,7 @@ export function VideoPlayer({
                             <button
                               type="button"
                               onClick={() => jumpRelativeChapter(1)}
+                              aria-label="Next chapter"
                               className="rounded-full border border-border/60 p-1 text-foreground/80 transition-colors hover:text-primary hover:border-primary/40"
                               title="Next chapter (N)"
                             >
@@ -1325,7 +1494,7 @@ export function VideoPlayer({
                  
                 {localSubtitles.length > 0 && (
                   <div className="relative">
-                    <button type="button" onClick={() => handleMenuToggle('cc')} className={cn("transition-colors", activeSubtitle !== -1 ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Subtitles/CC">
+                    <button type="button" onClick={() => handleMenuToggle('cc')} aria-label="Video subtitles" aria-expanded={showCC} className={cn("transition-colors", activeSubtitle !== -1 ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Subtitles/CC">
                       <Subtitles className="h-6 w-6" />
                     </button>
                     {showCC && (
@@ -1346,7 +1515,7 @@ export function VideoPlayer({
 
                 {canChooseQuality && (
                   <div className="relative">
-                    <button type="button" onClick={() => handleMenuToggle('quality')} className={cn("transition-colors flex items-center gap-1", activeQuality !== -1 || adaptiveQualityPending ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Quality">
+                    <button type="button" onClick={() => handleMenuToggle('quality')} aria-label="Video quality" aria-expanded={showQuality} className={cn("transition-colors flex items-center gap-1", activeQuality !== -1 || adaptiveQualityPending ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Quality">
                       <Settings className="h-6 w-6" />
                       {activeQuality !== -1 && qualityLevels[activeQuality] ? (
                         <span className="text-[10px] font-black bg-primary/20 text-primary px-1.5 rounded-md">
@@ -1399,7 +1568,7 @@ export function VideoPlayer({
                 )}
 
                 <div className="relative">
-                  <button type="button" onClick={() => handleMenuToggle('speed')} className={cn("transition-colors", playbackRate !== 1 ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Playback Speed">
+                  <button type="button" onClick={() => handleMenuToggle('speed')} aria-label="Video playback speed" aria-expanded={showSpeed} className={cn("transition-colors", playbackRate !== 1 ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Playback Speed">
                     <Gauge className="h-6 w-6" />
                   </button>
                   {showSpeed && (
@@ -1418,6 +1587,8 @@ export function VideoPlayer({
                 <button
                   type="button"
                   onClick={toggleLoop}
+                  aria-label="Loop video"
+                  aria-pressed={isLooping}
                   className={cn(
                     "transition-all duration-200",
                     isLooping
@@ -1438,6 +1609,8 @@ export function VideoPlayer({
                     setShowSpeed(false);
                     setShowQuality(false);
                   }}
+                  aria-label="Keyboard shortcuts"
+                  aria-expanded={showShortcuts}
                   className={cn(
                     "transition-all duration-200",
                     showShortcuts
@@ -1455,6 +1628,7 @@ export function VideoPlayer({
                     type="button"
                     onClick={togglePiP}
                     disabled={isPiPBusy}
+                    aria-label={isPiPMode ? 'Exit picture in picture' : 'Enter picture in picture'}
                     className={cn(
                       "transition-all duration-200",
                       isPiPBusy && "opacity-60 cursor-wait",
@@ -1468,13 +1642,13 @@ export function VideoPlayer({
                   </button>
                 )}
 
-                <button type="button" onClick={toggleFullscreen} className="text-white hover:text-primary transition-transform hover:scale-110 ml-1" title="Fullscreen (f)">
+                <button type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"} className="text-white hover:text-primary transition-transform hover:scale-110 ml-1" title="Fullscreen (f)">
                   {isFullscreen ? <Minimize className="h-6 w-6" /> : <Maximize className="h-6 w-6" />}
                 </button>
               </div>
             </div>
           </div>
       )}
-    </div>
+    </section>
   );
 }

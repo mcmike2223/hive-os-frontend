@@ -3,7 +3,7 @@
 export type AuthenticatedDownloadOptions = {
   filename?: string;
   headers?: Record<string, string>;
-  onProgress?: (progress: number) => void;
+  onProgress?: (progress: number, loadedBytes: number, totalBytes: number) => void;
 };
 
 const parseFilenameFromDisposition = (value: string | null): string | null => {
@@ -45,6 +45,7 @@ export const authenticatedDownload = (
 ): Promise<void> =>
   new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let lastReportedProgress = -1;
     xhr.open("GET", url, true);
     xhr.responseType = "blob";
 
@@ -57,7 +58,13 @@ export const authenticatedDownload = (
         return;
       }
 
-      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      const progress = Math.min(100, Math.round((event.loaded / event.total) * 100));
+      if (progress === lastReportedProgress) {
+        return;
+      }
+
+      lastReportedProgress = progress;
+      onProgress(progress, event.loaded, event.total);
     };
 
     xhr.onerror = () => reject(new Error("Download failed due to a network error."));
@@ -94,7 +101,9 @@ export const authenticatedDownload = (
       }
 
       const resolvedFilename = parseFilenameFromDisposition(xhr.getResponseHeader("Content-Disposition")) || filename;
-      onProgress?.(100);
+      if (lastReportedProgress < 100) {
+        onProgress?.(100, responseBlob.size, responseBlob.size);
+      }
       triggerBrowserDownload(responseBlob, resolvedFilename);
       resolve();
     };
