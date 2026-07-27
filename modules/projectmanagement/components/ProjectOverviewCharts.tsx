@@ -1348,7 +1348,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <div className="mt-6 flex -space-x-3 overflow-hidden">
                 {project.members?.slice(0, 6).map((m, i) => (
                   <div key={m.id} className="inline-block h-8 w-8 rounded-2xl ring-4 ring-card bg-muted overflow-hidden transition-transform hover:-translate-y-2 duration-300" style={{ zIndex: 10 - i }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <img src={m.user?.avatar_path || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name}`} alt="" className="h-full w-full object-cover" />
                   </div>
                 ))}
@@ -2125,7 +2125,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                        <div className="h-10 w-10 rounded-2xl bg-muted border border-border/50 overflow-hidden group-hover:scale-110 transition-transform duration-500">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          { }
                           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`} alt="" className="h-full w-full" />
                        </div>
                        <div className="min-w-0">

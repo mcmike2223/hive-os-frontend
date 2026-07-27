@@ -397,7 +397,7 @@ export function CountUp({ value, className }: { value: string; className?: strin
       },
     });
     return () => controls.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [inView, num, reduce, value]);
 
   return (

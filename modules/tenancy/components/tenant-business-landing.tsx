@@ -223,7 +223,7 @@ function BrandLogo({
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- Tenant logo URLs can point at configured storage domains outside Next image allowlists.
+     
     <img
       src={logoUrl}
       alt={fallback}

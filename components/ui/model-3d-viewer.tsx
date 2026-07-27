@@ -217,7 +217,7 @@ export function Model3DViewer({
       return (
         <div className={frameClasses}>
           <div className="relative w-full h-full min-h-[280px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img
               src={fallbackImage}
               alt={alt}

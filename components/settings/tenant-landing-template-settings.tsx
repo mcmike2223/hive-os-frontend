@@ -283,7 +283,7 @@ export function TenantLandingTemplateSettings() {
       setTemplateFiles(createTemplateFiles(formatLandingTemplateJson(firstVariant.template)));
       setJsonError(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [data]);
 
   const businessTypeMap = React.useMemo(

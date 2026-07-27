@@ -695,7 +695,7 @@ export function RestaurantLandingTemplate({
               aria-label={brandName}
             >
               {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img src={logoUrl} alt={brandName} className="h-9 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,26,67,0.3)]" />
               ) : (
                 <Utensils className="h-7 w-7 text-[#FF1A43] drop-shadow-[0_0_8px_rgba(255,26,67,0.4)]" />
@@ -824,7 +824,7 @@ export function RestaurantLandingTemplate({
               className="absolute inset-0 w-full h-full"
             >
               {activeSlide.image?.trim() ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
+                 
                 <img
                   src={getPublicServeUrl(activeSlide.image) ?? activeSlide.image}
                   alt="Restaurant Interior"
@@ -860,7 +860,7 @@ export function RestaurantLandingTemplate({
             >
               <div className="mb-8 flex justify-center">
                 {logoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={logoUrl} alt={brandName} className="h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(255,26,67,0.45)] mb-4" />
                 )}
               </div>
@@ -1005,7 +1005,7 @@ export function RestaurantLandingTemplate({
               className="relative order-2 lg:order-1"
             >
               <div className="absolute -inset-6 bg-gradient-to-r from-[#FF1A43]/10 to-[#7B16D9]/10 rounded-[3rem] transform -rotate-3 blur-2xl" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img 
                 src={specialtiesImage} 
                 alt="Signature Dish" 
@@ -1277,7 +1277,7 @@ export function RestaurantLandingTemplate({
                 <TiltCard className="group relative rounded-[2.5rem] overflow-hidden shadow-2xl h-[450px] border border-white/[0.08] hover:border-[#FF1A43]/60 hover:shadow-[0_0_35px_rgba(255,26,67,0.25)] transition-all duration-500 bg-card">
                 {/* Background image */}
                 <div className="absolute inset-0 z-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img 
                     src={srv.image} 
                     alt={srv.title} 
@@ -1360,7 +1360,7 @@ export function RestaurantLandingTemplate({
                 <TiltCard className="group relative rounded-[2.5rem] overflow-hidden shadow-xl border border-white/[0.08] bg-card p-6 flex flex-col justify-between h-[520px] hover:border-[#FF1A43]/60 hover:shadow-[0_0_35px_rgba(255,26,67,0.25)] transition-all duration-500">
                 {/* Image panel */}
                 <div className="relative h-48 w-full rounded-2xl overflow-hidden mb-6">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img 
                     src={evt.image} 
                     alt={evt.title} 
@@ -1426,7 +1426,7 @@ export function RestaurantLandingTemplate({
                   aria-label={t("landing.gallery.open", "Open photo {index} in full screen").replace("{index}", String(i + 1))}
                   className="group relative h-full w-full min-h-[220px] md:min-h-0 overflow-hidden rounded-[2rem] border border-white/[0.08] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF1A43] hover:border-[#FF1A43]/50 hover:shadow-[0_0_30px_rgba(255,26,67,0.2)] transition-all duration-500"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img
                     src={img}
                     alt={t("landing.gallery.alt", "Inside the lounge")}
@@ -1502,7 +1502,7 @@ export function RestaurantLandingTemplate({
             >
               <div className="absolute -inset-6 bg-yellow-500/10 rounded-[3rem] transform rotate-3 blur-2xl z-0" />
               <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-yellow-500/20 hover:border-yellow-500/50 transition-colors duration-500 group z-10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img
                   src={cellarContent.image}
                   alt="Premium Spirits Selection"
@@ -1548,7 +1548,7 @@ export function RestaurantLandingTemplate({
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative rounded-[3rem] overflow-hidden shadow-2xl border border-border"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img
               src={experienceContent.image}
               alt="Dining Area"
@@ -1796,7 +1796,7 @@ export function RestaurantLandingTemplate({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img src={logoUrl} alt={brandName} className="h-8 w-auto object-contain grayscale opacity-50" />
             ) : (
                 <Utensils className="h-6 w-6 text-primary grayscale opacity-50" />

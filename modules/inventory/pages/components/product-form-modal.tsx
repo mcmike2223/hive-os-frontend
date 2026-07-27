@@ -665,7 +665,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                     </div>
                     {barcodePreview ? (
                       <div className="md:col-span-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img src={barcodePreview} alt="Barcode preview" className="h-16 rounded-md border border-border bg-white p-1" />
                       </div>
                     ) : null}

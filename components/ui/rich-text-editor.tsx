@@ -50,19 +50,13 @@ import {
   Download
 } from 'lucide-react';
 
-<<<<<<< HEAD
 export interface RichTextEditorRef {
   insertMedia: (
     url: string,
-    type: 'image' | 'video' | 'audio' | 'raw',
+    type: 'image' | 'video' | 'audio' | 'raw' | 'document',
     altText?: string,
   ) => void;
 }
-=======
-export interface RichTextEditorRef {
-  insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw' | 'document') => void;
-}
->>>>>>> fix/inventory-warehouse-issues
 
 const ImageNodeView = (props: any) => {
   const { node, updateAttributes, deleteNode, selected } = props;
@@ -214,16 +208,6 @@ const CustomImage = Image.extend({
   },
 });
 
-<<<<<<< HEAD
-interface RichTextEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  onOpenMediaPicker?: () => void;
-  appearance?: 'app' | 'document';
-}
-=======
 const Document = Node.create({
   name: 'document',
   group: 'inline',
@@ -262,8 +246,8 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   onOpenMediaPicker?: () => void;
+  appearance?: 'app' | 'document';
 }
->>>>>>> fix/inventory-warehouse-issues
 
 const FontSize = Extension.create({
   name: 'fontSize',
@@ -815,31 +799,23 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     });
 
     useImperativeHandle(ref, () => ({
-<<<<<<< HEAD
       insertMedia: (
         url: string,
-        type: 'image' | 'video' | 'audio' | 'raw',
+        type: 'image' | 'video' | 'audio' | 'raw' | 'document',
         altText?: string,
       ) => {
-        if (!editor) return;
-        
-        if (type === 'image') {
-          editor.chain().focus().setImage({ src: url, alt: altText || 'Letter media' }).run();
-=======
-      insertMedia: (url: string, type: 'image' | 'video' | 'audio' | 'raw' | 'document') => {
         if (!editor) return;
         
         if (type === 'image') {
           editor.chain().focus().insertContent([
             {
               type: 'image',
-              attrs: { src: url }
+              attrs: { src: url, alt: altText || 'Letter media' }
             },
             {
               type: 'paragraph'
             }
           ]).run();
->>>>>>> fix/inventory-warehouse-issues
         } else if (type === 'video') {
           editor.chain().focus().insertContent([
             {
@@ -879,11 +855,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
          if (value === '') {
              editor.commands.setContent('');
          } else {
-<<<<<<< HEAD
              editor.commands.setContent(value, { emitUpdate: false });
-=======
-             editor.commands.setContent(value);
->>>>>>> fix/inventory-warehouse-issues
          }
       }
     }, [value, editor]);

@@ -316,7 +316,7 @@ export default function GifConverterPage() {
                 </Button>
               </div>
               {outputName.endsWith(".gif") ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img src={outputUrl} alt="Output GIF" className="w-full rounded-xl border border-emerald-500/20 max-h-64 object-contain" />
               ) : (
                 <video src={outputUrl} controls className="w-full rounded-xl border border-emerald-500/20 max-h-64" />

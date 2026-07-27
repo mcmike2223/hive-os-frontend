@@ -331,7 +331,7 @@ export default function HeroSliderPage() {
           ? stored
           : "slider";
     setActiveTab(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const handleTabChange = (tab: string) => {
@@ -618,7 +618,7 @@ export default function HeroSliderPage() {
         : DEFAULT_FAQS,
     );
     setIsDirty(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [queryData]);
 
   // ── save mutation ──

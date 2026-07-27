@@ -400,7 +400,7 @@ export default function PdfConverterPage() {
                 {outputs.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-emerald-500/5 transition-colors">
                     {item.name.match(/\.(jpg|jpeg|png|webp)$/i) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img src={item.url} alt="" className="h-10 w-10 rounded-lg object-cover border border-emerald-500/20" />
                     ) : (
                       <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">

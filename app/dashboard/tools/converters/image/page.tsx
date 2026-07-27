@@ -340,7 +340,7 @@ export default function ImageConverterPage() {
                       {/* Thumbnail */}
                       <div className="h-10 w-10 rounded-xl bg-muted/40 overflow-hidden shrink-0 border border-border/40">
                         {SUPPORTED_INPUTS.includes(file.type) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
+                           
                           <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-[10px] font-mono text-muted-foreground">
@@ -530,7 +530,7 @@ export default function ImageConverterPage() {
                 <div className="absolute top-2 left-2 z-10">
                   <Badge variant="secondary" className="text-[10px] rounded-full">Original</Badge>
                 </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img src={previewItem.originalUrl} alt="Original" className="max-h-full max-w-full object-contain" />
                 <div className="absolute bottom-2 left-2 text-[10px] text-muted-foreground bg-background/70 rounded-full px-2 py-0.5">
                   {formatBytes(previewItem.originalSize)}
@@ -540,7 +540,7 @@ export default function ImageConverterPage() {
                 <div className="absolute top-2 left-2 z-10">
                   <Badge className="text-[10px] rounded-full bg-emerald-500 text-white">Converted · {selectedFormat.label}</Badge>
                 </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img src={previewItem.convertedUrl} alt="Converted" className="max-h-full max-w-full object-contain" />
                 <div className="absolute bottom-2 right-2 text-[10px] text-muted-foreground bg-background/70 rounded-full px-2 py-0.5">
                   {formatBytes(previewItem.convertedSize)}

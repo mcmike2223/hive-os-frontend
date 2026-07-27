@@ -379,7 +379,7 @@ function AnimatedStatValue({ value }: { value: string }) {
       onUpdate: (v) => setDisplay(fmt(v)),
     });
     return () => controls.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [inView]);
 
   if (!m) return <span ref={ref}>{value}</span>;
