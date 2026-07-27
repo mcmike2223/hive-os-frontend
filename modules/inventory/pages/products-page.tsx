@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 
 import {
-  bulkDeleteInventoryProducts,
   bulkUpdateInventoryProductsStatus,
   deleteInventoryProduct,
   fetchInventoryProduct,
@@ -57,7 +56,7 @@ import { getBackendStorageUrl } from "@/lib/runtime-context";
 import { openSecureAssetInNewTab, SecureAssetImage } from "@/components/ui/secure-asset-image";
 import { getInventoryAssetPreviewUrl } from "@/modules/inventory/lib/product-assets";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
-import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
 type SortDirection = "asc" | "desc";
 type ProductStatus = "draft" | "published" | "archived";
@@ -151,6 +150,7 @@ export default function InventoryProductsPage() {
   const [detailSheetOpen, setDetailSheetOpen] = React.useState(false);
   const [detailProductId, setDetailProductId] = React.useState<number | null>(null);
   const [qaProduct, setQaProduct] = React.useState<ProductRecord | null>(null);
+  const [bulkDeleting, setBulkDeleting] = React.useState(false);
 
   const selectedIds = React.useMemo(
     () =>
@@ -188,18 +188,6 @@ export default function InventoryProductsPage() {
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete product.")));
-    },
-  });
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: number[]) => bulkDeleteInventoryProducts(ids),
-    onSuccess: (payload) => {
-      queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
-      toast.success(`${payload.deleted_count} ${t("inventory.products.bulk_deleted_msg", "product(s) deleted.")}`);
-      clearSelection();
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete selected products.")));
     },
   });
 
@@ -311,9 +299,24 @@ export default function InventoryProductsPage() {
         toast.error(t("inventory.common.select_at_least_one", "Select at least one product first."));
         return;
       }
-      await bulkDeleteMutation.mutateAsync(ids);
+
+      setBulkDeleting(true);
+      try {
+        const results = await Promise.all(ids.map((id) => deleteInventoryProduct(id)));
+        notifyBulkDeleteOutcomes(results, {
+          savedMessage: (count) => `${count} ${t("inventory.products.bulk_deleted_msg", "product(s) deleted.")}`,
+          submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
+          queryClient,
+        });
+        queryClient.invalidateQueries({ queryKey: ["inventory", "products"] });
+        clearSelection();
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, t("inventory.common.failed", "Failed to delete selected products.")));
+      } finally {
+        setBulkDeleting(false);
+      }
     },
-    [bulkDeleteMutation, t]
+    [clearSelection, queryClient, t]
   );
 
   const columns = React.useMemo<ColumnDef<ProductRecord>[]>(
@@ -469,42 +472,107 @@ export default function InventoryProductsPage() {
                 name={product.name}
                 status={product.workflow_status}
                 onSuccess={() => queryClient.invalidateQueries({ queryKey: ["inventory", "products"] })}
+                showStatusBadge={false}
               />
-              {hasModule("warehouse_management") && (
+              {hasModule("warehouse_management") && (() => {
+                const meta = (product.metadata as Record<string, any> | null | undefined) ?? {};
+                const pending = meta.pending_warehouse_assignment as
+                  | {
+                      submission_id?: number;
+                      location_id?: number;
+                      shelf_id?: number;
+                      location_code?: string;
+                      row?: number;
+                      column?: number;
+                    }
+                  | undefined;
+                const assignment = meta.assigned_warehouse_box as
+                  | {
+                      location_id?: number;
+                      shelf_id?: number;
+                      location_code?: string;
+                      row?: number;
+                      column?: number;
+                    }
+                  | undefined;
+                const isPendingApproval = !!pending?.submission_id || !!pending?.location_id;
+                const isOnShelf = !isPendingApproval && (!!assignment?.location_id || !!assignment?.shelf_id);
+                const shelfHref = assignment?.shelf_id
+                  ? `/dashboard/warehouse/locations/boxes?highlight_parent_id=${assignment.shelf_id}`
+                  : `/dashboard/warehouse/locations/shelves?add_product_id=${product.id}`;
+                const addHref = `/dashboard/warehouse/locations/shelves?add_product_id=${product.id}`;
+                const qaBlocked =
+                  hasBusinessType("water-bottling") && product.qa_status !== "qa_passed";
+
+                return (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex">
-                        <Link
-                          href={`/dashboard/warehouse/locations/shelves?add_product_id=${product.id}`}
-                          className={cn(
-                            "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                            product.qa_status === "qa_passed"
-                              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                              : "pointer-events-none border-slate-300 bg-slate-100 text-slate-400 opacity-60"
-                          )}
-                          onClick={(e) => {
-                            if (product.qa_status !== "qa_passed") {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          <MapPin className="mr-1 h-3.5 w-3.5" />
-                          {t("inventory.products.add_to_shelf", "Add to Shelf")}
-                        </Link>
+                        {isPendingApproval ? (
+                          <span
+                            className="inline-flex items-center justify-center rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-700"
+                          >
+                            <Clock className="mr-1 h-3.5 w-3.5" />
+                            {t("inventory.products.waiting_approval", "Waiting for approval")}
+                          </span>
+                        ) : (
+                          <Link
+                            href={isOnShelf ? shelfHref : addHref}
+                            className={cn(
+                              "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                              qaBlocked
+                                ? "pointer-events-none border-slate-300 bg-slate-100 text-slate-400 opacity-60"
+                                : isOnShelf
+                                  ? "border-blue-500/50 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20"
+                                  : "border-emerald-500/50 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                            )}
+                            onClick={(e) => {
+                              if (qaBlocked) {
+                                e.preventDefault();
+                              }
+                            }}
+                          >
+                            <MapPin className="mr-1 h-3.5 w-3.5" />
+                            {isOnShelf
+                              ? t("inventory.products.on_shelf", "On Shelf")
+                              : t("inventory.products.add_to_shelf", "Add to Shelf")}
+                          </Link>
+                        )}
                       </div>
                     </TooltipTrigger>
-                    {product.qa_status !== "qa_passed" && (
+                    {qaBlocked ? (
                       <TooltipContent className="rounded-xl border-border bg-background/95 p-3 font-medium text-foreground shadow-xl backdrop-blur-md">
                         <div className="flex items-center gap-2 text-rose-500">
                           <AlertTriangle className="h-4 w-4" />
                           <span>QA approval required before shelf placement.</span>
                         </div>
                       </TooltipContent>
-                    )}
+                    ) : isPendingApproval ? (
+                      <TooltipContent className="rounded-xl border-border bg-background/95 p-3 font-medium text-foreground shadow-xl backdrop-blur-md">
+                        <span>
+                          {pending?.location_code
+                            ? `Pending approval for ${pending.location_code}`
+                            : pending?.row && pending?.column
+                              ? `Pending approval for R${pending.row}C${pending.column}`
+                              : "Shelf assignment is waiting for approval"}
+                        </span>
+                      </TooltipContent>
+                    ) : isOnShelf ? (
+                      <TooltipContent className="rounded-xl border-border bg-background/95 p-3 font-medium text-foreground shadow-xl backdrop-blur-md">
+                        <span>
+                          {assignment?.location_code
+                            ? `Stored at ${assignment.location_code}`
+                            : assignment?.row && assignment?.column
+                              ? `Stored at R${assignment.row}C${assignment.column}`
+                              : "View shelf location"}
+                        </span>
+                      </TooltipContent>
+                    ) : null}
                   </Tooltip>
                 </TooltipProvider>
-              )}
+                );
+              })()}
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -621,9 +689,9 @@ export default function InventoryProductsPage() {
                 <Button
                   variant="destructive"
                   className="rounded-xl shadow-lg shadow-red-500/20"
-                  disabled={selectedIds.length === 0 || bulkDeleteMutation.isPending}
+                  disabled={selectedIds.length === 0 || bulkDeleting || deleteMutation.isPending}
                 >
-                  {bulkDeleteMutation.isPending ? (
+                  {bulkDeleting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
                   {t("inventory.common.delete_selected", "Delete Selected")}
@@ -663,8 +731,8 @@ export default function InventoryProductsPage() {
         selectedRowIds={selectedRowIds}
         onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as RowSelectionState)}
         onDeleteRows={async (rows) => {
-          const ids = rows.map((row) => row.id);
-          await handleBulkDelete(ids);
+          if (rows.length === 0) return;
+          await handleBulkDelete(rows.map((row) => row.id));
         }}
         onQueryChange={handleTableQueryChange}
         onRefresh={() => {
@@ -838,6 +906,7 @@ function ProductDetailSheet({
                     name={product.name}
                     status={product.workflow_status}
                     onSuccess={() => queryClient.invalidateQueries({ queryKey: ["inventory", "products"] })}
+                    showStatusBadge={false}
                   />
                 </>
               ) : null}

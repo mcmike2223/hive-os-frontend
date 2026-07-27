@@ -24,11 +24,12 @@ export function TaskTimer({ task }: TaskTimerProps) {
     queryFn: () => projectApi.getActiveTimeLog(),
   });
 
-  const isActiveForThisTask = activeLog?.task_id === task.id;
+  const validActiveLog = activeLog && activeLog.task_id ? activeLog : null;
+  const isActiveForThisTask = validActiveLog?.task_id === task.id;
 
   useEffect(() => {
-    if (isActiveForThisTask && activeLog?.started_at) {
-      const start = new Date(activeLog.started_at);
+    if (isActiveForThisTask && validActiveLog?.started_at) {
+      const start = new Date(validActiveLog.started_at);
       
       const updateTimer = () => {
         setElapsedSeconds(differenceInSeconds(new Date(), start));
@@ -44,7 +45,7 @@ export function TaskTimer({ task }: TaskTimerProps) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActiveForThisTask, activeLog]);
+  }, [isActiveForThisTask, validActiveLog]);
 
   const startMutation = useMutation({
     mutationFn: () => projectApi.startTimeLog(task.id),
@@ -56,12 +57,19 @@ export function TaskTimer({ task }: TaskTimerProps) {
   });
 
   const stopMutation = useMutation({
-    mutationFn: () => projectApi.stopTimeLog(activeLog!.id),
+    mutationFn: () => {
+      console.log('Stopping timer with log ID:', validActiveLog?.id);
+      return projectApi.stopTimeLog(validActiveLog!.id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-time-log"] });
       queryClient.invalidateQueries({ queryKey: ["task", task.id] });
       queryClient.invalidateQueries({ queryKey: ["task-time-logs", task.id] });
       toast.success("Timer stopped and logged");
+    },
+    onError: (error) => {
+      console.error('Failed to stop timer:', error);
+      toast.error("Failed to stop timer");
     },
   });
 
@@ -108,14 +116,14 @@ export function TaskTimer({ task }: TaskTimerProps) {
             size="icon" 
             className="h-10 w-10 rounded-xl bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
             onClick={() => startMutation.mutate()}
-            disabled={startMutation.isPending || (!!activeLog && !isActiveForThisTask)}
+            disabled={startMutation.isPending || (!!validActiveLog && !isActiveForThisTask)}
           >
             <Play className="h-4 w-4 fill-current ml-0.5" />
           </Button>
         )}
       </div>
       
-      {!!activeLog && !isActiveForThisTask && (
+      {!!validActiveLog && !isActiveForThisTask && (
         <div className="absolute -bottom-6 left-0 right-0 text-[9px] text-amber-600 font-bold uppercase text-center animate-bounce">
           Another timer is running
         </div>

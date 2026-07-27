@@ -203,7 +203,7 @@ export default function InventoryWarehousesPage() {
     if (tableQuery.search) params.set("search", tableQuery.search);
     params.set("sortCol", tableQuery.sortCol);
     params.set("sortDir", tableQuery.sortDir);
-    return `/inventory/warehouses/export?${params.toString()}`;
+    return `/api/v1/inventory/warehouses/export?${params.toString()}`;
   }, [tableQuery.search, tableQuery.sortCol, tableQuery.sortDir]);
 
   const columns = React.useMemo<ColumnDef<InventoryEntityRecord>[]>(

@@ -126,9 +126,9 @@ export function ResourceHeatmap({ project, tasks }: ResourceHeatmapProps) {
                               {count > 0 && count}
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent className="bg-popover text-popover-foreground border-border">
                             <p className="font-bold text-xs">{count} {t('project_management.active_tasks', 'active tasks')}</p>
-                            <p className="text-[10px] opacity-70">{format(day, "PPP")}</p>
+                            <p className="text-[10px] text-muted-foreground">{format(day, "PPP")}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

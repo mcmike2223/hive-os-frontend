@@ -104,6 +104,7 @@ export interface Task {
   priority: TaskPriority;
   due_date: string | null;
   parent_task_id?: string | null;
+  parent_task?: { id: string; title: string } | null;
   created_by: string; // UUID
   order: number;
   created_at: string;

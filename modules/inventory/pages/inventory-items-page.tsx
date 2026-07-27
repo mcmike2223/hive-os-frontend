@@ -38,7 +38,7 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
   adjustInventoryItemStock,
-  fetchInventoryProductCategories,
+  fetchInventoryCategories,
 } from "@/modules/inventory/api";
 import type { InventoryItem, PaginatedResponse } from "@/modules/inventory/types";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
@@ -130,8 +130,8 @@ export default function InventoryItemsPage() {
   });
 
   const categoriesQuery = useQuery({
-    queryKey: ["inventory", "product-categories"],
-    queryFn: () => fetchInventoryProductCategories(),
+    queryKey: ["inventory", "categories"],
+    queryFn: () => fetchInventoryCategories(),
   });
 
   const saveMutation = useMutation({
@@ -500,7 +500,7 @@ export default function InventoryItemsPage() {
                     <SelectValue placeholder={t("inventory.common.select_category", "Select category")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {categoriesQuery.data?.data?.map((cat) => (
+                    {categoriesQuery.data?.data?.map((cat: any) => (
                       <SelectItem key={cat.id} value={cat.id.toString()}>
                         {cat.name}
                       </SelectItem>

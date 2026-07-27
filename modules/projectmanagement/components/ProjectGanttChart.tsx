@@ -268,21 +268,21 @@ export const ProjectGanttChart: React.FC<ProjectGanttChartProps> = ({ project, t
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-4">
           <Metric icon={CheckCircle2} label={t('project_management.completion', 'Completion')} value={`${completionRate}%`} progress={completionRate} />
           <Metric icon={CalendarClock} label={t('project_management.scheduled', 'Scheduled')} value={`${scheduledRate}%`} progress={scheduledRate} />
           <Metric icon={AlertTriangle} label={t('project_management.overdue', 'Overdue')} value={overdueCount} tone={overdueCount > 0 ? "danger" : "good"} />
           <Metric icon={TimerReset} label={t('project_management.unscheduled', 'Unscheduled')} value={unscheduledCount} tone={unscheduledCount > 0 ? "warning" : "good"} />
         </div>
 
-        <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_180px_180px_180px]">
-          <div className="relative group">
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 overflow-x-auto pb-1">
+          <div className="relative group min-w-[200px] flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('project_management.search_tasks_assignees', 'Search tasks, assignees...')} className="pl-9 bg-background border-border/50 focus:border-primary/50" />
           </div>
           <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-            <SelectTrigger>
-              <Filter className="mr-2 h-4 w-4" />
+            <SelectTrigger className="min-w-[180px]">
+              <Filter className="mr-2 h-4 w-4 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -294,8 +294,8 @@ export const ProjectGanttChart: React.FC<ProjectGanttChartProps> = ({ project, t
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value as TaskPriority | "all")}>
-            <SelectTrigger>
-              <Flag className="mr-2 h-4 w-4" />
+            <SelectTrigger className="min-w-[180px]">
+              <Flag className="mr-2 h-4 w-4 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -307,8 +307,8 @@ export const ProjectGanttChart: React.FC<ProjectGanttChartProps> = ({ project, t
             </SelectContent>
           </Select>
           <Select value={groupMode} onValueChange={(value) => setGroupMode(value as GroupMode)}>
-            <SelectTrigger>
-              <Layers3 className="mr-2 h-4 w-4" />
+            <SelectTrigger className="min-w-[180px]">
+              <Layers3 className="mr-2 h-4 w-4 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -485,13 +485,13 @@ function Metric({
   }[tone];
 
   return (
-    <div className="rounded-md border bg-background p-3">
+    <div className="rounded-md border bg-background p-4">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-xl font-bold">{value}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-xl font-bold truncate">{value}</p>
         </div>
-        <div className={`rounded-md p-2 ${toneClass}`}>
+        <div className={`rounded-md p-2 shrink-0 ${toneClass}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>

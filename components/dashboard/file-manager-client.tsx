@@ -633,6 +633,7 @@ export function FileManagerClient({
     enabled: canRead,
   });
 
+<<<<<<< HEAD
   const folderItems = React.useMemo(() => toCollectionItems<FileManagerFolder>(data?.data?.folders), [data?.data?.folders]);
   const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
 
@@ -643,6 +644,23 @@ export function FileManagerClient({
     if (matchingFile) setSelectedFile(matchingFile);
   }, [fileItems, initialFilePath]);
 
+=======
+  const folderItems = React.useMemo(() => toCollectionItems<FileManagerFolder>(data?.data?.folders), [data?.data?.folders]);
+  const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
+
+  React.useEffect(() => {
+    if (initialFilePath && data?.data?.files?.data) {
+      const filesArray = data.data.files.data;
+      const file = filesArray.find((f: FileManagerFile) =>
+        (f.media_details as any)?.relative_path === initialFilePath || f.path === initialFilePath
+      ) || null;
+      if (file) {
+        setSelectedFile(file);
+      }
+    }
+  }, [initialFilePath, data]);
+
+>>>>>>> fix/inventory-warehouse-issues
   React.useEffect(() => {
     if (!selectedFile || fileItems.length === 0) {
       return;

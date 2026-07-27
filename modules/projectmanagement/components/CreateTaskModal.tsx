@@ -122,15 +122,22 @@ const createTaskSchema = (projectStartDate?: Date, projectEndDate?: Date, t?: Tr
 };
 
 type TaskFormValues = z.infer<ReturnType<typeof createTaskSchema>>;
+
+// FIX: widened this type so it actually matches the fields read off it below
+// (media_details.relative_path / media_details.original_name / file.name were
+// being accessed but weren't declared here, which is what TS was complaining about).
 type SelectedMediaFile = {
   name?: string | null;
   path?: string | null;
+  name?: string | null;
   url?: string | null;
   mime_type?: string | null;
   media_details?: {
     relative_path?: string | null;
     original_name?: string | null;
     url?: string | null;
+    relative_path?: string | null;
+    original_name?: string | null;
   } | null;
 };
 
@@ -244,7 +251,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         environment: (values.environment === "none" || !values.environment) ? null : values.environment,
         pr_url: values.pr_url || null,
         is_backlog: false,
-        tags: ["UI/UX", "Design"],
+        tags: [],
+        attachments: attachments,
       };
 
       return projectApi.createTask(payload);
@@ -307,7 +315,25 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       return;
     }
 
-    setAttachments([...attachments, { path, name, url }]);
+    setAttachments([...attachments, { path, name, url: url || "" }]);
+
+    if (editorRef.current && url) {
+      const extension = path.split('.').pop()?.toLowerCase();
+      let mediaType: 'image' | 'video' | 'audio' | 'raw' | 'document' = 'raw';
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) {
+        mediaType = 'document';
+      } else if (['mp4', 'webm', 'mov'].includes(extension || '')) {
+        mediaType = 'video';
+      } else if (['mp3', 'wav', 'ogg'].includes(extension || '')) {
+        mediaType = 'audio';
+      } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'odt', 'ods', 'odp', 'csv'].includes(extension || '')) {
+        mediaType = 'document';
+      }
+      
+      editorRef.current.insertMedia(url, mediaType);
+    }
+
     setTimeout(() => setIsFileManagerOpen(false), 0);
   };
 

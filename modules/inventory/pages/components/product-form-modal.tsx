@@ -248,6 +248,8 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
   const [newModelPreviewUrl, setNewModelPreviewUrl] = React.useState<string | null>(null);
   const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = React.useState<string | null>(null);
   const [selectedModelPreviewUrl, setSelectedModelPreviewUrl] = React.useState<string | null>(null);
+  const [isAnySelectOpen, setIsAnySelectOpen] = React.useState(false);
+  const dismissingFileManagerRef = React.useRef(false);
 
   const optionsQuery = useQuery({
     queryKey: ["inventory", "products", "options", productId ?? "new"],
@@ -340,9 +342,14 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
   const modelDisplayName = newModel?.name || form.model_3d_path.split("/").pop() || "No model selected";
 
   const closeAssetLibrary = React.useCallback(() => {
+    // Nested/sibling Dialog dismiss can bubble to the product modal; ignore that briefly.
+    dismissingFileManagerRef.current = true;
     pickerFieldRef.current = null;
     setPickerField(null);
     setIsFileManagerOpen(false);
+    window.setTimeout(() => {
+      dismissingFileManagerRef.current = false;
+    }, 0);
   }, []);
 
   const openAssetLibrary = React.useCallback((field: "image" | "model_3d") => {
@@ -499,8 +506,36 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : null)}>
-      <DialogContent className="flex h-[92vh] max-h-[92vh] flex-col overflow-hidden rounded-[2rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl sm:max-w-[1200px]">
+    <>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          if (isAnySelectOpen || isFileManagerOpen || dismissingFileManagerRef.current) {
+            return;
+          }
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        className="flex h-[92vh] max-h-[92vh] flex-col overflow-hidden rounded-[2rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl sm:max-w-[1200px]"
+        onInteractOutside={(event) => {
+          if (isFileManagerOpen || dismissingFileManagerRef.current) {
+            event.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(event) => {
+          if (isFileManagerOpen || dismissingFileManagerRef.current) {
+            event.preventDefault();
+          }
+        }}
+        onFocusOutside={(event) => {
+          if (isFileManagerOpen || dismissingFileManagerRef.current) {
+            event.preventDefault();
+          }
+        }}
+      >
         <div className="border-b border-border/40 px-6 py-5">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight">
@@ -552,7 +587,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                       <Input value={form.hs_code} onChange={(event) => setForm((prev) => ({ ...prev, hs_code: event.target.value }))} placeholder="HS-0000" />
                     </Field>
                     <Field label="Country of Origin">
-                      <Select value={form.country_of_origin || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, country_of_origin: value === "__none__" ? "" : value }))}>
+                      <Select value={form.country_of_origin || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, country_of_origin: value === "__none__" ? "" : value }))} onOpenChange={setIsAnySelectOpen}>
                         <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
                         <SelectContent className="max-h-80">
                           <SelectItem value="__none__">Not specified</SelectItem>
@@ -584,18 +619,24 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
 
                 <SectionCard title="Pricing">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                    <Field label="Currency">
-                      <Select value={form.currency} onValueChange={(value) => setForm((prev) => ({ ...prev, currency: value }))}>
-                        <SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger>
-                        <SelectContent className="max-h-72">
-                          {currencyOptions.map((currency) => (
-                            <SelectItem key={currency.code} value={currency.code}>
-                              {currency.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
+                    <Field label="Currency" className="min-w-0">
+  <Select
+    value={form.currency}
+    onValueChange={(value) => setForm((prev) => ({ ...prev, currency: value }))}
+    onOpenChange={setIsAnySelectOpen}
+  >
+    <SelectTrigger className="w-full min-w-0">
+      <SelectValue placeholder="Select currency" className="truncate" />
+    </SelectTrigger>
+    <SelectContent className="max-h-72">
+      {currencyOptions.map((currency) => (
+        <SelectItem key={currency.code} value={currency.code}>
+          {currency.label}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</Field>
                     <Field label="Cost of Good"><Input type="number" min="0" step="0.01" value={form.cost_of_good} onChange={(event) => setForm((prev) => ({ ...prev, cost_of_good: event.target.value }))} /></Field>
                     <Field label="Unit Price"><Input type="number" min="0" step="0.01" value={form.unit_price} onChange={(event) => setForm((prev) => ({ ...prev, unit_price: event.target.value }))} /></Field>
                     <Field label="Sale Price"><Input type="number" min="0" step="0.01" value={form.sale_price} onChange={(event) => setForm((prev) => ({ ...prev, sale_price: event.target.value }))} /></Field>
@@ -634,7 +675,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                 <SectionCard title="Shipping & Packaging">
                   <div className="grid gap-3 md:grid-cols-2">
                     <Field label="Unit of Measure">
-                      <Select value={form.unit} onValueChange={(value) => setForm((prev) => ({ ...prev, unit: value }))}>
+                      <Select value={form.unit} onValueChange={(value) => setForm((prev) => ({ ...prev, unit: value }))} onOpenChange={setIsAnySelectOpen}>
                         <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
                         <SelectContent>
                           {(options?.uom_options ?? ["unit"]).map((value) => (
@@ -655,7 +696,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                 <SectionCard title="Organization">
                   <div className="space-y-3">
                     <Field label="Status">
-                      <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as FormState["status"] }))}>
+                      <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as FormState["status"] }))} onOpenChange={setIsAnySelectOpen}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(options?.status_options ?? ["draft", "published", "archived"]).map((value) => (
@@ -665,7 +706,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                       </Select>
                     </Field>
                     <Field label="Category">
-                      <Select value={form.product_category_id || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, product_category_id: value === "__none__" ? "" : value }))}>
+                      <Select value={form.product_category_id || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, product_category_id: value === "__none__" ? "" : value }))} onOpenChange={setIsAnySelectOpen}>
                         <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Uncategorized</SelectItem>
@@ -698,7 +739,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                       This product has variants
                     </label>
                     <Field label="Parent Product">
-                      <Select value={form.parent_product_id || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, parent_product_id: value === "__none__" ? "" : value }))} disabled={!form.is_variant}>
+                      <Select value={form.parent_product_id || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, parent_product_id: value === "__none__" ? "" : value }))} disabled={!form.is_variant} onOpenChange={setIsAnySelectOpen}>
                         <SelectTrigger><SelectValue placeholder="No parent" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">No parent</SelectItem>
@@ -877,6 +918,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
           </Button>
         </DialogFooter>
       </DialogContent>
+    </Dialog>
 
       <Dialog
         open={isFileManagerOpen}
@@ -913,7 +955,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
           </div>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   );
 }
 
