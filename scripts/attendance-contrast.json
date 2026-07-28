@@ -1,0 +1,244 @@
+{
+  "checks": [
+    {
+      "id": "hero-heading-light",
+      "foreground": "#0f172a",
+      "background": "#eff6ff",
+      "type": "text-large",
+      "state": "default",
+      "notes": "Attendance workspace heading"
+    },
+    {
+      "id": "hero-body-light",
+      "foreground": "#334155",
+      "background": "#eff6ff",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "hero-eyebrow-light",
+      "foreground": "#1e40af",
+      "background": "#eff6ff",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "hero-heading-dark",
+      "foreground": "#f8fafc",
+      "background": "#020617",
+      "type": "text-large",
+      "state": "default"
+    },
+    {
+      "id": "hero-body-dark",
+      "foreground": "#e2e8f0",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "hero-eyebrow-dark",
+      "foreground": "#a5f3fc",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "control-border-light",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "control-border-dark",
+      "foreground": "#94a3b8",
+      "background": "#0f172a",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "focus-ring-light",
+      "foreground": "#1d4ed8",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "focus-ring-dark",
+      "foreground": "#67e8f9",
+      "background": "#0f172a",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "muted-text-light",
+      "foreground": "#475569",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "muted-text-dark",
+      "foreground": "#cbd5e1",
+      "background": "#0f172a",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "processed-status-light",
+      "foreground": "#134e4a",
+      "background": "#f0fdfa",
+      "type": "text-normal",
+      "state": "processed"
+    },
+    {
+      "id": "processed-status-dark",
+      "foreground": "#ccfbf1",
+      "background": "#042f2e",
+      "type": "text-normal",
+      "state": "processed"
+    },
+    {
+      "id": "attention-status-light",
+      "foreground": "#78350f",
+      "background": "#fffbeb",
+      "type": "text-normal",
+      "state": "attention"
+    },
+    {
+      "id": "attention-status-dark",
+      "foreground": "#fef3c7",
+      "background": "#451a03",
+      "type": "text-normal",
+      "state": "attention"
+    },
+    {
+      "id": "error-summary-light",
+      "foreground": "#991b1b",
+      "background": "#fef2f2",
+      "type": "text-normal",
+      "state": "error"
+    },
+    {
+      "id": "error-summary-dark",
+      "foreground": "#fecaca",
+      "background": "#450a0a",
+      "type": "text-normal",
+      "state": "error"
+    },
+    {
+      "id": "event-rail-light",
+      "foreground": "#115e59",
+      "background": "#f0fdfa",
+      "type": "graphic",
+      "state": "processed"
+    },
+    {
+      "id": "event-rail-dark",
+      "foreground": "#99f6e4",
+      "background": "#042f2e",
+      "type": "graphic",
+      "state": "processed"
+    },
+    {
+      "id": "calculation-copy-light",
+      "foreground": "#475569",
+      "background": "#f8fafc",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Calculation control description"
+    },
+    {
+      "id": "calculation-copy-dark",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "warning-icon-light",
+      "foreground": "#92400e",
+      "background": "#ffffff",
+      "type": "graphic",
+      "state": "warning"
+    },
+    {
+      "id": "warning-icon-dark",
+      "foreground": "#fde68a",
+      "background": "#0f172a",
+      "type": "graphic",
+      "state": "warning"
+    },
+    {
+      "id": "information-status-light",
+      "foreground": "#172554",
+      "background": "#eff6ff",
+      "type": "text-normal",
+      "state": "information"
+    },
+    {
+      "id": "information-status-dark",
+      "foreground": "#cffafe",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "information"
+    },
+    {
+      "id": "schedule-header-light",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "schedule-header-dark",
+      "foreground": "#ffffff",
+      "background": "#083344",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "schedule-primary-button-light",
+      "foreground": "#ffffff",
+      "background": "#1e40af",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "schedule-primary-button-dark",
+      "foreground": "#020617",
+      "background": "#a5f3fc",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "schedule-conflict-light",
+      "foreground": "#451a03",
+      "background": "#fffbeb",
+      "type": "text-normal",
+      "state": "warning"
+    },
+    {
+      "id": "schedule-conflict-dark",
+      "foreground": "#fffbeb",
+      "background": "#451a03",
+      "type": "text-normal",
+      "state": "warning"
+    },
+    {
+      "id": "schedule-rejected-light",
+      "foreground": "#7f1d1d",
+      "background": "#fef2f2",
+      "type": "text-normal",
+      "state": "rejected"
+    },
+    {
+      "id": "schedule-rejected-dark",
+      "foreground": "#fee2e2",
+      "background": "#450a0a",
+      "type": "text-normal",
+      "state": "rejected"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "checks": [
+    {
+      "id": "hero-primary",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-secondary",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-amber-accent",
+      "foreground": "#fcd34d",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-teal-state",
+      "foreground": "#5eead4",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-secondary-text",
+      "foreground": "#475569",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-secondary-text",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "teal-action-light",
+      "foreground": "#115e59",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "teal-action-dark",
+      "foreground": "#5eead4",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "draft-status",
+      "foreground": "#0f172a",
+      "background": "#f1f5f9",
+      "type": "text-normal"
+    },
+    {
+      "id": "pending-status",
+      "foreground": "#451a03",
+      "background": "#fef3c7",
+      "type": "text-normal"
+    },
+    {
+      "id": "approved-status",
+      "foreground": "#042f2e",
+      "background": "#ccfbf1",
+      "type": "text-normal"
+    },
+    {
+      "id": "rejected-status",
+      "foreground": "#450a0a",
+      "background": "#fee2e2",
+      "type": "text-normal"
+    },
+    {
+      "id": "focus-and-control-light",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "focus-and-control-dark",
+      "foreground": "#94a3b8",
+      "background": "#020617",
+      "type": "ui"
+    }
+  ]
+}

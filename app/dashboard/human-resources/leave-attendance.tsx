@@ -39,7 +39,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getWorkspaceScopeKey } from "@/lib/runtime-context";
+import { AttendanceWorkspace } from "./attendance-workspace";
 import { LeavePlanWorkspace } from "./leave-plans";
+import { LeaveRequestWorkspace } from "./leave-requests";
 import {
   AttendanceRecord,
   AttendanceSummary,
@@ -615,7 +617,7 @@ function RequestStatus({
   );
 }
 
-export function LeavePanel() {
+export function LegacyLeavePanel() {
   const scope = getWorkspaceScopeKey();
   const queryClient = useQueryClient();
   const { hasAnyPermission, hasPermission, isLoaded } = usePermissions();
@@ -883,7 +885,16 @@ export function LeavePanel() {
   );
 }
 
-export function AttendancePanel() {
+export function LeavePanel() {
+  return (
+    <div className="space-y-8">
+      <LeaveRequestWorkspace />
+      <LeavePlanWorkspace />
+    </div>
+  );
+}
+
+export function LegacyAttendancePanel() {
   const scope = getWorkspaceScopeKey();
   const queryClient = useQueryClient();
   const { hasAnyPermission, hasPermission, isLoaded } = usePermissions();
@@ -1168,5 +1179,32 @@ export function AttendancePanel() {
         employees={employees.data?.data ?? []}
       />
     </div>
+  );
+}
+
+export function AttendancePanel() {
+  const scope = getWorkspaceScopeKey();
+  const { hasPermission, isLoaded } = usePermissions();
+  const canSchedules = hasPermission("manage_work_schedules");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const employees = useQuery({
+    queryKey: ["hr-attendance", scope, "schedule-employees"],
+    queryFn: () => hrFetch<Paginated<Employee>>("/employees?per_page=100"),
+    enabled: isLoaded && canSchedules,
+  });
+
+  return (
+    <>
+      <AttendanceWorkspace
+        onAddSchedule={
+          canSchedules ? () => setScheduleOpen(true) : undefined
+        }
+      />
+      <ScheduleDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        employees={employees.data?.data ?? []}
+      />
+    </>
   );
 }
