@@ -129,15 +129,12 @@ type TaskFormValues = z.infer<ReturnType<typeof createTaskSchema>>;
 type SelectedMediaFile = {
   name?: string | null;
   path?: string | null;
-  name?: string | null;
   url?: string | null;
   mime_type?: string | null;
   media_details?: {
     relative_path?: string | null;
     original_name?: string | null;
     url?: string | null;
-    relative_path?: string | null;
-    original_name?: string | null;
   } | null;
 };
 

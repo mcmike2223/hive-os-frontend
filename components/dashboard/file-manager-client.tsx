@@ -637,6 +637,10 @@ export function FileManagerClient({
   const fileItems = React.useMemo(() => toCollectionItems<FileManagerFile>(data?.data?.files), [data?.data?.files]);
 
   React.useEffect(() => {
+    if (!selectedFile) {
+      return;
+    }
+
     const refreshedFile = fileItems.find((file) => file.id === selectedFile.id);
     if (!refreshedFile) {
       return;
