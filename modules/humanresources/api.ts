@@ -345,11 +345,7 @@ export type LeaveRequest = {
   starts_on: string;
   ends_on: string;
   segment_type:
-    | "full_day"
-    | "multi_day"
-    | "first_half"
-    | "second_half"
-    | "hourly";
+    "full_day" | "multi_day" | "first_half" | "second_half" | "hourly";
   starts_at: string | null;
   ends_at: string | null;
   requested_days: number;
@@ -520,15 +516,194 @@ export type WorkSchedule = {
   id: number;
   code: string;
   name: string;
+  category: string;
+  color: string;
+  shift_type: string;
   timezone: string;
   working_days: number[];
   starts_at: string;
   ends_at: string;
+  intervals: Array<{ starts_at: string; ends_at: string }> | null;
   break_minutes: number;
   grace_minutes: number;
+  rules: {
+    minimum_rest_minutes?: number;
+    maximum_weekly_minutes?: number;
+    check_in_window_minutes?: number;
+    check_out_window_minutes?: number;
+    overtime_eligible?: boolean;
+    required_skills?: string[];
+  } | null;
+  required_headcount: number;
+  effective_from: string | null;
+  effective_to: string | null;
+  version: number;
   weekly_hours: number;
   is_night_shift: boolean;
   is_active: boolean;
+};
+
+export type ScheduleTemplateDay = {
+  id: number;
+  cycle_day: number;
+  work_schedule_id: number | null;
+  label: string | null;
+  is_rest_day: boolean;
+  break_minutes_override: number | null;
+  work_schedule?: WorkSchedule | null;
+};
+
+export type ScheduleTemplate = {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  timezone: string;
+  cycle_length_days: number;
+  rotation_direction: "forward" | "backward";
+  anchor_date: string;
+  holiday_treatment: "use_shift" | "rest_day" | "alternate_shift";
+  effective_from: string;
+  effective_to: string | null;
+  version: number;
+  is_active: boolean;
+  days: ScheduleTemplateDay[];
+};
+
+export type ScheduleResolution = {
+  source_type:
+    | "temporary_schedule"
+    | "roster_entry"
+    | "employee_schedule"
+    | "schedule_assignment"
+    | "schedule_template";
+  source_id: number;
+  work_date: string;
+  work_schedule_id: number | null;
+  is_rest_day: boolean;
+  explicit_day: boolean;
+  cycle_day: number | null;
+  metadata: Record<string, unknown>;
+};
+
+export type ScheduleTimelineDay = {
+  date: string;
+  resolution: ScheduleResolution | null;
+  work_schedule: WorkSchedule | null;
+};
+
+export type ScheduleEmployeeOption = Pick<
+  Employee,
+  "id" | "user_id" | "employee_number" | "primary_name" | "preferred_name"
+>;
+
+export type TemporarySchedule = {
+  id: number;
+  request_number: string;
+  employee_id: number;
+  work_schedule_id: number | null;
+  starts_on: string;
+  ends_on: string;
+  is_rest_day: boolean;
+  reason_type: string;
+  reason: string;
+  status: "draft" | "submitted" | "approved" | "rejected" | "withdrawn";
+  workflow_status: "pending" | "approved" | "rejected" | null;
+  submitted_at: string | null;
+  decided_at: string | null;
+  employee?: Employee;
+  work_schedule?: WorkSchedule | null;
+};
+
+export type ShiftSwapRequest = {
+  id: number;
+  request_number: string;
+  requester_employee_id: number;
+  counterparty_employee_id: number;
+  requester_work_date: string;
+  counterparty_work_date: string;
+  requester_work_schedule_id: number;
+  counterparty_work_schedule_id: number;
+  reason: string;
+  status: "draft" | "submitted" | "approved" | "rejected" | "withdrawn";
+  workflow_status: "pending" | "approved" | "rejected" | null;
+  submitted_at: string | null;
+  decided_at: string | null;
+  applied_at: string | null;
+  requester_employee?: Employee;
+  counterparty_employee?: Employee;
+  requester_work_schedule?: WorkSchedule;
+  counterparty_work_schedule?: WorkSchedule;
+};
+
+export type RosterConflict = {
+  code: string;
+  severity: "error" | "warning" | "info";
+  blocking: boolean;
+  message: string;
+  employee_id: number | null;
+  work_date: string;
+  work_schedule_id: number | null;
+  metadata: Record<string, unknown>;
+};
+
+export type RosterEntry = {
+  id: number;
+  employee_id: number | null;
+  work_schedule_id: number | null;
+  work_date: string;
+  cycle_day: number | null;
+  slot_key: string;
+  is_rest_day: boolean;
+  is_open: boolean;
+  status: string;
+  employee?: Employee | null;
+  work_schedule?: WorkSchedule | null;
+};
+
+export type RosterPeriod = {
+  id: number;
+  code: string;
+  name: string;
+  schedule_template_id: number;
+  organization_unit_id: number | null;
+  starts_on: string;
+  ends_on: string;
+  status: "draft" | "published" | "archived";
+  conflict_summary: RosterConflict[] | null;
+  published_at: string | null;
+  template?: ScheduleTemplate;
+  entries: RosterEntry[];
+};
+
+export type SchedulingWorkspace = {
+  employee: Employee | null;
+  swap_candidates: ScheduleEmployeeOption[];
+  timeline: ScheduleTimelineDay[];
+  work_schedules: WorkSchedule[];
+  templates: ScheduleTemplate[];
+  assignments: Array<{
+    id: number;
+    scope_type: string;
+    priority: number;
+    effective_from: string;
+    effective_to: string | null;
+    template?: ScheduleTemplate;
+    employee?: Employee | null;
+    organization_unit?: OrganizationUnit | null;
+    position?: Position | null;
+  }>;
+  temporary_schedules: TemporarySchedule[];
+  shift_swaps: ShiftSwapRequest[];
+  rosters: RosterPeriod[];
+  permissions: {
+    can_manage: boolean;
+    can_manage_shifts: boolean;
+    can_manage_templates: boolean;
+    can_manage_rosters: boolean;
+    can_request_swap: boolean;
+    can_create_temporary: boolean;
+  };
 };
 
 export type AttendanceRecord = {
@@ -536,13 +711,20 @@ export type AttendanceRecord = {
   attendance_date: string;
   first_in_at: string | null;
   last_out_at: string | null;
+  scheduled_minutes: number;
   worked_minutes: number;
+  break_minutes: number;
   late_minutes: number;
   early_departure_minutes: number;
   overtime_minutes: number;
   status: string;
+  source: string;
+  calculation_version: number;
+  current_calculation_id: number | null;
+  calculated_at: string | null;
   employee: Employee;
   work_schedule?: WorkSchedule | null;
+  current_calculation?: AttendanceCalculation | null;
 };
 
 export type AttendanceSummary = {
@@ -553,6 +735,162 @@ export type AttendanceSummary = {
   present: number;
   exceptions: number;
   late: number;
+};
+
+export type AttendanceEventType =
+  "clock_in" | "clock_out" | "break_start" | "break_end";
+
+export type AttendanceEvent = {
+  id: number;
+  event_uuid: string;
+  employee_id: number;
+  attendance_date: string;
+  organization_unit_id: number | null;
+  work_schedule_id: number | null;
+  attendance_record_id: number | null;
+  external_employee_identifier: string | null;
+  occurred_at: string;
+  server_received_at: string;
+  source_timezone: string;
+  organization_timezone: string;
+  event_type: AttendanceEventType;
+  attendance_method: "self_service_web" | "manual_web" | string;
+  source: "self_service" | "manual" | string;
+  location_label: string | null;
+  processing_status: "received" | "processing" | "processed" | "failed";
+  processed_at: string | null;
+  employee?: Employee;
+  work_schedule?: WorkSchedule | null;
+  attendance_record?: AttendanceRecord | null;
+};
+
+export type AttendanceSelfServiceStatus = {
+  date: string;
+  timezone: string;
+  state: "off_duty" | "on_duty" | "on_break";
+  next_actions: AttendanceEventType[];
+  last_event: AttendanceEvent | null;
+  events: AttendanceEvent[];
+  record: AttendanceRecord | null;
+};
+
+export type AttendanceException = {
+  id: number;
+  attendance_calculation_id: number;
+  attendance_record_id: number;
+  employee_id: number;
+  code: string;
+  category: string;
+  severity: "error" | "warning" | "info";
+  minutes: number | null;
+  is_blocking: boolean;
+  message: string;
+  details: { occurrences?: number } | null;
+  employee?: Employee;
+};
+
+export type AttendanceCalculation = {
+  id: number;
+  attendance_record_id: number;
+  employee_id: number;
+  work_schedule_id: number | null;
+  attendance_date: string;
+  version: number;
+  previous_calculation_id: number | null;
+  status: "current" | "superseded";
+  trigger_reason: string;
+  calculation_hash: string;
+  source_event_ids: number[];
+  applied_adjustment_ids: number[];
+  schedule_snapshot: Record<string, unknown> | null;
+  result_snapshot: {
+    policy_version: string;
+    timezone: string;
+    status: string;
+    effective_events: Array<{
+      id: number;
+      event_uuid: string;
+      event_type: AttendanceEventType;
+      occurred_at: string;
+      source: string;
+      is_adjustment: boolean;
+    }>;
+    totals: {
+      scheduled_minutes: number;
+      worked_minutes: number;
+      break_minutes: number;
+      late_minutes: number;
+      early_departure_minutes: number;
+      overtime_minutes: number;
+    };
+    exception_codes: string[];
+  };
+  scheduled_start_at: string | null;
+  scheduled_end_at: string | null;
+  first_in_at: string | null;
+  last_out_at: string | null;
+  scheduled_minutes: number;
+  worked_minutes: number;
+  break_minutes: number;
+  late_minutes: number;
+  early_departure_minutes: number;
+  overtime_minutes: number;
+  exception_count: number;
+  calculated_at: string;
+  employee?: Employee;
+  attendance_record?: AttendanceRecord;
+  exceptions: AttendanceException[];
+};
+
+export type AttendanceCorrectionType =
+  "add_event" | "replace_event" | "void_event";
+
+export type AttendanceAdjustment = {
+  id: number;
+  adjustment_type: AttendanceCorrectionType;
+  original_event_id: number | null;
+  replacement_event_id: number | null;
+  applied_at: string;
+  replacement_event?: AttendanceEvent | null;
+};
+
+export type AttendanceCorrectionRequest = {
+  id: number;
+  correction_number: string;
+  attendance_record_id: number;
+  employee_id: number;
+  base_calculation_id: number | null;
+  target_event_id: number | null;
+  correction_type: AttendanceCorrectionType;
+  proposed_event_type: AttendanceEventType | null;
+  proposed_occurred_at: string | null;
+  reason: string;
+  before_snapshot: Record<string, unknown>;
+  proposed_snapshot: Record<string, unknown>;
+  status:
+    | "draft"
+    | "submitted"
+    | "approved"
+    | "rejected"
+    | "returned_for_correction"
+    | "withdrawn";
+  workflow_run_id: string | null;
+  workflow_status: "pending" | "approved" | "rejected" | null;
+  submitted_at: string | null;
+  decided_at: string | null;
+  applied_at: string | null;
+  employee?: Employee;
+  attendance_record?: AttendanceRecord;
+  base_calculation?: AttendanceCalculation | null;
+  target_event?: AttendanceEvent | null;
+  adjustment?: AttendanceAdjustment | null;
+  current_workflow_approvals?: Array<{
+    id: number;
+    sequence: number;
+    status: "pending" | "approved" | "rejected";
+    user?: { id: number; name: string } | null;
+    role?: { id: number; name: string } | null;
+  }>;
 };
 
 export type Paginated<T> = {
@@ -688,7 +1026,8 @@ export async function hrUploadFetch<T>(
     throw new Error(
       typeof validation === "string"
         ? validation
-        : payload?.message || `HR upload request failed with status ${response.status}.`,
+        : payload?.message ||
+            `HR upload request failed with status ${response.status}.`,
     );
   }
   if (response.status === 204) return undefined as T;

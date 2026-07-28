@@ -1,6 +1,6 @@
 "use client";
 
-import { HrDashboardOverview } from './hr-dashboard-overview';
+import { HrDashboardOverview } from "./hr-dashboard-overview";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -904,8 +904,7 @@ function EmployeeDialog({
             <Button
               type="submit"
               disabled={
-                mutation.isPending ||
-                (!employee && !selectedWorkspaceUser)
+                mutation.isPending || (!employee && !selectedWorkspaceUser)
               }
               className="min-h-11 w-full sm:w-auto"
             >
@@ -1313,7 +1312,9 @@ function PositionDialog({
   );
 }
 
-export function HumanResourcesClient({ defaultTab }: { defaultTab?: string } = {}) {
+export function HumanResourcesClient({
+  defaultTab,
+}: { defaultTab?: string } = {}) {
   const scope = getWorkspaceScopeKey();
   const { hasAnyPermission, hasPermission, isLoaded } = usePermissions();
   const [tab, setTab] = useState(defaultTab || "dashboard");
@@ -1357,6 +1358,11 @@ export function HumanResourcesClient({ defaultTab }: { defaultTab?: string } = {
     "view_attendance",
     "manage_attendance",
     "manage_work_schedules",
+    "view_own_schedule",
+    "view_team_time",
+    "manage_schedule_templates",
+    "manage_team_rosters",
+    "request_shift_swap",
   ]);
   const summary = useQuery({
     queryKey: ["hr-summary", scope],
@@ -1480,6 +1486,12 @@ export function HumanResourcesClient({ defaultTab }: { defaultTab?: string } = {
       "view_attendance",
       "manage_attendance",
       "record_attendance",
+      "view_own_schedule",
+      "view_team_time",
+      "manage_work_schedules",
+      "manage_schedule_templates",
+      "manage_team_rosters",
+      "request_shift_swap",
       "view_hr_settings",
       "manage_hr_settings",
     ])
@@ -1575,10 +1587,15 @@ export function HumanResourcesClient({ defaultTab }: { defaultTab?: string } = {
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
             <span className="text-sm font-bold uppercase tracking-wider text-slate-500">
-              Active Section: <span className="text-foreground capitalize font-extrabold">{selectedTab.replaceAll("_", " ")}</span>
+              Active Section:{" "}
+              <span className="text-foreground capitalize font-extrabold">
+                {selectedTab.replaceAll("_", " ")}
+              </span>
             </span>
           </div>
-          <span className="text-xs text-slate-400">Navigate between HR sections directly via the Sidebar</span>
+          <span className="text-xs text-slate-400">
+            Navigate between HR sections directly via the Sidebar
+          </span>
         </div>
         <TabsContent value="dashboard">
           <HrDashboardOverview />
