@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Clock, 
@@ -73,9 +74,18 @@ type DataTableRow<T> = {
 
 export default function ApprovalsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = React.useState<"inbox" | "requested">("inbox");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "requested" ? "requested" : "inbox";
+  const [activeTab, setActiveTab] = React.useState<"inbox" | "requested">(initialTab);
   const [tableQuery, setTableQuery] = React.useState({ page: 1, pageSize: 10, status: "pending" });
   const [decision, setDecision] = React.useState<{ approval: WorkflowApprovalRow; status: WorkflowApprovalDecisionStatus } | null>(null);
+
+  React.useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "requested" || tab === "inbox") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["workflow", "approvals", activeTab, tableQuery],
@@ -309,7 +319,7 @@ export default function ApprovalsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="inbox" onValueChange={(value) => setActiveTab(value as "inbox" | "requested")} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "inbox" | "requested")} className="w-full">
         <TabsList className="bg-muted/50 p-1 rounded-2xl mb-6">
           <TabsTrigger value="inbox" className="rounded-xl px-8 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             Inbox

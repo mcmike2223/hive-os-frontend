@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { GitBranch, Send, Trash2, Settings, Users, Shield, Zap, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ import {
   type WorkflowTarget,
 } from "../api";
 import { fetchUsers } from "@/modules/identity/api";
+import { cn } from "@/lib/utils";
 
 const PRODUCT_MODEL_TYPE = "Modules\\Inventory\\Models\\Product";
 
@@ -172,6 +174,8 @@ function CompactApproverMultiSelect<T extends { id: number; name: string }>({
 }
 
 export default function WorkflowRulesPage() {
+  const searchParams = useSearchParams();
+  const highlightedRuleId = searchParams.get("rule");
   const [definitions, setDefinitions] = useState<WorkflowDefinitionRow[]>([]);
   const [targets, setTargets] = useState<WorkflowTarget[]>(APPROVABLE_MODELS.map((model) => ({
     ...model,
@@ -228,6 +232,13 @@ export default function WorkflowRulesPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (loading || !highlightedRuleId) return;
+    const el = document.getElementById(`workflow-rule-${highlightedRuleId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [loading, highlightedRuleId, definitions]);
 
   const handleOpenDialog = () => {
     setFormData({
@@ -385,7 +396,14 @@ export default function WorkflowRulesPage() {
           </div>
         ) : (
           definitions.map((def) => (
-            <Card key={def.id} className="overflow-hidden border-l-4 border-l-primary">
+            <Card
+              key={def.id}
+              id={`workflow-rule-${def.id}`}
+              className={cn(
+                "overflow-hidden border-l-4 border-l-primary transition-shadow",
+                String(def.id) === highlightedRuleId && "ring-2 ring-primary shadow-lg"
+              )}
+            >
               <CardHeader className="flex flex-row items-center justify-between py-4">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-full">
