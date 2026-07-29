@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, ChevronRight, Loader2, Route, Search, ShieldCheck, Bell } from "lucide-react";
+import { AlertTriangle, Bell, Check, ChevronDown, ChevronRight, Loader2, RefreshCw, Route, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +81,7 @@ export function SubscriptionAdminClient() {
   const [search, setSearch] = React.useState("");
   const [selectedTenantId, setSelectedTenantId] = React.useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, error, isError, isLoading, refetch } = useQuery({
     queryKey: ["subscription-admin", search],
     queryFn: () => fetchSubscriptionAdmin({ search }),
   });
@@ -143,6 +143,37 @@ export function SubscriptionAdminClient() {
       <div className="flex min-h-[420px] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section
+        role="alert"
+        className="rounded-2xl border border-red-700 bg-red-50 p-6 text-red-950 shadow-sm dark:border-red-300 dark:bg-red-950 dark:text-red-100"
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0" />
+          <div>
+            <h2 className="text-xl font-black">Subscription catalog unavailable</h2>
+            <p className="mt-2 text-sm leading-6">
+              {getErrorMessage(
+                error,
+                "The subscription registry could not be loaded. No plan or tenant data has been changed.",
+              )}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void refetch()}
+              className="mt-4 min-h-11 border-red-700 bg-white text-red-950 hover:bg-red-100 dark:border-red-300 dark:bg-red-950 dark:text-red-100 dark:hover:bg-red-900"
+            >
+              <RefreshCw aria-hidden="true" />
+              Try again
+            </Button>
+          </div>
+        </div>
+      </section>
     );
   }
 

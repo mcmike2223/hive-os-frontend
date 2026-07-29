@@ -133,6 +133,8 @@ export const HUMAN_RESOURCES_ROUTE_PERMISSIONS = [
   "manage_hr_positions",
   "view_hr_compliance",
   "manage_hr_compliance",
+  "review_hr_compliance_policies",
+  "activate_hr_compliance_policies",
   "request_leave",
   "view_own_leave",
   "view_team_leave",
@@ -142,6 +144,18 @@ export const HUMAN_RESOURCES_ROUTE_PERMISSIONS = [
   "view_leave_balances",
   "view_leave_plans",
   "manage_leave_plans",
+  "view_recruitment",
+  "manage_recruitment",
+  "view_appraisals",
+  "manage_appraisals",
+  "view_hr_assets",
+  "manage_hr_assets",
+  "view_hr_expenses",
+  "manage_hr_expenses",
+  "view_workforce_reports",
+  "export_workforce_reports",
+] as const;
+export const ATTENDANCE_ROUTE_PERMISSIONS = [
   "view_attendance",
   "manage_attendance",
   "record_attendance",
@@ -161,20 +175,12 @@ export const HUMAN_RESOURCES_ROUTE_PERMISSIONS = [
   "manage_holiday_calendars",
   "view_attendance_devices",
   "manage_attendance_devices",
+] as const;
+export const PAYROLL_ROUTE_PERMISSIONS = [
   "view_payroll",
   "manage_payroll",
   "view_payroll_attendance",
   "manage_payroll_attendance",
-  "view_recruitment",
-  "manage_recruitment",
-  "view_appraisals",
-  "manage_appraisals",
-  "view_hr_assets",
-  "manage_hr_assets",
-  "view_hr_expenses",
-  "manage_hr_expenses",
-  "view_workforce_reports",
-  "export_workforce_reports",
 ] as const;
 export const LEARNING_MANAGEMENT_ROUTE_PERMISSIONS = [
   "view_learning_management",
@@ -404,6 +410,53 @@ export function canAccessDashboardRoute(
     }
 
     return access.hasAnyPermission([...PROJECT_MANAGEMENT_ROUTE_PERMISSIONS]);
+  }
+
+  if (matchesPrefix(path, "/dashboard/attendance")) {
+    if (matchesPrefix(path, "/dashboard/attendance/reports")) {
+      return (
+        hasSubscribedModule(access, [
+          "attendance_management",
+          "human_resources",
+        ]) &&
+        access.hasAnyPermission([
+          "view_workforce_reports",
+          "export_workforce_reports",
+          "view_attendance",
+          "manage_attendance",
+        ])
+      );
+    }
+
+    return (
+      hasSubscribedModule(access, [
+        "attendance_management",
+        "human_resources",
+      ]) && access.hasAnyPermission([...ATTENDANCE_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/payroll")) {
+    if (matchesPrefix(path, "/dashboard/payroll/reports")) {
+      return (
+        hasSubscribedModule(access, [
+          "payroll_management",
+          "human_resources",
+        ]) &&
+        access.hasAnyPermission([
+          "view_workforce_reports",
+          "export_workforce_reports",
+          "view_payroll",
+          "manage_payroll",
+          "view_payroll_attendance",
+        ])
+      );
+    }
+
+    return (
+      hasSubscribedModule(access, ["payroll_management", "human_resources"]) &&
+      access.hasAnyPermission([...PAYROLL_ROUTE_PERMISSIONS])
+    );
   }
 
   if (matchesPrefix(path, "/dashboard/human-resources")) {

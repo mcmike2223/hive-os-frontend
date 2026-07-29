@@ -1,20 +1,18 @@
 "use client";
 
 import { HrDashboardOverview } from "./hr-dashboard-overview";
+import { ComplianceWorkspace } from "./compliance-workspace";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
-  AlertTriangle,
-  BadgeCheck,
   BookOpen,
   BriefcaseBusiness,
   Building2,
   CalendarClock,
   CalendarDays,
   CirclePlus,
-  ExternalLink,
   FileWarning,
   Fingerprint,
   GitPullRequestArrow,
@@ -53,7 +51,7 @@ import {
   hrReferenceOptions,
   referenceOptionLabel,
 } from "@/modules/humanresources/api";
-import { AttendancePanel, LeavePanel } from "./leave-attendance";
+import { LeavePanel } from "./leave-attendance";
 import { ErpReferenceSettings } from "@/components/settings/erp-reference-settings";
 import {
   EmployeeDirectoryDataTable,
@@ -62,7 +60,6 @@ import {
 } from "./hr-data-tables";
 import { OrganigramPanel } from "./organigram";
 import { HrPoliciesPanel } from "./policies";
-import { HrPayrollPanel } from "./hr-payroll-panel";
 import { HrRecruitmentPanel } from "./hr-recruitment-panel";
 import { HrAppraisalPanel } from "./hr-appraisal-panel";
 import { HrAssetsPanel } from "./hr-assets-panel";
@@ -1353,17 +1350,6 @@ export function HumanResourcesClient({
     "approve_leave_requests",
     "view_leave_balances",
   ]);
-  const canUseAttendance = hasAnyPermission([
-    "record_attendance",
-    "view_attendance",
-    "manage_attendance",
-    "manage_work_schedules",
-    "view_own_schedule",
-    "view_team_time",
-    "manage_schedule_templates",
-    "manage_team_rosters",
-    "request_shift_swap",
-  ]);
   const summary = useQuery({
     queryKey: ["hr-summary", scope],
     queryFn: () => hrFetch<{ data: HrSummary }>("/summary"),
@@ -1384,14 +1370,6 @@ export function HumanResourcesClient({
     queryKey: ["all-employees-list", scope],
     queryFn: () => hrFetch<Paginated<Employee>>("/employees?per_page=500"),
     enabled: isLoaded,
-  });
-  const compliance = useQuery({
-    queryKey: ["hr-compliance-profile", scope],
-    queryFn: () =>
-      hrFetch<{ data: Record<string, string | number | boolean> }>(
-        "/compliance-profile",
-      ),
-    enabled: isLoaded && canViewCompliance,
   });
   const referenceOptions = useQuery({
     queryKey: ["hr-form-reference-options", scope],
@@ -1462,8 +1440,6 @@ export function HumanResourcesClient({
     (tab === "compliance" && canViewCompliance) ||
     (tab === "policies" && (canViewEmployees || canViewHrSettings)) ||
     (tab === "leave" && canUseLeave) ||
-    (tab === "attendance" && canUseAttendance) ||
-    tab === "payroll" ||
     tab === "recruitment" ||
     tab === "appraisals" ||
     tab === "assets" ||
@@ -1483,15 +1459,6 @@ export function HumanResourcesClient({
       "request_leave",
       "view_leave_requests",
       "manage_leave_requests",
-      "view_attendance",
-      "manage_attendance",
-      "record_attendance",
-      "view_own_schedule",
-      "view_team_time",
-      "manage_work_schedules",
-      "manage_schedule_templates",
-      "manage_team_rosters",
-      "request_shift_swap",
       "view_hr_settings",
       "manage_hr_settings",
     ])
@@ -1677,104 +1644,7 @@ export function HumanResourcesClient({
         </TabsContent>
         {canViewCompliance && (
           <TabsContent value="compliance">
-            <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-              <Card className="border-slate-300 dark:border-slate-600">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-xl bg-emerald-100 p-3 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                      <BadgeCheck aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-black">
-                        Ethiopian private-sector profile
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        Versioned controls currently applied to private
-                        employment records.
-                      </p>
-                    </div>
-                  </div>
-                  <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-                    {[
-                      [
-                        "Minimum working age",
-                        compliance.data?.data.minimum_working_age,
-                      ],
-                      [
-                        "Maximum probation",
-                        `${compliance.data?.data.maximum_probation_working_days ?? 60} working days`,
-                      ],
-                      [
-                        "Written particulars due",
-                        `${compliance.data?.data.written_terms_due_days ?? 15} days`,
-                      ],
-                      [
-                        "Normal working time",
-                        `${compliance.data?.data.maximum_hours_per_day ?? 8} hours/day · ${compliance.data?.data.maximum_hours_per_week ?? 48} hours/week`,
-                      ],
-                    ].map(([label, value]) => (
-                      <div
-                        key={String(label)}
-                        className="rounded-xl border border-slate-300 p-4 dark:border-slate-600"
-                      >
-                        <dt className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                          {label}
-                        </dt>
-                        <dd className="mt-2 font-black">
-                          {String(value ?? "—")}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <a
-                    href={String(
-                      compliance.data?.data.legal_source_url ??
-                        "https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/109825/ETH109825.pdf",
-                    )}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-500 px-4 py-2 font-bold text-foreground outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-700 dark:border-slate-400 dark:hover:bg-slate-900 dark:focus-visible:ring-amber-300"
-                  >
-                    Open legal source{" "}
-                    <ExternalLink aria-hidden="true" className="h-4 w-4" />
-                  </a>
-                </CardContent>
-              </Card>
-              <Card className="border-amber-700 bg-amber-50 dark:border-amber-300 dark:bg-amber-950">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle
-                      aria-hidden="true"
-                      className="mt-0.5 text-amber-800 dark:text-amber-200"
-                    />
-                    <div>
-                      <h2 className="text-xl font-black text-amber-950 dark:text-amber-100">
-                        Operational checkpoints
-                      </h2>
-                      <p className="mt-2 text-sm leading-6 text-amber-950 dark:text-amber-100">
-                        Hive reports potential issues; it does not silently
-                        rewrite contracts or replace legal review. Rules carry a
-                        source and effective date so changes remain auditable.
-                      </p>
-                    </div>
-                  </div>
-                  <ul className="mt-5 list-disc space-y-2 pl-5 text-sm text-amber-950 dark:text-amber-100">
-                    <li>
-                      {metrics?.written_terms_missing ?? 0} employment records
-                      are missing signed terms after the configured checkpoint.
-                    </li>
-                    <li>
-                      {metrics?.contracts_expiring_soon ?? 0} fixed-term
-                      contracts end within 30 days.
-                    </li>
-                    <li>
-                      Young-worker and working-time limits are checked when
-                      assignments are saved.
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
+            <ComplianceWorkspace />
           </TabsContent>
         )}
         {canViewEmployees && (
@@ -1787,11 +1657,6 @@ export function HumanResourcesClient({
             <LeavePanel />
           </TabsContent>
         )}
-        {canUseAttendance && (
-          <TabsContent value="attendance">
-            <AttendancePanel />
-          </TabsContent>
-        )}
         <TabsContent value="relations">
           <EmployeeRelationsPanel />
         </TabsContent>
@@ -1801,10 +1666,6 @@ export function HumanResourcesClient({
         <TabsContent value="profile">
           <EmployeeProfilePanel canManage={canManageEmployees} />
         </TabsContent>
-        <TabsContent value="payroll">
-          <HrPayrollPanel employees={allEmployeesQuery.data?.data ?? []} />
-        </TabsContent>
-
         <TabsContent value="recruitment">
           <HrRecruitmentPanel />
         </TabsContent>

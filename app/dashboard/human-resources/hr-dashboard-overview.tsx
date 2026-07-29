@@ -996,7 +996,7 @@ export function HrDashboardOverview() {
           {[
             { href: "/dashboard/human-resources/employees", label: "Employees", icon: UserCheck },
             { href: "/dashboard/human-resources/organization", label: "Organization", icon: Building2 },
-            { href: "/dashboard/human-resources/payroll", label: "Payroll", icon: WalletCards },
+            { href: "/dashboard/payroll", label: "Payroll", icon: WalletCards },
             { href: "/dashboard/human-resources/expenses", label: "Expenses", icon: ReceiptText },
           ].map((item) => (
             <Button key={item.href} asChild variant="outline" className="h-auto justify-between px-4 py-4">

@@ -24,7 +24,11 @@ export default function SubscriptionsPage() {
     "manage_module_subscriptions",
     "view_module_subscriptions",
   ]);
-  const canManageCentralSubscriptions = hasAnyPermission(["manage_tenants", "provision_tenants"]);
+  const canViewCentralSubscriptions = hasAnyPermission([
+    "view_tenants",
+    "manage_tenants",
+    "provision_tenants",
+  ]);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -34,7 +38,7 @@ export default function SubscriptionsPage() {
 
     const isTenant = isTenantSession();
 
-    if ((!isTenant && !canManageCentralSubscriptions) || (isTenant && !canViewSubscriptions)) {
+    if ((!isTenant && !canViewCentralSubscriptions) || (isTenant && !canViewSubscriptions)) {
       setAccessStatus("denied");
 
       if (!viewLogged.current) {
@@ -60,7 +64,7 @@ export default function SubscriptionsPage() {
         description: "Tenant operator accessed the module subscriptions workspace.",
       }).catch(() => {});
     }
-  }, [canManageCentralSubscriptions, canViewSubscriptions, isLoaded, router]);
+  }, [canViewCentralSubscriptions, canViewSubscriptions, isLoaded, router]);
 
   if (accessStatus === "checking") {
     return <ModulePageSkeleton titleWidth="w-60" subtitleWidth="w-80" rows={5} cols={3} />;

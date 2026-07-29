@@ -1,0 +1,262 @@
+{
+  "checks": [
+    {
+      "id": "body-text-light",
+      "foreground": "#0f172a",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "muted-text-light",
+      "foreground": "#475569",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "input-border-light",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "focus-ring-light",
+      "foreground": "#1d4ed8",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "primary-button-light",
+      "foreground": "#ffffff",
+      "background": "#1e40af",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-text",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-muted-text",
+      "foreground": "#e2e8f0",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-cyan-text",
+      "foreground": "#cffafe",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-cyan-border",
+      "foreground": "#67e8f9",
+      "background": "#020617",
+      "type": "ui"
+    },
+    {
+      "id": "rail-text",
+      "foreground": "#ffffff",
+      "background": "#0f172a",
+      "type": "text-normal"
+    },
+    {
+      "id": "rail-border",
+      "foreground": "#94a3b8",
+      "background": "#0f172a",
+      "type": "ui"
+    },
+    {
+      "id": "warning-text-light",
+      "foreground": "#451a03",
+      "background": "#fffbeb",
+      "type": "text-normal"
+    },
+    {
+      "id": "warning-border-light",
+      "foreground": "#b45309",
+      "background": "#fffbeb",
+      "type": "ui"
+    },
+    {
+      "id": "warning-button-light",
+      "foreground": "#ffffff",
+      "background": "#78350f",
+      "type": "text-normal"
+    },
+    {
+      "id": "error-text-light",
+      "foreground": "#7f1d1d",
+      "background": "#fef2f2",
+      "type": "text-normal"
+    },
+    {
+      "id": "error-border-light",
+      "foreground": "#b91c1c",
+      "background": "#fef2f2",
+      "type": "ui"
+    },
+    {
+      "id": "mapping-error-text-light",
+      "foreground": "#991b1b",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "teal-action-light",
+      "foreground": "#134e4a",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "amber-action-light",
+      "foreground": "#451a03",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "violet-action-light",
+      "foreground": "#2e1065",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "healthy-icon-light",
+      "foreground": "#115e59",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "unknown-icon-light",
+      "foreground": "#92400e",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "body-text-dark",
+      "foreground": "#f1f5f9",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "muted-text-dark",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "input-border-dark",
+      "foreground": "#94a3b8",
+      "background": "#020617",
+      "type": "ui"
+    },
+    {
+      "id": "focus-ring-dark",
+      "foreground": "#67e8f9",
+      "background": "#020617",
+      "type": "ui"
+    },
+    {
+      "id": "primary-button-dark",
+      "foreground": "#020617",
+      "background": "#a5f3fc",
+      "type": "text-normal"
+    },
+    {
+      "id": "warning-text-dark",
+      "foreground": "#fffbeb",
+      "background": "#451a03",
+      "type": "text-normal"
+    },
+    {
+      "id": "warning-border-dark",
+      "foreground": "#fcd34d",
+      "background": "#451a03",
+      "type": "ui"
+    },
+    {
+      "id": "error-text-dark",
+      "foreground": "#fee2e2",
+      "background": "#450a0a",
+      "type": "text-normal"
+    },
+    {
+      "id": "error-border-dark",
+      "foreground": "#fca5a5",
+      "background": "#450a0a",
+      "type": "ui"
+    },
+    {
+      "id": "mapping-error-text-dark",
+      "foreground": "#fecaca",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "teal-action-dark",
+      "foreground": "#ccfbf1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "amber-action-dark",
+      "foreground": "#fef3c7",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "violet-action-dark",
+      "foreground": "#ede9fe",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "healthy-icon-dark",
+      "foreground": "#99f6e4",
+      "background": "#020617",
+      "type": "graphic"
+    },
+    {
+      "id": "unknown-icon-dark",
+      "foreground": "#fde68a",
+      "background": "#020617",
+      "type": "graphic"
+    },
+    {
+      "id": "discovery-text-light",
+      "foreground": "#334155",
+      "background": "#f8fafc",
+      "type": "text-normal"
+    },
+    {
+      "id": "discovery-border-light",
+      "foreground": "#64748b",
+      "background": "#f8fafc",
+      "type": "ui"
+    },
+    {
+      "id": "discovery-status-text-dark",
+      "foreground": "#f1f5f9",
+      "background": "#0f172a",
+      "type": "text-normal"
+    },
+    {
+      "id": "discovery-status-border-dark",
+      "foreground": "#94a3b8",
+      "background": "#0f172a",
+      "type": "ui"
+    },
+    {
+      "id": "discovery-select-button-light",
+      "foreground": "#ffffff",
+      "background": "#134e4a",
+      "type": "text-normal"
+    },
+    {
+      "id": "discovery-select-button-dark",
+      "foreground": "#042f2e",
+      "background": "#99f6e4",
+      "type": "text-normal"
+    }
+  ]
+}

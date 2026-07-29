@@ -8,6 +8,8 @@ import { warehouseModule } from "@/modules/warehouse/module";
 import { workflowModule } from "@/modules/workflow/module";
 import { projectManagementModule } from "@/modules/projectmanagement/module";
 import { humanResourcesModule } from "@/modules/humanresources/module";
+import { attendanceModule } from "@/modules/attendance/module";
+import { payrollModule } from "@/modules/payroll/module";
 import { lmsModule } from "@/modules/Lms/module";
 import { b2bMarketplaceModule } from "@/modules/b2b-marketplace/module";
 import type { FrontendModuleDefinition, ModuleNavItem } from "@/modules/types";
@@ -25,6 +27,8 @@ export const FEATURE_MODULES: FrontendModuleDefinition[] = [
   workflowModule,
   projectManagementModule,
   humanResourcesModule,
+  attendanceModule,
+  payrollModule,
   lmsModule,
   b2bMarketplaceModule,
 ];
