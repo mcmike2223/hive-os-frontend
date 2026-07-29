@@ -11,6 +11,8 @@ export type ModuleId =
   | "workflow"
   | "projectmanagement"
   | "humanresources"
+  | "attendance"
+  | "payroll"
   | "lms"
   | "b2b-marketplace";
 export type DashboardNavPlacement = "primary" | "secondary";

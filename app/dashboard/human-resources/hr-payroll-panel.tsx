@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Wallet, Calculator, FileCheck, DollarSign, Printer, Plus } from 'lucide-react';
-import { hrFetch } from '@/modules/humanresources/api';
+import { payrollFetch } from '@/modules/payroll/api';
 import { getWorkspaceScopeKey } from '@/lib/runtime-context';
 
 export function HrPayrollPanel({ employees }: { employees: any[] }) {
@@ -30,12 +30,12 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
 
   const payslipsQuery = useQuery({
     queryKey: ['hr-payslips', scope],
-    queryFn: () => hrFetch<any>('/payroll/payslips'),
+    queryFn: () => payrollFetch<any>('/payroll/payslips'),
   });
 
   const createMutation = useMutation({
     mutationFn: () =>
-      hrFetch('/payroll/payslips', {
+      payrollFetch('/payroll/payslips', {
         method: 'POST',
         body: JSON.stringify({
           ...form,
@@ -55,7 +55,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
 
   const batchMutation = useMutation({
     mutationFn: () =>
-      hrFetch('/payroll/payslips/batch', {
+      payrollFetch('/payroll/payslips/batch', {
         method: 'POST',
         body: JSON.stringify({
           pay_period_start: new Date().toISOString().slice(0, 7) + '-01',
@@ -70,7 +70,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
-      hrFetch(`/payroll/payslips/${id}/status`, {
+      payrollFetch(`/payroll/payslips/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       }),

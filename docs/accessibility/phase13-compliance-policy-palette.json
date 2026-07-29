@@ -1,0 +1,200 @@
+{
+  "checks": [
+    {
+      "id": "hero-primary-text",
+      "foreground": "#FFFFFF",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "hero-secondary-text",
+      "foreground": "#E2E8F0",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "hero-teal-eyebrow",
+      "foreground": "#5EEAD4",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "light-body-text",
+      "foreground": "#334155",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "light-heading-text",
+      "foreground": "#020617",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "light-component-border",
+      "foreground": "#64748B",
+      "background": "#FFFFFF",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "dark-body-text",
+      "foreground": "#CBD5E1",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-heading-text",
+      "foreground": "#FFFFFF",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-component-border",
+      "foreground": "#94A3B8",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "light-link-text",
+      "foreground": "#1E3A8A",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "light-link-border",
+      "foreground": "#1D4ED8",
+      "background": "#FFFFFF",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "light-focus-ring",
+      "foreground": "#1E40AF",
+      "background": "#FFFFFF",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "dark-link-text",
+      "foreground": "#DBEAFE",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-link-border",
+      "foreground": "#93C5FD",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "dark-focus-ring",
+      "foreground": "#BFDBFE",
+      "background": "#020617",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "light-success-icon",
+      "foreground": "#047857",
+      "background": "#FFFFFF",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "dark-success-icon",
+      "foreground": "#6EE7B7",
+      "background": "#020617",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "light-warning-text",
+      "foreground": "#451A03",
+      "background": "#FFFBEB",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "light-warning-border",
+      "foreground": "#B45309",
+      "background": "#FFFBEB",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "dark-warning-text",
+      "foreground": "#FEF3C7",
+      "background": "#451A03",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-warning-border",
+      "foreground": "#FCD34D",
+      "background": "#451A03",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "light-error-text",
+      "foreground": "#450A0A",
+      "background": "#FEF2F2",
+      "type": "text-normal",
+      "state": "error"
+    },
+    {
+      "id": "light-error-border",
+      "foreground": "#B91C1C",
+      "background": "#FEF2F2",
+      "type": "ui",
+      "state": "error"
+    },
+    {
+      "id": "dark-error-text",
+      "foreground": "#FEE2E2",
+      "background": "#450A0A",
+      "type": "text-normal",
+      "state": "error"
+    },
+    {
+      "id": "dark-error-border",
+      "foreground": "#FCA5A5",
+      "background": "#450A0A",
+      "type": "ui",
+      "state": "error"
+    },
+    {
+      "id": "light-active-status-text",
+      "foreground": "#022C22",
+      "background": "#ECFDF5",
+      "type": "text-normal",
+      "state": "active"
+    },
+    {
+      "id": "dark-active-status-text",
+      "foreground": "#D1FAE5",
+      "background": "#022C22",
+      "type": "text-normal",
+      "state": "active"
+    },
+    {
+      "id": "hero-button-text",
+      "foreground": "#020617",
+      "background": "#5EEAD4",
+      "type": "text-normal",
+      "state": "default"
+    }
+  ]
+}

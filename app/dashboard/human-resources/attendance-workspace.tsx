@@ -22,6 +22,8 @@ import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { AttendanceCorrections } from "@/app/dashboard/human-resources/attendance-corrections";
+import { AttendanceCaptureWorkspace } from "@/app/dashboard/human-resources/attendance-capture-workspace";
+import { AttendanceReconciliation } from "@/app/dashboard/human-resources/attendance-reconciliation";
 import { ScheduleWorkspace } from "@/app/dashboard/human-resources/schedule-workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,8 +62,8 @@ import {
   AttendanceSummary,
   Employee,
   Paginated,
-  hrFetch,
 } from "@/modules/humanresources/api";
+import { attendanceFetch } from "@/modules/attendance/api";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
@@ -189,7 +191,7 @@ function ManualAttendanceDialog({
       }
 
       const key = idempotencyKey("manual-attendance");
-      return hrFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
+      return attendanceFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
         "/attendance/manual-events",
         {
           method: "POST",
@@ -434,6 +436,27 @@ export function AttendanceWorkspace({
     "record_team_attendance",
     "manage_attendance",
   ]);
+  const canViewReconciliation = hasAnyPermission([
+    "view_own_attendance",
+    "record_own_attendance",
+    "record_attendance",
+    "view_team_attendance",
+    "view_attendance",
+    "manage_attendance",
+    "view_workforce_audit",
+  ]);
+  const canReconcile = hasAnyPermission([
+    "reprocess_attendance_events",
+    "manage_attendance",
+  ]);
+  const canViewCapture = hasAnyPermission([
+    "view_attendance_devices",
+    "manage_attendance_devices",
+    "manage_attendance_credentials",
+    "operate_attendance_kiosk",
+    "view_attendance_capture_audit",
+    "manage_attendance",
+  ]);
   const canPunch = hasAnyPermission([
     "record_attendance",
     "record_own_attendance",
@@ -459,7 +482,7 @@ export function AttendanceWorkspace({
   const summary = useQuery({
     queryKey: ["hr-attendance", scope, "summary", date],
     queryFn: () =>
-      hrFetch<{ data: AttendanceSummary }>(`/attendance/summary?date=${date}`),
+      attendanceFetch<{ data: AttendanceSummary }>(`/attendance/summary?date=${date}`),
     enabled: isLoaded && canView,
     refetchInterval: realtimeConnected ? 60_000 : 15_000,
   });
@@ -467,11 +490,11 @@ export function AttendanceWorkspace({
     queryKey: ["hr-attendance", scope, "records", date, canView],
     queryFn: async () => {
       if (canView) {
-        return hrFetch<Paginated<AttendanceRecord>>(
+        return attendanceFetch<Paginated<AttendanceRecord>>(
           `/attendance/records?date=${date}&per_page=100`,
         );
       }
-      const mine = await hrFetch<{ data: AttendanceRecord[] }>(
+      const mine = await attendanceFetch<{ data: AttendanceRecord[] }>(
         `/attendance/my-records?date=${date}`,
       );
       return {
@@ -489,7 +512,7 @@ export function AttendanceWorkspace({
   const selfStatus = useQuery({
     queryKey: ["hr-attendance", scope, "self-status", date],
     queryFn: () =>
-      hrFetch<{ data: AttendanceSelfServiceStatus }>(
+      attendanceFetch<{ data: AttendanceSelfServiceStatus }>(
         `/attendance/self-service/status?date=${date}`,
       ),
     enabled: isLoaded && canPunch,
@@ -510,11 +533,11 @@ export function AttendanceWorkspace({
         const employeeFilter = eventEmployeeId
           ? `&employee_id=${eventEmployeeId}`
           : "";
-        return hrFetch<Paginated<AttendanceEvent>>(
+        return attendanceFetch<Paginated<AttendanceEvent>>(
           `/attendance/events?date=${date}&per_page=100${employeeFilter}`,
         );
       }
-      const mine = await hrFetch<{ data: AttendanceEvent[] }>(
+      const mine = await attendanceFetch<{ data: AttendanceEvent[] }>(
         `/attendance/my-events?date=${date}`,
       );
       return {
@@ -531,8 +554,8 @@ export function AttendanceWorkspace({
   });
   const employees = useQuery({
     queryKey: ["hr-attendance", scope, "employees"],
-    queryFn: () => hrFetch<Paginated<Employee>>("/employees?per_page=100"),
-    enabled: isLoaded && canManage,
+    queryFn: () => attendanceFetch<Paginated<Employee>>("/employees?per_page=100"),
+    enabled: isLoaded && (canManage || canReconcile || canViewCapture),
   });
 
   useEffect(() => {
@@ -582,7 +605,7 @@ export function AttendanceWorkspace({
   const punch = useMutation({
     mutationFn: (eventType: AttendanceEventType) => {
       const key = idempotencyKey("self-attendance");
-      return hrFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
+      return attendanceFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
         "/attendance/self-service/events",
         {
           method: "POST",
@@ -649,11 +672,24 @@ export function AttendanceWorkspace({
     { label: "Unrecorded", value: metrics.absent, icon: ShieldCheck },
   ];
 
-  if (isLoaded && !canView && !canPunch && canViewSchedules) {
+  if (
+    isLoaded &&
+    !canView &&
+    !canPunch &&
+    !canViewReconciliation &&
+    !canViewCapture &&
+    canViewSchedules
+  ) {
     return <ScheduleWorkspace />;
   }
 
-  if (isLoaded && !canView && !canPunch) {
+  if (
+    isLoaded &&
+    !canView &&
+    !canPunch &&
+    !canViewReconciliation &&
+    !canViewCapture
+  ) {
     return (
       <Card className="border-slate-500 dark:border-slate-400">
         <CardContent className="p-6">
@@ -935,6 +971,18 @@ export function AttendanceWorkspace({
       </Card>
 
       <AttendanceCorrections date={date} />
+
+      {canViewReconciliation && (
+        <AttendanceReconciliation
+          date={date}
+          employees={employees.data?.data ?? []}
+          canReconcile={canReconcile}
+        />
+      )}
+
+      {canViewCapture && (
+        <AttendanceCaptureWorkspace employees={employees.data?.data ?? []} />
+      )}
 
       <ScheduleWorkspace />
 

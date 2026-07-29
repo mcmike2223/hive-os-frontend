@@ -1,0 +1,60 @@
+{
+  "checks": [
+    {
+      "id": "hero-heading",
+      "foreground": "#ffffff",
+      "background": "#0f172a",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Payroll workspace hero heading"
+    },
+    {
+      "id": "hero-description",
+      "foreground": "#e2e8f0",
+      "background": "#1e1b4b",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Payroll workspace hero description"
+    },
+    {
+      "id": "hero-eyebrow",
+      "foreground": "#a5f3fc",
+      "background": "#1e1b4b",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Standalone module eyebrow"
+    },
+    {
+      "id": "light-secondary-text",
+      "foreground": "#475569",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Secondary descriptions in light mode"
+    },
+    {
+      "id": "dark-secondary-text",
+      "foreground": "#cbd5e1",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Secondary descriptions in dark mode"
+    },
+    {
+      "id": "light-accent-icon",
+      "foreground": "#4338ca",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "default",
+      "notes": "Informational icons in light mode"
+    },
+    {
+      "id": "dark-accent-icon",
+      "foreground": "#67e8f9",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default",
+      "notes": "Informational icons in dark mode"
+    }
+  ]
+}

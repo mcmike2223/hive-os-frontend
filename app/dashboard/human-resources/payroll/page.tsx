@@ -1,5 +1,5 @@
-import { HumanResourcesClient } from "../client";
+import { redirect } from "next/navigation";
 
 export default function PayrollPage() {
-  return <HumanResourcesClient defaultTab="payroll" />;
+  redirect("/dashboard/payroll");
 }

@@ -45,8 +45,8 @@ import {
   AttendanceEventType,
   AttendanceException,
   Paginated,
-  hrFetch,
 } from "@/modules/humanresources/api";
+import { attendanceFetch } from "@/modules/attendance/api";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
@@ -195,7 +195,7 @@ function CorrectionDialog({
         );
       }
 
-      return hrFetch<{ data: AttendanceCorrectionRequest }>(
+      return attendanceFetch<{ data: AttendanceCorrectionRequest }>(
         "/attendance/correction-requests",
         {
           method: "POST",
@@ -524,11 +524,11 @@ export function AttendanceCorrections({ date }: { date: string }) {
     queryKey: ["hr-attendance", scope, "calculations", date],
     queryFn: async () => {
       if (canSeeTeamCalculations) {
-        return hrFetch<Paginated<AttendanceCalculation>>(
+        return attendanceFetch<Paginated<AttendanceCalculation>>(
           `/attendance/calculations?date=${date}&per_page=100`,
         );
       }
-      const mine = await hrFetch<{ data: AttendanceCalculation[] }>(
+      const mine = await attendanceFetch<{ data: AttendanceCalculation[] }>(
         `/attendance/my-calculations?date=${date}`,
       );
       return {
@@ -545,7 +545,7 @@ export function AttendanceCorrections({ date }: { date: string }) {
   const exceptions = useQuery({
     queryKey: ["hr-attendance", scope, "exceptions", date],
     queryFn: () =>
-      hrFetch<Paginated<AttendanceException>>(
+      attendanceFetch<Paginated<AttendanceException>>(
         `/attendance/exceptions?date=${date}&per_page=100`,
       ),
     enabled: isLoaded && canSeeTeamCalculations,
@@ -554,11 +554,11 @@ export function AttendanceCorrections({ date }: { date: string }) {
     queryKey: ["hr-attendance", scope, "corrections", date],
     queryFn: async () => {
       if (canSeeCorrectionQueue) {
-        return hrFetch<Paginated<AttendanceCorrectionRequest>>(
+        return attendanceFetch<Paginated<AttendanceCorrectionRequest>>(
           `/attendance/correction-requests?date=${date}&per_page=100`,
         );
       }
-      const mine = await hrFetch<{ data: AttendanceCorrectionRequest[] }>(
+      const mine = await attendanceFetch<{ data: AttendanceCorrectionRequest[] }>(
         `/attendance/my-correction-requests?date=${date}`,
       );
       return {
@@ -576,7 +576,7 @@ export function AttendanceCorrections({ date }: { date: string }) {
   });
   const recalculate = useMutation({
     mutationFn: (recordId: number) =>
-      hrFetch<{ data: AttendanceCalculation }>(
+      attendanceFetch<{ data: AttendanceCalculation }>(
         `/attendance/records/${recordId}/recalculate`,
         { method: "POST" },
       ),

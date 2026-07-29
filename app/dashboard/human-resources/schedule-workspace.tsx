@@ -55,8 +55,8 @@ import {
   ShiftSwapRequest,
   TemporarySchedule,
   WorkSchedule,
-  hrFetch,
 } from "@/modules/humanresources/api";
+import { attendanceFetch } from "@/modules/attendance/api";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
@@ -266,7 +266,7 @@ function SchedulingActionDialog({
   const mutation = useMutation({
     mutationFn: async () => {
       if (mode === "rotation") {
-        const created = await hrFetch<{ data: ScheduleTemplate }>(
+        const created = await attendanceFetch<{ data: ScheduleTemplate }>(
           "/schedule-templates",
           {
             method: "POST",
@@ -296,7 +296,7 @@ function SchedulingActionDialog({
           },
         );
         if (rotation.employee_id) {
-          await hrFetch(`/schedule-templates/${created.data.id}/assign`, {
+          await attendanceFetch(`/schedule-templates/${created.data.id}/assign`, {
             method: "POST",
             body: JSON.stringify({
               scope_type: "employee",
@@ -310,7 +310,7 @@ function SchedulingActionDialog({
       }
 
       if (mode === "roster") {
-        await hrFetch<{ data: RosterPeriod }>("/rosters", {
+        await attendanceFetch<{ data: RosterPeriod }>("/rosters", {
           method: "POST",
           body: JSON.stringify({
             code: roster.code,
@@ -325,7 +325,7 @@ function SchedulingActionDialog({
       }
 
       if (mode === "temporary") {
-        await hrFetch<{ data: TemporarySchedule }>("/temporary-schedules", {
+        await attendanceFetch<{ data: TemporarySchedule }>("/temporary-schedules", {
           method: "POST",
           body: JSON.stringify({
             employee_id: Number(temporary.employee_id),
@@ -344,7 +344,7 @@ function SchedulingActionDialog({
         return "Temporary schedule sent for Workflow approval.";
       }
 
-      await hrFetch<{ data: ShiftSwapRequest }>("/shift-swaps", {
+      await attendanceFetch<{ data: ShiftSwapRequest }>("/shift-swaps", {
         method: "POST",
         body: JSON.stringify({
           requester_employee_id: Number(swap.requester_employee_id),
@@ -1137,7 +1137,7 @@ export function ScheduleWorkspace() {
   const workspace = useQuery({
     queryKey: ["hr-scheduling", scope, start, employeeId],
     queryFn: () =>
-      hrFetch<{ data: SchedulingWorkspace }>(
+      attendanceFetch<{ data: SchedulingWorkspace }>(
         `/scheduling/workspace?starts_on=${start}&days=14${
           employeeId ? `&employee_id=${employeeId}` : ""
         }`,
@@ -1147,7 +1147,7 @@ export function ScheduleWorkspace() {
   });
   const employees = useQuery({
     queryKey: ["hr-scheduling", scope, "employees"],
-    queryFn: () => hrFetch<Paginated<Employee>>("/employees?per_page=200"),
+    queryFn: () => attendanceFetch<Paginated<Employee>>("/employees?per_page=200"),
     enabled: isLoaded && canFetchEmployees,
   });
   const data = workspace.data?.data;
@@ -1209,7 +1209,7 @@ export function ScheduleWorkspace() {
 
   const publishRoster = useMutation({
     mutationFn: (roster: RosterPeriod) =>
-      hrFetch<{ data: RosterPeriod }>(`/rosters/${roster.id}/publish`, {
+      attendanceFetch<{ data: RosterPeriod }>(`/rosters/${roster.id}/publish`, {
         method: "POST",
       }),
     onSuccess: async () => {
