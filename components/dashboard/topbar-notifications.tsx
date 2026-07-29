@@ -4,7 +4,17 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck, Circle, Loader2, MessageSquare, Mail, AlertCircle, ClipboardCheck, Database } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  Circle,
+  Loader2,
+  MessageSquare,
+  Mail,
+  AlertCircle,
+  ClipboardCheck,
+  Database,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,14 +60,18 @@ type ActiveNotificationUser = {
 };
 
 function toRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function toText(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function normalizeIncomingNotification(notification: IncomingNotificationPayload): TopbarNotification | null {
+function normalizeIncomingNotification(
+  notification: IncomingNotificationPayload,
+): TopbarNotification | null {
   const root = toRecord(notification);
   const nestedData = toRecord(notification.data);
   const data = Object.keys(nestedData).length > 0 ? nestedData : root;
@@ -75,7 +89,10 @@ function normalizeIncomingNotification(notification: IncomingNotificationPayload
     title: toText(data.title) || "New notification",
     body: toText(data.body),
     url: toText(data.url) || toText(data.review_url) || toText(data.action_url),
-    created_at: toText(notification.created_at) || toText(data.created_at) || new Date().toISOString(),
+    created_at:
+      toText(notification.created_at) ||
+      toText(data.created_at) ||
+      new Date().toISOString(),
     read_at: toText(notification.read_at),
     data,
   };
@@ -117,12 +134,20 @@ function categoryTone(category: string) {
   }
 }
 
-export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNotificationUser | null }) {
+export function TopbarNotificationsIcon({
+  activeUser,
+}: {
+  activeUser: ActiveNotificationUser | null;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: notificationCenter, isLoading, isFetched } = useQuery<NotificationCenterResponse>({
+  const {
+    data: notificationCenter,
+    isLoading,
+    isFetched,
+  } = useQuery<NotificationCenterResponse>({
     queryKey: ["dashboard-notifications"],
     queryFn: () => fetchNotificationCenter(8, true),
     enabled: !!activeUser?.id,
@@ -133,7 +158,9 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
   });
 
   const unreadCount = notificationCenter?.data?.unread_count ?? 0;
-  const notifications = (notificationCenter?.data?.notifications ?? []).filter((item) => !item.read_at);
+  const notifications = (notificationCenter?.data?.notifications ?? []).filter(
+    (item) => !item.read_at,
+  );
   const pathname = usePathname();
 
   useEffect(() => {
@@ -151,7 +178,9 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
       const handleNotification = (payload: IncomingNotificationPayload) => {
         const incoming = normalizeIncomingNotification(payload);
         if (!incoming || incoming.read_at) {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-notifications"] });
+          queryClient.invalidateQueries({
+            queryKey: ["dashboard-notifications"],
+          });
           return;
         }
         if (seenNotificationIds.has(incoming.id)) {
@@ -168,8 +197,15 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
             }
 
             const existing = current.data.notifications ?? [];
-            const alreadyExists = existing.some((item) => item.id === incoming.id);
-            const unreadOnly = [incoming, ...existing.filter((item) => item.id !== incoming.id && !item.read_at)].slice(0, 8);
+            const alreadyExists = existing.some(
+              (item) => item.id === incoming.id,
+            );
+            const unreadOnly = [
+              incoming,
+              ...existing.filter(
+                (item) => item.id !== incoming.id && !item.read_at,
+              ),
+            ].slice(0, 8);
 
             return {
               data: {
@@ -179,15 +215,17 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
                 notifications: unreadOnly,
               },
             };
-          }
+          },
         );
 
-        const isWorkflowPage = pathname.startsWith("/dashboard/workflow/approvals");
+        const isWorkflowPage = pathname.startsWith(
+          "/dashboard/workflow/approvals",
+        );
 
         if (
-          incoming.category === "chat"
-          || incoming.category === "mail"
-          || (incoming.category === "workflow" && isWorkflowPage)
+          incoming.category === "chat" ||
+          incoming.category === "mail" ||
+          (incoming.category === "workflow" && isWorkflowPage)
         ) {
           // List/count only — chat/mail/workflow pages toast themselves.
         } else if (incoming.category === "backup") {
@@ -216,7 +254,9 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
           });
         }
 
-        queryClient.invalidateQueries({ queryKey: ["dashboard-notifications"] });
+        queryClient.invalidateQueries({
+          queryKey: ["dashboard-notifications"],
+        });
       };
 
       channelNames.forEach((channelName) => {
@@ -240,10 +280,12 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
         return {
           data: {
             unread_count,
-            notifications: current.data.notifications.filter((item) => !removedIds.includes(item.id)),
+            notifications: current.data.notifications.filter(
+              (item) => !removedIds.includes(item.id),
+            ),
           },
         };
-      }
+      },
     );
     queryClient.invalidateQueries({ queryKey: ["notifications-list"] });
   };
@@ -260,7 +302,10 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
   const markAllAsRead = async () => {
     try {
       const result = await markNotificationsRead();
-      applyReadState(result.unread_count, notifications.map((item) => item.id));
+      applyReadState(
+        result.unread_count,
+        notifications.map((item) => item.id),
+      );
       toast.success("All notifications marked as read");
     } catch {
       toast.error("We could not mark notifications as read.");
@@ -297,9 +342,14 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-80 sm:w-96 p-0 rounded-2xl shadow-xl z-[100] border-border/60">
+      <DropdownMenuContent
+        align="end"
+        className="w-80 sm:w-96 p-0 rounded-2xl shadow-xl z-[100] border-border/60"
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b gap-2">
-          <DropdownMenuLabel className="p-0 font-bold text-sm">Notifications</DropdownMenuLabel>
+          <DropdownMenuLabel className="p-0 font-bold text-sm">
+            Notifications
+          </DropdownMenuLabel>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground">
               {unreadCount} unread
@@ -343,7 +393,7 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
                     <div
                       className={cn(
                         "mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
-                        categoryTone(notification.category)
+                        categoryTone(notification.category),
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -356,7 +406,10 @@ export function TopbarNotificationsIcon({ activeUser }: { activeUser: ActiveNoti
                         </span>
                         <span className="shrink-0 text-[10px] text-muted-foreground">
                           {notification.created_at
-                            ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })
+                            ? formatDistanceToNow(
+                                new Date(notification.created_at),
+                                { addSuffix: true },
+                              )
                             : "just now"}
                         </span>
                       </div>
