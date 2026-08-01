@@ -65,8 +65,12 @@ import {
   AttendanceSummary,
   Employee,
   Paginated,
+  hrFetch,
 } from "@/modules/humanresources/api";
-import { attendanceFetch, formatEmployeeNumber } from "@/modules/attendance/api";
+import {
+  attendanceFetch,
+  formatEmployeeNumber,
+} from "@/modules/attendance/api";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
@@ -194,24 +198,24 @@ function ManualAttendanceDialog({
       }
 
       const key = idempotencyKey("manual-attendance");
-      return attendanceFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
-        "/attendance/manual-events",
-        {
-          method: "POST",
-          headers: { "Idempotency-Key": key },
-          body: JSON.stringify({
-            employee_id: Number(form.employee_id),
-            event_type: form.event_type,
-            occurred_at: occurredAt.toISOString(),
-            source_timezone:
-              Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-            idempotency_key: key,
-            metadata: form.reason.trim()
-              ? { reason: form.reason.trim() }
-              : undefined,
-          }),
-        },
-      );
+      return attendanceFetch<{
+        data: AttendanceEvent;
+        meta: { duplicate: boolean };
+      }>("/attendance/manual-events", {
+        method: "POST",
+        headers: { "Idempotency-Key": key },
+        body: JSON.stringify({
+          employee_id: Number(form.employee_id),
+          event_type: form.event_type,
+          occurred_at: occurredAt.toISOString(),
+          source_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          idempotency_key: key,
+          metadata: form.reason.trim()
+            ? { reason: form.reason.trim() }
+            : undefined,
+        }),
+      });
     },
     onSuccess: (response) => {
       toast.success(
@@ -275,7 +279,8 @@ function ManualAttendanceDialog({
                 <option value="">Select an employee</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={employee.id}>
-                    {employee.primary_name} · {formatEmployeeNumber(employee.employee_number)}
+                    {employee.primary_name} ·{" "}
+                    {formatEmployeeNumber(employee.employee_number)}
                   </option>
                 ))}
               </select>
@@ -485,7 +490,9 @@ export function AttendanceWorkspace({
   const summary = useQuery({
     queryKey: ["hr-attendance", scope, "summary", date],
     queryFn: () =>
-      attendanceFetch<{ data: AttendanceSummary }>(`/attendance/summary?date=${date}`),
+      attendanceFetch<{ data: AttendanceSummary }>(
+        `/attendance/summary?date=${date}`,
+      ),
     enabled: isLoaded && canView,
     refetchInterval: realtimeConnected ? 60_000 : 15_000,
   });
@@ -557,7 +564,8 @@ export function AttendanceWorkspace({
   });
   const employees = useQuery({
     queryKey: ["hr-attendance", scope, "employees"],
-    queryFn: () => attendanceFetch<Paginated<Employee>>("/employees?per_page=100"),
+    queryFn: () =>
+      attendanceFetch<Paginated<Employee>>("/employees?per_page=100"),
     enabled: isLoaded && (canManage || canReconcile || canViewCapture),
   });
 
@@ -608,20 +616,20 @@ export function AttendanceWorkspace({
   const punch = useMutation({
     mutationFn: (eventType: AttendanceEventType) => {
       const key = idempotencyKey("self-attendance");
-      return attendanceFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
-        "/attendance/self-service/events",
-        {
-          method: "POST",
-          headers: { "Idempotency-Key": key },
-          body: JSON.stringify({
-            event_type: eventType,
-            occurred_at: new Date().toISOString(),
-            source_timezone:
-              Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-            idempotency_key: key,
-          }),
-        },
-      );
+      return attendanceFetch<{
+        data: AttendanceEvent;
+        meta: { duplicate: boolean };
+      }>("/attendance/self-service/events", {
+        method: "POST",
+        headers: { "Idempotency-Key": key },
+        body: JSON.stringify({
+          event_type: eventType,
+          occurred_at: new Date().toISOString(),
+          source_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          idempotency_key: key,
+        }),
+      });
     },
     onSuccess: (response, eventType) => {
       toast.success(
@@ -674,7 +682,10 @@ export function AttendanceWorkspace({
       }
     },
     onSuccess: (response) => {
-      toast.success(response.message || "User account linked to employee record successfully!");
+      toast.success(
+        response.message ||
+          "User account linked to employee record successfully!",
+      );
       void queryClient.invalidateQueries({
         queryKey: ["hr-attendance", scope],
       });
@@ -682,7 +693,10 @@ export function AttendanceWorkspace({
     },
     onError: (failure) =>
       toast.error(
-        errorMessage(failure, "Could not link account. Ask HR to link it in Employee Management."),
+        errorMessage(
+          failure,
+          "Could not link account. Ask HR to link it in Employee Management.",
+        ),
       ),
   });
 
@@ -892,7 +906,9 @@ export function AttendanceWorkspace({
                       className="bg-amber-900 font-bold text-white hover:bg-amber-950 dark:bg-amber-200 dark:text-slate-950"
                     >
                       <UserRoundCheck className="mr-1.5 h-4 w-4" />
-                      {linkAccountMutation.isPending ? "Linking…" : "Link My Account Now"}
+                      {linkAccountMutation.isPending
+                        ? "Linking…"
+                        : "Link My Account Now"}
                     </Button>
                   </div>
                 ) : (
@@ -1007,10 +1023,14 @@ export function AttendanceWorkspace({
                   recordRows.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-semibold">
-                        <div>{record.employee?.primary_name ?? "My attendance"}</div>
+                        <div>
+                          {record.employee?.primary_name ?? "My attendance"}
+                        </div>
                         {record.employee?.employee_number && (
                           <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30 mt-1">
-                            {formatEmployeeNumber(record.employee.employee_number)}
+                            {formatEmployeeNumber(
+                              record.employee.employee_number,
+                            )}
                           </span>
                         )}
                       </TableCell>
@@ -1085,7 +1105,8 @@ export function AttendanceWorkspace({
                   <option value="">All visible employees</option>
                   {employees.data?.data.map((employee) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.primary_name} · {formatEmployeeNumber(employee.employee_number)}
+                      {employee.primary_name} ·{" "}
+                      {formatEmployeeNumber(employee.employee_number)}
                     </option>
                   ))}
                 </select>
@@ -1115,15 +1136,20 @@ export function AttendanceWorkspace({
                         {event.event_uuid.slice(0, 8)}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        <div>{event.employee?.primary_name ?? "My attendance"}</div>
+                        <div>
+                          {event.employee?.primary_name ?? "My attendance"}
+                        </div>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
                           {event.employee?.employee_number && (
                             <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30">
-                              {formatEmployeeNumber(event.employee.employee_number)}
+                              {formatEmployeeNumber(
+                                event.employee.employee_number,
+                              )}
                             </span>
                           )}
                           <span className="text-xs font-normal text-slate-600 dark:text-slate-300">
-                            {event.external_employee_identifier ?? "Linked user"}
+                            {event.external_employee_identifier ??
+                              "Linked user"}
                           </span>
                         </div>
                       </TableCell>

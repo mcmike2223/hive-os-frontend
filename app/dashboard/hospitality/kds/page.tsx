@@ -2,30 +2,25 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchKdsOrders, updateKdsItemStatus, fetchPreparationStations } from "@/modules/hospitality/api";
-import { Utensils, Clock, CheckCircle2, AlertCircle, RefreshCw, ChefHat } from "lucide-react";
-
-interface KdsItem {
-  id: number;
-  item_name: string;
-  quantity: number;
-  seat_number?: number;
-  course_number?: number;
-  preparation_status: string;
-  notes?: string;
-}
-
-interface KdsOrder {
-  id: number;
-  order_number: string;
-  created_at: string;
-  location?: { label: string };
-  items: KdsItem[];
-}
+import {
+  fetchKdsOrders,
+  updateKdsItemStatus,
+  fetchPreparationStations,
+} from "@/modules/hospitality/api";
+import {
+  Utensils,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  ChefHat,
+} from "lucide-react";
 
 export default function KdsPage() {
   const queryClient = useQueryClient();
-  const [selectedStationId, setSelectedStationId] = useState<number | "all">("all");
+  const [selectedStationId, setSelectedStationId] = useState<number | "all">(
+    "all",
+  );
 
   const { data: stationsData } = useQuery({
     queryKey: ["preparation-stations"],
@@ -34,15 +29,19 @@ export default function KdsPage() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["kds-orders", selectedStationId],
-    queryFn: () => fetchKdsOrders(selectedStationId === "all" ? {} : { station_id: selectedStationId }),
+    queryFn: () =>
+      fetchKdsOrders(
+        selectedStationId === "all" ? {} : { station_id: selectedStationId },
+      ),
     refetchInterval: 5000,
   });
 
-  const orders: KdsOrder[] = data ?? [];
+  const orders = data ?? [];
   const stations = stationsData ?? [];
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => updateKdsItemStatus(id, status),
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      updateKdsItemStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kds-orders"] });
     },
@@ -72,7 +71,8 @@ export default function KdsPage() {
             Kitchen Display System (KDS)
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Real-time station order queue & ticket preparation status. Auto-refreshes every 5s.
+            Real-time station order queue & ticket preparation status.
+            Auto-refreshes every 5s.
           </p>
         </div>
 
@@ -80,13 +80,17 @@ export default function KdsPage() {
           {/* Station Filter */}
           <select
             value={selectedStationId}
-            onChange={(e) => setSelectedStationId(e.target.value === "all" ? "all" : Number(e.target.value))}
+            onChange={(e) =>
+              setSelectedStationId(
+                e.target.value === "all" ? "all" : Number(e.target.value),
+              )
+            }
             className="px-3 py-1.5 text-xs font-semibold border border-border rounded-lg bg-card text-foreground"
           >
             <option value="all">All Kitchen & Bar Stations</option>
-            {stations.map((st: { id: number; name: string }) => (
-              <option key={st.id} value={st.id}>
-                {st.name}
+            {stations.map((station) => (
+              <option key={station.id} value={station.id}>
+                {station.name}
               </option>
             ))}
           </select>
@@ -102,11 +106,15 @@ export default function KdsPage() {
 
       {/* Orders Ticket Grid */}
       {isLoading ? (
-        <div className="p-12 text-center text-muted-foreground animate-pulse">Loading active kitchen tickets...</div>
+        <div className="p-12 text-center text-muted-foreground animate-pulse">
+          Loading active kitchen tickets...
+        </div>
       ) : orders.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-xl text-muted-foreground flex flex-col items-center gap-2">
           <ChefHat className="w-10 h-10 text-muted-foreground/40" />
-          <span className="font-bold text-base">All clear! No pending kitchen orders.</span>
+          <span className="font-bold text-base">
+            All clear! No pending kitchen orders.
+          </span>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -118,13 +126,20 @@ export default function KdsPage() {
               {/* Order Header */}
               <div className="p-3 bg-muted/50 border-b border-border flex items-center justify-between">
                 <div>
-                  <div className="font-extrabold text-base text-foreground">{order.order_number}</div>
-                  <div className="text-xs text-primary font-bold">{order.location?.label ?? "Dine-In Table"}</div>
+                  <div className="font-extrabold text-base text-foreground">
+                    {order.order_number}
+                  </div>
+                  <div className="text-xs text-primary font-bold">
+                    {order.location?.label ?? "Dine-In Table"}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {new Date(order.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(order.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </div>
                 </div>
               </div>
@@ -145,7 +160,8 @@ export default function KdsPage() {
                       </div>
                       {item.seat_number && (
                         <div className="text-[11px] text-muted-foreground mt-0.5">
-                          Seat: #{item.seat_number} | Course: #{item.course_number ?? 1}
+                          Seat: #{item.seat_number} | Course: #
+                          {item.course_number ?? 1}
                         </div>
                       )}
                     </div>
@@ -157,12 +173,15 @@ export default function KdsPage() {
                           item.preparation_status === "new"
                             ? "preparing"
                             : item.preparation_status === "preparing"
-                            ? "ready"
-                            : "ready";
-                        updateStatusMutation.mutate({ id: item.id, status: nextStatus });
+                              ? "ready"
+                              : "ready";
+                        updateStatusMutation.mutate({
+                          id: item.id,
+                          status: nextStatus,
+                        });
                       }}
                       className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all active:scale-95 ${getStatusBadge(
-                        item.preparation_status
+                        item.preparation_status,
                       )}`}
                     >
                       {item.preparation_status.toUpperCase()}
