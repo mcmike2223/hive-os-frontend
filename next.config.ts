@@ -11,7 +11,7 @@ const getApiRoot = (): string => {
   const configured =
     process.env.INTERNAL_API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8085/api/v1";
+    "http://localhost:8081/api/v1";
 
   const normalized = trimTrailingSlashes(configured);
 

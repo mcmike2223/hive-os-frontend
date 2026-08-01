@@ -12,6 +12,10 @@ import type {
   HospitalityWaitlistEntry,
   HospitalityFeedback,
   HospitalityZone,
+  HospitalityRoom,
+  HospitalityRoomType,
+  HospitalityStay,
+  HospitalityHousekeepingTask,
 } from "@/modules/hospitality/types";
 
 type Paginated<T> = {
@@ -182,3 +186,82 @@ export const fetchGuestList = async () =>
 
 export const guestCheckIn = async (id: number, actual_arrived_count: number) =>
   (await api.post(`/hospitality/door/check-in/${id}`, { actual_arrived_count })).data;
+
+export const fetchHospitalityRoomTypes = async () =>
+  unwrapList<HospitalityRoomType>((await api.get("/hospitality/room-types")).data);
+
+export const createHospitalityRoomType = async (payload: Record<string, unknown>) =>
+  (await api.post<HospitalityRoomType>("/hospitality/room-types", payload)).data;
+
+export const fetchHospitalityRooms = async (params: Record<string, unknown> = {}) =>
+  unwrapList<HospitalityRoom>((await api.get("/hospitality/rooms", { params })).data);
+
+export const createHospitalityRoom = async (payload: Record<string, unknown>) =>
+  (await api.post<HospitalityRoom>("/hospitality/rooms", payload)).data;
+
+export const fetchHospitalityStays = async (params: Record<string, unknown> = {}) =>
+  unwrapList<HospitalityStay>((await api.get("/hospitality/stays", { params })).data);
+
+export const createHospitalityStay = async (payload: Record<string, unknown>) =>
+  (await api.post<HospitalityStay>("/hospitality/stays", payload)).data;
+
+export const checkInHospitalityStay = async (id: number) =>
+  (await api.post<HospitalityStay>(`/hospitality/stays/${id}/check-in`)).data;
+
+export const checkOutHospitalityStay = async (id: number, allowBalance = false) =>
+  (await api.post<HospitalityStay>(`/hospitality/stays/${id}/check-out`, { allow_balance: allowBalance })).data;
+
+export const postHospitalityFolioEntry = async (id: number, payload: Record<string, unknown>) =>
+  (await api.post(`/hospitality/stays/${id}/folio-entries`, payload)).data;
+
+export const fetchHospitalityHousekeeping = async (params: Record<string, unknown> = {}) =>
+  unwrapList<HospitalityHousekeepingTask>((await api.get("/hospitality/housekeeping", { params })).data);
+
+export const updateHospitalityHousekeepingTask = async (id: number, payload: Record<string, unknown>) =>
+  (await api.patch<HospitalityHousekeepingTask>(`/hospitality/housekeeping/${id}`, payload)).data;
+
+// Phase 1 Multi-Business & Waiter POS Helpers
+export const fetchHospitalityOutlets = async (params: Record<string, unknown> = {}) =>
+  (await api.get("/hospitality/outlets", { params })).data;
+
+export const createHospitalityOutlet = async (payload: Record<string, unknown>) =>
+  (await api.post("/hospitality/outlets", payload)).data;
+
+export const updateHospitalityOutlet = async (id: number, payload: Record<string, unknown>) =>
+  (await api.put(`/hospitality/outlets/${id}`, payload)).data;
+
+export const fetchOutletFeatures = async (id: number) =>
+  (await api.get(`/hospitality/outlets/${id}/features`)).data;
+
+export const updateOutletFeatures = async (id: number, feature_overrides: Record<string, boolean>) =>
+  (await api.post(`/hospitality/outlets/${id}/features`, { feature_overrides })).data;
+
+export const fetchPreparationStations = async (params: Record<string, unknown> = {}) =>
+  unwrapList((await api.get("/hospitality/preparation-stations", { params })).data);
+
+export const createPreparationStation = async (payload: Record<string, unknown>) =>
+  (await api.post("/hospitality/preparation-stations", payload)).data;
+
+export const fetchPosTerminals = async (params: Record<string, unknown> = {}) =>
+  unwrapList((await api.get("/hospitality/pos-terminals", { params })).data);
+
+export const createPosTerminal = async (payload: Record<string, unknown>) =>
+  (await api.post("/hospitality/pos-terminals", payload)).data;
+
+export const fetchOrderTypes = async (params: Record<string, unknown> = {}) =>
+  unwrapList((await api.get("/hospitality/order-types", { params })).data);
+
+export const createOrderType = async (payload: Record<string, unknown>) =>
+  (await api.post("/hospitality/order-types", payload)).data;
+
+export const fetchWaiterBootstrap = async (outletId?: number) =>
+  (await api.get("/hospitality/waiter/bootstrap", { params: { outlet_id: outletId } })).data;
+
+// Phase 4 KDS Helpers
+export const fetchKdsOrders = async (params: Record<string, unknown> = {}) =>
+  unwrapList((await api.get("/hospitality/kds/orders", { params })).data);
+
+export const updateKdsItemStatus = async (id: number, preparation_status: string, cancellation_reason?: string) =>
+  (await api.patch(`/hospitality/kds/items/${id}/status`, { preparation_status, cancellation_reason })).data;
+
+

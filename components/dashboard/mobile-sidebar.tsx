@@ -28,6 +28,8 @@ import {
   X,
   GraduationCap,
   UsersRound,
+  Fingerprint,
+  WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +42,12 @@ import {
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useChatAccess } from "@/hooks/use-chat-access";
-import { DASHBOARD_NAV, DASHBOARD_SECONDARY, type NavItem } from "./nav";
+import {
+  DASHBOARD_MODULE_IDS,
+  DASHBOARD_NAV,
+  DASHBOARD_SECONDARY,
+  type NavItem,
+} from "./nav";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useTranslation } from "@/store/use-translation";
 import { useQuery } from "@tanstack/react-query";
@@ -62,17 +69,6 @@ type SidebarIcon = React.ComponentType<{
   className?: string;
   "aria-hidden"?: boolean;
 }>;
-
-const MODULE_IDS = new Set([
-  "inventory",
-  "hospitality",
-  "warehouse",
-  "workflow",
-  "projectmanagement",
-  "lms",
-  "humanresources",
-  "b2b-marketplace",
-]);
 
 const APP_PATH_PREFIXES = [
   "/dashboard/tools/converters",
@@ -206,6 +202,8 @@ export function MobileSidebar() {
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
   const canAccessConverter =
@@ -310,76 +308,42 @@ export function MobileSidebar() {
     );
   }, [hasAccess, isMounted, matchesSearch]);
 
-  const filteredSecondary = useMemo(() => {
+  const accessibleSecondary = useMemo(() => {
     if (!isMounted) return [];
 
     return DASHBOARD_SECONDARY.filter(
       (item) =>
         hasAccess(item) &&
-        matchesSearch(item) &&
-        item.moduleId !== "projectmanagement" &&
-        item.moduleId !== "workflow" &&
-        item.moduleId !== "lms" &&
-        !isAppPath(item.href),
+        matchesSearch(item),
     );
   }, [hasAccess, isMounted, matchesSearch]);
 
-  const projectManagementFromSecondary = useMemo(
+  const filteredSecondary = useMemo(
     () =>
-      isMounted
-        ? DASHBOARD_SECONDARY.filter(
-            (item) =>
-              item.moduleId === "projectmanagement" &&
-              hasAccess(item) &&
-              matchesSearch(item),
-          )
-        : [],
-    [hasAccess, isMounted, matchesSearch],
-  );
-
-  const workflowFromSecondary = useMemo(
-    () =>
-      isMounted
-        ? DASHBOARD_SECONDARY.filter(
-            (item) =>
-              item.moduleId === "workflow" &&
-              hasAccess(item) &&
-              matchesSearch(item),
-          )
-        : [],
-    [hasAccess, isMounted, matchesSearch],
-  );
-
-  const lmsFromSecondary = useMemo(
-    () =>
-      isMounted
-        ? DASHBOARD_SECONDARY.filter(
-            (item) =>
-              item.moduleId === "lms" && hasAccess(item) && matchesSearch(item),
-          )
-        : [],
-    [hasAccess, isMounted, matchesSearch],
+      accessibleSecondary.filter(
+        (item) =>
+          !DASHBOARD_MODULE_IDS.has(item.moduleId) && !isAppPath(item.href),
+      ),
+    [accessibleSecondary],
   );
 
   const moduleNavItems = useMemo(
     () => [
-      ...filteredNav.filter((item) => MODULE_IDS.has(item.moduleId ?? "")),
-      ...projectManagementFromSecondary,
-      ...workflowFromSecondary,
-      ...lmsFromSecondary,
+      ...filteredNav.filter((item) =>
+        DASHBOARD_MODULE_IDS.has(item.moduleId),
+      ),
+      ...accessibleSecondary.filter((item) =>
+        DASHBOARD_MODULE_IDS.has(item.moduleId),
+      ),
     ],
-    [
-      filteredNav,
-      projectManagementFromSecondary,
-      workflowFromSecondary,
-      lmsFromSecondary,
-    ],
+    [accessibleSecondary, filteredNav],
   );
 
   const standardNavItems = useMemo(
     () =>
       filteredNav.filter(
-        (item) => !MODULE_IDS.has(item.moduleId ?? "") && !isAppPath(item.href),
+        (item) =>
+          !DASHBOARD_MODULE_IDS.has(item.moduleId) && !isAppPath(item.href),
       ),
     [filteredNav],
   );
@@ -387,14 +351,14 @@ export function MobileSidebar() {
   const searchResults = useMemo(() => {
     const results = new Map<string, NavItem>();
 
-    [...filteredNav, ...filteredSecondary].forEach((item) => {
+    [...filteredNav, ...accessibleSecondary].forEach((item) => {
       if (!isAppPath(item.href)) {
         results.set(item.href, item);
       }
     });
 
     return Array.from(results.values());
-  }, [filteredNav, filteredSecondary]);
+  }, [accessibleSecondary, filteredNav]);
 
   const inventoryModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "inventory",
@@ -419,6 +383,12 @@ export function MobileSidebar() {
   );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
+  );
+  const attendanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "attendance",
+  );
+  const payrollModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "payroll",
   );
 
   useEffect(() => {
@@ -460,6 +430,14 @@ export function MobileSidebar() {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
     }
+    if (pathname.startsWith("/dashboard/attendance")) {
+      setIsModulesOpen(true);
+      setIsAttendanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/payroll")) {
+      setIsModulesOpen(true);
+      setIsPayrollOpen(true);
+    }
 
     if (isAppPath(pathname)) {
       setIsAppsOpen(true);
@@ -488,7 +466,7 @@ export function MobileSidebar() {
     cn(
       "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] transition-all duration-200",
       active
-        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-bold"
+        ? "bg-primary text-neutral-950 shadow-lg shadow-primary/25 font-bold"
         : "border border-transparent text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground",
     );
 
@@ -504,7 +482,7 @@ export function MobileSidebar() {
     cn(
       "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
       isActiveSection
-        ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
+        ? "bg-primary text-neutral-950 font-bold shadow-md shadow-primary/20"
         : openState
         ? "bg-muted/40 text-foreground"
         : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
@@ -514,7 +492,7 @@ export function MobileSidebar() {
     cn(
       "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
       isActiveModule
-        ? "bg-amber-500/15 text-amber-500 font-extrabold border border-amber-500/30 shadow-sm"
+        ? "border border-amber-700/40 bg-amber-500/15 font-extrabold text-amber-900 shadow-sm dark:border-amber-300/40 dark:text-amber-200"
         : openState
         ? "bg-muted/30 text-foreground"
         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -530,12 +508,14 @@ export function MobileSidebar() {
         <Link
           id={item.tourId}
           href={item.href}
+          aria-current={active ? "page" : undefined}
           className={mainItemClass(active)}
         >
           <Icon
+            aria-hidden={true}
             className={cn(
               "h-4 w-4 shrink-0",
-              active ? "text-primary-foreground" : "",
+              active ? "text-neutral-950" : "",
             )}
           />
           <span className="truncate">{label}</span>
@@ -554,9 +534,10 @@ export function MobileSidebar() {
         <Link
           id={item.tourId}
           href={item.href}
+          aria-current={active ? "page" : undefined}
           className={nestedItemClass(active)}
         >
-          <Icon className="h-4 w-4 shrink-0" />
+          <Icon aria-hidden={true} className="h-4 w-4 shrink-0" />
           <span className="truncate">{label}</span>
         </Link>
       </SheetClose>
@@ -800,6 +781,7 @@ export function MobileSidebar() {
 
           <nav
             id="tour-sidebar-nav"
+            aria-label={t("nav.dashboard_nav", "Dashboard navigation")}
             className="hive-mobile-sidebar-scroll mt-3 min-h-0 flex-1 space-y-1 overflow-y-auto py-1 pr-2"
           >
             {searchQuery ? (
@@ -817,6 +799,7 @@ export function MobileSidebar() {
                 {moduleNavItems.length > 0 && (
                   <div className="mt-2 flex flex-col gap-1">
                     <button
+                      type="button"
                       id="tour-nav-modules"
                       onClick={() => setIsModulesOpen((value) => !value)}
                       aria-expanded={isModulesOpen}
@@ -882,6 +865,23 @@ export function MobileSidebar() {
                           openState: isHumanResourcesOpen,
                           onToggle: () =>
                             setIsHumanResourcesOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: attendanceModuleItems,
+                          label: t("nav.attendance", "Attendance Management"),
+                          icon: Fingerprint,
+                          openState: isAttendanceOpen,
+                          onToggle: () =>
+                            setIsAttendanceOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: payrollModuleItems,
+                          label: t("nav.payroll", "Payroll Management"),
+                          icon: WalletCards,
+                          openState: isPayrollOpen,
+                          onToggle: () => setIsPayrollOpen((value) => !value),
                         })}
 
                         {renderProjectManagementSection()}

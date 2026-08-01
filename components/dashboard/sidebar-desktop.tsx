@@ -28,11 +28,18 @@ import {
   Utensils,
   GraduationCap,
   UsersRound,
+  Fingerprint,
+  WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useChatAccess } from "@/hooks/use-chat-access";
-import { DASHBOARD_NAV, DASHBOARD_SECONDARY, type NavItem } from "./nav";
+import {
+  DASHBOARD_MODULE_IDS,
+  DASHBOARD_NAV,
+  DASHBOARD_SECONDARY,
+  type NavItem,
+} from "./nav";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useTranslation } from "@/store/use-translation";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +56,11 @@ import {
   isTenantSession,
 } from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
+
+type SidebarIcon = React.ComponentType<{
+  className?: string;
+  "aria-hidden"?: boolean;
+}>;
 
 // 🚀 SECURE BRAND LOGO
 const SecureSidebarLogo = ({
@@ -187,6 +199,8 @@ function SidebarInner({
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const canAccessConverter =
@@ -263,77 +277,36 @@ function SidebarInner({
     );
   }, [hasAccess, searchQuery, t, isMounted]);
 
-  const filteredSecondary = useMemo(() => {
+  const accessibleSecondary = useMemo(() => {
     if (!isMounted) return [];
     return DASHBOARD_SECONDARY.filter(
       (item) =>
         hasAccess(item) &&
         t(item.translationKey, item.fallbackLabel)
           .toLowerCase()
-          .includes(searchQuery.toLowerCase()) &&
-        item.moduleId !== "projectmanagement" &&
-        item.moduleId !== "workflow" &&
-        item.moduleId !== "lms",
+          .includes(searchQuery.toLowerCase()),
     );
   }, [hasAccess, searchQuery, t, isMounted]);
 
-  const projectManagementFromSecondary = isMounted
-    ? DASHBOARD_SECONDARY.filter(
-        (item) =>
-          item.moduleId === "projectmanagement" &&
-          hasAccess(item) &&
-          t(item.translationKey, item.fallbackLabel)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      )
-    : [];
-  const workflowFromSecondary = isMounted
-    ? DASHBOARD_SECONDARY.filter(
-        (item) =>
-          item.moduleId === "workflow" &&
-          hasAccess(item) &&
-          t(item.translationKey, item.fallbackLabel)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      )
-    : [];
-  const lmsFromSecondary = isMounted
-    ? DASHBOARD_SECONDARY.filter(
-        (item) =>
-          item.moduleId === "lms" &&
-          hasAccess(item) &&
-          t(item.translationKey, item.fallbackLabel)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      )
-    : [];
+  const filteredSecondary = useMemo(
+    () =>
+      accessibleSecondary.filter(
+        (item) => !DASHBOARD_MODULE_IDS.has(item.moduleId),
+      ),
+    [accessibleSecondary],
+  );
 
   const moduleNavItems = [
-    ...filteredNav.filter(
-      (item) =>
-        item.moduleId === "inventory" ||
-        item.moduleId === "hospitality" ||
-        item.moduleId === "warehouse" ||
-        item.moduleId === "workflow" ||
-        item.moduleId === "projectmanagement" ||
-        item.moduleId === "lms" ||
-        item.moduleId === "humanresources" ||
-        item.moduleId === "b2b-marketplace",
+    ...filteredNav.filter((item) =>
+      DASHBOARD_MODULE_IDS.has(item.moduleId),
     ),
-    ...projectManagementFromSecondary,
-    ...workflowFromSecondary,
-    ...lmsFromSecondary,
+    ...accessibleSecondary.filter((item) =>
+      DASHBOARD_MODULE_IDS.has(item.moduleId),
+    ),
   ];
   const standardNavItems = filteredNav.filter(
     (item) =>
-      item.moduleId !== "inventory" &&
-      item.moduleId !== "hospitality" &&
-      item.moduleId !== "warehouse" &&
-      item.moduleId !== "workflow" &&
-      item.moduleId !== "projectmanagement" &&
-      item.moduleId !== "lms" &&
-      item.moduleId !== "humanresources" &&
-      item.moduleId !== "b2b-marketplace" &&
+      !DASHBOARD_MODULE_IDS.has(item.moduleId) &&
       item.href !== "/dashboard/landing-templates",
   );
   const inventoryModuleItems = moduleNavItems.filter(
@@ -359,6 +332,12 @@ function SidebarInner({
   );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
+  );
+  const attendanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "attendance",
+  );
+  const payrollModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "payroll",
   );
 
   useEffect(() => {
@@ -394,6 +373,14 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
     }
+    if (pathname.startsWith("/dashboard/attendance")) {
+      setIsModulesOpen(true);
+      setIsAttendanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/payroll")) {
+      setIsModulesOpen(true);
+      setIsPayrollOpen(true);
+    }
     if (
       pathname.startsWith("/dashboard/tools/converter") ||
       pathname.startsWith("/dashboard/tools/converters") ||
@@ -414,6 +401,108 @@ function SidebarInner({
     }, 100);
     return () => clearTimeout(timer);
   }, [pathname]);
+
+  const renderModuleSection = ({
+    items,
+    label,
+    icon: Icon,
+    openState,
+    onToggle,
+  }: {
+    items: NavItem[];
+    label: string;
+    icon: SidebarIcon;
+    openState: boolean;
+    onToggle: () => void;
+  }) => {
+    if (items.length === 0) return null;
+
+    const moduleId = items[0].moduleId;
+    const sectionId = `desktop-module-${moduleId}`;
+    const isModuleActive = items.some((item) => {
+      const itemPath = item.href.split("?")[0];
+      return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+    });
+
+    return (
+      <div className="flex flex-col gap-1">
+        <h3>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={openState}
+            aria-controls={sectionId}
+            className={cn(
+              "group flex min-h-11 w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              isModuleActive
+                ? "border border-amber-700/40 bg-amber-500/15 font-extrabold text-amber-900 shadow-sm dark:border-amber-300/40 dark:text-amber-200"
+                : "hive-sidebar-subsection-idle",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <Icon aria-hidden={true} className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </span>
+            {openState ? (
+              <ChevronDown
+                aria-hidden={true}
+                className="h-4 w-4 shrink-0 opacity-50"
+              />
+            ) : (
+              <ChevronRight
+                aria-hidden={true}
+                className="h-4 w-4 shrink-0 opacity-50"
+              />
+            )}
+          </button>
+        </h3>
+
+        {openState && (
+          <div id={sectionId} className="flex flex-col gap-1 pl-4">
+            {items.map((item) => {
+              const itemPath = item.href.split("?")[0];
+              const hasMoreSpecificMatch = items.some((candidate) => {
+                const candidatePath = candidate.href.split("?")[0];
+                return (
+                  candidatePath !== itemPath &&
+                  candidatePath.startsWith(`${itemPath}/`) &&
+                  (pathname === candidatePath ||
+                    pathname.startsWith(`${candidatePath}/`))
+                );
+              });
+              const active =
+                pathname === itemPath ||
+                (!hasMoreSpecificMatch &&
+                  pathname.startsWith(`${itemPath}/`));
+              const ItemIcon = item.icon;
+              const itemLabel = t(item.translationKey, item.fallbackLabel);
+
+              return (
+                <Link
+                  key={item.href}
+                  id={item.tourId}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "group flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    active
+                      ? "hive-sidebar-nested-active"
+                      : "hive-sidebar-nested-idle",
+                  )}
+                >
+                  <ItemIcon
+                    aria-hidden={true}
+                    className="h-4 w-4 shrink-0"
+                  />
+                  <span className="truncate">{itemLabel}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const brand = useMemo(() => {
     const isDark = resolvedTheme === "dark";
@@ -500,6 +589,7 @@ function SidebarInner({
       <nav
         ref={navRef}
         id="tour-sidebar-nav"
+        aria-label={t("nav.dashboard_nav", "Dashboard navigation")}
         className="mt-3 flex-1 space-y-1 overflow-y-auto min-h-0 py-1 pr-1 custom-scrollbar"
       >
         {searchQuery ? (
@@ -573,6 +663,7 @@ function SidebarInner({
             {moduleNavItems.length > 0 && !collapsed && (
               <div className="mt-2 flex flex-col gap-1">
                 <button
+                  type="button"
                   id="tour-nav-modules"
                   onClick={() => setIsModulesOpen(!isModulesOpen)}
                   aria-expanded={isModulesOpen}
@@ -586,7 +677,9 @@ function SidebarInner({
                      pathname.startsWith("/dashboard/workflow") ||
                      pathname.startsWith("/dashboard/learning-management") ||
                      pathname.startsWith("/dashboard/b2b-marketplace") ||
-                     pathname.startsWith("/dashboard/human-resources"))
+                     pathname.startsWith("/dashboard/human-resources") ||
+                     pathname.startsWith("/dashboard/attendance") ||
+                     pathname.startsWith("/dashboard/payroll"))
                       ? "hive-sidebar-nav-active font-extrabold"
                       : "hive-sidebar-section-idle"
                   )}
@@ -878,6 +971,23 @@ function SidebarInner({
                       </div>
                     )}
 
+                    {renderModuleSection({
+                      items: attendanceModuleItems,
+                      label: t("nav.attendance", "Attendance Management"),
+                      icon: Fingerprint,
+                      openState: isAttendanceOpen,
+                      onToggle: () =>
+                        setIsAttendanceOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: payrollModuleItems,
+                      label: t("nav.payroll", "Payroll Management"),
+                      icon: WalletCards,
+                      openState: isPayrollOpen,
+                      onToggle: () => setIsPayrollOpen((value) => !value),
+                    })}
+
                     {projectManagementModuleItems.length > 0 && (
                       <div className="flex flex-col gap-1">
                         <div className={cn(
@@ -1167,16 +1277,21 @@ function SidebarInner({
             {moduleNavItems.length > 0 && collapsed && (
               <div className="mt-1 flex flex-col gap-1">
                 <button
+                  type="button"
                   id="tour-nav-modules"
                   onClick={() => setIsModulesOpen(!isModulesOpen)}
                   title={t("nav.modules", "Modules")}
-                  className="group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent"
+                  aria-label={t("nav.modules", "Modules")}
+                  aria-expanded={isModulesOpen}
+                  aria-controls="desktop-collapsed-module-links"
+                  className="group flex min-h-11 items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <Boxes className="h-4 w-4 shrink-0" />
+                  <Boxes aria-hidden="true" className="h-4 w-4 shrink-0" />
                 </button>
 
-                {isModulesOpen &&
-                  moduleNavItems.map((item) => {
+                {isModulesOpen && (
+                  <div id="desktop-collapsed-module-links" className="contents">
+                    {moduleNavItems.map((item) => {
                     const active =
                       item.href === "/dashboard"
                         ? pathname === "/dashboard"
@@ -1191,22 +1306,27 @@ function SidebarInner({
                         id={item.tourId}
                         href={item.href}
                         title={label}
+                        aria-label={label}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200",
+                          "group flex min-h-11 items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           active
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-bold"
+                            ? "bg-primary text-neutral-950 shadow-lg shadow-primary/25 font-bold"
                             : "text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground border border-transparent",
                         )}
                       >
                         <Icon
+                          aria-hidden="true"
                           className={cn(
                             "h-4 w-4 shrink-0",
-                            active ? "text-primary-foreground" : "",
+                            active ? "text-neutral-950" : "",
                           )}
                         />
                       </Link>
                     );
-                  })}
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </>

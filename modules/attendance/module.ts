@@ -1,4 +1,4 @@
-import { BarChart3, Fingerprint } from "lucide-react";
+import { BarChart3, Cpu, Fingerprint, PlusCircle, Settings } from "lucide-react";
 
 import type { FrontendModuleDefinition } from "@/modules/types";
 
@@ -10,6 +10,8 @@ export const attendanceModule: FrontendModuleDefinition = {
   backendModule: "Modules\\Attendance",
   routePrefixes: [
     "/dashboard/attendance",
+    "/dashboard/attendance/device-onboarding",
+    "/dashboard/attendance/devices",
     "/dashboard/attendance/reports",
   ],
   navItems: [
@@ -29,6 +31,34 @@ export const attendanceModule: FrontendModuleDefinition = {
         "manage_attendance",
         "view_own_schedule",
         "view_team_time",
+      ],
+      placement: "primary",
+    },
+    {
+      moduleId: "attendance",
+      translationKey: "nav.attendance_device_onboarding",
+      fallbackLabel: "Device Onboarding",
+      href: "/dashboard/attendance/device-onboarding",
+      icon: PlusCircle,
+      subscriptionSlug: ["attendance_management", "human_resources"],
+      permissions: [
+        "view_attendance_devices",
+        "manage_attendance_devices",
+        "manage_attendance",
+      ],
+      placement: "primary",
+    },
+    {
+      moduleId: "attendance",
+      translationKey: "nav.attendance_devices",
+      fallbackLabel: "Device Management",
+      href: "/dashboard/attendance/devices",
+      icon: Settings,
+      subscriptionSlug: ["attendance_management", "human_resources"],
+      permissions: [
+        "view_attendance_devices",
+        "manage_attendance_devices",
+        "manage_attendance",
       ],
       placement: "primary",
     },

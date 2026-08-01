@@ -94,9 +94,9 @@ type RequestForm = {
 };
 
 const controlClass =
-  "min-h-11 border-slate-500 bg-background focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "min-h-11 border-input bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary";
 const selectClass =
-  "min-h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const today = () => new Date().toISOString().slice(0, 10);
 const newIdempotencyKey = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto

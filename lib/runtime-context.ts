@@ -258,13 +258,14 @@ export const getBackendOrigin = (): string => {
   }
 
   if (typeof window === "undefined") {
-    return "http://localhost:8085";
+    return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
   }
 
   const host = window.location.hostname;
   const protocol = window.location.protocol;
+  const defaultPort = "8081";
 
-  return `${protocol}//${host}`;
+  return `${protocol}//${host}:${defaultPort}`;
 };
 
 export const getBackendApiRoot = (): string => {

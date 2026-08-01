@@ -915,25 +915,33 @@ function DataTableInner<TData, TValue>({
             </label>
             <Search
               aria-hidden="true"
-              className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
+              className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground"
             />
             <Input
               id={searchInputId}
               placeholder={searchPlaceholder}
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              className="h-11 pl-9 pr-11 bg-background/50 rounded-lg"
+              className="h-11 pl-9 pr-12 bg-background/50 rounded-lg"
             />
-            {searchValue && (
-              <button
-                type="button"
-                className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                onClick={() => setSearchValue("")}
-                aria-label={`Clear ${resourceName} search`}
-              >
-                <X aria-hidden="true" className="h-4 w-4" />
-              </button>
-            )}
+            <div className="absolute right-2 top-2.5 flex items-center gap-1">
+              {(loading || searchValue !== debouncedSearch) && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {searchValue && (
+                <button
+                  type="button"
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  onClick={() => {
+                    setSearchValue("");
+                    if (syncWithUrl) updateUrl({ search: "", page: 1 });
+                  }}
+                  aria-label={`Clear ${resourceName} search`}
+                >
+                  <X aria-hidden="true" className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

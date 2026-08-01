@@ -20,6 +20,8 @@ import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getTenantId,
 import { initializeSessionActivity } from "@/lib/session-activity";
 
 const POST_LOGIN_REDIRECT_STORAGE_KEY = "hive_post_login_redirect";
+const AUTH_SERVER_UNAVAILABLE_MESSAGE =
+  "Unable to connect to the authentication server. Please confirm the Hive backend is running and try again.";
 
 const resolveSafePostLoginRedirect = () => {
   if (typeof window === "undefined") {
@@ -118,6 +120,10 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Invalid credentials provided");
 
+      if (data.__offlineQueued) {
+        throw new Error(AUTH_SERVER_UNAVAILABLE_MESSAGE);
+      }
+
       // 🚀 2FA GLOBAL INTERCEPT LOGIC
       // If the user manually enabled 2FA OR the system globally enforces it
       if (data.requires_2fa || data.global_2fa_enforced) {
@@ -137,6 +143,10 @@ export default function LoginPage() {
         logFrontendAction({ module: 'Auth', action: '2fa_required', description: `Identity ${email} requires strict 2FA clearance. Redirecting.` }).catch(()=>{});
         router.push("/sign-in/2fa");
         return; 
+      }
+
+      if (!data?.data?.token) {
+        throw new Error(data.message || AUTH_SERVER_UNAVAILABLE_MESSAGE);
       }
 
       // Standard Login (If no 2FA is required globally or personally)

@@ -59,9 +59,9 @@ import {
 } from "@/modules/humanresources/api";
 
 const controlClass =
-  "h-11 border-slate-500 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "h-11 border-input bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary";
 const selectClass =
-  "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const today = () => new Date().toISOString().slice(0, 10);
 
 type RuleDraft = {

@@ -13,16 +13,13 @@ api.interceptors.request.use((config) => {
     const token = getAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
-    // Use relative URLs for public routes (CORS-free via Next.js rewrites)
-    // For tenant routes, let the runtime-context handle the baseURL
     const backendUrl = getBackendApiRoot();
 
-    // Public routes like /api/v1/public/* should use relative URLs
-    if (backendUrl && config.url && !config.url.startsWith('/api/v1/public') && !config.url.startsWith('/api/v1')) {
-      config.baseURL = backendUrl;
-    } else if (config.url && config.url.startsWith('/api/v1')) {
-      config.baseURL = undefined;
+    if (config.url && config.url.startsWith('/api/v1')) {
+      config.url = config.url.replace(/^\/api\/v1/, '');
     }
+
+    config.baseURL = backendUrl;
 
     Object.assign(config.headers, getTenantHeaders());
   }

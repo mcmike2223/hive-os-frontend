@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import {
   Activity,
   CalendarDays,
@@ -16,13 +17,15 @@ import {
   Radio,
   RefreshCw,
   ShieldCheck,
+  UserCheck,
   UserRoundCheck,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { AttendanceCorrections } from "@/app/dashboard/human-resources/attendance-corrections";
-import { AttendanceCaptureWorkspace } from "@/app/dashboard/human-resources/attendance-capture-workspace";
+import { AttendanceDeviceSummary } from "@/modules/attendance/components/attendance-device-summary";
 import { AttendanceReconciliation } from "@/app/dashboard/human-resources/attendance-reconciliation";
 import { ScheduleWorkspace } from "@/app/dashboard/human-resources/schedule-workspace";
 import { Button } from "@/components/ui/button";
@@ -63,7 +66,7 @@ import {
   Employee,
   Paginated,
 } from "@/modules/humanresources/api";
-import { attendanceFetch } from "@/modules/attendance/api";
+import { attendanceFetch, formatEmployeeNumber } from "@/modules/attendance/api";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
@@ -272,7 +275,7 @@ function ManualAttendanceDialog({
                 <option value="">Select an employee</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={employee.id}>
-                    {employee.primary_name} · {employee.employee_number}
+                    {employee.primary_name} · {formatEmployeeNumber(employee.employee_number)}
                   </option>
                 ))}
               </select>
@@ -629,10 +632,57 @@ export function AttendanceWorkspace({
       void queryClient.invalidateQueries({
         queryKey: ["hr-attendance", scope],
       });
+      void selfStatus.refetch();
     },
     onError: (failure) =>
       toast.error(
         errorMessage(failure, "The attendance event could not be recorded."),
+      ),
+  });
+
+  const punchMutation = useMutation({
+    mutationFn: (payload: { event_type: AttendanceEventType }) =>
+      attendanceFetch<{ event: AttendanceEvent }>("/attendance/punch", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      toast.success("Attendance event recorded.");
+      void queryClient.invalidateQueries({
+        queryKey: ["hr-attendance", scope],
+      });
+      void selfStatus.refetch();
+    },
+    onError: (failure) =>
+      toast.error(
+        errorMessage(failure, "The attendance event could not be recorded."),
+      ),
+  });
+
+  const linkAccountMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        return await attendanceFetch<{ data: unknown; message: string }>(
+          "/attendance/self-service/link-account",
+          { method: "POST" },
+        );
+      } catch {
+        return await hrFetch<{ data: unknown; message: string }>(
+          "/employees/self-link",
+          { method: "POST" },
+        );
+      }
+    },
+    onSuccess: (response) => {
+      toast.success(response.message || "User account linked to employee record successfully!");
+      void queryClient.invalidateQueries({
+        queryKey: ["hr-attendance", scope],
+      });
+      void selfStatus.refetch();
+    },
+    onError: (failure) =>
+      toast.error(
+        errorMessage(failure, "Could not link account. Ask HR to link it in Employee Management."),
       ),
   });
 
@@ -747,14 +797,26 @@ export function AttendanceWorkspace({
               </Button>
             )}
             {canManage && (
-              <Button
-                type="button"
-                onClick={() => setManualOpen(true)}
-                className="min-h-11"
-              >
-                <Plus aria-hidden="true" />
-                Record manual event
-              </Button>
+              <>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="min-h-11 border-slate-700 bg-white text-slate-950 hover:bg-slate-100 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
+                >
+                  <Link href="/dashboard/attendance/user-linking">
+                    <Users aria-hidden="true" />
+                    User Linking & Enrolment
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setManualOpen(true)}
+                  className="min-h-11"
+                >
+                  <Plus aria-hidden="true" />
+                  Record manual event
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -812,11 +874,26 @@ export function AttendanceWorkspace({
                 </div>
 
                 {selfStatus.isError ? (
-                  <div className="mt-5 rounded-xl border border-amber-700 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100">
-                    {errorMessage(
-                      selfStatus.error,
-                      "Your user account is not linked to an employee record. Ask HR to link it before using self-service attendance.",
-                    )}
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-700 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100">
+                    <div>
+                      <p className="font-bold">Unlinked User Account</p>
+                      <p className="mt-0.5 text-xs text-amber-900 dark:text-amber-200">
+                        {errorMessage(
+                          selfStatus.error,
+                          "Your user account is not linked to an employee record. Ask HR to link it before using self-service attendance.",
+                        )}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => linkAccountMutation.mutate()}
+                      disabled={linkAccountMutation.isPending}
+                      className="bg-amber-900 font-bold text-white hover:bg-amber-950 dark:bg-amber-200 dark:text-slate-950"
+                    >
+                      <UserRoundCheck className="mr-1.5 h-4 w-4" />
+                      {linkAccountMutation.isPending ? "Linking…" : "Link My Account Now"}
+                    </Button>
                   </div>
                 ) : (
                   <div className="mt-5 flex flex-wrap gap-2">
@@ -930,10 +1007,10 @@ export function AttendanceWorkspace({
                   recordRows.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-semibold">
-                        {record.employee?.primary_name ?? "My attendance"}
+                        <div>{record.employee?.primary_name ?? "My attendance"}</div>
                         {record.employee?.employee_number && (
-                          <span className="block text-xs text-slate-600 dark:text-slate-300">
-                            {record.employee.employee_number}
+                          <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30 mt-1">
+                            {formatEmployeeNumber(record.employee.employee_number)}
                           </span>
                         )}
                       </TableCell>
@@ -980,9 +1057,7 @@ export function AttendanceWorkspace({
         />
       )}
 
-      {canViewCapture && (
-        <AttendanceCaptureWorkspace employees={employees.data?.data ?? []} />
-      )}
+      {canViewCapture && <AttendanceDeviceSummary />}
 
       <ScheduleWorkspace />
 
@@ -1010,7 +1085,7 @@ export function AttendanceWorkspace({
                   <option value="">All visible employees</option>
                   {employees.data?.data.map((employee) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.primary_name} · {employee.employee_number}
+                      {employee.primary_name} · {formatEmployeeNumber(employee.employee_number)}
                     </option>
                   ))}
                 </select>
@@ -1040,10 +1115,17 @@ export function AttendanceWorkspace({
                         {event.event_uuid.slice(0, 8)}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        {event.employee?.primary_name ?? "My attendance"}
-                        <span className="block text-xs font-normal text-slate-600 dark:text-slate-300">
-                          {event.external_employee_identifier ?? "Linked user"}
-                        </span>
+                        <div>{event.employee?.primary_name ?? "My attendance"}</div>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {event.employee?.employee_number && (
+                            <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30">
+                              {formatEmployeeNumber(event.employee.employee_number)}
+                            </span>
+                          )}
+                          <span className="text-xs font-normal text-slate-600 dark:text-slate-300">
+                            {event.external_employee_identifier ?? "Linked user"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="font-semibold">
                         {eventLabels[event.event_type]}

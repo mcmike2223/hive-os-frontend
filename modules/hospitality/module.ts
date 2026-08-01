@@ -1,13 +1,16 @@
-import { LayoutDashboard, Sofa, CalendarCheck2, ReceiptText, Utensils, Map as MapIcon, Users, MessageSquare, CreditCard, GalleryHorizontalEnd, Tag as TagIcon } from "lucide-react";
+import { LayoutDashboard, Sofa, CalendarCheck2, ReceiptText, Utensils, Map as MapIcon, Users, MessageSquare, CreditCard, GalleryHorizontalEnd, Tag as TagIcon, BedDouble, Building2, UtensilsCrossed, ChefHat } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const hospitalityModule: FrontendModuleDefinition = {
   id: "hospitality",
   name: "Hospitality",
-  description: "Restaurant, lounge, bar, club, and venue operations covering tables, reservations, service orders, menu, events, and staff.",
+  description: "Restaurant, cafe, hotel, lounge, bar, club, and venue operations covering stays, tables, reservations, service, menus, events, and staff.",
   backendModule: "Modules\\Hospitality",
   routePrefixes: [
     "/dashboard/hospitality",
+    "/dashboard/hospitality/outlets",
+    "/dashboard/hospitality/waiter-pos",
+    "/dashboard/hospitality/kds",
     "/dashboard/hospitality/tables",
     "/dashboard/hospitality/reservations",
     "/dashboard/hospitality/service-orders",
@@ -22,8 +25,19 @@ export const hospitalityModule: FrontendModuleDefinition = {
     "/dashboard/hospitality/feedback",
     "/dashboard/hospitality/checkout",
     "/dashboard/hospitality/hero-slider",
+    "/dashboard/hospitality/front-desk",
   ],
   navItems: [
+    {
+      moduleId: "hospitality",
+      translationKey: "nav.hospitality_front_desk",
+      fallbackLabel: "Hotel Front Desk",
+      href: "/dashboard/hospitality/front-desk",
+      icon: BedDouble,
+      subscriptionSlug: "hospitality",
+      businessTypes: ["hotel", "resort", "lodge", "guesthouse", "hostel"],
+      placement: "primary",
+    },
     {
       moduleId: "hospitality",
       translationKey: "nav.hospitality",
@@ -32,6 +46,33 @@ export const hospitalityModule: FrontendModuleDefinition = {
       icon: LayoutDashboard,
       subscriptionSlug: "hospitality",
       tourId: "tour-nav-hospitality",
+      placement: "primary",
+    },
+    {
+      moduleId: "hospitality",
+      translationKey: "nav.hospitality_outlets",
+      fallbackLabel: "Outlets & Features",
+      href: "/dashboard/hospitality/outlets",
+      icon: Building2,
+      subscriptionSlug: "hospitality",
+      placement: "primary",
+    },
+    {
+      moduleId: "hospitality",
+      translationKey: "nav.hospitality_waiter_pos",
+      fallbackLabel: "Waiter POS Shell",
+      href: "/dashboard/hospitality/waiter-pos",
+      icon: UtensilsCrossed,
+      subscriptionSlug: "hospitality",
+      placement: "primary",
+    },
+    {
+      moduleId: "hospitality",
+      translationKey: "nav.hospitality_kds",
+      fallbackLabel: "Kitchen Display (KDS)",
+      href: "/dashboard/hospitality/kds",
+      icon: ChefHat,
+      subscriptionSlug: "hospitality",
       placement: "primary",
     },
     {
@@ -163,4 +204,3 @@ export const hospitalityModule: FrontendModuleDefinition = {
     },
   ],
 };
-

@@ -1,0 +1,52 @@
+{
+  "checks": [
+    {
+      "id": "light-body-text",
+      "foreground": "hsl(240, 10%, 3.9%)",
+      "background": "hsl(40, 20%, 99%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-muted-text",
+      "foreground": "hsl(240, 3.8%, 46.1%)",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-form-border",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "light-focus-ring",
+      "foreground": "#b45309",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "dark-body-text",
+      "foreground": "hsl(0, 0%, 98%)",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-muted-text",
+      "foreground": "hsl(240, 5%, 64.9%)",
+      "background": "hsl(240, 10%, 3.9%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-form-border",
+      "foreground": "#64748b",
+      "background": "hsl(240, 10%, 3.9%)",
+      "type": "ui"
+    },
+    {
+      "id": "dark-focus-ring",
+      "foreground": "#b45309",
+      "background": "hsl(240, 10%, 3.9%)",
+      "type": "ui"
+    }
+  ]
+}

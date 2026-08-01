@@ -107,6 +107,14 @@ export default function TwoFactorClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Invalid authentication code.");
 
+      if (data.__offlineQueued) {
+        throw new Error("Unable to connect to the authentication server. Please confirm the Hive backend is running and try again.");
+      }
+
+      if (!data?.data?.token) {
+        throw new Error(data.message || "Unable to connect to the authentication server. Please confirm the Hive backend is running and try again.");
+      }
+
       sessionStorage.removeItem("hive_pending_email");
       sessionStorage.removeItem("hive_2fa_token");
       sessionStorage.removeItem("hive_2fa_setup_qr");

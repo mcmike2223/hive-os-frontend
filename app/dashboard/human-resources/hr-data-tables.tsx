@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil } from "lucide-react";
+import { Pencil, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DataTable,
@@ -35,7 +35,7 @@ const initialQuery: QueryState = {
 };
 
 const selectClass =
-  "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 function queryString(query: QueryState, extra?: Record<string, string>) {
   const params = new URLSearchParams({
@@ -67,13 +67,16 @@ function useTableQuery() {
 
 function StatusBadge({ status }: { status: string }) {
   const positive = ["active", "approved", "present"].includes(status);
+  const warning = ["probation", "pending", "on_leave"].includes(status);
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-1 text-xs font-bold capitalize",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize transition-colors",
         positive
-          ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-          : "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100",
+          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : warning
+            ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+            : "border-muted-foreground/20 bg-muted text-muted-foreground",
       )}
     >
       {status.replaceAll("_", " ")}
@@ -89,6 +92,8 @@ export function EmployeeDirectoryDataTable({
   statusOptions,
   units = [],
   positions = [],
+  totalEmployees,
+  totalEmployeesLoading = false,
 }: {
   canManage: boolean;
   onEdit: (employee: Employee) => void;
@@ -97,6 +102,8 @@ export function EmployeeDirectoryDataTable({
   statusOptions: Array<{ code: string; label: string }>;
   units?: OrganizationUnit[];
   positions?: Position[];
+  totalEmployees?: number;
+  totalEmployeesLoading?: boolean;
 }) {
   const scope = getWorkspaceScopeKey();
   const queryClient = useQueryClient();
@@ -115,6 +122,18 @@ export function EmployeeDirectoryDataTable({
 
   const columns = useMemo<ColumnDef<Employee>[]>(
     () => [
+      {
+        id: "row_number",
+        header: "ID (#)",
+        enableSorting: false,
+        size: 72,
+        meta: { align: "center", exportable: false, printable: true },
+        cell: ({ row }) => (
+          <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+            {(query.page - 1) * query.pageSize + row.index + 1}
+          </span>
+        ),
+      },
       {
         accessorKey: "primary_name",
         header: "Employee",
@@ -212,11 +231,32 @@ export function EmployeeDirectoryDataTable({
         ),
       },
     ],
-    [canManage, onEdit, onViewProfile, onTransfer],
+    [canManage, onEdit, onViewProfile, onTransfer, query.page, query.pageSize],
   );
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-amber-700/30 bg-amber-50 p-4 dark:border-amber-300/30 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-200 text-amber-950 dark:bg-amber-300 dark:text-slate-950">
+            <UsersRound aria-hidden="true" className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-900 dark:text-amber-200">
+              Total employees
+            </p>
+            <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-200">
+              Registered workforce records
+            </p>
+          </div>
+        </div>
+        <p className="text-3xl font-black tabular-nums text-slate-950 dark:text-white">
+          {totalEmployeesLoading
+            ? "—"
+            : (totalEmployees ?? employees.data?.meta.total ?? 0).toLocaleString()}
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="employee-status-filter">Employment Status Filter</Label>

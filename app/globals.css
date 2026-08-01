@@ -351,10 +351,13 @@ textarea,
 /* Main Nav Items - Active State */
 .hive-sidebar-nav-active {
   background-color: hsl(var(--primary)) !important;
-  color: hsl(var(--primary-foreground)) !important;
+  color: hsl(240 5.9% 10%) !important;
   font-weight: 700 !important;
   box-shadow: 0 8px 16px -2px hsl(var(--primary) / 0.3) !important;
   transform: translateY(-0.5px);
+}
+.hive-sidebar-nav-active svg {
+  color: hsl(240 5.9% 10%) !important;
 }
 .hive-sidebar-nav-active:hover {
   background-color: hsl(var(--primary) / 0.95) !important;
@@ -375,10 +378,13 @@ textarea,
 /* Nested Nav Items - Active State */
 .hive-sidebar-nested-active {
   background-color: hsl(var(--primary) / 0.15) !important;
-  color: hsl(var(--primary)) !important;
+  color: #78350f !important;
   font-weight: 700 !important;
   border-left: 2px solid hsl(var(--primary)) !important;
   padding-left: calc(0.625rem - 2px) !important; /* adjust for border to prevent layout shift */
+}
+.dark .hive-sidebar-nested-active {
+  color: #fde68a !important;
 }
 
 /* Nested Nav Items - Idle State */

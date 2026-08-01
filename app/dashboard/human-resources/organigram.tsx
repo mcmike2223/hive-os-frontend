@@ -111,7 +111,7 @@ const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 1.45;
 const currentStatuses = new Set(["active", "probation", "on_leave"]);
 const selectClass =
-  "h-11 w-full rounded-xl border border-slate-500 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:bg-slate-950 dark:text-white dark:focus-visible:ring-amber-300";
+  "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 function initials(name: string) {
   return name

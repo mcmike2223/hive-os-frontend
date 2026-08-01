@@ -5,10 +5,27 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import {
-  Calendar, Eye, EyeOff, Loader2, Mail, Pencil, PlusCircle, 
-  RefreshCw, Shield, Trash2, UserCog, Upload, ImageIcon, Filter, X, AlertCircle, Zap, VenetianMask,
-  Check, ChevronsUpDown
-} from "lucide-react"; 
+  AlertCircle,
+  Calendar,
+  Check,
+  ChevronsUpDown,
+  Eye,
+  EyeOff,
+  Filter,
+  ImageIcon,
+  Loader2,
+  Mail,
+  Pencil,
+  PlusCircle,
+  RefreshCw,
+  Shield,
+  Trash2,
+  Upload,
+  UserCog,
+  VenetianMask,
+  X,
+  Zap,
+} from "lucide-react";
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
@@ -76,6 +93,21 @@ type TableQuery = {
   sortCol?: string | null;
   sortDir?: string | null;
 };
+
+function extractUserTotal(response: Record<string, unknown>): number {
+  const data = Array.isArray(response.data)
+    ? response.data
+    : Array.isArray(response.users)
+      ? response.users
+      : Array.isArray(response)
+        ? response
+        : [];
+  const meta = response.meta as Record<string, unknown> | undefined;
+  const pagination = response.pagination as Record<string, unknown> | undefined;
+  const candidate = meta?.total ?? pagination?.total ?? response.total;
+
+  return typeof candidate === "number" ? candidate : data.length;
+}
 
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
@@ -285,12 +317,8 @@ export function UsersTabClient(props: Props) {
       else if (res.data && Array.isArray(res.data)) rawUsers = res.data;
       else if (res.users && Array.isArray(res.users)) rawUsers = res.users;
 
-      let total = rawUsers.length;
       const meta = res.meta as Record<string, unknown> | undefined;
-      const pagination = res.pagination as Record<string, unknown> | undefined;
-      if (meta?.total !== undefined) total = meta.total as number;
-      else if (pagination?.total !== undefined) total = pagination.total as number;
-      else if (res.total !== undefined) total = res.total as number;
+      const total = extractUserTotal(res);
 
       return {
           rows: rawUsers.map(mapServerUserToClient),
@@ -299,6 +327,18 @@ export function UsersTabClient(props: Props) {
       };
     },
     placeholderData: (prev) => prev,
+  });
+
+  const totalUsersQuery = useQuery({
+    queryKey: ["users", "total", tenantId],
+    queryFn: async () =>
+      extractUserTotal(
+        (await fetchUsers({
+          page: 1,
+          pageSize: 1,
+          tenant_id: tenantId,
+        })) as Record<string, unknown>,
+      ),
   });
 
   const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useQuery({
@@ -646,6 +686,18 @@ export function UsersTabClient(props: Props) {
 
   const columns = React.useMemo<ColumnDef<UserForClient>[]>(() => [
     {
+      id: "row_number",
+      header: t("global.id_number", "ID (#)"),
+      enableSorting: false,
+      size: 72,
+      meta: { align: "center", exportable: false, printable: true },
+      cell: ({ row }) => (
+        <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+          {(page - 1) * pageSize + row.index + 1}
+        </span>
+      ),
+    },
+    {
       id: "name", accessorKey: "name", header: t('users.col_operator', "Operator"), enableSorting: true,
       cell: ({ row }) => {
         const u = row.original;
@@ -806,13 +858,35 @@ export function UsersTabClient(props: Props) {
           )}
         </div>
         
-        {canCreate && (
-          <div id="tour-users-provision" className="w-full sm:w-auto flex justify-end">
-            <Button onClick={openCreate} className="rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold tracking-wide">
-              <PlusCircle className="mr-2 h-5 w-5" /> {t('users.provision_btn', 'Provision User')}
-            </Button>
+        <div className="flex w-full items-stretch gap-3 sm:w-auto">
+          <div className="min-w-32 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2.5">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-800 dark:text-amber-300">
+              {t("users.total_users", "Total users")}
+            </p>
+            <p className="mt-1 text-2xl font-black tabular-nums text-foreground">
+              {totalUsersQuery.isLoading
+                ? "—"
+                : (totalUsersQuery.data ?? 0).toLocaleString()}
+            </p>
           </div>
-        )}
+          {canCreate && (
+            <div
+              id="tour-users-provision"
+              className="flex flex-1 justify-end sm:flex-none"
+            >
+              <Button
+                onClick={openCreate}
+                className="h-11 rounded-xl px-6 font-bold tracking-wide shadow-lg shadow-primary/20"
+              >
+                <PlusCircle
+                  aria-hidden="true"
+                  className="mr-2 h-5 w-5"
+                />
+                {t("users.provision_btn", "Provision User")}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-card border border-border/50 rounded-xl p-3 shadow-sm flex flex-wrap gap-3 items-center">

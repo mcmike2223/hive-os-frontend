@@ -86,39 +86,39 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <Wallet className="h-4 w-4 text-emerald-500" />
             Total Monthly Gross
           </div>
-          <p className="mt-2 text-2xl font-bold">
+          <p className="mt-2 text-2xl font-bold font-mono">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.gross_salary), 0).toLocaleString()} ETB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <Calculator className="h-4 w-4 text-amber-500" />
             Income Tax (Proc 979/2016)
           </div>
-          <p className="mt-2 text-2xl font-bold">
+          <p className="mt-2 text-2xl font-bold font-mono">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.income_tax), 0).toLocaleString()} ETB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <FileCheck className="h-4 w-4 text-blue-500" />
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <FileCheck className="h-4 w-4 text-primary" />
             Pension (Emp 7% + Org 11%)
           </div>
-          <p className="mt-2 text-2xl font-bold">
+          <p className="mt-2 text-2xl font-bold font-mono">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.employee_pension) + Number(p.employer_pension), 0).toLocaleString()} ETB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <DollarSign className="h-4 w-4 text-teal-500" />
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <DollarSign className="h-4 w-4 text-emerald-600" />
             Total Net Payout
           </div>
-          <p className="mt-2 text-2xl font-bold text-teal-600">
+          <p className="mt-2 text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.net_salary), 0).toLocaleString()} ETB
           </p>
         </div>
