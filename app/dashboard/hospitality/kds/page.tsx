@@ -15,9 +15,12 @@ import {
   RefreshCw,
   ChefHat,
 } from "lucide-react";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function KdsPage() {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+  const canManageKds = hasPermission("manage_hospitality_kds");
   const [selectedStationId, setSelectedStationId] = useState<number | "all">(
     "all",
   );
@@ -96,7 +99,9 @@ export default function KdsPage() {
           </select>
 
           <button
+            type="button"
             onClick={() => refetch()}
+            aria-label="Refresh kitchen tickets"
             className="p-2 border border-border rounded-lg bg-card text-foreground hover:bg-muted"
           >
             <RefreshCw className="w-4 h-4" />
@@ -167,25 +172,29 @@ export default function KdsPage() {
                     </div>
 
                     {/* Quick Action Button */}
-                    <button
-                      onClick={() => {
-                        const nextStatus =
-                          item.preparation_status === "new"
-                            ? "preparing"
-                            : item.preparation_status === "preparing"
-                              ? "ready"
-                              : "ready";
-                        updateStatusMutation.mutate({
-                          id: item.id,
-                          status: nextStatus,
-                        });
-                      }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all active:scale-95 ${getStatusBadge(
-                        item.preparation_status,
-                      )}`}
-                    >
-                      {item.preparation_status.toUpperCase()}
-                    </button>
+                    {canManageKds && (
+                      <button
+                        type="button"
+                        disabled={updateStatusMutation.isPending}
+                        onClick={() => {
+                          const nextStatus =
+                            item.preparation_status === "new"
+                              ? "preparing"
+                              : item.preparation_status === "preparing"
+                                ? "ready"
+                                : "ready";
+                          updateStatusMutation.mutate({
+                            id: item.id,
+                            status: nextStatus,
+                          });
+                        }}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all active:scale-95 ${getStatusBadge(
+                          item.preparation_status,
+                        )}`}
+                      >
+                        {item.preparation_status.toUpperCase()}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

@@ -81,6 +81,7 @@ export default function WaiterPosPage() {
     submitOrderMutation.mutate({
       location_id: selectedTable?.id ?? tables[0]?.id ?? 1,
       items: cart.map((i) => ({
+        menu_item_id: i.id,
         item_name: i.name,
         quantity: i.quantity,
         unit_price: i.price,
