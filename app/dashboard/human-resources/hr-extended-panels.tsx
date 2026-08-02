@@ -1047,16 +1047,49 @@ export function HrFormsPanel() {
 
     if (purpose === "editor-media") {
       const normalizedName = fileName.toLowerCase();
-      const mediaType =
-        mimeType.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(normalizedName)
-          ? "video"
-          : mimeType.startsWith("audio/") || /\.(mp3|wav|ogg|m4a)$/i.test(normalizedName)
-            ? "audio"
-            : "image";
+      const isVideo =
+        mimeType.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(normalizedName);
+      const isAudio =
+        mimeType.startsWith("audio/") || /\.(mp3|wav|ogg|m4a)$/i.test(normalizedName);
+      const isImage =
+        mimeType.startsWith("image/") ||
+        /\.(png|jpe?g|webp|gif|svg)$/i.test(normalizedName);
 
-      letterEditorRef.current?.insertMedia(resolvedUrl, mediaType, fileName);
-      setFilePickerPurpose(null);
-      toast.success(`${fileName} was added to the letter editor.`);
+      if (isVideo || isAudio || !isImage) {
+        toast.error(
+          "Letters only support image media on the paper and in PDF. Choose a PNG, JPEG, WEBP, or GIF.",
+        );
+        return;
+      }
+
+      setIsFilePickerSelecting(true);
+      try {
+        const response = await fetch(resolvedUrl, {
+          headers: getAuthHeaders({ Accept: "image/*" }),
+        });
+        if (!response.ok) {
+          throw new Error("The selected image could not be loaded from File Manager.");
+        }
+
+        const blob = await response.blob();
+        if (!blob.type.startsWith("image/")) {
+          throw new Error("The selected File Manager item is not an image.");
+        }
+        if (blob.size > 1_500_000) {
+          throw new Error("Choose an image smaller than 1.5 MB for reliable letter PDF output.");
+        }
+
+        const dataUrl = await blobToDataUrl(blob);
+        letterEditorRef.current?.insertMedia(dataUrl, "image", fileName);
+        setFilePickerPurpose(null);
+        toast.success(`${fileName} was added to the letter and will appear on print/PDF.`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Unable to add the image to the letter.",
+        );
+      } finally {
+        setIsFilePickerSelecting(false);
+      }
       return;
     }
 
@@ -1994,6 +2027,12 @@ export function HrFormsPanel() {
             }
             #hr-printable-letter .letter-rendered-body p {
               margin: 0 0 1rem;
+            }
+            #hr-printable-letter .letter-rendered-body img {
+              display: block;
+              max-width: 100%;
+              height: auto;
+              margin: 0.75rem 0;
             }
             #hr-printable-letter .letter-rendered-body ul,
             #hr-printable-letter .letter-rendered-body ol {
