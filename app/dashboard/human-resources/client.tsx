@@ -1667,7 +1667,7 @@ export function HumanResourcesClient({
           </TabsContent>
         )}
         <TabsContent value="relations">
-          <EmployeeRelationsPanel />
+          <EmployeeRelationsPanel employees={allEmployeesQuery.data?.data ?? []} />
         </TabsContent>
         <TabsContent value="forms">
           <HrFormsPanel />

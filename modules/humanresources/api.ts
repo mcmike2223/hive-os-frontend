@@ -1486,17 +1486,28 @@ export type HrLetterTemplate = {
 };
 
 export async function fetchHrLetterTemplates(): Promise<HrLetterTemplate[]> {
-  return hrFetch<HrLetterTemplate[]>("/forms/templates");
+  const payload = await hrFetch<HrLetterTemplate[] | { data?: HrLetterTemplate[] }>(
+    "/forms/templates",
+  );
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload?.data) ? payload.data : [];
 }
 
 export async function createHrLetterTemplate(payload: {
   title: string;
   body_html: string;
 }): Promise<HrLetterTemplate> {
-  return hrFetch<HrLetterTemplate>("/forms/templates", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  const created = await hrFetch<HrLetterTemplate | { data?: HrLetterTemplate }>(
+    "/forms/templates",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (created && typeof created === "object" && "data" in created && created.data) {
+    return created.data;
+  }
+  return created as HrLetterTemplate;
 }
 
 export async function hrUploadFetch<T>(
