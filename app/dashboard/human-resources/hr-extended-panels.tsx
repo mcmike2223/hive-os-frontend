@@ -552,9 +552,11 @@ export function EmployeeTransferDialog({
           position_id: Number(form.position_id),
           assignment_type: form.assignment_type,
           started_on: form.started_on,
+          full_time_equivalent: 1,
           hours_per_day: Number(form.hours_per_day),
           hours_per_week: Number(form.hours_per_week),
           is_primary: true,
+          change_reason: form.reason || "Internal transfer",
         }),
       });
     },
@@ -563,6 +565,7 @@ export function EmployeeTransferDialog({
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
       queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-transfers-list"] });
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to record transfer.");
@@ -3191,27 +3194,54 @@ export function EmployeeTransfersPanel() {
 
   const transfersQuery = useQuery({
     queryKey: ["hr-transfers-list", scope],
-    queryFn: async () => {
-      try {
-        const res = await hrFetch<any>("/employee-experiences?per_page=100");
-        return res;
-      } catch {
-        return { data: [] };
-      }
-    },
+    queryFn: () => hrFetch<any>("/employee-transfers"),
   });
+
+  const filteredTargetPositions = (positionsQuery.data?.data || []).filter(
+    (p: any) =>
+      !formData.to_unit_id ||
+      Number(p.organization_unit_id) === Number(formData.to_unit_id),
+  );
 
   const createTransferMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return hrFetch<any>(`/employees/${data.employee_id}/transfer/store`, {
+      const employee =
+        employeesQuery.data?.data?.find(
+          (emp: any) => String(emp.id) === String(data.employee_id),
+        ) ?? null;
+      const current = employee?.primary_assignment;
+      const changeReason = [data.left_reason, data.remarks].filter(Boolean).join(" — ");
+
+      return hrFetch<any>(`/employees/${data.employee_id}/assignments`, {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          organization_unit_id: Number(data.to_unit_id),
+          position_id: Number(data.to_position_id),
+          assignment_type: "substantive",
+          started_on: data.effective_date,
+          full_time_equivalent: current?.full_time_equivalent ?? 1,
+          hours_per_day: current?.hours_per_day ?? 8,
+          hours_per_week: current?.hours_per_week ?? 48,
+          is_primary: true,
+          change_reason: changeReason || "Internal transfer",
+          reports_to_employee_id: current?.reports_to_employee_id ?? null,
+        }),
       });
     },
     onSuccess: () => {
       toast.success("Employee transfer recorded successfully!");
       queryClient.invalidateQueries({ queryKey: ["hr-transfers-list"] });
       queryClient.invalidateQueries({ queryKey: ["hr-employees-list-transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
+      setFormData({
+        employee_id: "",
+        to_unit_id: "",
+        to_position_id: "",
+        left_reason: "Internal Transfer / ዛወር",
+        effective_date: new Date().toISOString().slice(0, 10),
+        remarks: "",
+      });
       setOpenModal(false);
     },
     onError: (err: any) => {
@@ -3221,49 +3251,14 @@ export function EmployeeTransfersPanel() {
 
   const employees = employeesQuery.data?.data || [];
   const units = unitsQuery.data?.data || [];
-  const positions = positionsQuery.data?.data || [];
-  const transfers = transfersQuery.data?.data || [
-    {
-      id: 101,
-      employee_name: "Abebe Bikila",
-      emp_id: "EMP-0042",
-      from_unit: "Software Development Dept",
-      to_unit: "Enterprise Solutions Unit",
-      from_position: "Junior Developer",
-      to_position: "Senior Systems Analyst",
-      reason: "Internal Promotion / ዛወር",
-      effective_date: "2026-07-01",
-      status: "Completed",
-    },
-    {
-      id: 102,
-      employee_name: "Tigist Assefa",
-      emp_id: "EMP-0089",
-      from_unit: "Human Resources Dept",
-      to_unit: "Operations & Logistics",
-      from_position: "HR Specialist",
-      to_position: "Operations Coordinator",
-      reason: "Departmental Restructuring",
-      effective_date: "2026-06-15",
-      status: "Completed",
-    },
-    {
-      id: 103,
-      employee_name: "Dawit Kebede",
-      emp_id: "EMP-0112",
-      from_unit: "Finance & Accounting",
-      to_unit: "Internal Audit Division",
-      from_position: "Accountant",
-      to_position: "Senior Internal Auditor",
-      reason: "Strategic Realignment",
-      effective_date: "2026-05-20",
-      status: "Completed",
-    },
-  ];
+  const transfers = transfersQuery.data?.data || [];
 
   const filteredTransfers = transfers.filter((t: any) => {
     const nameMatch = (t.employee_name || t.employee?.primary_name || "").toLowerCase().includes(search.toLowerCase());
-    const unitMatch = unitFilter === "all" || t.to_unit === unitFilter || t.organization_unit_id == unitFilter;
+    const unitMatch =
+      unitFilter === "all" ||
+      t.to_unit === unitFilter ||
+      String(t.organization_unit_id) === String(unitFilter);
     return nameMatch && unitMatch;
   });
 
@@ -3310,7 +3305,7 @@ export function EmployeeTransfersPanel() {
           >
             <option value="all">All Organization Units</option>
             {units.map((u: any) => (
-              <option key={u.id} value={u.name || u.id}>
+              <option key={u.id} value={String(u.id)}>
                 {u.name}
               </option>
             ))}
@@ -3420,13 +3415,20 @@ export function EmployeeTransfersPanel() {
                 <select
                   required
                   value={formData.employee_id}
-                  onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      employee_id: e.target.value,
+                      to_unit_id: "",
+                      to_position_id: "",
+                    })
+                  }
                   className="mt-1 w-full h-11 rounded-lg border border-slate-300 bg-background px-3 text-sm dark:border-slate-700"
                 >
                   <option value="">-- Select Employee --</option>
                   {employees.map((emp: any) => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.primary_name || emp.en_name} ({emp.emp_id || "EMP-" + emp.id})
+                      {emp.primary_name || emp.en_name} ({emp.employee_number || "EMP-" + emp.id})
                     </option>
                   ))}
                 </select>
@@ -3438,7 +3440,13 @@ export function EmployeeTransfersPanel() {
                   <select
                     required
                     value={formData.to_unit_id}
-                    onChange={(e) => setFormData({ ...formData, to_unit_id: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        to_unit_id: e.target.value,
+                        to_position_id: "",
+                      })
+                    }
                     className="mt-1 w-full h-11 rounded-lg border border-slate-300 bg-background px-3 text-sm dark:border-slate-700"
                   >
                     <option value="">-- Select Target Unit --</option>
@@ -3457,9 +3465,10 @@ export function EmployeeTransfersPanel() {
                     value={formData.to_position_id}
                     onChange={(e) => setFormData({ ...formData, to_position_id: e.target.value })}
                     className="mt-1 w-full h-11 rounded-lg border border-slate-300 bg-background px-3 text-sm dark:border-slate-700"
+                    disabled={!formData.to_unit_id}
                   >
                     <option value="">-- Select Target Position --</option>
-                    {positions.map((p: any) => (
+                    {filteredTargetPositions.map((p: any) => (
                       <option key={p.id} value={p.id}>
                         {p.title || p.code || "Position #" + p.id}
                       </option>

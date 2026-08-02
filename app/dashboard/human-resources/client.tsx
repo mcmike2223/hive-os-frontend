@@ -447,6 +447,7 @@ function EmployeeDialog({
       );
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-employees-table", scope] });
       queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
       queryClient.invalidateQueries({ queryKey: ["hr-positions"] });
       queryClient.invalidateQueries({
@@ -930,6 +931,7 @@ function UnitDialog({
   referenceOptions: ReferenceOptionsByCatalog;
 }) {
   const queryClient = useQueryClient();
+  const scope = getWorkspaceScopeKey();
   const errorRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState(EMPTY_UNIT);
   const [error, setError] = useState("");
@@ -963,6 +965,7 @@ function UnitDialog({
       toast.success("Organization unit created.");
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["hr-units"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-organization-table"] });
     },
     onError: (failure) => {
       setError(
@@ -1102,6 +1105,7 @@ function PositionDialog({
   referenceOptions: ReferenceOptionsByCatalog;
 }) {
   const queryClient = useQueryClient();
+  const scope = getWorkspaceScopeKey();
   const errorRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState(EMPTY_POSITION);
   const [error, setError] = useState("");
@@ -1140,6 +1144,7 @@ function PositionDialog({
       toast.success("Position created.");
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["hr-positions"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-positions-table", scope] });
       queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
     },
     onError: (failure) => {
@@ -1359,12 +1364,14 @@ export function HumanResourcesClient({
     queryKey: ["hr-units", scope],
     queryFn: () =>
       hrFetch<Paginated<OrganizationUnit>>("/organization-units?per_page=100"),
-    enabled: isLoaded && canViewOrganization,
+    // Also load for employee viewers so directory filters/dialogs can populate.
+    enabled: isLoaded && (canViewOrganization || canViewEmployees),
   });
   const positions = useQuery({
     queryKey: ["hr-positions", scope],
     queryFn: () => hrFetch<Paginated<Position>>("/positions?per_page=100"),
-    enabled: isLoaded && canViewPositions,
+    // Also load for employee viewers so directory filters/dialogs can populate.
+    enabled: isLoaded && (canViewPositions || canViewEmployees),
   });
   const allEmployeesQuery = useQuery({
     queryKey: ["all-employees-list", scope],
@@ -1574,6 +1581,8 @@ export function HumanResourcesClient({
               referenceOptions.data?.["employee-statuses"],
               "employee-statuses",
             )}
+            units={units.data?.data ?? []}
+            positions={positions.data?.data ?? []}
             onEdit={(employee) => {
               setEditingEmployee(employee);
               setEmployeeOpen(true);
