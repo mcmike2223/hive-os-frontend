@@ -28,6 +28,8 @@ import {
   X,
   GraduationCap,
   UsersRound,
+  Fingerprint,
+  WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +73,8 @@ const MODULE_IDS = new Set([
   "projectmanagement",
   "lms",
   "humanresources",
+  "attendance",
+  "payroll",
   "b2b-marketplace",
 ]);
 
@@ -206,6 +210,8 @@ export function MobileSidebar() {
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
   const canAccessConverter =
@@ -420,6 +426,12 @@ export function MobileSidebar() {
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
   );
+  const attendanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "attendance",
+  );
+  const payrollModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "payroll",
+  );
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard/inventory")) {
@@ -459,6 +471,14 @@ export function MobileSidebar() {
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/attendance")) {
+      setIsModulesOpen(true);
+      setIsAttendanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/payroll")) {
+      setIsModulesOpen(true);
+      setIsPayrollOpen(true);
     }
 
     if (isAppPath(pathname)) {
@@ -882,6 +902,22 @@ export function MobileSidebar() {
                           openState: isHumanResourcesOpen,
                           onToggle: () =>
                             setIsHumanResourcesOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: attendanceModuleItems,
+                          label: t("nav.attendance", "Attendance Management"),
+                          icon: Fingerprint,
+                          openState: isAttendanceOpen,
+                          onToggle: () => setIsAttendanceOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: payrollModuleItems,
+                          label: t("nav.payroll", "Payroll Management"),
+                          icon: WalletCards,
+                          openState: isPayrollOpen,
+                          onToggle: () => setIsPayrollOpen((value) => !value),
                         })}
 
                         {renderProjectManagementSection()}

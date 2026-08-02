@@ -28,6 +28,8 @@ import {
   Utensils,
   GraduationCap,
   UsersRound,
+  Fingerprint,
+  WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -187,6 +189,8 @@ function SidebarInner({
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const canAccessConverter =
@@ -318,6 +322,8 @@ function SidebarInner({
         item.moduleId === "projectmanagement" ||
         item.moduleId === "lms" ||
         item.moduleId === "humanresources" ||
+        item.moduleId === "attendance" ||
+        item.moduleId === "payroll" ||
         item.moduleId === "b2b-marketplace",
     ),
     ...projectManagementFromSecondary,
@@ -333,6 +339,8 @@ function SidebarInner({
       item.moduleId !== "projectmanagement" &&
       item.moduleId !== "lms" &&
       item.moduleId !== "humanresources" &&
+      item.moduleId !== "attendance" &&
+      item.moduleId !== "payroll" &&
       item.moduleId !== "b2b-marketplace" &&
       item.href !== "/dashboard/landing-templates",
   );
@@ -359,6 +367,12 @@ function SidebarInner({
   );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
+  );
+  const attendanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "attendance",
+  );
+  const payrollModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "payroll",
   );
 
   useEffect(() => {
@@ -393,6 +407,14 @@ function SidebarInner({
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/attendance")) {
+      setIsModulesOpen(true);
+      setIsAttendanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/payroll")) {
+      setIsModulesOpen(true);
+      setIsPayrollOpen(true);
     }
     if (
       pathname.startsWith("/dashboard/tools/converter") ||
@@ -875,6 +897,144 @@ function SidebarInner({
                             );
                           })}
                         </div>
+                      </div>
+                    )}
+
+                    {attendanceModuleItems.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsAttendanceOpen(!isAttendanceOpen)}
+                          aria-expanded={isAttendanceOpen}
+                          aria-controls="desktop-attendance-links"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/attendance")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Fingerprint
+                              className={cn(
+                                "h-4 w-4 shrink-0",
+                                pathname.startsWith("/dashboard/attendance") ? "text-primary font-bold" : ""
+                              )}
+                            />
+                            <span className="truncate">
+                              {t("nav.attendance", "Attendance Management")}
+                            </span>
+                          </div>
+                          {isAttendanceOpen ? (
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 opacity-50" />
+                          )}
+                        </button>
+                        {isAttendanceOpen && (
+                          <div
+                            id="desktop-attendance-links"
+                            className="flex flex-col gap-1 pl-4"
+                          >
+                            {attendanceModuleItems.map((item) => {
+                              const active =
+                                pathname === item.href ||
+                                pathname.startsWith(`${item.href}/`);
+                              const Icon = item.icon;
+                              const label = t(
+                                item.translationKey,
+                                item.fallbackLabel,
+                              );
+
+                              return (
+                                <Link
+                                  key={item.href}
+                                  id={item.tourId}
+                                  href={item.href}
+                                  aria-current={active ? "page" : undefined}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
+                                    active
+                                      ? "hive-sidebar-nested-active"
+                                      : "hive-sidebar-nested-idle",
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {payrollModuleItems.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsPayrollOpen(!isPayrollOpen)}
+                          aria-expanded={isPayrollOpen}
+                          aria-controls="desktop-payroll-links"
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/payroll")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <WalletCards
+                              className={cn(
+                                "h-4 w-4 shrink-0",
+                                pathname.startsWith("/dashboard/payroll") ? "text-primary font-bold" : ""
+                              )}
+                            />
+                            <span className="truncate">
+                              {t("nav.payroll", "Payroll Management")}
+                            </span>
+                          </div>
+                          {isPayrollOpen ? (
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 opacity-50" />
+                          )}
+                        </button>
+                        {isPayrollOpen && (
+                          <div
+                            id="desktop-payroll-links"
+                            className="flex flex-col gap-1 pl-4"
+                          >
+                            {payrollModuleItems.map((item) => {
+                              const active =
+                                pathname === item.href ||
+                                pathname.startsWith(`${item.href}/`);
+                              const Icon = item.icon;
+                              const label = t(
+                                item.translationKey,
+                                item.fallbackLabel,
+                              );
+
+                              return (
+                                <Link
+                                  key={item.href}
+                                  id={item.tourId}
+                                  href={item.href}
+                                  aria-current={active ? "page" : undefined}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
+                                    active
+                                      ? "hive-sidebar-nested-active"
+                                      : "hive-sidebar-nested-idle",
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 
