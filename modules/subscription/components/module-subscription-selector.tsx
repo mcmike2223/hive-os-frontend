@@ -76,6 +76,7 @@ export function ModuleSubscriptionSelector({
       purchaseLockedModules &&
       !selectedModules.includes(slug) &&
       !module.included_in_plan &&
+      Number(module.monthly_price_etb ?? 0) > 0 &&
       module.status !== "active";
 
     if (isLockedPaidAddon) {
@@ -164,6 +165,7 @@ export function ModuleSubscriptionSelector({
                     purchaseLockedModules &&
                     !checked &&
                     !module.included_in_plan &&
+                    Number(module.monthly_price_etb ?? 0) > 0 &&
                     module.status !== "active";
 
                   return (

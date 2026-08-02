@@ -485,10 +485,16 @@ export function TenantSubscriptionsClient() {
       const accessStatus = moduleAccess?.statuses?.[module.slug];
       const isActive = serverEnabledModules.includes(module.slug) || accessStatus?.active === true || module.status === "active";
       const isPending = module.status === "pending";
+      const includedInPlan =
+        includedModules.includes(module.slug) ||
+        module.included_in_plan === true ||
+        accessStatus?.included_in_plan === true;
 
       return {
         ...module,
-        included_in_plan: module.included_in_plan ?? accessStatus?.included_in_plan ?? includedModules.includes(module.slug),
+        included_in_plan: includedInPlan,
+        // Plan-included modules are never billed as add-ons in the tenant UI.
+        monthly_price_etb: includedInPlan ? 0 : module.monthly_price_etb,
         status: isActive ? "active" : (isPending ? "pending" : "inactive"),
       } satisfies TenantCatalogModule;
     });
@@ -633,6 +639,12 @@ export function TenantSubscriptionsClient() {
   }, [customModules, saveMutation, selectedModules]);
 
   const handleLockedModuleRequest = React.useCallback((module: TenantCatalogModule) => {
+    if (module.included_in_plan || Number(module.monthly_price_etb ?? 0) <= 0) {
+      setSelectedModules((previous) => previous.includes(module.slug) ? previous : [...previous, module.slug]);
+      toast.info(`${module.name} is included in your plan. Save changes to enable it.`);
+      return;
+    }
+
     setCheckoutMode("upgrade");
     setCheckoutModules([module]);
   }, []);
