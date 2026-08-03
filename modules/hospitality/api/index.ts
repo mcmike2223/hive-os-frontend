@@ -481,6 +481,24 @@ export const fetchWaiterBootstrap = async (outletId?: number) =>
     })
   ).data;
 
+export const createWaiterHospitalityOrder = async (
+  payload: Record<string, unknown> & { idempotencyKey?: string },
+) => {
+  const { idempotencyKey, ...orderPayload } = payload;
+  const response = await api.post("/hospitality/waiter/orders", orderPayload, {
+    headers: idempotencyKey
+      ? {
+          "X-Idempotency-Key": idempotencyKey,
+        }
+      : undefined,
+  });
+
+  return {
+    ...response.data,
+    idempotent_replay: response.headers["x-idempotent-replay"] === "true",
+  };
+};
+
 // Phase 4 KDS Helpers
 export const fetchKdsOrders = async (params: Record<string, unknown> = {}) =>
   unwrapList<HospitalityKdsOrder>(

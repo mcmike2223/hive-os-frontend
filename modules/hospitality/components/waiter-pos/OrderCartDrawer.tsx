@@ -1,35 +1,38 @@
 "use client";
 
-import { ShoppingBag, Trash2, Plus, Minus, Send, UserCheck } from "lucide-react";
+import { Minus, Plus, Send, ShoppingBag, Trash2 } from "lucide-react";
 
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
+import type { WaiterCartSelection } from "./MenuBrowser";
+
+export type WaiterCartItem = WaiterCartSelection & {
   quantity: number;
   notes?: string;
-  seat_number?: number;
-}
+  seatNumber?: number;
+  courseNumber?: number;
+};
 
-interface OrderType {
+type OrderType = {
   id: number;
   code: string;
   name: string;
-}
+};
 
-interface Props {
+type Props = {
   tableName?: string;
-  cart: CartItem[];
+  cart: WaiterCartItem[];
   orderTypes: OrderType[];
   selectedOrderTypeCode: string;
   guestCount: number;
   onUpdateGuestCount: (count: number) => void;
   onUpdateOrderType: (code: string) => void;
-  onUpdateQuantity: (id: number, delta: number) => void;
-  onRemoveItem: (id: number) => void;
+  onUpdateQuantity: (cartKey: string, delta: number) => void;
+  onUpdateItem: (cartKey: string, patch: Partial<Pick<WaiterCartItem, "notes" | "seatNumber" | "courseNumber">>) => void;
+  onRemoveItem: (cartKey: string) => void;
   onSubmitOrder: () => void;
   isSubmitting?: boolean;
-}
+};
+
+const formatMoney = (amount: number) => `ETB ${amount.toFixed(2)}`;
 
 export function OrderCartDrawer({
   tableName,
@@ -40,6 +43,7 @@ export function OrderCartDrawer({
   onUpdateGuestCount,
   onUpdateOrderType,
   onUpdateQuantity,
+  onUpdateItem,
   onRemoveItem,
   onSubmitOrder,
   isSubmitting = false,
@@ -47,120 +51,196 @@ export function OrderCartDrawer({
   const totalAmount = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-4 flex flex-col justify-between h-full shadow-lg">
+    <aside
+      className="flex h-full flex-col justify-between space-y-4 rounded-lg border border-border bg-card p-5 shadow-lg"
+      aria-labelledby="restaurant-order-draft-heading"
+    >
       <div className="space-y-4">
-        {/* Cart Header */}
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-primary" />
-            <h2 className="font-bold text-base text-foreground">
+        <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <ShoppingBag className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-300" aria-hidden="true" />
+            <h2 id="restaurant-order-draft-heading" className="truncate text-base font-bold text-foreground">
               Order Draft {tableName ? `(${tableName})` : ""}
             </h2>
           </div>
-          <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
-            {cart.length} items
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+            {cart.length} lines
           </span>
         </div>
 
-        {/* Order Type & Guest Count */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
           <div>
-            <label className="block font-medium text-muted-foreground mb-1">Order Type</label>
+            <label htmlFor="restaurant-order-type" className="mb-1 block text-xs font-medium text-muted-foreground">
+              Order type
+            </label>
             <select
+              id="restaurant-order-type"
               value={selectedOrderTypeCode}
-              onChange={(e) => onUpdateOrderType(e.target.value)}
-              className="w-full px-2 py-1.5 border border-border rounded-lg bg-background text-foreground"
+              onChange={(event) => onUpdateOrderType(event.target.value)}
+              className="min-h-11 w-full rounded-lg border border-slate-500 bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
             >
-              {orderTypes.map((ot) => (
-                <option key={ot.id} value={ot.code}>
-                  {ot.name}
+              {orderTypes.map((orderType) => (
+                <option key={orderType.id} value={orderType.code}>
+                  {orderType.name}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block font-medium text-muted-foreground mb-1">Guests</label>
-            <div className="flex items-center gap-1">
+            <label htmlFor="restaurant-guest-count" className="mb-1 block text-xs font-medium text-muted-foreground">
+              Guests
+            </label>
+            <div className="flex items-center gap-2">
               <button
+                type="button"
+                aria-label="Decrease guest count"
                 onClick={() => onUpdateGuestCount(Math.max(1, guestCount - 1))}
-                className="w-7 h-7 flex items-center justify-center border border-border rounded-md text-foreground hover:bg-muted font-bold"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-500 text-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
               >
-                -
+                <Minus className="h-4 w-4" aria-hidden="true" />
               </button>
-              <span className="w-8 text-center font-bold text-sm text-foreground">{guestCount}</span>
+              <input
+                id="restaurant-guest-count"
+                type="number"
+                min={1}
+                value={guestCount}
+                onChange={(event) => onUpdateGuestCount(Math.max(1, Number(event.target.value) || 1))}
+                className="h-11 w-20 rounded-lg border border-slate-500 bg-background px-3 text-center text-sm font-bold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
+              />
               <button
+                type="button"
+                aria-label="Increase guest count"
                 onClick={() => onUpdateGuestCount(guestCount + 1)}
-                className="w-7 h-7 flex items-center justify-center border border-border rounded-md text-foreground hover:bg-muted font-bold"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-500 text-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
               >
-                +
+                <Plus className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Cart Item List */}
-        <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+        <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1 lg:max-h-[calc(100vh-360px)]">
           {cart.length === 0 ? (
-            <div className="py-12 text-center text-xs text-muted-foreground">
-              Draft order is empty. Click "+ Add" on any menu item.
+            <div className="rounded-lg border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
+              Draft order is empty. Add menu items to start.
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="p-2.5 rounded-lg border border-border bg-background flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-xs text-foreground truncate">{item.name}</div>
-                  <div className="text-[11px] text-primary font-bold">
-                    ETB {(item.price * item.quantity).toFixed(2)}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => onUpdateQuantity(item.id, -1)}
-                      className="px-2 py-0.5 text-xs text-foreground hover:bg-muted font-bold"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="px-2 text-xs font-bold text-foreground">{item.quantity}</span>
-                    <button
-                      onClick={() => onUpdateQuantity(item.id, 1)}
-                      className="px-2 py-0.5 text-xs text-foreground hover:bg-muted font-bold"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
+              <div key={item.cartKey} className="space-y-3 rounded-lg border border-border bg-background p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-foreground">{item.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {[
+                        item.variantName,
+                        item.modifierSummary.length ? item.modifierSummary.join(", ") : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" - ") || "Regular"}
+                    </div>
+                    <div className="mt-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                      {formatMoney(item.price * item.quantity)}
+                    </div>
                   </div>
 
                   <button
-                    onClick={() => onRemoveItem(item.id)}
-                    className="text-muted-foreground hover:text-destructive p-1"
+                    type="button"
+                    aria-label={`Remove ${item.name}`}
+                    onClick={() => onRemoveItem(item.cartKey)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:hover:text-red-300 dark:focus-visible:ring-emerald-300"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center overflow-hidden rounded-lg border border-slate-500">
+                    <button
+                      type="button"
+                      aria-label={`Decrease ${item.name} quantity`}
+                      onClick={() => onUpdateQuantity(item.cartKey, -1)}
+                      className="flex h-10 w-10 items-center justify-center text-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
+                    >
+                      <Minus className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <span className="min-w-10 px-2 text-center text-sm font-bold text-foreground">{item.quantity}</span>
+                    <button
+                      type="button"
+                      aria-label={`Increase ${item.name} quantity`}
+                      onClick={() => onUpdateQuantity(item.cartKey, 1)}
+                      className="flex h-10 w-10 items-center justify-center text-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
+                    >
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Seat
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.seatNumber ?? ""}
+                        onChange={(event) =>
+                          onUpdateItem(item.cartKey, {
+                            seatNumber: event.target.value ? Number(event.target.value) : undefined,
+                          })
+                        }
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-500 bg-card px-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
+                      />
+                    </label>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Course
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.courseNumber ?? 1}
+                        onChange={(event) =>
+                          onUpdateItem(item.cartKey, {
+                            courseNumber: Math.max(1, Number(event.target.value) || 1),
+                          })
+                        }
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-500 bg-card px-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Kitchen note
+                  <textarea
+                    value={item.notes ?? ""}
+                    onChange={(event) => onUpdateItem(item.cartKey, { notes: event.target.value })}
+                    rows={2}
+                    className="mt-1 w-full resize-y rounded-lg border border-slate-500 bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300"
+                  />
+                </label>
               </div>
             ))
           )}
         </div>
       </div>
 
-      {/* Cart Summary & Submit */}
-      <div className="border-t border-border pt-4 space-y-3">
+      <div className="space-y-3 border-t border-border pt-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Total Amount</span>
-          <span className="font-extrabold text-lg text-primary">ETB {totalAmount.toFixed(2)}</span>
+          <span className="text-muted-foreground">Estimated total</span>
+          <span className="text-lg font-extrabold text-emerald-700 dark:text-emerald-300">{formatMoney(totalAmount)}</span>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Final taxes, service charges, discounts, and approval gates are calculated by the server.
+        </p>
 
         <button
+          type="button"
           disabled={cart.length === 0 || isSubmitting}
           onClick={onSubmitOrder}
-          className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-md transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-emerald-300 active:scale-95"
         >
-          <Send className="w-4 h-4" />
-          {isSubmitting ? "Submitting Order..." : "Submit Order to Kitchen"}
+          <Send className="h-4 w-4" aria-hidden="true" />
+          {isSubmitting ? "Submitting order..." : "Submit order to kitchen"}
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

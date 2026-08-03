@@ -1,70 +1,110 @@
 "use client";
 
-import { Users, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Users } from "lucide-react";
 
-interface Table {
+type Table = {
   id: number;
   label: string;
   capacity: number;
   status: string;
   table_type?: string;
-  zone?: { name: string };
-}
+  zone?: { name: string } | null;
+  staff?: { name: string } | null;
+};
 
-interface Props {
+type Props = {
   tables: Table[];
   selectedTable: Table | null;
+  assignedTableCount?: number;
+  canViewAllTables?: boolean;
   onSelectTable: (table: Table) => void;
-}
+};
 
-export function TableGridSelector({ tables, selectedTable, onSelectTable }: Props) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
-      case "occupied":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
-      case "reserved":
-        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30";
-      default:
-        return "bg-muted text-muted-foreground border-border";
-    }
-  };
+const statusClasses = (status: string) => {
+  switch (status) {
+    case "available":
+      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "occupied":
+      return "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    case "reserved":
+      return "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300";
+    case "dirty":
+      return "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300";
+    default:
+      return "border-slate-500 bg-muted text-muted-foreground";
+  }
+};
 
+export function TableGridSelector({
+  tables,
+  selectedTable,
+  assignedTableCount = 0,
+  canViewAllTables = false,
+  onSelectTable,
+}: Props) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">Dining Tables & Spaces</h2>
-        <span className="text-xs text-muted-foreground">{tables.length} tables found</span>
+    <section className="space-y-4" aria-labelledby="restaurant-table-selector-heading">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 id="restaurant-table-selector-heading" className="text-lg font-bold text-foreground">
+            Dining Tables
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {assignedTableCount > 0
+              ? `${assignedTableCount} assigned table${assignedTableCount === 1 ? "" : "s"} available in this view.`
+              : canViewAllTables
+                ? "Showing all permitted restaurant tables."
+                : "No assigned tables found for this waiter."}
+          </p>
+        </div>
+        <span className="text-xs text-muted-foreground">{tables.length} tables shown</span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {tables.map((table) => {
-          const isSelected = selectedTable?.id === table.id;
-          return (
-            <button
-              key={table.id}
-              onClick={() => onSelectTable(table)}
-              className={`p-4 rounded-xl border flex flex-col justify-between items-start transition-all active:scale-95 ${
-                isSelected
-                  ? "border-primary bg-primary/10 shadow-lg ring-2 ring-primary/20"
-                  : "border-border bg-card hover:border-primary/50"
-              }`}
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="font-bold text-base text-foreground">{table.label}</span>
-                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${getStatusColor(table.status)}`}>
-                  {table.status}
+      {tables.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+          No active dining tables are available for this waiter.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+          {tables.map((table) => {
+            const isSelected = selectedTable?.id === table.id;
+
+            return (
+              <button
+                key={table.id}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => onSelectTable(table)}
+                className={`flex min-h-28 flex-col items-start justify-between rounded-lg border p-4 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 dark:focus-visible:ring-emerald-300 active:scale-95 ${
+                  isSelected
+                    ? "border-emerald-700 bg-emerald-500/10 shadow-lg ring-2 ring-emerald-700 dark:border-emerald-300 dark:ring-emerald-300"
+                    : "border-slate-500 bg-card hover:border-emerald-700 dark:hover:border-emerald-300"
+                }`}
+              >
+                <span className="flex w-full items-start justify-between gap-2">
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-bold text-foreground">{table.label}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {table.zone?.name ?? table.table_type ?? "Dining"}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase ${statusClasses(table.status)}`}>
+                    {table.status}
+                  </span>
                 </span>
-              </div>
-              <div className="mt-3 text-xs text-muted-foreground flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
-                <span>Cap: {table.capacity} guests</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+
+                <span className="mt-3 flex flex-col gap-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                    {table.capacity} guests
+                  </span>
+                  {table.staff?.name ? <span>Waiter: {table.staff.name}</span> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }

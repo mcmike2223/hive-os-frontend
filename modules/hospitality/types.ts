@@ -62,11 +62,19 @@ export type HospitalityReservation = {
 
 export type HospitalityServiceOrderItem = {
   id: number;
+  menu_item_id?: number | null;
   inventory_item_id?: number | null;
   item_name: string;
   quantity: string;
   unit_price: string;
   total_price: string;
+  pricing_snapshot?: Record<string, unknown> | null;
+  currency?: string | null;
+  seat_number?: number | null;
+  course_number?: number | null;
+  preparation_status?: string | null;
+  station_id?: number | null;
+  notes?: string | null;
   is_comp?: boolean;
   comp_reason?: string | null;
   stock_deducted?: boolean;
@@ -103,6 +111,39 @@ export type HospitalityMenuCategory = {
   icon?: string | null;
   sort_order?: number | null;
   is_active?: boolean;
+  items?: HospitalityMenuItem[];
+};
+
+export type HospitalityModifierOption = {
+  id: number;
+  modifier_group_id: number;
+  name: string;
+  price_adjustment?: string | number | null;
+  cost_adjustment?: string | number | null;
+  is_available?: boolean;
+  sort_order?: number | null;
+};
+
+export type HospitalityModifierGroup = {
+  id: number;
+  name: string;
+  description?: string | null;
+  min_selections?: number | null;
+  max_selections?: number | null;
+  is_required?: boolean;
+  is_active?: boolean;
+  options?: HospitalityModifierOption[];
+};
+
+export type HospitalityMenuItemVariant = {
+  id: number;
+  menu_item_id: number;
+  name: string;
+  sku?: string | null;
+  price: string | number;
+  cost_price?: string | number | null;
+  is_available?: boolean;
+  sort_order?: number | null;
 };
 
 export type HospitalityMenuItem = {
@@ -122,6 +163,9 @@ export type HospitalityMenuItem = {
   model_3d_url?: string | null;
   sort_order?: number | null;
   category?: HospitalityMenuCategory | null;
+  variants?: HospitalityMenuItemVariant[];
+  modifier_groups?: HospitalityModifierGroup[];
+  modifierGroups?: HospitalityModifierGroup[];
 };
 
 export type HospitalityEvent = {

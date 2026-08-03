@@ -24,6 +24,17 @@ export interface OfflineOrderPayload {
 
 const STORAGE_KEY = "hive_hospitality_offline_order_queue";
 
+const createOfflineIdempotencyKey = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const value = Math.floor(Math.random() * 16);
+    return (character === "x" ? value : (value & 0x3) | 0x8).toString(16);
+  });
+};
+
 export class OfflineSyncManager {
   /**
    * Queue order payload to local storage when network is offline.
@@ -32,7 +43,7 @@ export class OfflineSyncManager {
     const queue = this.getQueue();
     const entry: OfflineOrderPayload = {
       ...payload,
-      idempotencyKey: `IDEM-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      idempotencyKey: createOfflineIdempotencyKey(),
       createdAt: new Date().toISOString(),
     };
 
