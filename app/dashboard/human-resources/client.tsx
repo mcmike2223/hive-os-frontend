@@ -67,9 +67,9 @@ import { HrExpensesPanel } from "./hr-expenses-panel";
 import {
   EmployeeRelationsPanel,
   HrFormsPanel,
-  EmployeeProfilePanel,
   EmployeeTransfersPanel,
 } from "./hr-extended-panels";
+import { EmployeeProfileWorkspace } from "./hr-profile-panel";
 import { Wallet, UserCheck, Award, Laptop, Receipt } from "lucide-react";
 
 const controlClass =
@@ -1673,12 +1673,11 @@ export function HumanResourcesClient({
           <HrFormsPanel />
         </TabsContent>
         <TabsContent value="profile">
-          <EmployeeProfilePanel canManage={canManageEmployees} />
+          <EmployeeProfileWorkspace canManage={canManageEmployees} />
         </TabsContent>
         <TabsContent value="recruitment">
           <HrRecruitmentPanel />
         </TabsContent>
-
         <TabsContent value="appraisals">
           <HrAppraisalPanel employees={allEmployeesQuery.data?.data ?? []} />
         </TabsContent>

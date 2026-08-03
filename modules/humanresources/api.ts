@@ -1551,3 +1551,106 @@ export function referenceOptionLabel(option: ReferenceOption): string {
     "Unnamed value"
   );
 }
+
+export type EmployeeProfileSectionKey =
+  | "address"
+  | "bank_accounts"
+  | "disability"
+  | "higher_education"
+  | "school_education"
+  | "emergency"
+  | "guarantor"
+  | "family"
+  | "languages"
+  | "licenses"
+  | "experience"
+  | "disasters"
+  | "certifications_awards"
+  | "files";
+
+export type EmployeeProfileOtherInfo = {
+  tin_number?: string | null;
+  blood_group?: string | null;
+  marital_status_code?: string | null;
+  religion_code?: string | null;
+  title_code?: string | null;
+};
+
+export type EmployeeProfilePayload = {
+  employee: Employee & EmployeeProfileOtherInfo;
+  other_info: EmployeeProfileOtherInfo;
+  sections: Record<string, Array<Record<string, unknown>>>;
+};
+
+export async function fetchEmployeeProfile(
+  employeeId: number | string,
+): Promise<EmployeeProfilePayload> {
+  const payload = await hrFetch<{ data: EmployeeProfilePayload }>(
+    `/employees/${employeeId}/profile`,
+  );
+  return payload.data;
+}
+
+export async function updateEmployeeOtherInfo(
+  employeeId: number | string,
+  data: EmployeeProfileOtherInfo,
+): Promise<EmployeeProfileOtherInfo> {
+  const payload = await hrFetch<{ data: EmployeeProfileOtherInfo }>(
+    `/employees/${employeeId}/profile/other-info`,
+    { method: "PUT", body: JSON.stringify(data) },
+  );
+  return payload.data;
+}
+
+export async function createEmployeeProfileRecord(
+  employeeId: number | string,
+  section: EmployeeProfileSectionKey,
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const payload = await hrFetch<{ data: Record<string, unknown> }>(
+    `/employees/${employeeId}/profile/${section}`,
+    { method: "POST", body: JSON.stringify(data) },
+  );
+  return payload.data;
+}
+
+export async function updateEmployeeProfileRecord(
+  employeeId: number | string,
+  section: EmployeeProfileSectionKey,
+  recordId: number | string,
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const payload = await hrFetch<{ data: Record<string, unknown> }>(
+    `/employees/${employeeId}/profile/${section}/${recordId}`,
+    { method: "PUT", body: JSON.stringify(data) },
+  );
+  return payload.data;
+}
+
+export async function deleteEmployeeProfileRecord(
+  employeeId: number | string,
+  section: EmployeeProfileSectionKey,
+  recordId: number | string,
+): Promise<void> {
+  await hrFetch(`/employees/${employeeId}/profile/${section}/${recordId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function uploadEmployeeProfileDocument(
+  employeeId: number | string,
+  fields: { title: string; category?: string; notes?: string; file: File },
+): Promise<Record<string, unknown>> {
+  const formData = new FormData();
+  formData.append("title", fields.title);
+  if (fields.category) formData.append("category", fields.category);
+  if (fields.notes) formData.append("notes", fields.notes);
+  formData.append("file", fields.file);
+
+  const payload = await hrUploadFetch<{ data: Record<string, unknown> }>(
+    `/employees/${employeeId}/profile/files`,
+    formData,
+  );
+  return payload.data;
+}
+
