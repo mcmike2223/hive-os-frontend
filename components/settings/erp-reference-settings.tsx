@@ -99,7 +99,7 @@ const EMPTY_FORM: ReferenceForm = {
   name: "",
   description: "",
   parent_id: "",
-  sort_order: "0",
+  sort_order: "1",
   is_active: true,
   metadata: {},
 };
@@ -195,7 +195,6 @@ export function ErpReferenceSettings({ canManage }: { canManage: boolean }) {
       return hrSettingsFetch<PaginatedReferences>(`/${selectedCatalog}?${params.toString()}`);
     },
     enabled: Boolean(selectedCatalog),
-    placeholderData: (previous) => previous,
   });
 
   const parentOptionsQuery = useQuery({
@@ -506,7 +505,7 @@ export function ErpReferenceSettings({ canManage }: { canManage: boolean }) {
               <Input
                 id="reference-sort-order"
                 type="number"
-                min="0"
+                min="1"
                 max="1000000"
                 inputMode="numeric"
                 value={form.sort_order}

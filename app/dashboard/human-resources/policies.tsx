@@ -4,7 +4,6 @@ import React, { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
-  CheckCircle2,
   CirclePlus,
   Download,
   FileText,
@@ -12,6 +11,7 @@ import {
   Pencil,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { authenticatedDownload } from "@/lib/authenticated-download";
-import { getAuthHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
+import {
+  getAuthHeaders,
+  getBackendApiRoot,
+  getWorkspaceScopeKey,
+} from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import { HrPolicy, hrFetch, hrUploadFetch } from "@/modules/humanresources/api";
+import { PanelCardGridSkeleton } from "@/components/ui/loading-states";
 
 const POLICY_FILE_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx";
 const POLICY_FILE_DESCRIPTION = "PDF, Word (.doc/.docx), or Excel (.xls/.xlsx)";
@@ -132,8 +137,18 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
     size?: number;
     mime_type?: string;
   } | null>(null);
+  const [removeExistingFile, setRemoveExistingFile] = useState(false);
   const [error, setError] = useState("");
   const errorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const clearSelectedUpload = () => {
+    setFile(null);
+    setManagerFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const { data: policies = [], isLoading } = useQuery<HrPolicy[]>({
     queryKey: ["hr-policies", scopeKey, categoryFilter, search],
@@ -158,7 +173,11 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
     });
     setFile(null);
     setManagerFile(null);
+    setRemoveExistingFile(false);
     setError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setDialogOpen(true);
   };
 
@@ -175,7 +194,11 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
     });
     setFile(null);
     setManagerFile(null);
+    setRemoveExistingFile(false);
     setError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setDialogOpen(true);
   };
 
@@ -207,6 +230,7 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
       mime_type: mimeType,
     });
     setFile(null); // Reset direct local upload if picker is chosen
+    setRemoveExistingFile(false);
     setIsFileManagerOpen(false);
     toast.success(`Selected file from File Manager: ${name}`);
   };
@@ -229,6 +253,8 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
         formData.append("file_name", managerFile.name);
         if (managerFile.size) formData.append("file_size", String(managerFile.size));
         if (managerFile.mime_type) formData.append("mime_type", managerFile.mime_type);
+      } else if (editingPolicy && removeExistingFile) {
+        formData.append("remove_file", "1");
       }
 
       if (editingPolicy) {
@@ -274,6 +300,7 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
       setDialogOpen(false);
       setFile(null);
       setManagerFile(null);
+      setRemoveExistingFile(false);
       setError("");
     },
     onError: (err) => {
@@ -304,15 +331,19 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
     policy.mime_type?.toLowerCase() === "application/pdf" ||
     policy.file_name?.toLowerCase().endsWith(".pdf") === true;
 
+  const policyDownloadUrl = (policy: HrPolicy) =>
+    `${getBackendApiRoot()}/hr/policies/${policy.id}/download`;
+
   const handlePolicyDownload = async (policy: HrPolicy) => {
-    if (!policy.download_url) return;
+    if (!policy.has_file && !policy.download_url) return;
 
     setDownloadingPolicyId(policy.id);
     try {
-      await authenticatedDownload(policy.download_url, {
+      await authenticatedDownload(policyDownloadUrl(policy), {
         filename: policy.file_name || `${policy.title}.document`,
         headers: getAuthHeaders(),
       });
+      toast.success("Download started.");
     } catch (downloadError) {
       toast.error(
         downloadError instanceof Error
@@ -323,6 +354,12 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
       setDownloadingPolicyId(null);
     }
   };
+
+  const currentAttachmentName =
+    file?.name ||
+    managerFile?.name ||
+    (!removeExistingFile ? editingPolicy?.file_name : null) ||
+    null;
 
   return (
     <div className="space-y-6">
@@ -386,11 +423,7 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
       </Card>
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 rounded-xl border border-slate-200 bg-slate-100 animate-pulse dark:border-slate-800 dark:bg-slate-900" />
-          ))}
-        </div>
+        <PanelCardGridSkeleton count={3} />
       ) : policies.length === 0 ? (
         <Card className="border-dashed border-slate-300 p-12 text-center dark:border-slate-700">
           <FileText className="mx-auto h-12 w-12 text-slate-400" />
@@ -455,32 +488,37 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
                     {policy.effective_date ?? "Not set"}
                   </td>
                   <td className="px-4 py-4">
-                    {policy.download_url ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          isPdfPolicy(policy)
-                            ? setPreviewPolicy(policy)
-                            : void handlePolicyDownload(policy)
-                        }
-                        disabled={downloadingPolicyId === policy.id}
-                        className="h-8 max-w-[200px] justify-start rounded-lg border-amber-700 px-3 text-xs font-bold text-amber-800 hover:bg-amber-50 hover:text-amber-950 dark:border-amber-400 dark:text-amber-200 dark:hover:bg-amber-950 dark:hover:text-amber-100"
-                      >
-                        {isPdfPolicy(policy) ? (
-                          <FileText aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-                        ) : (
-                          <Download aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-                        )}
-                        <span className="truncate">
-                          {downloadingPolicyId === policy.id
-                            ? "Downloading..."
-                            : isPdfPolicy(policy)
-                              ? "View PDF"
-                              : "Download"}
+                    {policy.has_file || policy.download_url ? (
+                      <div className="flex max-w-[240px] flex-col gap-1.5">
+                        <span className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          {policy.file_name || "Attached document"}
                         </span>
-                      </Button>
+                        <div className="flex flex-wrap gap-1.5">
+                          {isPdfPolicy(policy) && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewPolicy(policy)}
+                              className="h-8 justify-start rounded-lg border-amber-700 px-3 text-xs font-bold text-amber-800 hover:bg-amber-50 hover:text-amber-950 dark:border-amber-400 dark:text-amber-200 dark:hover:bg-amber-950 dark:hover:text-amber-100"
+                            >
+                              <FileText aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                              View
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void handlePolicyDownload(policy)}
+                            disabled={downloadingPolicyId === policy.id}
+                            className="h-8 justify-start rounded-lg border-slate-500 px-3 text-xs font-bold dark:border-slate-400"
+                          >
+                            <Download aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                            {downloadingPolicyId === policy.id ? "Downloading…" : "Download"}
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-500 dark:text-slate-400">No attachment</span>
                     )}
@@ -637,10 +675,53 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
             </div>
 
             <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-800">
-              <p className="text-sm font-bold text-foreground">Policy attachment document</p>
+              <p className="text-sm font-bold text-foreground">Policy attachment</p>
               <p id="policy-file-help" className="text-xs text-slate-600 dark:text-slate-300">
+                One document per policy. Choosing a new file replaces the current attachment.
                 Accepted formats: {POLICY_FILE_DESCRIPTION}. Maximum size: 10 MB.
               </p>
+
+              {currentAttachmentName && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-500 bg-slate-50 p-2.5 dark:border-slate-400 dark:bg-slate-900">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                      {file
+                        ? "Selected local upload"
+                        : managerFile
+                          ? "Selected from File Manager"
+                          : "Current attachment"}
+                    </p>
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {currentAttachmentName}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-9 shrink-0 border-red-600 text-red-700 hover:bg-red-50 dark:border-red-400 dark:text-red-300 dark:hover:bg-red-950"
+                    onClick={() => {
+                      const clearingReplacement = Boolean(file || managerFile);
+                      clearSelectedUpload();
+                      if (editingPolicy?.file_name && !clearingReplacement) {
+                        setRemoveExistingFile(true);
+                      } else if (editingPolicy?.file_name && clearingReplacement) {
+                        setRemoveExistingFile(false);
+                      }
+                    }}
+                  >
+                    <X aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
+                    Remove
+                  </Button>
+                </div>
+              )}
+
+              {editingPolicy?.file_name && removeExistingFile && !file && !managerFile && (
+                <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                  Current attachment will be removed when you save. Choose a new file to replace it instead.
+                </p>
+              )}
+
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -649,48 +730,62 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
                   className="h-10 justify-start font-semibold text-slate-800 dark:text-slate-200"
                 >
                   <FolderOpen className="mr-2 h-4 w-4 text-amber-500" />
-                  Select from File Manager
+                  {currentAttachmentName ? "Replace from File Manager" : "Select from File Manager"}
                 </Button>
 
-                {managerFile && (
-                  <div className="flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-50 p-2 text-xs font-bold text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                    <span className="truncate">Manager file selected: {managerFile.name}</span>
-                  </div>
-                )}
-
-                <div className="relative flex items-center justify-center text-xs uppercase tracking-wider text-slate-400 my-1">
-                  <span className="bg-background px-2">or upload file directly</span>
+                <div className="relative my-1 flex items-center justify-center text-xs uppercase tracking-wider text-slate-400">
+                  <span className="bg-background px-2">or upload from this computer</span>
                 </div>
 
-                <Label htmlFor="pol-file">Upload policy document</Label>
-                <Input
-                  id="pol-file"
-                  type="file"
-                  accept={POLICY_FILE_ACCEPT}
-                  aria-describedby="policy-file-help"
-                  onChange={(e) => {
-                    const selected = e.target.files?.[0];
-                    if (!selected) {
-                      setFile(null);
-                      return;
-                    }
-                    if (!isAllowedPolicyFile(selected.name)) {
-                      e.target.value = "";
-                      setFile(null);
-                      setError(`Policy attachment must be ${POLICY_FILE_DESCRIPTION}.`);
-                      requestAnimationFrame(() => errorRef.current?.focus());
-                      return;
-                    }
-                    setError("");
-                    setFile(selected);
-                    setManagerFile(null);
-                  }}
-                  className="h-10"
-                />
-
-                {editingPolicy?.file_name && !file && !managerFile && (
-                  <p className="text-xs text-slate-500">Current file: {editingPolicy.file_name}</p>
+                <Label htmlFor="pol-file">
+                  {currentAttachmentName ? "Choose replacement from computer" : "Upload from computer"}
+                </Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    ref={fileInputRef}
+                    id="pol-file"
+                    type="file"
+                    accept={POLICY_FILE_ACCEPT}
+                    aria-describedby="policy-file-help"
+                    onChange={(e) => {
+                      const selected = e.target.files?.[0];
+                      if (!selected) {
+                        setFile(null);
+                        return;
+                      }
+                      if (!isAllowedPolicyFile(selected.name)) {
+                        e.target.value = "";
+                        setFile(null);
+                        setError(`Policy attachment must be ${POLICY_FILE_DESCRIPTION}.`);
+                        requestAnimationFrame(() => errorRef.current?.focus());
+                        return;
+                      }
+                      setError("");
+                      setFile(selected);
+                      setManagerFile(null);
+                      setRemoveExistingFile(false);
+                    }}
+                    className="border-input bg-transparent file:text-foreground dark:bg-input/30 h-10 w-full min-w-0 flex-1 rounded-md border px-3 py-1 text-sm shadow-xs outline-none file:mr-3 file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                  />
+                  {file && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-10 shrink-0 border-red-600 text-red-700 hover:bg-red-50 dark:border-red-400 dark:text-red-300 dark:hover:bg-red-950"
+                      onClick={() => {
+                        clearSelectedUpload();
+                        setRemoveExistingFile(Boolean(editingPolicy?.file_name));
+                      }}
+                    >
+                      <X aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
+                      Clear local file
+                    </Button>
+                  )}
+                </div>
+                {file && (
+                  <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                    Ready to upload: {file.name}
+                  </p>
                 )}
               </div>
             </div>
@@ -723,12 +818,12 @@ export function HrPoliciesPanel({ canManage }: { canManage: boolean }) {
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 bg-slate-100 p-2 dark:bg-slate-950 sm:p-3">
-            {previewPolicy?.download_url ? (
+            {previewPolicy && (previewPolicy.has_file || previewPolicy.download_url) ? (
               <PdfViewer
-                src={previewPolicy.download_url}
-                fetchUrl={previewPolicy.download_url}
+                src={policyDownloadUrl(previewPolicy)}
+                fetchUrl={policyDownloadUrl(previewPolicy)}
                 fetchHeaders={getAuthHeaders()}
-                downloadUrl={previewPolicy.download_url}
+                downloadUrl={policyDownloadUrl(previewPolicy)}
                 title={previewPolicy.file_name || `${previewPolicy.title}.pdf`}
                 className="h-full min-h-0 w-full rounded-xl border-slate-500 dark:border-slate-400"
               />

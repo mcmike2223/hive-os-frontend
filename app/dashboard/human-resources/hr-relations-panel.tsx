@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { Employee, hrFetch } from "@/modules/humanresources/api";
+import { PanelTableSkeleton } from "@/components/ui/loading-states";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
@@ -449,6 +450,9 @@ export function EmployeeRelationsPanel({
           </TabsList>
 
           <TabsContent value="administrative">
+            {adminQuery.isLoading ? (
+              <PanelTableSkeleton rows={6} cols={8} />
+            ) : (
             <div className="overflow-x-auto rounded-xl border border-slate-300 dark:border-slate-700">
               <table className="w-full text-left text-sm">
                 <thead className="border-b bg-slate-100 text-xs font-bold uppercase text-slate-600 dark:bg-slate-900 dark:text-slate-400">
@@ -464,13 +468,7 @@ export function EmployeeRelationsPanel({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {adminQuery.isLoading ? (
-                    <tr>
-                      <td colSpan={8} className="p-8 text-center text-sm text-slate-500">
-                        Loading...
-                      </td>
-                    </tr>
-                  ) : adminCases.length === 0 ? (
+                  {adminCases.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-8 text-center text-sm text-slate-500">
                         No administrative punishments recorded yet.
@@ -573,9 +571,13 @@ export function EmployeeRelationsPanel({
                 </tbody>
               </table>
             </div>
+            )}
           </TabsContent>
 
           <TabsContent value="judiciary">
+            {judiciaryQuery.isLoading ? (
+              <PanelTableSkeleton rows={6} cols={8} />
+            ) : (
             <div className="overflow-x-auto rounded-xl border border-slate-300 dark:border-slate-700">
               <table className="w-full text-left text-sm">
                 <thead className="border-b bg-slate-100 text-xs font-bold uppercase text-slate-600 dark:bg-slate-900 dark:text-slate-400">
@@ -591,13 +593,7 @@ export function EmployeeRelationsPanel({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {judiciaryQuery.isLoading ? (
-                    <tr>
-                      <td colSpan={8} className="p-8 text-center text-sm text-slate-500">
-                        Loading...
-                      </td>
-                    </tr>
-                  ) : judiciaryCases.length === 0 ? (
+                  {judiciaryCases.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-8 text-center text-sm text-slate-500">
                         No judiciary punishments recorded yet.
@@ -689,6 +685,7 @@ export function EmployeeRelationsPanel({
                 </tbody>
               </table>
             </div>
+            )}
           </TabsContent>
         </Tabs>
 

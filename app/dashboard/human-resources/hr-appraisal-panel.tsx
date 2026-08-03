@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Award, Target, Star, Plus, CheckCircle2 } from 'lucide-react';
+import { Award, Target, Star, Plus, CheckCircle2, Loader2 } from 'lucide-react';
 import { hrFetch } from '@/modules/humanresources/api';
 import { getWorkspaceScopeKey } from '@/lib/runtime-context';
+import { PanelCardGridSkeleton } from '@/components/ui/loading-states';
 
 export function HrAppraisalPanel({ employees }: { employees: any[] }) {
   const queryClient = useQueryClient();
@@ -45,6 +46,16 @@ export function HrAppraisalPanel({ employees }: { employees: any[] }) {
     onSuccess: () => {
       toast.success('Appraisal review recorded.');
       setCreateOpen(false);
+      setForm({
+        employee_id: '',
+        title: '',
+        appraisal_type: 'annual',
+        period_start: new Date().toISOString().slice(0, 7) + '-01',
+        period_end: new Date().toISOString().slice(0, 10),
+        overall_score: '85',
+        manager_feedback: '',
+        action_plan: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['hr-appraisals'] });
     },
   });
@@ -66,7 +77,11 @@ export function HrAppraisalPanel({ employees }: { employees: any[] }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {appraisals.length === 0 ? (
+        {appraisalsQuery.isLoading ? (
+          <div className="col-span-full">
+            <PanelCardGridSkeleton count={3} />
+          </div>
+        ) : appraisals.length === 0 ? (
           <div className="col-span-full rounded-xl border p-8 text-center text-xs text-slate-500">
             No performance appraisals scheduled yet. Click "Schedule Appraisal" to initiate a review.
           </div>
@@ -105,7 +120,7 @@ export function HrAppraisalPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.employee_id}
                 onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Select Employee</option>
                 {employees.map((emp: any) => (
@@ -128,7 +143,7 @@ export function HrAppraisalPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.appraisal_type}
                 onChange={(e) => setForm({ ...form, appraisal_type: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="probation_60_day">Probation 60-Day Review</option>
                 <option value="annual">Annual Appraisal</option>
@@ -153,10 +168,16 @@ export function HrAppraisalPanel({ employees }: { employees: any[] }) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={createMutation.isPending}>
               Cancel
             </Button>
-            <Button onClick={() => createMutation.mutate()}>Save Review</Button>
+            <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+              ) : (
+                'Save Review'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

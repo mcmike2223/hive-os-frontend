@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PanelTableSkeleton } from "@/components/ui/loading-states";
 import {
   Dialog,
   DialogContent,
@@ -2689,6 +2690,9 @@ export function EmployeeTransfersPanel() {
         </div>
 
         {/* Transfers DataTable */}
+        {transfersQuery.isLoading ? (
+          <PanelTableSkeleton rows={6} cols={8} />
+        ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100 dark:bg-slate-900 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b">
@@ -2763,6 +2767,7 @@ export function EmployeeTransfersPanel() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Initiate Transfer Modal */}
         <Dialog open={openModal} onOpenChange={setOpenModal}>

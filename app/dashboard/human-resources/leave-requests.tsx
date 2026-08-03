@@ -52,6 +52,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { PanelTableSkeleton } from "@/components/ui/loading-states";
 import { usePermissions } from "@/hooks/use-permissions";
 import { authenticatedDownload } from "@/lib/authenticated-download";
 import {
@@ -94,9 +95,9 @@ type RequestForm = {
 };
 
 const controlClass =
-  "min-h-11 border-slate-500 bg-background focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "min-h-11 w-full min-w-0 border-slate-500 bg-background focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
 const selectClass =
-  "min-h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "min-h-11 w-full min-w-0 rounded-md border border-slate-500 bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
 const today = () => new Date().toISOString().slice(0, 10);
 const newIdempotencyKey = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -194,12 +195,61 @@ function formatFileSize(value?: number | null) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const presentation = statusPresentation[status] ?? {
-    label: status.replaceAll("_", " "),
-    className:
-      "border-slate-500 bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100",
+function leaveHasPendingApprovers(request: {
+  status: string;
+  workflow_run_id?: string | null;
+  workflow_status?: string | null;
+  approvals?: Array<{ status: string }> | null;
+}): boolean {
+  if (request.status !== "submitted") return false;
+  if (request.workflow_status === "pending") return true;
+  if (request.workflow_run_id) return true;
+  return Boolean(
+    request.approvals?.some((approval) => approval.status === "pending"),
+  );
+}
+
+function presentLeaveStatus(request: {
+  status: string;
+  workflow_run_id?: string | null;
+  workflow_status?: string | null;
+  approvals?: Array<{ status: string }> | null;
+}): { label: string; className: string } {
+  if (
+    request.status === "submitted" &&
+    !leaveHasPendingApprovers(request)
+  ) {
+    return {
+      label: "Submitted — no approver",
+      className:
+        "border-orange-700 bg-orange-100 text-orange-950 dark:border-orange-300 dark:bg-orange-950 dark:text-orange-100",
+    };
+  }
+
+  return (
+    statusPresentation[request.status] ?? {
+      label: request.status.replaceAll("_", " "),
+      className:
+        "border-slate-500 bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100",
+    }
+  );
+}
+
+function StatusBadge({
+  status,
+  request,
+}: {
+  status: string;
+  request?: {
+    status: string;
+    workflow_run_id?: string | null;
+    workflow_status?: string | null;
+    approvals?: Array<{ status: string }> | null;
   };
+}) {
+  const presentation = presentLeaveStatus(
+    request ?? { status, workflow_run_id: null, workflow_status: null, approvals: [] },
+  );
   return (
     <Badge
       variant="outline"
@@ -246,7 +296,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <Label htmlFor={id} className="font-bold">
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
@@ -267,10 +317,12 @@ function Field({
 function ReadinessPanel({
   preview,
   loading,
+  idle,
   error,
 }: {
   preview?: LeaveRequestPreview;
   loading: boolean;
+  idle?: boolean;
   error?: string;
 }) {
   const checks = [
@@ -279,13 +331,20 @@ function ReadinessPanel({
       ready: Boolean(preview?.segments.length),
       detail: preview
         ? `${preview.chargeable_days} chargeable day${preview.chargeable_days === 1 ? "" : "s"}`
-        : "Choose dates to calculate",
+        : "Choose first and last dates",
     },
     {
       label: "Policy and balance",
-      ready: Boolean(preview?.is_submittable),
-      detail:
-        preview?.balance_after == null
+      ready: Boolean(
+        preview?.segments.length &&
+          !(preview.blocking_reasons ?? []).some(
+            (reason) =>
+              !/workflow|approver|approval workflow/i.test(reason),
+          ),
+      ),
+      detail: !preview
+        ? "Waiting for leave details"
+        : preview.balance_after == null
           ? "No tracked balance"
           : `${preview.balance_after} days after request`,
     },
@@ -295,16 +354,27 @@ function ReadinessPanel({
         ? !preview.requires_document ||
           preview.supporting_documents_received > 0
         : false,
-      detail: preview?.requires_document
-        ? `${preview.supporting_documents_received} attached`
-        : "Not required",
+      detail: !preview
+        ? "Checked after dates are set"
+        : preview.requires_document
+          ? `${preview.supporting_documents_received} attached`
+          : "Not required",
     },
     {
       label: "Approval route",
-      ready: preview ? !preview.workflow.configuration_error : false,
-      detail: preview?.workflow.configured
-        ? `${preview.workflow.approver_count ?? 0} approver${preview.workflow.approver_count === 1 ? "" : "s"}`
-        : "No workflow required",
+      ready: Boolean(
+        preview &&
+          preview.workflow.configured &&
+          !preview.workflow.configuration_error &&
+          (preview.workflow.approver_count ?? 0) > 0,
+      ),
+      detail: !preview
+        ? "Checked after dates are set"
+        : preview.workflow.configuration_error
+          ? preview.workflow.configuration_error
+          : preview.workflow.configured
+            ? `${preview.workflow.approver_count ?? 0} approver${preview.workflow.approver_count === 1 ? "" : "s"}`
+            : "Configure a leave approval workflow before submitting",
     },
   ];
 
@@ -336,6 +406,12 @@ function ReadinessPanel({
           <ShieldCheck aria-hidden="true" className="h-6 w-6 text-amber-300" />
         )}
       </div>
+      {idle ? (
+        <p className="mt-5 rounded-lg border border-slate-600 bg-slate-900 p-3 text-sm text-slate-200">
+          Fill in leave type and dates to run the readiness check. It updates a
+          moment after you stop editing those fields.
+        </p>
+      ) : null}
       <ol className="mt-5 space-y-3">
         {checks.map((check, index) => (
           <li key={check.label} className="flex gap-3">
@@ -410,8 +486,8 @@ function emptyForm(
   return {
     employee_id: canManage ? String(employees[0]?.id ?? "") : "",
     leave_type_id: String(types[0]?.id ?? ""),
-    starts_on: today(),
-    ends_on: today(),
+    starts_on: "",
+    ends_on: "",
     segment_type: "full_day",
     starts_at: "09:00",
     ends_at: "11:00",
@@ -519,25 +595,60 @@ function RequestComposer({
     [canManage, form, request],
   );
 
+  // Only fields that affect balance/policy/docs — ignore reason/contacts keystrokes.
+  const previewRequest = useMemo(
+    () => ({
+      employee_id: payload.employee_id,
+      leave_type_id: payload.leave_type_id,
+      starts_on: payload.starts_on,
+      ends_on: payload.ends_on,
+      segment_type: payload.segment_type,
+      starts_at: payload.starts_at,
+      ends_at: payload.ends_at,
+      attachments: payload.attachments,
+    }),
+    [
+      payload.attachments,
+      payload.employee_id,
+      payload.ends_at,
+      payload.ends_on,
+      payload.leave_type_id,
+      payload.segment_type,
+      payload.starts_at,
+      payload.starts_on,
+    ],
+  );
+
+  const [debouncedPreviewRequest, setDebouncedPreviewRequest] =
+    useState(previewRequest);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedPreviewRequest(previewRequest);
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [previewRequest]);
+
   const canPreview =
     open &&
-    Boolean(payload.leave_type_id) &&
-    Boolean(payload.starts_on) &&
-    Boolean(payload.ends_on) &&
-    (!canManage || Boolean(payload.employee_id)) &&
-    (form.segment_type !== "hourly" ||
-      (Boolean(form.starts_at) && Boolean(form.ends_at)));
+    Boolean(debouncedPreviewRequest.leave_type_id) &&
+    Boolean(debouncedPreviewRequest.starts_on) &&
+    Boolean(debouncedPreviewRequest.ends_on) &&
+    (!canManage || Boolean(debouncedPreviewRequest.employee_id)) &&
+    (debouncedPreviewRequest.segment_type !== "hourly" ||
+      (Boolean(debouncedPreviewRequest.starts_at) &&
+        Boolean(debouncedPreviewRequest.ends_at)));
 
   const preview = useQuery({
-    queryKey: ["hr-leave-preview", payload],
+    queryKey: ["hr-leave-preview", debouncedPreviewRequest],
     queryFn: () =>
       hrFetch<{ data: LeaveRequestPreview }>("/leave/requests/preview", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(debouncedPreviewRequest),
       }),
     enabled: canPreview,
     retry: false,
-    staleTime: 5_000,
+    staleTime: 15_000,
   });
 
   const save = useMutation({
@@ -550,22 +661,36 @@ function RequestComposer({
             body: JSON.stringify({ ...payload, action: "draft" }),
           },
         );
-        if (action === "draft") return updated;
-        return hrFetch<{ data: LeaveRequest }>(
-          `/leave/requests/${request.id}/submit`,
-          { method: "POST", body: JSON.stringify({}) },
-        );
+        if (action === "draft") return { ...updated, workflowConfigured: false };
+        const submitted = await hrFetch<{
+          data: LeaveRequest;
+          workflow?: { configured?: boolean; status?: string };
+        }>(`/leave/requests/${request.id}/submit`, {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        return {
+          ...submitted,
+          workflowConfigured: Boolean(submitted.workflow?.configured),
+        };
       }
-      return hrFetch<{ data: LeaveRequest }>("/leave/requests", {
+      const created = await hrFetch<{
+        data: LeaveRequest;
+        workflow?: { configured?: boolean; status?: string };
+      }>("/leave/requests", {
         method: "POST",
         body: JSON.stringify({ ...payload, action }),
       });
+      return {
+        ...created,
+        workflowConfigured: Boolean(created.workflow?.configured),
+      };
     },
     onSuccess: (result, action) => {
       toast.success(
         action === "draft"
           ? "Leave request saved as a draft."
-          : "Leave request sent through its approval workflow.",
+          : "Leave request sent for approval.",
       );
       onSaved(result.data);
       onOpenChange(false);
@@ -578,6 +703,15 @@ function RequestComposer({
       ),
   });
 
+  const workflowConfigured = Boolean(
+    preview.data?.data.workflow.configured &&
+      !preview.data?.data.workflow.configuration_error &&
+      (preview.data?.data.workflow.approver_count ?? 0) > 0,
+  );
+  const canSendForApproval = Boolean(
+    canPreview && preview.data?.data.is_submittable && workflowConfigured,
+  );
+
   const previewError =
     preview.error instanceof Error ? preview.error.message : undefined;
   const describedBy = error ? "leave-request-error" : undefined;
@@ -589,7 +723,7 @@ function RequestComposer({
         if (!save.isPending) onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="flex max-h-[94vh] max-w-6xl flex-col overflow-hidden p-0">
+      <DialogContent className="flex h-[min(94vh,920px)] w-[min(96vw,72rem)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl">
         {pickerOpen ? (
           <>
             <div className="flex items-start gap-3 border-b border-slate-300 px-6 py-4 dark:border-slate-700">
@@ -668,7 +802,7 @@ function RequestComposer({
               </div>
             </DialogHeader>
 
-            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)]">
               <form
                 id="leave-request-form"
                 onSubmit={(event) => {
@@ -676,16 +810,16 @@ function RequestComposer({
                   setError("");
                   save.mutate("submit");
                 }}
-                className="grid content-start gap-5 p-6 sm:grid-cols-2"
+                className="grid min-h-0 content-start gap-5 overflow-y-auto p-6 md:grid-cols-2"
               >
                 {error ? (
-                  <div className="sm:col-span-2">
+                  <div className="md:col-span-2">
                     <ErrorSummary message={error} />
                   </div>
                 ) : null}
 
                 {canManage ? (
-                  <div className="sm:col-span-2">
+                  <div className="md:col-span-2">
                     <Field id="leave-employee" label="Employee" required>
                       <select
                         id="leave-employee"
@@ -829,7 +963,7 @@ function RequestComposer({
                   </>
                 ) : null}
 
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <Field
                     id="leave-reason"
                     label="Reason"
@@ -905,7 +1039,7 @@ function RequestComposer({
                   />
                 </Field>
 
-                <div className="space-y-3 sm:col-span-2">
+                <div className="space-y-3 md:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-bold">Supporting documents</p>
@@ -973,14 +1107,15 @@ function RequestComposer({
                 </div>
               </form>
 
-              <div className="border-t border-slate-300 bg-slate-100 p-5 dark:border-slate-700 dark:bg-slate-900 lg:border-l lg:border-t-0">
+              <div className="min-h-0 overflow-y-auto border-t border-slate-300 bg-slate-100 p-5 dark:border-slate-700 dark:bg-slate-900 lg:border-l lg:border-t-0">
                 <div className="lg:sticky lg:top-0">
                   <ReadinessPanel
-                    preview={preview.data?.data}
-                    loading={preview.isFetching}
-                    error={previewError}
+                    preview={canPreview ? preview.data?.data : undefined}
+                    loading={canPreview && preview.isFetching}
+                    idle={!canPreview}
+                    error={canPreview ? previewError : undefined}
                   />
-                  {preview.data?.data.workflow.route?.length ? (
+                  {canPreview && preview.data?.data.workflow.route?.length ? (
                     <div className="mt-4 rounded-xl border border-slate-400 bg-background p-4 dark:border-slate-600">
                       <p className="text-sm font-black">Approval route</p>
                       <ol className="mt-3 space-y-2">
@@ -1039,7 +1174,7 @@ function RequestComposer({
                 form="leave-request-form"
                 disabled={
                   save.isPending ||
-                  !preview.data?.data.is_submittable ||
+                  !canSendForApproval ||
                   preview.isFetching
                 }
                 className="bg-teal-800 text-white hover:bg-teal-700 dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200"
@@ -1233,7 +1368,10 @@ function RequestDetails({
 
   const submit = useMutation({
     mutationFn: () =>
-      hrFetch(`/leave/requests/${requestId}/submit`, {
+      hrFetch<{
+        data: LeaveRequest;
+        workflow?: { configured?: boolean; status?: string };
+      }>(`/leave/requests/${requestId}/submit`, {
         method: "POST",
         body: JSON.stringify({}),
       }),
@@ -1283,16 +1421,19 @@ function RequestDetails({
                   : "Loading the complete request history."}
               </DialogDescription>
             </div>
-            {request ? <StatusBadge status={request.status} /> : null}
+            {request ? <StatusBadge status={request.status} request={request} /> : null}
           </div>
         </DialogHeader>
 
         {details.isLoading ? (
-          <div className="grid min-h-72 place-items-center">
-            <Loader2
-              aria-label="Loading leave request"
-              className="h-7 w-7 animate-spin"
-            />
+          <div className="space-y-4 p-6" role="status" aria-label="Loading leave request">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-20 animate-pulse rounded-xl bg-muted/60" />
+              ))}
+            </div>
+            <div className="h-32 w-full animate-pulse rounded-xl bg-muted/60" />
+            <div className="h-40 w-full animate-pulse rounded-xl bg-muted/60" />
           </div>
         ) : details.isError || !request ? (
           <div className="p-6">
@@ -1308,7 +1449,7 @@ function RequestDetails({
           <div className="space-y-6 p-6">
             <section
               aria-labelledby="leave-summary-heading"
-              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
             >
               <h3 id="leave-summary-heading" className="sr-only">
                 Request summary
@@ -1323,6 +1464,9 @@ function RequestDetails({
                     ? "Not tracked"
                     : `${request.calculation_snapshot.balance_after} days`,
                 ],
+                ...(request.status === "approved" || request.status === "rejected"
+                  ? ([["Decided", formatDateTime(request.decided_at)]] as const)
+                  : []),
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -1354,7 +1498,17 @@ function RequestDetails({
                     Approval route
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Status refreshes automatically while an approval is pending.
+                    {leaveHasPendingApprovers(request)
+                      ? "Status refreshes automatically while an approval is pending."
+                      : request.status === "approved"
+                        ? "This leave request was approved through Workflow."
+                        : request.status === "rejected"
+                          ? "This leave request was rejected through Workflow."
+                          : request.approvals?.length
+                            ? "Approvers for this leave request."
+                            : request.status === "submitted"
+                              ? "This request has no approver assigned. Withdraw it, configure a leave approval workflow, then submit again."
+                              : "Approval steps appear here when a leave workflow rule applies."}
                   </p>
                 </div>
                 {request.workflow_status === "pending" ? (
@@ -1388,16 +1542,28 @@ function RequestDetails({
                           {approval.sequence}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block font-bold">
-                            {approval.user?.name ??
-                              approval.role?.name ??
-                              "Assigned approver"}
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold">
+                              {approval.user?.name ??
+                                approval.role?.name ??
+                                "Assigned approver"}
+                            </span>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${
+                                approval.status === "approved"
+                                  ? "border-teal-700 bg-teal-50 text-teal-900 dark:border-teal-300 dark:bg-teal-950 dark:text-teal-100"
+                                  : approval.status === "rejected"
+                                    ? "border-red-700 bg-red-50 text-red-900 dark:border-red-300 dark:bg-red-950 dark:text-red-100"
+                                    : "border-amber-700 bg-amber-50 text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100"
+                              }`}
+                            >
+                              {approval.status}
+                            </span>
                           </span>
-                          <span className="block text-sm capitalize text-slate-600 dark:text-slate-300">
-                            {approval.status}
+                          <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">
                             {approval.actioned_at
-                              ? ` · ${formatDateTime(approval.actioned_at)}`
-                              : ""}
+                              ? `Actioned ${formatDateTime(approval.actioned_at)}`
+                              : "Waiting for this approver"}
                           </span>
                           {approval.notes ? (
                             <span className="mt-1 block text-sm">
@@ -1410,7 +1576,9 @@ function RequestDetails({
                 </ol>
               ) : (
                 <p className="mt-4 rounded-xl border border-dashed border-slate-500 p-4 text-sm text-slate-600 dark:text-slate-300">
-                  This request has no approval steps yet.
+                  {request.status === "submitted"
+                    ? "No approval steps were created. Withdraw this request, configure LeaveRequest → submit_for_approval in Workflow, then send it again."
+                    : "This request has no approval steps."}
                 </p>
               )}
             </section>
@@ -1864,6 +2032,11 @@ export function LeaveRequestWorkspace() {
 
         <Card className="mt-4 overflow-hidden border-slate-500 dark:border-slate-600">
           <CardContent className="p-0">
+            {requests.isLoading ? (
+              <div className="p-4">
+                <PanelTableSkeleton rows={6} cols={canManage ? 6 : 5} />
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableCaption>
@@ -1885,19 +2058,7 @@ export function LeaveRequestWorkspace() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {requests.isLoading ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={canManage ? 6 : 5}
-                        className="h-32 text-center"
-                      >
-                        <Loader2
-                          aria-label="Loading leave requests"
-                          className="mx-auto animate-spin"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredRows.length ? (
+                  {filteredRows.length ? (
                     filteredRows.map((request) => (
                       <TableRow key={request.id}>
                         <TableCell>
@@ -1936,7 +2097,7 @@ export function LeaveRequestWorkspace() {
                           ) : null}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge status={request.status} />
+                          <StatusBadge status={request.status} request={request} />
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -1972,6 +2133,7 @@ export function LeaveRequestWorkspace() {
                 </TableBody>
               </Table>
             </div>
+            )}
           </CardContent>
         </Card>
       </section>

@@ -7,14 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Laptop, Car, ShieldCheck, Plus, AlertTriangle } from 'lucide-react';
+import { Laptop, Car, ShieldCheck, Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import { hrFetch } from '@/modules/humanresources/api';
 import { getWorkspaceScopeKey } from '@/lib/runtime-context';
+import { PanelTableSkeleton } from '@/components/ui/loading-states';
 
 export function HrAssetsPanel({ employees }: { employees: any[] }) {
   const queryClient = useQueryClient();
   const scope = getWorkspaceScopeKey();
   const [createOpen, setCreateOpen] = useState(false);
+  const [updatingAssetId, setUpdatingAssetId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     employee_id: '',
@@ -39,6 +41,14 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
     onSuccess: () => {
       toast.success('Asset custody registered.');
       setCreateOpen(false);
+      setForm({
+        employee_id: '',
+        asset_name: '',
+        asset_category: 'it_laptop',
+        serial_number: '',
+        issued_date: new Date().toISOString().slice(0, 10),
+        notes: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['hr-assets'] });
     },
   });
@@ -49,9 +59,15 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
         method: 'PATCH',
         body: JSON.stringify({ status, return_date: status === 'returned' ? new Date().toISOString().slice(0, 10) : null }),
       }),
+    onMutate: ({ id }) => {
+      setUpdatingAssetId(id);
+    },
     onSuccess: () => {
       toast.success('Asset status updated.');
       queryClient.invalidateQueries({ queryKey: ['hr-assets'] });
+    },
+    onSettled: () => {
+      setUpdatingAssetId(null);
     },
   });
 
@@ -71,6 +87,9 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
         </Button>
       </div>
 
+      {assetsQuery.isLoading ? (
+        <PanelTableSkeleton rows={6} cols={7} />
+      ) : (
       <div className="rounded-xl border bg-white overflow-x-auto dark:bg-slate-950">
         <table className="w-full text-left text-xs">
           <thead className="border-b bg-slate-50 font-bold dark:bg-slate-900">
@@ -118,9 +137,14 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
                         size="sm"
                         variant="outline"
                         onClick={() => updateStatusMutation.mutate({ id: a.id, status: 'returned' })}
+                        disabled={updatingAssetId !== null}
                         className="h-7 text-[10px]"
                       >
-                        Mark Returned
+                        {updatingAssetId === a.id ? (
+                          <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Returning...</>
+                        ) : (
+                          'Mark Returned'
+                        )}
                       </Button>
                     )}
                   </td>
@@ -130,6 +154,7 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
           </tbody>
         </table>
       </div>
+      )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
@@ -142,7 +167,7 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.employee_id}
                 onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Select Employee</option>
                 {employees.map((emp: any) => (
@@ -165,7 +190,7 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.asset_category}
                 onChange={(e) => setForm({ ...form, asset_category: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="it_laptop">IT Laptop / Computer</option>
                 <option value="mobile_device">Mobile Phone / Tablet</option>
@@ -185,10 +210,16 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={createMutation.isPending}>
               Cancel
             </Button>
-            <Button onClick={() => createMutation.mutate()}>Issue Asset</Button>
+            <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Issuing...</>
+              ) : (
+                'Issue Asset'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

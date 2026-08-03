@@ -7,14 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Receipt, Check, X, Plus, DollarSign } from 'lucide-react';
+import { Receipt, Check, X, Plus, DollarSign, Loader2 } from 'lucide-react';
 import { hrFetch } from '@/modules/humanresources/api';
 import { getWorkspaceScopeKey } from '@/lib/runtime-context';
+import { PanelTableSkeleton } from '@/components/ui/loading-states';
 
 export function HrExpensesPanel({ employees }: { employees: any[] }) {
   const queryClient = useQueryClient();
   const scope = getWorkspaceScopeKey();
   const [createOpen, setCreateOpen] = useState(false);
+  const [updatingAction, setUpdatingAction] = useState<{ id: number; status: string } | null>(null);
 
   const [form, setForm] = useState({
     employee_id: '',
@@ -38,6 +40,13 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
     onSuccess: () => {
       toast.success('Expense claim filed.');
       setCreateOpen(false);
+      setForm({
+        employee_id: '',
+        category: 'travel',
+        amount: '',
+        expense_date: new Date().toISOString().slice(0, 10),
+        description: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['hr-expenses'] });
     },
   });
@@ -48,9 +57,15 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
         method: 'PATCH',
         body: JSON.stringify({ status, approved_by: 'HR Manager' }),
       }),
+    onMutate: ({ id, status }) => {
+      setUpdatingAction({ id, status });
+    },
     onSuccess: () => {
       toast.success('Expense status updated.');
       queryClient.invalidateQueries({ queryKey: ['hr-expenses'] });
+    },
+    onSettled: () => {
+      setUpdatingAction(null);
     },
   });
 
@@ -70,6 +85,9 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
         </Button>
       </div>
 
+      {expensesQuery.isLoading ? (
+        <PanelTableSkeleton rows={6} cols={7} />
+      ) : (
       <div className="rounded-xl border bg-white overflow-x-auto dark:bg-slate-950">
         <table className="w-full text-left text-xs">
           <thead className="border-b bg-slate-50 font-bold dark:bg-slate-900">
@@ -119,17 +137,27 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                         <Button
                           size="sm"
                           onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'approved' })}
+                          disabled={updatingAction !== null}
                           className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700"
                         >
-                          Approve
+                          {updatingAction?.id === e.id && updatingAction?.status === 'approved' ? (
+                            <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Approving...</>
+                          ) : (
+                            'Approve'
+                          )}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'rejected' })}
+                          disabled={updatingAction !== null}
                           className="h-7 text-[10px] text-red-600"
                         >
-                          Reject
+                          {updatingAction?.id === e.id && updatingAction?.status === 'rejected' ? (
+                            <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Rejecting...</>
+                          ) : (
+                            'Reject'
+                          )}
                         </Button>
                       </>
                     )}
@@ -137,9 +165,14 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                       <Button
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'reimbursed' })}
+                        disabled={updatingAction !== null}
                         className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
                       >
-                        Reimburse Payout
+                        {updatingAction?.id === e.id && updatingAction?.status === 'reimbursed' ? (
+                          <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Reimbursing...</>
+                          ) : (
+                            'Reimburse Payout'
+                          )}
                       </Button>
                     )}
                   </td>
@@ -149,6 +182,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
           </tbody>
         </table>
       </div>
+      )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
@@ -161,7 +195,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.employee_id}
                 onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Select Employee</option>
                 {employees.map((emp: any) => (
@@ -176,7 +210,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="travel">Business Travel</option>
                 <option value="per_diem">Per Diem Allowance</option>
@@ -203,10 +237,16 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={createMutation.isPending}>
               Cancel
             </Button>
-            <Button onClick={() => createMutation.mutate()}>File Claim</Button>
+            <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Filing...</>
+              ) : (
+                'File Claim'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

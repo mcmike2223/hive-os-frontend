@@ -244,16 +244,60 @@ export function WorkflowDecisionDialog({
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Request Details</p>
                 <div className="mt-3 space-y-2">
                   {(() => {
-                    const payload = (approval.approvable as any).payload;
-                    if (!payload || typeof payload !== 'object') return <p className="text-sm text-muted-foreground">No payload data available</p>;
-                    return Object.entries(payload).map(([key, value]) => {
-                      if (key === 'id' || key === 'created_at' || key === 'updated_at') return null;
-                      const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                      const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                    const subject = approval.approvable as WorkflowDecisionSubject & Record<string, unknown>;
+                    const payload =
+                      subject.payload && typeof subject.payload === "object"
+                        ? subject.payload
+                        : null;
+
+                    if (!payload || Object.keys(payload).length === 0) {
                       return (
-                        <div key={key} className="flex justify-between items-start gap-4 text-sm">
-                          <span className="text-muted-foreground font-medium capitalize">{displayKey}:</span>
-                          <span className="font-medium text-right">{displayValue}</span>
+                        <p className="text-sm text-muted-foreground">
+                          No request details were attached to this approval.
+                        </p>
+                      );
+                    }
+
+                    return Object.entries(payload).map(([key, value]) => {
+                      if (
+                        value === null ||
+                        value === undefined ||
+                        value === "" ||
+                        key === "id" ||
+                        key === "created_at" ||
+                        key === "updated_at"
+                      ) {
+                        return null;
+                      }
+
+                      const displayKey = key.includes(" ")
+                        ? key
+                        : key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+                      const isLink =
+                        typeof value === "string" &&
+                        (key.toLowerCase().includes("open in") || value.startsWith("/dashboard/"));
+
+                      if (isLink) {
+                        return (
+                          <div key={key} className="flex items-start justify-between gap-4 text-sm">
+                            <span className="font-medium capitalize text-muted-foreground">{displayKey}</span>
+                            <a
+                              href={String(value)}
+                              className="font-bold text-teal-700 underline-offset-2 hover:underline dark:text-teal-300"
+                            >
+                              Open record
+                            </a>
+                          </div>
+                        );
+                      }
+
+                      const displayValue =
+                        typeof value === "object" ? JSON.stringify(value) : String(value);
+
+                      return (
+                        <div key={key} className="flex items-start justify-between gap-4 text-sm">
+                          <span className="font-medium capitalize text-muted-foreground">{displayKey}</span>
+                          <span className="max-w-[60%] text-right font-medium">{displayValue}</span>
                         </div>
                       );
                     });

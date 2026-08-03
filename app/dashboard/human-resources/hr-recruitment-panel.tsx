@@ -7,9 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Briefcase, UserPlus, CheckCircle, Star, Plus, ArrowRight } from 'lucide-react';
+import { Briefcase, UserPlus, CheckCircle, Star, Plus, ArrowRight, Loader2 } from 'lucide-react';
 import { hrFetch } from '@/modules/humanresources/api';
 import { getWorkspaceScopeKey } from '@/lib/runtime-context';
+import {
+  PanelCardGridSkeleton,
+  PanelKanbanSkeleton,
+} from '@/components/ui/loading-states';
 
 const STAGES = [
   { code: 'applied', label: 'Applied' },
@@ -63,6 +67,14 @@ export function HrRecruitmentPanel() {
     onSuccess: () => {
       toast.success('Job posting created successfully.');
       setCreatePostingOpen(false);
+      setPostingForm({
+        title: '',
+        code: 'JOB-' + Math.floor(1000 + Math.random() * 9000),
+        vacancies_count: '1',
+        employment_type: 'full_time',
+        location: 'Addis Ababa',
+        description: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['hr-job-postings'] });
     },
   });
@@ -76,6 +88,13 @@ export function HrRecruitmentPanel() {
     onSuccess: () => {
       toast.success('Applicant registered successfully.');
       setAddApplicantOpen(false);
+      setApplicantForm({
+        job_posting_id: '',
+        candidate_name: '',
+        email: '',
+        phone: '',
+        notes: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['hr-applicants'] });
     },
   });
@@ -139,6 +158,9 @@ export function HrRecruitmentPanel() {
       </div>
 
       {activeTab === 'kanban' ? (
+        applicantsQuery.isLoading ? (
+          <PanelKanbanSkeleton columns={6} />
+        ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6 overflow-x-auto">
           {STAGES.map((s) => {
             const stageApplicants = applicants.filter((a: any) => a.stage === s.code);
@@ -194,6 +216,9 @@ export function HrRecruitmentPanel() {
             );
           })}
         </div>
+        )
+      ) : postingsQuery.isLoading ? (
+        <PanelCardGridSkeleton count={3} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {postings.map((p: any) => (
@@ -212,6 +237,11 @@ export function HrRecruitmentPanel() {
               </div>
             </div>
           ))}
+          {postings.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed p-8 text-center text-xs text-slate-500">
+              No job postings yet. Click "New Job Opening" to publish one.
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -247,10 +277,16 @@ export function HrRecruitmentPanel() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreatePostingOpen(false)}>
+            <Button variant="outline" onClick={() => setCreatePostingOpen(false)} disabled={createPostingMutation.isPending}>
               Cancel
             </Button>
-            <Button onClick={() => createPostingMutation.mutate()}>Save Job Opening</Button>
+            <Button onClick={() => createPostingMutation.mutate()} disabled={createPostingMutation.isPending}>
+              {createPostingMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+              ) : (
+                'Save Job Opening'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -266,7 +302,7 @@ export function HrRecruitmentPanel() {
               <select
                 value={applicantForm.job_posting_id}
                 onChange={(e) => setApplicantForm({ ...applicantForm, job_posting_id: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Select Job Opening</option>
                 {postings.map((p: any) => (
@@ -303,10 +339,16 @@ export function HrRecruitmentPanel() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddApplicantOpen(false)}>
+            <Button variant="outline" onClick={() => setAddApplicantOpen(false)} disabled={addApplicantMutation.isPending}>
               Cancel
             </Button>
-            <Button onClick={() => addApplicantMutation.mutate()}>Register Applicant</Button>
+            <Button onClick={() => addApplicantMutation.mutate()} disabled={addApplicantMutation.isPending}>
+              {addApplicantMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registering...</>
+              ) : (
+                'Register Applicant'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

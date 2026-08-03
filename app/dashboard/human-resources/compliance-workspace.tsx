@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PanelCardGridSkeleton } from "@/components/ui/loading-states";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
 import { formatEthiopian } from "@/lib/ethiopian-calendar";
@@ -166,12 +167,20 @@ export function ComplianceWorkspace() {
   const canActivate = hasPermission("activate_hr_compliance_policies");
   const canAudit = hasPermission("view_workforce_audit");
   const errorRef = useRef<HTMLDivElement>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [reviewerName, setReviewerName] = useState("");
   const [reviewNote, setReviewNote] = useState("");
   const [retentionYears, setRetentionYears] = useState("7");
   const [attested, setAttested] = useState(false);
+
+  const inspectVersion = (versionId: number) => {
+    setSelectedId(versionId);
+    requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const workspaceQuery = useQuery({
     queryKey: ["hr-compliance-policies", scope],
@@ -183,6 +192,8 @@ export function ComplianceWorkspace() {
     queryFn: () =>
       attendanceFetch<{ data: WorkforceReadiness }>("/operations/readiness"),
     enabled: canAudit,
+    staleTime: 0,
+    refetchOnMount: "always",
     refetchInterval: 60_000,
   });
 
@@ -281,9 +292,10 @@ export function ComplianceWorkspace() {
 
   if (workspaceQuery.isLoading) {
     return (
-      <p role="status" className="rounded-xl border border-slate-500 p-5 dark:border-slate-400">
-        Loading compliance policy versions…
-      </p>
+      <div className="space-y-5" role="status" aria-label="Loading compliance">
+        <PanelCardGridSkeleton count={2} className="lg:grid-cols-2" />
+        <PanelCardGridSkeleton count={3} />
+      </div>
     );
   }
   if (workspaceQuery.isError) {
@@ -344,7 +356,12 @@ export function ComplianceWorkspace() {
 
       {selected ? (
         <>
-          <Card className="border-slate-500 dark:border-slate-400">
+          <Card
+            ref={detailRef}
+            id="compliance-policy-detail"
+            tabIndex={-1}
+            className="scroll-mt-24 border-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-blue-800 dark:border-slate-400 dark:focus-visible:ring-amber-300"
+          >
             <CardHeader className="gap-4 border-b border-slate-500 dark:border-slate-400">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -625,20 +642,65 @@ export function ComplianceWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {versions.length ? versions.map((version) => (
-                <tr key={version.id} className="border-b border-slate-400 dark:border-slate-500">
-                  <th scope="row" className="px-3 py-3 font-mono text-xs">{version.policy_version}</th>
+              {versions.length ? versions.map((version) => {
+                const isViewing = selected?.id === version.id;
+                return (
+                <tr
+                  key={version.id}
+                  className={`border-b border-slate-400 dark:border-slate-500 ${
+                    isViewing
+                      ? "bg-teal-900 text-teal-50 ring-1 ring-inset ring-teal-400/50 dark:bg-teal-950 dark:text-teal-50"
+                      : ""
+                  }`}
+                >
+                  <th
+                    scope="row"
+                    className={`px-3 py-3 font-mono text-xs ${
+                      isViewing ? "text-teal-50" : ""
+                    }`}
+                  >
+                    {version.policy_version}
+                  </th>
                   <td className="px-3 py-3">{statusStyles[version.status].label}</td>
-                  <td className="px-3 py-3"><PolicyDate value={version.effective_from} /></td>
-                  <td className="px-3 py-3">{version.legal_reviewer_name ?? "Not reviewed"}</td>
-                  <td className="px-3 py-3"><PolicyDate value={version.activated_at} /></td>
+                  <td
+                    className={`px-3 py-3 ${
+                      isViewing
+                        ? "text-teal-50 [&_span]:!text-teal-100"
+                        : ""
+                    }`}
+                  >
+                    <PolicyDate value={version.effective_from} />
+                  </td>
+                  <td className={`px-3 py-3 ${isViewing ? "text-teal-50" : ""}`}>
+                    {version.legal_reviewer_name ?? "Not reviewed"}
+                  </td>
+                  <td
+                    className={`px-3 py-3 ${
+                      isViewing
+                        ? "text-teal-50 [&_span]:!text-teal-100"
+                        : ""
+                    }`}
+                  >
+                    <PolicyDate value={version.activated_at} />
+                  </td>
                   <td className="px-3 py-3">
-                    <Button type="button" variant="outline" onClick={() => setSelectedId(version.id)} className="min-h-11 border-slate-500 dark:border-slate-400">
-                      Inspect version
+                    <Button
+                      type="button"
+                      variant="outline"
+                      aria-current={isViewing ? "true" : undefined}
+                      onClick={() => inspectVersion(version.id)}
+                      className={`min-h-11 border-slate-500 dark:border-slate-400 ${
+                        isViewing
+                          ? "border-teal-200 bg-teal-800 font-bold text-teal-50 hover:bg-teal-700 hover:text-white dark:border-teal-300 dark:bg-teal-900 dark:text-teal-50 dark:hover:bg-teal-800"
+                          : ""
+                      }`}
+                    >
+                      {isViewing ? "Viewing" : "Inspect version"}
                     </Button>
                   </td>
                 </tr>
-              )) : (
+                );
+              }) : (
                 <tr>
                   <td colSpan={6} className="px-3 py-6 text-center text-slate-700 dark:text-slate-300">
                     No policy versions have been created.
@@ -652,11 +714,20 @@ export function ComplianceWorkspace() {
 
       {canAudit && (
         <Card className="border-slate-500 dark:border-slate-400">
-          <CardHeader>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck aria-hidden="true" />
               Production-readiness evidence
             </CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 border-slate-500 dark:border-slate-400"
+              disabled={readinessQuery.isFetching}
+              onClick={() => readinessQuery.refetch()}
+            >
+              {readinessQuery.isFetching ? "Refreshing…" : "Refresh checks"}
+            </Button>
           </CardHeader>
           <CardContent>
             {readinessQuery.isLoading ? (

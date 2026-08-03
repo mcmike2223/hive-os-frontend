@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@/hooks/use-user";
 import { getAuthHeaders, getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
+import { PanelCardGridSkeleton, ProfileWorkspaceSkeleton } from "@/components/ui/loading-states";
 import {
   Employee,
   EmployeeProfileOtherInfo,
@@ -87,7 +88,7 @@ const sections: SectionDef[] = [
       { key: "kebele", label: "Kebele" },
       { key: "house_number", label: "House number" },
       { key: "street_line", label: "Street / details", type: "textarea" },
-      { key: "is_primary", label: "Primary address", type: "checkbox" },
+      { key: "is_primary", label: "Primary", type: "checkbox" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     titleKeys: ["address_type", "city"],
@@ -103,7 +104,7 @@ const sections: SectionDef[] = [
       { key: "account_number", label: "Account number", required: true },
       { key: "branch_name", label: "Branch" },
       { key: "account_holder_name", label: "Account holder" },
-      { key: "is_primary_payroll", label: "Primary payroll account", type: "checkbox" },
+      { key: "is_primary_payroll", label: "Primary", type: "checkbox" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     titleKeys: ["bank_code", "account_number"],
@@ -165,7 +166,7 @@ const sections: SectionDef[] = [
       { key: "phone", label: "Phone", required: true },
       { key: "alternate_phone", label: "Alternate phone" },
       { key: "address", label: "Address", type: "textarea" },
-      { key: "is_primary", label: "Primary contact", type: "checkbox" },
+      { key: "is_primary", label: "Primary", type: "checkbox" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     titleKeys: ["full_name"],
@@ -316,6 +317,18 @@ function recordHeading(
     .map((key) => displayValue(record, key))
     .filter(Boolean);
   return parts.length ? parts.join(" · ") : fallback;
+}
+
+function primaryFlagKey(sectionId?: EmployeeProfileSectionKey | "other_info") {
+  if (sectionId === "address" || sectionId === "emergency") {
+    return "is_primary";
+  }
+
+  if (sectionId === "bank_accounts") {
+    return "is_primary_payroll";
+  }
+
+  return null;
 }
 
 export function EmployeeProfileWorkspace({
@@ -533,6 +546,8 @@ export function EmployeeProfileWorkspace({
     return catalogQueries.data?.[catalog] ?? [];
   };
 
+  const activePrimaryKey = primaryFlagKey(activeSection?.id);
+
   const selectedEmployee = employees.find(
     (employee) => String(employee.id) === selectedEmployeeId,
   );
@@ -575,8 +590,10 @@ export function EmployeeProfileWorkspace({
                 className="h-10 rounded-lg border border-slate-400 bg-background px-3 text-sm font-bold"
                 disabled={employeesQuery.isLoading || employees.length === 0}
               >
-                {employees.length === 0 ? (
-                  <option value="">No employees found</option>
+                {employeesQuery.isLoading ? (
+                  <option value="">Loading employees…</option>
+                ) : employees.length === 0 ? (
+                  <option value="">No employee found</option>
                 ) : (
                   employees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
@@ -597,7 +614,11 @@ export function EmployeeProfileWorkspace({
           )}
         </div>
 
-        {!selectedEmployeeId ? (
+        {employeesQuery.isLoading ? (
+          <div className="mt-8">
+            <ProfileWorkspaceSkeleton />
+          </div>
+        ) : !selectedEmployeeId ? (
           <div className="mt-8 rounded-xl border border-dashed p-10 text-center text-sm text-slate-500">
             {canManage
               ? "Create an employee first, then return here to manage personal records."
@@ -632,7 +653,11 @@ export function EmployeeProfileWorkspace({
 
             <div className="rounded-2xl border p-6 dark:border-slate-800">
               {profileQuery.isLoading ? (
-                <p className="text-sm text-slate-500">Loading profile…</p>
+                <div className="space-y-4" role="status" aria-label="Loading employee profile">
+                  <div className="h-8 w-48 animate-pulse rounded-xl bg-muted" />
+                  <div className="h-24 w-full animate-pulse rounded-xl bg-muted/60" />
+                  <PanelCardGridSkeleton count={2} className="sm:grid-cols-1 lg:grid-cols-2" />
+                </div>
               ) : profileQuery.isError ? (
                 <p className="text-sm font-semibold text-red-600">
                   {profileQuery.error instanceof Error
@@ -653,7 +678,7 @@ export function EmployeeProfileWorkspace({
                     </Button>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
+                    <div className="space-y-2">
                       <Label>TIN number</Label>
                       <Input
                         value={otherInfo.tin_number ?? ""}
@@ -662,7 +687,7 @@ export function EmployeeProfileWorkspace({
                         }
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Blood group</Label>
                       <Input
                         value={otherInfo.blood_group ?? ""}
@@ -672,10 +697,10 @@ export function EmployeeProfileWorkspace({
                         placeholder="e.g. O+"
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Marital status</Label>
                       <select
-                        className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm"
+                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                         value={otherInfo.marital_status_code ?? ""}
                         onChange={(event) =>
                           setOtherInfo({
@@ -695,10 +720,10 @@ export function EmployeeProfileWorkspace({
                         ))}
                       </select>
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Religion</Label>
                       <select
-                        className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm"
+                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                         value={otherInfo.religion_code ?? ""}
                         onChange={(event) =>
                           setOtherInfo({ ...otherInfo, religion_code: event.target.value })
@@ -715,10 +740,10 @@ export function EmployeeProfileWorkspace({
                         ))}
                       </select>
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Title</Label>
                       <select
-                        className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm"
+                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                         value={otherInfo.title_code ?? ""}
                         onChange={(event) =>
                           setOtherInfo({ ...otherInfo, title_code: event.target.value })
@@ -760,16 +785,28 @@ export function EmployeeProfileWorkspace({
                       {sectionRecords.map((record) => (
                         <div
                           key={String(record.id)}
-                          className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-slate-50 p-4 dark:bg-slate-900"
+                          className={cn(
+                            "flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4",
+                            activePrimaryKey && Boolean(record[activePrimaryKey])
+                              ? "border-amber-300 bg-amber-50/80 shadow-sm dark:border-amber-800 dark:bg-amber-950/30"
+                              : "bg-slate-50 dark:bg-slate-900",
+                          )}
                         >
                           <div className="min-w-0 space-y-1">
-                            <p className="font-bold">
-                              {recordHeading(
-                                record,
-                                activeSection?.titleKeys,
-                                `Record #${record.id}`,
-                              )}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-bold">
+                                {recordHeading(
+                                  record,
+                                  activeSection?.titleKeys,
+                                  `Record #${record.id}`,
+                                )}
+                              </p>
+                              {activePrimaryKey && Boolean(record[activePrimaryKey]) ? (
+                                <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-950">
+                                  Primary
+                                </span>
+                              ) : null}
+                            </div>
                             <p className="text-xs text-slate-500">
                               {recordHeading(record, activeSection?.subtitleKeys, "—")}
                             </p>
@@ -845,12 +882,12 @@ export function EmployeeProfileWorkspace({
                 {editing ? "Edit" : "Add"} {activeSection?.name}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
               {(activeSection?.fields ?? []).map((field) => {
                 if (field.type === "file") {
                   if (editing) return null;
                   return (
-                    <div key={field.key}>
+                    <div key={field.key} className="space-y-2">
                       <Label>{field.label}</Label>
                       <Input
                         type="file"
@@ -861,7 +898,7 @@ export function EmployeeProfileWorkspace({
                 }
                 if (field.type === "checkbox") {
                   return (
-                    <label key={field.key} className="flex items-center gap-2 text-sm font-medium">
+                    <label key={field.key} className="flex items-center gap-2 pt-1 text-sm font-medium">
                       <input
                         type="checkbox"
                         checked={Boolean(form[field.key])}
@@ -875,7 +912,7 @@ export function EmployeeProfileWorkspace({
                 }
                 if (field.type === "textarea") {
                   return (
-                    <div key={field.key}>
+                    <div key={field.key} className="space-y-2">
                       <Label>{field.label}</Label>
                       <Textarea
                         value={String(form[field.key] ?? "")}
@@ -889,10 +926,10 @@ export function EmployeeProfileWorkspace({
                 if (field.type === "select" || field.catalog) {
                   const options = catalogOptions(field.catalog);
                   return (
-                    <div key={field.key}>
+                    <div key={field.key} className="space-y-2">
                       <Label>{field.label}</Label>
                       <select
-                        className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm"
+                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                         value={String(form[field.key] ?? "")}
                         onChange={(event) =>
                           setForm({ ...form, [field.key]: event.target.value })
@@ -918,7 +955,7 @@ export function EmployeeProfileWorkspace({
                   );
                 }
                 return (
-                  <div key={field.key}>
+                  <div key={field.key} className="space-y-2">
                     <Label>{field.label}</Label>
                     <Input
                       type={

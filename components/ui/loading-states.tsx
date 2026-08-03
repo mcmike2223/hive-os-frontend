@@ -367,26 +367,136 @@ export function ProfileWorkspaceSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Skeleton className="h-8 w-44 rounded-xl" />
+        <div className="h-8 w-44 animate-pulse rounded-xl bg-muted" />
       </div>
 
       <div className="rounded-[2rem] border border-border/50 bg-card/40 p-8">
         <div className="flex flex-col gap-6 lg:flex-row">
           <div className="w-full max-w-sm space-y-4">
-            <Skeleton className="h-40 w-full rounded-[1.75rem]" />
-            <Skeleton className="h-11 w-full rounded-xl" />
+            <div className="h-40 w-full animate-pulse rounded-[1.75rem] bg-muted/60" />
+            <div className="h-11 w-full animate-pulse rounded-xl bg-muted" />
           </div>
           <div className="flex-1 space-y-5">
-            <Skeleton className="h-10 w-56 rounded-xl" />
+            <div className="h-10 w-56 animate-pulse rounded-xl bg-muted" />
             <div className="grid gap-4 md:grid-cols-2">
               {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className="h-12 rounded-xl" />
+                <div key={index} className="h-12 animate-pulse rounded-xl bg-muted/60" />
               ))}
             </div>
-            <Skeleton className="h-12 w-40 rounded-xl" />
+            <div className="h-12 w-40 animate-pulse rounded-xl bg-muted" />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Compact table placeholder — same muted pulse language as DataTableLoading. */
+export function PanelTableSkeleton({
+  rows = 6,
+  cols = 6,
+}: {
+  rows?: number;
+  cols?: number;
+}) {
+  return (
+    <div
+      role="status"
+      aria-label="Loading records"
+      className="w-full overflow-hidden rounded-[1.5rem] border border-border/50 bg-card/50"
+    >
+      <div
+        className="grid gap-4 border-b border-border/40 bg-muted/30 px-4 py-4"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length: cols }).map((_, index) => (
+          <div key={index} className="h-3 w-full animate-pulse rounded bg-muted" />
+        ))}
+      </div>
+      <div className="divide-y divide-border/40">
+        {Array.from({ length: rows }).map((_, row) => (
+          <div
+            key={row}
+            className="grid gap-4 px-4 py-4"
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+          >
+            {Array.from({ length: cols }).map((_, col) => (
+              <div
+                key={col}
+                className="h-4 w-full animate-pulse rounded bg-muted/60"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function PanelCardGridSkeleton({
+  count = 3,
+  className,
+}: {
+  count?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      role="status"
+      aria-label="Loading cards"
+      className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3", className)}
+    >
+      {Array.from({ length: count }).map((_, index) => (
+        <div
+          key={index}
+          className="space-y-3 rounded-[1.5rem] border border-border/50 bg-card/50 p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-5 w-24 animate-pulse rounded bg-muted" />
+            <div className="h-5 w-12 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="h-6 w-3/4 animate-pulse rounded-xl bg-muted" />
+          <div className="h-4 w-full animate-pulse rounded bg-muted/60" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-muted/60" />
+          <div className="mt-2 h-16 w-full animate-pulse rounded-xl bg-muted/60" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function PanelKanbanSkeleton({
+  columns = 6,
+}: {
+  columns?: number;
+}) {
+  return (
+    <div
+      role="status"
+      aria-label="Loading pipeline"
+      className="grid gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-6"
+    >
+      {Array.from({ length: columns }).map((_, column) => (
+        <div
+          key={column}
+          className="min-w-[200px] space-y-3 rounded-[1.5rem] border border-border/50 bg-card/50 p-3"
+        >
+          <div className="mb-1 flex items-center justify-between border-b border-border/40 pb-2">
+            <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+            <div className="h-5 w-8 animate-pulse rounded bg-muted" />
+          </div>
+          {Array.from({ length: 2 }).map((_, card) => (
+            <div
+              key={card}
+              className="space-y-2 rounded-xl border border-border/40 bg-muted/10 p-3"
+            >
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-full animate-pulse rounded bg-muted/60" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-muted/60" />
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

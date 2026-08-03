@@ -57,6 +57,10 @@ import {
   Position,
   hrFetch,
 } from "@/modules/humanresources/api";
+import {
+  PanelCardGridSkeleton,
+  PanelTableSkeleton,
+} from "@/components/ui/loading-states";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
@@ -174,6 +178,71 @@ function formatQuantity(value: number | string | null | undefined) {
   return Number.isInteger(number)
     ? number.toLocaleString()
     : number.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
+/** Human summary of a ledger row. `quantity` = change to *available* days. */
+function describeLedgerEntry(entry: LeaveLedgerTransaction) {
+  const available = Number(entry.quantity ?? 0);
+  const reserved = Number(entry.reserved_delta ?? 0);
+  const used = Number(entry.used_delta ?? 0);
+  const credited =
+    Number(entry.entitlement_delta ?? 0) +
+    Number(entry.carried_delta ?? 0) +
+    Number(entry.adjusted_delta ?? 0);
+  const signed = (value: number) =>
+    `${value > 0 ? "+" : ""}${formatQuantity(value)}`;
+
+  switch (entry.transaction_type) {
+    case "reservation":
+      return {
+        event: "Leave submitted",
+        availableLabel: signed(available),
+        detail: `${formatQuantity(Math.abs(reserved))} day(s) held until approval`,
+      };
+    case "consumption":
+      return {
+        event: "Leave approved",
+        availableLabel:
+          available === 0 ? "No change" : signed(available),
+        detail: `${formatQuantity(Math.abs(used))} day(s) moved from held → used`,
+      };
+    case "release":
+      return {
+        event: "Hold cleared",
+        availableLabel: signed(available),
+        detail: "Request rejected, withdrawn, or sent back",
+      };
+    case "allocation":
+    case "accrual":
+    case "opening_balance":
+    case "one_time":
+      return {
+        event: "Days credited",
+        availableLabel: signed(available || credited),
+        detail:
+          entry.transaction_type === "accrual"
+            ? "From an accrual run"
+            : "Manual or opening credit",
+      };
+    case "carry_forward":
+      return {
+        event: "Carry forward",
+        availableLabel: signed(available),
+        detail: "Brought from a prior period",
+      };
+    case "adjustment":
+      return {
+        event: "Adjustment",
+        availableLabel: signed(available),
+        detail: entry.note?.trim() || "Manual balance adjustment",
+      };
+    default:
+      return {
+        event: entry.transaction_type.replaceAll("_", " "),
+        availableLabel: signed(available),
+        detail: entry.note?.trim() || null,
+      };
+  }
 }
 
 function currentVersion(plan: LeavePlan) {
@@ -889,8 +958,9 @@ function AssignmentDialog({
         <DialogHeader>
           <DialogTitle>Assign leave plan</DialogTitle>
           <DialogDescription>
-            Choose one workforce scope. Employee assignments take precedence
-            over contract, grade, position, unit, and default assignments.
+            Tell the system who follows this leave plan. Start with
+            Organization default for everyone, or pick a team / person for
+            exceptions. A specific employee always wins over a team or default.
           </DialogDescription>
         </DialogHeader>
         <FormError id="leave-assignment-error" message={error} />
@@ -1125,7 +1195,7 @@ function AllocationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Post leave allocation</DialogTitle>
+          <DialogTitle>Allocate leave days</DialogTitle>
           <DialogDescription>
             Add an authorized entitlement credit. This creates an immutable
             allocation and ledger entry.
@@ -1594,8 +1664,9 @@ export function LeavePlanWorkspace() {
             Leave plans and ledger
           </h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Build one effective-dated plan, assign it to the workforce, and let
-            allocations or accruals post to the same immutable balance ledger.
+            Define how many leave days people earn, link the plan to the
+            workforce, then credit days (manually or by monthly accrual). Leave
+            requests spend from those balances.
           </p>
         </div>
         <div className="flex flex-wrap items-start gap-2">
@@ -1658,13 +1729,13 @@ export function LeavePlanWorkspace() {
             icon: History,
           },
           {
-            label: "Assignment",
-            detail: `${assignments.data?.meta.total ?? 0} scopes`,
+            label: "Who gets it",
+            detail: `${assignments.data?.meta.total ?? 0} linked`,
             icon: Link2,
           },
           {
-            label: "Ledger",
-            detail: `${ledger.data?.meta.total ?? 0} entries`,
+            label: "Balance history",
+            detail: `${ledger.data?.meta.total ?? 0} changes`,
             icon: ShieldCheck,
           },
         ].map((step, index) => (
@@ -1700,6 +1771,9 @@ export function LeavePlanWorkspace() {
           try again.
         </p>
       ) : canViewPlans || canManagePlans || canAssign ? (
+        plans.isLoading ? (
+          <PanelCardGridSkeleton count={2} className="xl:grid-cols-2" />
+        ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {(plans.data?.data ?? []).map((plan) => {
             const version = currentVersion(plan);
@@ -1840,30 +1914,48 @@ export function LeavePlanWorkspace() {
             </div>
           )}
         </div>
+        )
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
         {(canViewPlans || canAssign) && (
           <Card className="border-slate-500 dark:border-slate-500">
             <CardContent className="p-0">
-              <div className="border-b border-slate-400 p-5 dark:border-slate-600">
-                <h4 className="font-black">Assignment register</h4>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-400 p-5 dark:border-slate-600">
+                <div>
+                  <h4 className="font-black">Assignment register</h4>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                   The exact workforce scopes currently linked to a plan.
-                </p>
+                  </p>
+                </div>
+                {canAssign && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11"
+                    onClick={() => setAssignmentOpen(true)}
+                  >
+                    <UserRoundCog aria-hidden="true" />
+                    Assign people
+                  </Button>
+                )}
               </div>
+              {assignments.isLoading ? (
+                <div className="p-4">
+                  <PanelTableSkeleton rows={5} cols={4} />
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableCaption>
-                    Effective leave-plan assignments ordered by most recent
-                    start date.
+                    Active plan links, newest first.
                   </TableCaption>
                   <TableHeader>
                     <TableRow>
                       <TableHead scope="col">Plan</TableHead>
-                      <TableHead scope="col">Scope</TableHead>
-                      <TableHead scope="col">Value</TableHead>
-                      <TableHead scope="col">Effective</TableHead>
+                      <TableHead scope="col">Applies to</TableHead>
+                      <TableHead scope="col">Who / where</TableHead>
+                      <TableHead scope="col">From date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1878,7 +1970,7 @@ export function LeavePlanWorkspace() {
                           <TableCell>
                             {assignment.effective_from}
                             <span className="block text-xs text-slate-600 dark:text-slate-300">
-                              {assignment.effective_to ?? "Open ended"}
+                              {assignment.effective_to ?? "No end date"}
                             </span>
                           </TableCell>
                         </TableRow>
@@ -1886,13 +1978,19 @@ export function LeavePlanWorkspace() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="h-28 text-center">
-                          No plan assignments have been saved.
+                          <p className="font-semibold">Nobody is linked yet</p>
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Click Assign (or Assign people) → pick a plan →
+                            choose Organization default for everyone, or a
+                            specific team / employee.
+                          </p>
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
               </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -1920,7 +2018,7 @@ export function LeavePlanWorkspace() {
                         {latestRun.as_of_date}
                       </p>
                       <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                        {latestRun.employees_processed} employees evaluated
+                        {latestRun.employees_processed} employees checked
                       </p>
                     </div>
                     <StatusChip status={latestRun.status} />
@@ -1928,7 +2026,7 @@ export function LeavePlanWorkspace() {
                   <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
                     <div>
                       <dt className="text-xs text-slate-600 dark:text-slate-300">
-                        Posted
+                        Credits posted
                       </dt>
                       <dd className="mt-1 text-2xl font-black">
                         {latestRun.transactions_posted}
@@ -1936,7 +2034,7 @@ export function LeavePlanWorkspace() {
                     </div>
                     <div>
                       <dt className="text-xs text-slate-600 dark:text-slate-300">
-                        Skipped
+                        Already credited
                       </dt>
                       <dd className="mt-1 text-2xl font-black">
                         {latestRun.items_skipped}
@@ -1969,26 +2067,33 @@ export function LeavePlanWorkspace() {
               <div>
                 <h4 className="font-black">Recent allocations</h4>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Manual awards, opening balances, and generated accruals.
+                  Credits posted with{" "}
+                  <span className="font-semibold">Allocate</span> or generated
+                  by an accrual run.
                 </p>
               </div>
               <p className="font-mono text-xs font-bold text-slate-600 dark:text-slate-300">
                 {allocations.data?.meta.total ?? 0} total
               </p>
             </div>
+            {allocations.isLoading ? (
+              <div className="p-4">
+                <PanelTableSkeleton rows={5} cols={5} />
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableCaption>
-                  Recent posted leave allocations with employee and source.
+                  Credits that increased leave balances.
                 </TableCaption>
                 <TableHeader>
                   <TableRow>
-                    <TableHead scope="col">Effective</TableHead>
+                    <TableHead scope="col">Date</TableHead>
                     <TableHead scope="col">Employee</TableHead>
                     <TableHead scope="col">Leave type</TableHead>
                     <TableHead scope="col">Source</TableHead>
                     <TableHead scope="col" className="text-right">
-                      Quantity
+                      Days
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -2018,13 +2123,18 @@ export function LeavePlanWorkspace() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-28 text-center">
-                        No leave allocations have been posted.
+                        <p className="font-semibold">No allocations yet</p>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                          Use Allocate in the toolbar for an opening balance, or
+                          Run accruals after people are assigned.
+                        </p>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -2039,7 +2149,7 @@ export function LeavePlanWorkspace() {
                     aria-hidden="true"
                     className="h-5 w-5 text-emerald-700 dark:text-emerald-300"
                   />
-                  Immutable leave ledger
+                  Leave balance history
                 </h4>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                   Every balance change is an append-only entry with an
@@ -2060,61 +2170,72 @@ export function LeavePlanWorkspace() {
                 Refresh
               </Button>
             </div>
+            {ledger.isLoading ? (
+              <div className="p-4">
+                <PanelTableSkeleton rows={6} cols={5} />
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableCaption>
-                  Latest leave balance ledger entries, newest posting first.
+                  Newest balance changes first.
                 </TableCaption>
                 <TableHeader>
                   <TableRow>
-                    <TableHead scope="col">Effective</TableHead>
+                    <TableHead scope="col">Date</TableHead>
                     <TableHead scope="col">Employee</TableHead>
-                    <TableHead scope="col">Entry</TableHead>
+                    <TableHead scope="col">Event</TableHead>
                     <TableHead scope="col">Leave type</TableHead>
                     <TableHead scope="col" className="text-right">
-                      Balance effect
+                      Available
                     </TableHead>
-                    <TableHead scope="col">Idempotency key</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {ledger.data?.data.length ? (
-                    ledger.data.data.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>{entry.effective_on}</TableCell>
-                        <TableCell>
-                          <span className="font-bold">
-                            {entry.employee?.primary_name ?? "Legacy entry"}
-                          </span>
-                          <span className="block text-xs text-slate-600 dark:text-slate-300">
-                            {entry.employee?.employee_number ?? "No employee"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {entry.transaction_type.replaceAll("_", " ")}
-                        </TableCell>
-                        <TableCell>
-                          {entry.leave_type?.name ?? "Legacy leave type"}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-black">
-                          {Number(entry.quantity) > 0 ? "+" : ""}
-                          {formatQuantity(entry.quantity)} {entry.unit}
-                        </TableCell>
-                        <TableCell className="max-w-64 truncate font-mono text-xs">
-                          {entry.idempotency_key}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    ledger.data.data.map((entry) => {
+                      const description = describeLedgerEntry(entry);
+                      return (
+                        <TableRow key={entry.id}>
+                          <TableCell>{entry.effective_on}</TableCell>
+                          <TableCell>
+                            <span className="font-bold">
+                              {entry.employee?.primary_name ?? "Legacy entry"}
+                            </span>
+                            <span className="block text-xs text-slate-600 dark:text-slate-300">
+                              {entry.employee?.employee_number ?? "No employee"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold">
+                              {description.event}
+                            </span>
+                            {description.detail ? (
+                              <span className="mt-0.5 block text-xs text-slate-600 dark:text-slate-300">
+                                {description.detail}
+                              </span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>
+                            {entry.leave_type?.name ?? "Legacy leave type"}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-black">
+                            {description.availableLabel}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-28 text-center">
-                        No ledger entries have been posted.
+                      <TableCell colSpan={5} className="h-28 text-center">
+                        No balance changes yet.
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
+            )}
           </CardContent>
         </Card>
       )}
