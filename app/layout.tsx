@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Script from "next/script";
 import { headers } from "next/headers";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import type { CSSProperties } from "react";
 
 import Providers from "@/components/providers";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -16,20 +16,13 @@ import { fetchPublicBrandSettings, fetchSeoSettings } from "@/lib/seo";
 // 🚀 IMPORT OUR NEW GLOBAL SETTINGS PROVIDER
 import { SettingsProvider } from "@/components/providers/settings-provider";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
+// Build-safe fallbacks keep the application usable when a deployment cannot
+// reach Google Fonts. Branding can still override --brand-font-family at runtime.
+const fontVariables = {
+  "--font-inter": "Inter, ui-sans-serif, system-ui, sans-serif",
+  "--font-space": "'Space Grotesk', Inter, ui-sans-serif, sans-serif",
+  "--font-mono": "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+} as CSSProperties;
 
 // Render metadata at request time so titles/description reflect the live central
 // SEO config (the backend is unreachable during build, which would bake defaults).
@@ -104,11 +97,18 @@ export default async function RootLayout({
       }
     : null;
 
+  // Font variables live on <html> so they resolve at :root — `applyBrandRuntime`
+  // writes --brand-font-family there, and Tailwind's --font-* theme keys are
+  // emitted at :root too. On <body> they were out of scope for both.
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      style={fontVariables}
+    >
       <body
         suppressHydrationWarning
-        className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground antialiased overflow-x-hidden`}
+        className="font-sans bg-background text-foreground antialiased overflow-x-hidden"
       >
       {orgJsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />

@@ -30,7 +30,7 @@ import {
   type LmsLessonType,
   type LmsPublicLesson,
 } from "@/modules/Lms/api";
-import { CourseCard } from "@/app/courses/page";
+import { CourseCard } from "../course-card";
 import {
   LMS_FONT_HREF,
   LMS_FONT_STACK,
