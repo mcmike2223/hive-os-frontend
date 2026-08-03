@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchKdsOrders,
@@ -16,6 +16,14 @@ import {
   ChefHat,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
+import { initEcho } from "@/lib/echo";
+import { getAccessToken, getTenantId } from "@/lib/runtime-context";
+
+type KdsRealtimeEvent = {
+  event_id?: string;
+  item_id?: number;
+  preparation_status?: string;
+};
 
 export default function KdsPage() {
   const queryClient = useQueryClient();
@@ -24,6 +32,8 @@ export default function KdsPage() {
   const [selectedStationId, setSelectedStationId] = useState<number | "all">(
     "all",
   );
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "offline">("connecting");
+  const handledRealtimeEventIds = useRef(new Set<string>());
 
   const { data: stationsData } = useQuery({
     queryKey: ["preparation-stations"],
@@ -41,6 +51,54 @@ export default function KdsPage() {
 
   const orders = data ?? [];
   const stations = stationsData ?? [];
+  const realtimeOutletId = stations[0]?.outlet_id ?? undefined;
+
+  useEffect(() => {
+    const token = getAccessToken() ?? (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+    const tenantId = getTenantId();
+    const outletId = realtimeOutletId;
+
+    if (!token || !tenantId || !outletId) {
+      setRealtimeStatus("offline");
+      return;
+    }
+
+    const channelName = `tenant.${tenantId}.outlet.${outletId}.kds`;
+    try {
+      const echo = initEcho(token);
+      const channel = echo.private(channelName);
+      const onSubscribed = () => setRealtimeStatus("live");
+      const onSubscriptionError = () => setRealtimeStatus("offline");
+      const stopConnectionWatch = echo.connector.onConnectionChange((status) => {
+        setRealtimeStatus(status === "connected" ? "live" : status === "connecting" ? "connecting" : "offline");
+      });
+      const onUpdate = (event: KdsRealtimeEvent) => {
+        const eventId = event.event_id;
+        if (eventId) {
+          if (handledRealtimeEventIds.current.has(eventId)) return;
+          handledRealtimeEventIds.current.add(eventId);
+          if (handledRealtimeEventIds.current.size > 100) {
+            handledRealtimeEventIds.current.delete(handledRealtimeEventIds.current.values().next().value as string);
+          }
+        }
+
+        setRealtimeStatus("live");
+        void queryClient.invalidateQueries({ queryKey: ["kds-orders"] });
+      };
+
+      channel.subscribed(onSubscribed);
+      channel.error(onSubscriptionError);
+      channel.listen(".kds.item.updated", onUpdate);
+      onSubscribed();
+
+      return () => {
+        stopConnectionWatch();
+        echo.leave(channelName);
+      };
+    } catch {
+      setRealtimeStatus("offline");
+    }
+  }, [queryClient, realtimeOutletId]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -77,18 +135,23 @@ export default function KdsPage() {
             Real-time station order queue & ticket preparation status.
             Auto-refreshes every 5s.
           </p>
+          <p className="mt-1 text-xs text-muted-foreground" role="status" aria-live="polite">
+            Live intake: {realtimeStatus === "live" ? "connected" : realtimeStatus === "connecting" ? "connecting" : "reconnecting"}.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Station Filter */}
+          <label className="sr-only" htmlFor="kds-station-filter">Kitchen station</label>
           <select
+            id="kds-station-filter"
             value={selectedStationId}
             onChange={(e) =>
               setSelectedStationId(
                 e.target.value === "all" ? "all" : Number(e.target.value),
               )
             }
-            className="px-3 py-1.5 text-xs font-semibold border border-border rounded-lg bg-card text-foreground"
+            className="px-3 py-1.5 text-xs font-semibold border border-border rounded-lg bg-card text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <option value="all">All Kitchen & Bar Stations</option>
             {stations.map((station) => (
@@ -102,7 +165,7 @@ export default function KdsPage() {
             type="button"
             onClick={() => refetch()}
             aria-label="Refresh kitchen tickets"
-            className="p-2 border border-border rounded-lg bg-card text-foreground hover:bg-muted"
+            className="p-2 border border-border rounded-lg bg-card text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -179,10 +242,12 @@ export default function KdsPage() {
                         onClick={() => {
                           const nextStatus =
                             item.preparation_status === "new"
-                              ? "preparing"
-                              : item.preparation_status === "preparing"
-                                ? "ready"
-                                : "ready";
+                              ? "accepted"
+                              : item.preparation_status === "accepted"
+                                ? "preparing"
+                                : item.preparation_status === "preparing"
+                                  ? "ready"
+                                  : "ready";
                           updateStatusMutation.mutate({
                             id: item.id,
                             status: nextStatus,

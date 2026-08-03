@@ -24,6 +24,7 @@ type Paginated<T> = {
 
 export type HospitalityPreparationStation = {
   id: number;
+  outlet_id?: number | null;
   name: string;
 };
 

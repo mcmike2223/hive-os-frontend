@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ShieldAlert, UtensilsCrossed } from "lucide-react";
 
@@ -12,6 +12,8 @@ import { MenuBrowser, type WaiterCartSelection } from "@/modules/hospitality/com
 import { OrderCartDrawer, type WaiterCartItem } from "@/modules/hospitality/components/waiter-pos/OrderCartDrawer";
 import { TableGridSelector } from "@/modules/hospitality/components/waiter-pos/TableGridSelector";
 import type { HospitalityMenuCategory, HospitalityMenuItem } from "@/modules/hospitality/types";
+import { initEcho } from "@/lib/echo";
+import { getAccessToken, getTenantId } from "@/lib/runtime-context";
 
 type RestaurantTable = {
   id: number;
@@ -49,6 +51,14 @@ type WaiterBootstrap = {
   };
 };
 
+type WaiterRealtimeEvent = {
+  event_id?: string;
+  event_type?: string;
+  item_id?: number;
+  service_order_id?: number;
+  preparation_status?: string;
+};
+
 const createDraftIdempotencyKey = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -82,6 +92,8 @@ export default function WaiterPosPage() {
   const [draftIdempotencyKey, setDraftIdempotencyKey] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "offline">("connecting");
+  const handledRealtimeEventIds = useRef(new Set<string>());
 
   const { data, isLoading } = useQuery<WaiterBootstrap>({
     queryKey: ["waiter-pos-bootstrap"],
@@ -97,6 +109,61 @@ export default function WaiterPosPage() {
     : [{ id: 1, code: "dine_in", name: "Dine In" }];
   const assignedTableCount = data?.waiter?.assigned_table_count ?? data?.assigned_tables?.length ?? 0;
   const canViewAllTables = data?.waiter?.can_view_all_tables ?? false;
+
+  useEffect(() => {
+    const token = getAccessToken() ?? (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+    const tenantId = getTenantId();
+    const outletId = outlet?.id;
+
+    if (!token || !tenantId || !outletId) {
+      setRealtimeStatus("offline");
+      return;
+    }
+
+    const channelName = `tenant.${tenantId}.outlet.${outletId}.waiters`;
+
+    try {
+      const echo = initEcho(token);
+      const channel = echo.private(channelName);
+      const onSubscribed = () => setRealtimeStatus("live");
+      const onSubscriptionError = () => setRealtimeStatus("offline");
+      const stopConnectionWatch = echo.connector.onConnectionChange((status) => {
+        setRealtimeStatus(status === "connected" ? "live" : status === "connecting" ? "connecting" : "offline");
+      });
+      const onUpdate = (event: WaiterRealtimeEvent) => {
+        const eventId = event.event_id;
+        if (eventId) {
+          if (handledRealtimeEventIds.current.has(eventId)) return;
+          handledRealtimeEventIds.current.add(eventId);
+          if (handledRealtimeEventIds.current.size > 100) {
+            handledRealtimeEventIds.current.delete(handledRealtimeEventIds.current.values().next().value as string);
+          }
+        }
+
+        setRealtimeStatus("live");
+        setSuccessMessage(
+          event.preparation_status === "ready"
+            ? `Kitchen marked item #${event.item_id} ready.`
+            : `Live kitchen update received for item #${event.item_id}.`,
+        );
+        void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
+        void queryClient.invalidateQueries({ queryKey: ["hospitality-service-orders"] });
+        void queryClient.invalidateQueries({ queryKey: ["hospitality", "kds"] });
+      };
+
+      channel.subscribed(onSubscribed);
+      channel.error(onSubscriptionError);
+      channel.listen(".waiter.order-item.updated", onUpdate);
+      onSubscribed();
+
+      return () => {
+        stopConnectionWatch();
+        echo.leave(channelName);
+      };
+    } catch {
+      setRealtimeStatus("offline");
+    }
+  }, [outlet?.id, queryClient]);
 
   useEffect(() => {
     if (!orderTypes.some((orderType) => orderType.code === selectedOrderTypeCode)) {
@@ -236,6 +303,9 @@ export default function WaiterPosPage() {
             Outlet: <span className="font-semibold text-foreground">{outlet?.name ?? "Default Restaurant"}</span>
             {" | "}
             Waiter: <span className="font-semibold text-foreground">{data?.waiter?.name ?? "Staff"}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground" role="status" aria-live="polite">
+            Live kitchen updates: {realtimeStatus === "live" ? "connected" : realtimeStatus === "connecting" ? "connecting" : "reconnecting"}.
           </p>
         </div>
 

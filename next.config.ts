@@ -30,11 +30,25 @@ const getApiOrigin = (): string => {
   }
 };
 
+const allowedDevOrigins = Array.from(
+  new Set(
+    [
+      "localhost",
+      "127.0.0.1",
+      "test.test",
+      ...(process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",") ?? []),
+    ]
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ),
+);
+
 const nextConfig: NextConfig = {
   output: "standalone",
   typescript: {
     ignoreBuildErrors: skipBuildTypecheck,
   },
+  allowedDevOrigins,
 
   async rewrites() {
     const apiRoot = getApiRoot();
