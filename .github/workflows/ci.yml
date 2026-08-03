@@ -3,8 +3,6 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore:
-      - main
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
@@ -20,7 +18,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -31,3 +29,118 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Build the production release with Webpack
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build:webpack:diagnose
+
+      - name: Upload Webpack build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webpack-build-diagnostics
+          if-no-files-found: ignore
+          path: .playwright/webpack-build-diagnostics.json
+
+  waiter-pos-e2e:
+    name: Waiter POS browser acceptance
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    env:
+      COMPOSE_PROJECT_NAME: hive-waiter-e2e
+      HIVE_E2E_COMPOSE_FILE: ${{ github.workspace }}/hive-os-infra/docker-compose.yml
+      HIVE_E2E_BACKEND_CONTAINER: hive-backend
+      HIVE_E2E_BACKEND_URL: http://localhost:8081
+      HIVE_E2E_REVERB_HOST: localhost
+      HIVE_E2E_REVERB_PORT: "9095"
+      HIVE_E2E_REVERB_SCHEME: http
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout frontend under its Compose sibling path
+        uses: actions/checkout@v4
+        with:
+          path: hive-os-frontend
+
+      - name: Checkout backend required by the acceptance fixture
+        uses: actions/checkout@v4
+        with:
+          repository: mcmike2223/hive-os-backend
+          ref: main
+          path: hive-os-backend
+
+      - name: Checkout local integration Compose definition
+        uses: actions/checkout@v4
+        with:
+          repository: mcmike2223/hive-os-infra
+          ref: main
+          path: hive-os-infra
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hive-os-frontend/package-lock.json
+
+      - name: Install frontend dependencies from the lockfile
+        working-directory: hive-os-frontend
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        working-directory: hive-os-frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start disposable acceptance services
+        run: docker compose -f hive-os-infra/docker-compose.yml up -d --build db redis seaweedfs seaweedfs-bootstrap backend queue reverb frontend
+
+      - name: Apply the reviewed central migrations
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan migrate --force
+
+      - name: Validate backend dependencies in the disposable service image
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend composer validate --no-check-publish
+
+      - name: Wait for backend and frontend health
+        run: |
+          curl --fail --retry 30 --retry-delay 2 http://localhost:8081/up
+          curl --fail --retry 30 --retry-delay 2 http://localhost:3001/health
+
+      - name: Run focused backend waiter regression suites
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan test Modules/Hospitality/tests/Feature/RestaurantWaiterPosApiTest.php Modules/Hospitality/tests/Feature/RestaurantWaiterPosPhase3WorkflowTest.php
+
+      - name: Run complete Hospitality regression suite
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan test Modules/Hospitality/tests
+
+      - name: Run waiter, KDS, unauthorized, and realtime browser acceptance
+        working-directory: hive-os-frontend
+        run: npm run test:e2e:waiter-pos
+
+      - name: Upload browser failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waiter-pos-browser-artifacts
+          if-no-files-found: ignore
+          path: |
+            hive-os-frontend/playwright-report
+            hive-os-frontend/.playwright/test-results
+            hive-os-frontend/.playwright/junit.xml
+
+      - name: Preserve service diagnostics
+        if: always()
+        run: docker compose -f hive-os-infra/docker-compose.yml logs --no-color > hive-waiter-pos-compose.log
+
+      - name: Upload service diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waiter-pos-service-diagnostics
+          if-no-files-found: ignore
+          path: hive-waiter-pos-compose.log
+
+      - name: Stop acceptance services without pruning volumes
+        if: always()
+        run: docker compose -f hive-os-infra/docker-compose.yml down --remove-orphans

@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "verify:media": "node scripts/check-media-playback-contexts.mjs"
+    "verify:media": "node scripts/check-media-playback-contexts.mjs",
+    "build:webpack:diagnose": "node scripts/diagnose-webpack-build.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:waiter-pos": "playwright test tests/e2e/waiter-pos",
+    "test:e2e:waiter-pos:headed": "playwright test tests/e2e/waiter-pos --headed"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -80,6 +84,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^20",
     "@types/react": "^19",

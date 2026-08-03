@@ -57,6 +57,9 @@ type WaiterRealtimeEvent = {
   item_id?: number;
   service_order_id?: number;
   preparation_status?: string;
+  table_label?: string;
+  from_status?: string | null;
+  to_status?: string;
 };
 
 const createDraftIdempotencyKey = () => {
@@ -130,7 +133,7 @@ export default function WaiterPosPage() {
       const stopConnectionWatch = echo.connector.onConnectionChange((status) => {
         setRealtimeStatus(status === "connected" ? "live" : status === "connecting" ? "connecting" : "offline");
       });
-      const onUpdate = (event: WaiterRealtimeEvent) => {
+      const markEventHandled = (event: WaiterRealtimeEvent) => {
         const eventId = event.event_id;
         if (eventId) {
           if (handledRealtimeEventIds.current.has(eventId)) return;
@@ -139,6 +142,12 @@ export default function WaiterPosPage() {
             handledRealtimeEventIds.current.delete(handledRealtimeEventIds.current.values().next().value as string);
           }
         }
+
+        return true;
+      };
+
+      const onUpdate = (event: WaiterRealtimeEvent) => {
+        if (!markEventHandled(event)) return;
 
         setRealtimeStatus("live");
         setSuccessMessage(
@@ -150,10 +159,20 @@ export default function WaiterPosPage() {
         void queryClient.invalidateQueries({ queryKey: ["hospitality-service-orders"] });
         void queryClient.invalidateQueries({ queryKey: ["hospitality", "kds"] });
       };
+      const onTableStatusUpdate = (event: WaiterRealtimeEvent) => {
+        if (!markEventHandled(event)) return;
+
+        setRealtimeStatus("live");
+        setSuccessMessage(
+          `Table ${event.table_label ?? ""} changed from ${event.from_status ?? "unknown"} to ${event.to_status ?? "unknown"}.`,
+        );
+        void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
+      };
 
       channel.subscribed(onSubscribed);
       channel.error(onSubscriptionError);
       channel.listen(".waiter.order-item.updated", onUpdate);
+      channel.listen(".waiter.table-status.updated", onTableStatusUpdate);
       onSubscribed();
 
       return () => {
