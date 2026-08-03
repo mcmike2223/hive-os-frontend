@@ -903,7 +903,11 @@ export function HrFormsPanel() {
   const workflowRoles = Array.isArray(workflowApproversQuery.data?.data)
     ? workflowApproversQuery.data.data
     : [];
-  const workflowSignerOptions = workflowRoles.flatMap(
+  const workflowSignerOptions: Array<{
+    value: string;
+    name: string;
+    title: string;
+  }> = workflowRoles.flatMap(
     (role: {
       id: number;
       name: string;
