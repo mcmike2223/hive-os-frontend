@@ -217,6 +217,7 @@ export default function KdsPage() {
                 {order.items.map((item) => (
                   <div
                     key={item.id}
+                    data-testid={`kds-item-${item.id}`}
                     className="p-2.5 rounded-lg border border-border bg-background flex items-center justify-between gap-2"
                   >
                     <div className="min-w-0">

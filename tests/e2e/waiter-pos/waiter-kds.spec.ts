@@ -59,7 +59,8 @@ test.describe("waiter POS and KDS isolated browser acceptance", () => {
       await waiterPage.getByLabel("Search menu").fill("Acceptance Grilled Tibs");
       const menuCard = waiterPage.locator("article", { hasText: "Acceptance Grilled Tibs" });
       await menuCard.locator("select").selectOption(String(fixture.menu.variant_id));
-      await menuCard.getByLabel("Injera").check();
+      // Exact, otherwise this also matches the optional "Extra Injera" option.
+      await menuCard.getByLabel("Injera", { exact: true }).check();
       await menuCard.getByLabel("Extra Injera").check();
       await menuCard.getByRole("button", { name: /Add to order/i }).click();
       await waiterPage.screenshot({ path: testInfo.outputPath("assigned-table-configured-cart.png") });
@@ -101,21 +102,30 @@ test.describe("waiter POS and KDS isolated browser acceptance", () => {
       expect(waiterOrderRequests).toBe(1);
       await waiterPage.screenshot({ path: testInfo.outputPath("waiter-order-success.png") });
 
-      await expect(waiterPage.getByText(/Table A-01 Assigned changed from available to occupied/i)).toBeVisible();
+      // The realtime banner is a single slot that the item-updated event
+      // overwrites, so assert the durable state instead: the waiter's own table
+      // card flips to occupied without a reload. The exact table-status payload
+      // is still verified from the WebSocket frames at the end of this test.
+      await expect(waiterPage.getByRole("button", { name: /A-01 Assigned.*occupied/i })).toBeVisible();
       await expect(kitchenPage.getByText("Acceptance Grilled Tibs", { exact: true })).toBeVisible();
       await kitchenPage.screenshot({ path: testInfo.outputPath("kds-new-item.png") });
 
-      const kdsStatusButton = kitchenPage.getByRole("button", { name: "NEW" });
-      await kdsStatusButton.click();
-      await expect(kitchenPage.getByRole("button", { name: "ACCEPTED" })).toBeVisible();
+      // Scope every transition to the exact item this waiter just created. The
+      // seeded restaurant tenant also has demo tickets on the board, so a global
+      // status-button selector is ambiguous and would not prove which item moved.
+      const kdsItem = kitchenPage.getByTestId(`kds-item-${createdItem.id}`);
+      await expect(kdsItem).toBeVisible();
+
+      await kdsItem.getByRole("button", { name: "NEW" }).click();
+      await expect(kdsItem.getByRole("button", { name: "ACCEPTED" })).toBeVisible();
       await expect(waiterPage.getByText(/Live kitchen update received for item #\d+/i)).toBeVisible();
 
-      await kitchenPage.getByRole("button", { name: "ACCEPTED" }).click();
-      await expect(kitchenPage.getByRole("button", { name: "PREPARING" })).toBeVisible();
+      await kdsItem.getByRole("button", { name: "ACCEPTED" }).click();
+      await expect(kdsItem.getByRole("button", { name: "PREPARING" })).toBeVisible();
       await kitchenPage.screenshot({ path: testInfo.outputPath("kds-preparing.png") });
 
-      await kitchenPage.getByRole("button", { name: "PREPARING" }).click();
-      await expect(kitchenPage.getByRole("button", { name: "READY" })).toBeVisible();
+      await kdsItem.getByRole("button", { name: "PREPARING" }).click();
+      await expect(kdsItem.getByRole("button", { name: "READY" })).toBeVisible();
       await expect(waiterPage.getByText(/Kitchen marked item #\d+ ready/i)).toBeVisible();
       await waiterPage.screenshot({ path: testInfo.outputPath("waiter-realtime-ready.png") });
       await kitchenPage.screenshot({ path: testInfo.outputPath("kds-ready.png") });

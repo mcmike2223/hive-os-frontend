@@ -15,7 +15,27 @@ test.describe("waiter POS unauthorized browser acceptance", () => {
     const page = await context.newPage();
     const diagnostics = captureDiagnostics(page);
 
+    // Control users first. A broken permission layer denies everyone, which would
+    // make the denials below pass for the wrong reason. Proving that a permitted
+    // waiter and a permitted chef reach the same endpoints keeps this test honest.
+    const waiterContext = await browser.newContext();
+    const kitchenContext = await browser.newContext();
+    const waiterPage = await waiterContext.newPage();
+    const kitchenPage = await kitchenContext.newPage();
+
     try {
+      await Promise.all([
+        loginAs(waiterPage, fixture, "waiter"),
+        loginAs(kitchenPage, fixture, "chef"),
+      ]);
+
+      await expect
+        .poll(() => sameOriginStatus(waiterPage, "/api/v1/hospitality/waiter/bootstrap"))
+        .toBe(200);
+      await expect
+        .poll(() => sameOriginStatus(kitchenPage, "/api/v1/hospitality/kds/orders"))
+        .toBe(200);
+
       await loginAs(page, fixture, "unauthorized");
       await page.goto(`${frontendBaseUrl(fixture)}/dashboard/hospitality/waiter-pos`);
 
@@ -59,7 +79,7 @@ test.describe("waiter POS unauthorized browser acceptance", () => {
       })).toBe(403);
     } finally {
       await attachDiagnostics(testInfo, diagnostics);
-      await context.close();
+      await Promise.all([context.close(), waiterContext.close(), kitchenContext.close()]);
     }
   });
 });

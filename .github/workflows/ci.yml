@@ -65,12 +65,27 @@ jobs:
         with:
           path: hive-os-frontend
 
+      # hive-os-backend is a private repository. The default GITHUB_TOKEN is
+      # scoped to this repository only, so it cannot read it and checkout fails
+      # with "repository not found". A repository admin must create a read-only
+      # PAT and store it as the HIVE_BACKEND_READ_PAT repository secret.
+      - name: Verify the private backend checkout secret is configured
+        env:
+          HIVE_BACKEND_READ_PAT: ${{ secrets.HIVE_BACKEND_READ_PAT }}
+        run: |
+          if [ -z "${HIVE_BACKEND_READ_PAT}" ]; then
+            echo "::error::HIVE_BACKEND_READ_PAT is not set. A repository admin must add a read-only PAT with access to mcmike2223/hive-os-backend under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "HIVE_BACKEND_READ_PAT is present."
+
       - name: Checkout backend required by the acceptance fixture
         uses: actions/checkout@v4
         with:
           repository: mcmike2223/hive-os-backend
           ref: main
           path: hive-os-backend
+          token: ${{ secrets.HIVE_BACKEND_READ_PAT }}
 
       - name: Checkout local integration Compose definition
         uses: actions/checkout@v4
@@ -114,9 +129,72 @@ jobs:
       - name: Run complete Hospitality regression suite
         run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan test Modules/Hospitality/tests
 
+      # Provision the fixture as its own step so teardown is a gated CI step
+      # rather than something that only happens if Playwright reaches its own
+      # global teardown. Passing HIVE_E2E_FIXTURE_MANIFEST makes global.setup.ts
+      # reuse this fixture instead of creating and removing a second one.
+      - name: Provision the waiter POS acceptance fixture
+        id: fixture
+        run: |
+          FIXTURE_ID="acceptance-waiter-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "fixture_id=${FIXTURE_ID}" >> "${GITHUB_OUTPUT}"
+          echo "HIVE_E2E_FIXTURE_ID=${FIXTURE_ID}" >> "${GITHUB_ENV}"
+          docker compose -f hive-os-infra/docker-compose.yml exec -T backend \
+            php artisan hospitality:waiter-pos-acceptance-fixture --fixture="${FIXTURE_ID}"
+          mkdir -p hive-os-frontend/.playwright/fixtures
+          docker cp "${HIVE_E2E_BACKEND_CONTAINER}:/tmp/hive-waiter-pos-acceptance/${FIXTURE_ID}.json" \
+            hive-os-frontend/.playwright/fixtures/ci-manifest.json
+          chmod 600 hive-os-frontend/.playwright/fixtures/ci-manifest.json
+          echo "HIVE_E2E_FIXTURE_MANIFEST=.playwright/fixtures/ci-manifest.json" >> "${GITHUB_ENV}"
+
       - name: Run waiter, KDS, unauthorized, and realtime browser acceptance
         working-directory: hive-os-frontend
         run: npm run test:e2e:waiter-pos
+
+      - name: Remove the acceptance fixture
+        if: always()
+        run: |
+          FIXTURE_ID="${{ steps.fixture.outputs.fixture_id }}"
+          if [ -z "${FIXTURE_ID}" ]; then
+            echo "No fixture was provisioned; nothing to remove."
+            exit 0
+          fi
+          rm -f hive-os-frontend/.playwright/fixtures/ci-manifest.json
+          docker compose -f hive-os-infra/docker-compose.yml exec -T backend \
+            php artisan hospitality:waiter-pos-acceptance-fixture --fixture="${FIXTURE_ID}" --cleanup
+
+      # Cleanup must be provable, not assumed. This fails the job when the exact
+      # generated tenant row, domain row, database, or manifest survives, which is
+      # how an orphaned tenant database previously went unnoticed.
+      - name: Verify the acceptance fixture left nothing behind
+        if: always()
+        run: |
+          FIXTURE_ID="${{ steps.fixture.outputs.fixture_id }}"
+          if [ -z "${FIXTURE_ID}" ]; then
+            echo "No fixture was provisioned; nothing to verify."
+            exit 0
+          fi
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          FAILED=0
+
+          TENANTS=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
+            "SELECT count(*) FROM tenants WHERE id = '${FIXTURE_ID}'" | tr -d '[:space:]')
+          DOMAINS=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
+            "SELECT count(*) FROM domains WHERE tenant_id = '${FIXTURE_ID}'" | tr -d '[:space:]')
+          DATABASES=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
+            "SELECT count(*) FROM pg_database WHERE datname = 'tenant${FIXTURE_ID}'" | tr -d '[:space:]')
+
+          echo "tenant rows: ${TENANTS} | domain rows: ${DOMAINS} | databases: ${DATABASES}"
+          [ "${TENANTS}" = "0" ] || { echo "::error::Tenant row ${FIXTURE_ID} survived cleanup."; FAILED=1; }
+          [ "${DOMAINS}" = "0" ] || { echo "::error::Domain rows for ${FIXTURE_ID} survived cleanup."; FAILED=1; }
+          [ "${DATABASES}" = "0" ] || { echo "::error::Database tenant${FIXTURE_ID} survived cleanup."; FAILED=1; }
+
+          if ${COMPOSE} exec -T backend test -f "/tmp/hive-waiter-pos-acceptance/${FIXTURE_ID}.json"; then
+            echo "::error::Credentials manifest for ${FIXTURE_ID} survived cleanup."
+            FAILED=1
+          fi
+
+          exit "${FAILED}"
 
       - name: Upload browser failure evidence
         if: always()

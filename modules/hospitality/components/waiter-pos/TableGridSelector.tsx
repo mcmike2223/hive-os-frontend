@@ -65,7 +65,10 @@ export function TableGridSelector({
           No active dining tables are available for this waiter.
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+        // This grid sits in a two-thirds-width column, so viewport breakpoints
+        // overstate how much room a card actually gets. Six columns only fit
+        // from 2xl upwards; at xl they squeezed each card to ~83px.
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-6">
           {tables.map((table) => {
             const isSelected = selectedTable?.id === table.id;
 
@@ -82,7 +85,10 @@ export function TableGridSelector({
                 }`}
               >
                 <span className="flex w-full items-start justify-between gap-2">
-                  <span className="min-w-0">
+                  {/* flex-1 is what claims the leftover row width. With min-w-0
+                      alone the label collapsed to zero width beside the shrink-0
+                      status badge, hiding which table the card represents. */}
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate text-base font-bold text-foreground">{table.label}</span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                       {table.zone?.name ?? table.table_type ?? "Dining"}
