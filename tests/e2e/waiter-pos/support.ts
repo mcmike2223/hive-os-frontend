@@ -124,6 +124,45 @@ export async function sameOriginStatus(page: Page, path: string, init: RequestIn
   );
 }
 
+/**
+ * Same as sameOriginStatus but keeps the decoded body, so idempotent replay can
+ * be checked by comparing the order the server actually returned rather than by
+ * trusting a status code alone.
+ */
+export async function sameOriginJson(
+  page: Page,
+  path: string,
+  init: RequestInit = {},
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  return page.evaluate(
+    async ({ path: requestPath, init: requestInit }) => {
+      const token = window.localStorage.getItem("hive_token");
+      const context = window.localStorage.getItem("hive_context");
+      const signature = window.localStorage.getItem("hive_context_signature");
+      const response = await fetch(requestPath, {
+        ...requestInit,
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(context ? { "X-Tenant": context } : {}),
+          ...(signature ? { "X-Tenant-Signature": signature } : {}),
+          ...(requestInit.headers ?? {}),
+        },
+      });
+
+      let body: Record<string, unknown> = {};
+      try {
+        body = (await response.json()) as Record<string, unknown>;
+      } catch {
+        body = {};
+      }
+
+      return { status: response.status, body };
+    },
+    { path, init },
+  );
+}
+
 export const websocketReceived = (diagnostic: DiagnosticState, eventName: string): boolean =>
   diagnostic.webSockets.some((socket) => socket.received.some((frame) => frame.includes(eventName)));
 
