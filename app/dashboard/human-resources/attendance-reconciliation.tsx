@@ -126,6 +126,7 @@ export function AttendanceReconciliation({
   const queryClient = useQueryClient();
   const hintId = useId();
   const [employeeId, setEmployeeId] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (!employeeId && employees.length > 0) {
@@ -134,11 +135,20 @@ export function AttendanceReconciliation({
   }, [employeeId, employees]);
 
   const evidence = useQuery({
-    queryKey: ["hr-attendance", scope, "reconciliation", date],
-    queryFn: () =>
-      attendanceFetch<WorkforceReconciliationPage>(
-        `/attendance/reconciliation?starts_on=${encodeURIComponent(date)}&ends_on=${encodeURIComponent(date)}&per_page=50`,
-      ),
+    queryKey: ["hr-attendance", scope, "reconciliation", date, showHistory],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        starts_on: date,
+        ends_on: date,
+        per_page: "50",
+      });
+      if (showHistory) {
+        params.set("include_history", "1");
+      }
+      return attendanceFetch<WorkforceReconciliationPage>(
+        `/attendance/reconciliation?${params.toString()}`,
+      );
+    },
   });
 
   const reconcile = useMutation({
@@ -252,7 +262,7 @@ export function AttendanceReconciliation({
         <div className="grid gap-px border-b border-slate-500 bg-slate-500 sm:grid-cols-2 xl:grid-cols-4 dark:border-slate-400 dark:bg-slate-400">
           {[
             {
-              label: "Evidence entries",
+              label: showHistory ? "Evidence entries" : "Current days",
               value: total,
               icon: CalendarCheck2,
             },
@@ -286,6 +296,22 @@ export function AttendanceReconciliation({
           ))}
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-500 px-5 py-3 dark:border-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {showHistory
+              ? "Showing full audit history. Payroll uses only current days."
+              : "Showing the current outcome per employee for this date."}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setShowHistory((current) => !current)}
+          >
+            {showHistory ? "Show current only" : "Show history"}
+          </Button>
+        </div>
+
         {latestProof && (
           <div className="border-b border-slate-500 bg-blue-50 px-5 py-4 text-sm dark:border-slate-400 dark:bg-slate-950">
             <p className="font-black">Latest proof line</p>
@@ -313,7 +339,9 @@ export function AttendanceReconciliation({
         ) : (
           <Table>
             <TableCaption>
-              Reconciliation evidence for {date}, newest audit entry first.
+              {showHistory
+                ? `Reconciliation history for ${date}, newest first. Superseded rows are ignored by payroll.`
+                : `Current reconciliation outcome for ${date}.`}
             </TableCaption>
             <TableHeader>
               <TableRow>
@@ -329,7 +357,14 @@ export function AttendanceReconciliation({
             <TableBody>
               {rows.length > 0 ? (
                 rows.map((day) => (
-                  <TableRow key={day.id}>
+                  <TableRow
+                    key={day.id}
+                    className={
+                      showHistory && !day.is_current
+                        ? "opacity-60"
+                        : undefined
+                    }
+                  >
                     <TableCell className="font-semibold">
                       {day.employee.primary_name}
                       <span className="block text-xs font-normal text-slate-600 dark:text-slate-300">
@@ -351,6 +386,9 @@ export function AttendanceReconciliation({
                       <StatusBadge status={day.status} />
                       <span className="mt-1 block text-xs capitalize text-slate-600 dark:text-slate-300">
                         {day.action.replaceAll("_", " ")}
+                        {showHistory && !day.is_current
+                          ? " · superseded"
+                          : ""}
                       </span>
                     </TableCell>
                   </TableRow>

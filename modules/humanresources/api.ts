@@ -1304,6 +1304,7 @@ export type WorkforceReconciliationDay = {
   payable_minutes: number;
   variance_minutes: number;
   period_locked: boolean;
+  is_current: boolean;
   action:
     | "recalculated"
     | "unchanged"
@@ -1386,6 +1387,7 @@ export type WorkforceReconciliationPage =
   Paginated<WorkforceReconciliationDay> & {
     meta: Paginated<WorkforceReconciliationDay>["meta"] & {
       summary: WorkforceReconciliationSummary;
+      include_history?: boolean;
     };
   };
 
