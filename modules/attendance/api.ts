@@ -42,10 +42,18 @@ export async function attendanceFetch<T>(
           .flat()
           .find((item) => typeof item === "string")
       : null;
+    const reasonCode =
+      typeof payload?.data?.reason_code === "string"
+        ? payload.data.reason_code
+        : null;
+    const reasonMessage = reasonCode
+      ? `Scan rejected: ${reasonCode.replaceAll("_", " ")}.`
+      : null;
     throw new Error(
       typeof validation === "string"
         ? validation
         : payload?.message ||
+            reasonMessage ||
             `Attendance request failed with status ${response.status}.`,
     );
   }

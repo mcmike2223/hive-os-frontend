@@ -860,43 +860,44 @@ function SidebarInner({
                             )}
                           </button>
                         </h3>
-                        <div
-                          id="desktop-human-resources-links"
-                          hidden={!isHumanResourcesOpen}
-                          className="flex flex-col gap-1 pl-4"
-                        >
-                          {humanResourcesModuleItems.map((item) => {
-                            const active =
-                              pathname === item.href ||
-                              (item.href !== "/dashboard/human-resources" &&
-                                pathname.startsWith(`${item.href}/`));
-                            const Icon = item.icon;
-                            const label = t(
-                              item.translationKey,
-                              item.fallbackLabel,
-                            );
-                            return (
-                              <Link
-                                key={item.href}
-                                id={item.tourId}
-                                href={item.href}
-                                aria-current={active ? "page" : undefined}
-                                className={cn(
-                                  "group flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                                  active
-                                    ? "hive-sidebar-nested-active"
-                                    : "hive-sidebar-nested-idle",
-                                )}
-                              >
-                                <Icon
-                                  aria-hidden="true"
-                                  className="h-4 w-4 shrink-0"
-                                />
-                                <span className="truncate">{label}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
+                        {isHumanResourcesOpen && (
+                          <div
+                            id="desktop-human-resources-links"
+                            className="flex flex-col gap-1 pl-4"
+                          >
+                            {humanResourcesModuleItems.map((item) => {
+                              const active =
+                                pathname === item.href ||
+                                (item.href !== "/dashboard/human-resources" &&
+                                  pathname.startsWith(`${item.href}/`));
+                              const Icon = item.icon;
+                              const label = t(
+                                item.translationKey,
+                                item.fallbackLabel,
+                              );
+                              return (
+                                <Link
+                                  key={item.href}
+                                  id={item.tourId}
+                                  href={item.href}
+                                  aria-current={active ? "page" : undefined}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
+                                    active
+                                      ? "hive-sidebar-nested-active"
+                                      : "hive-sidebar-nested-idle",
+                                  )}
+                                >
+                                  <Icon
+                                    aria-hidden="true"
+                                    className="h-4 w-4 shrink-0"
+                                  />
+                                  <span className="truncate">{label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 

@@ -814,7 +814,7 @@ export type RosterPeriod = {
   organization_unit_id: number | null;
   starts_on: string;
   ends_on: string;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "published" | "superseded" | "archived";
   conflict_summary: RosterConflict[] | null;
   published_at: string | null;
   template?: ScheduleTemplate;
@@ -830,6 +830,7 @@ export type SchedulingWorkspace = {
   assignments: Array<{
     id: number;
     scope_type: string;
+    employee_id?: number | null;
     priority: number;
     effective_from: string;
     effective_to: string | null;

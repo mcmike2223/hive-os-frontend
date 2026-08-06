@@ -16,6 +16,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -120,10 +130,58 @@ function statusClass(status: string) {
   if (status === "approved" || status === "published") {
     return "border-teal-800 bg-teal-50 text-teal-950 dark:border-teal-200 dark:bg-teal-950 dark:text-teal-100";
   }
-  if (status === "rejected" || status === "withdrawn") {
-    return "border-red-700 bg-red-50 text-red-900 dark:border-red-300 dark:bg-red-950 dark:text-red-100";
+  if (
+    status === "rejected" ||
+    status === "withdrawn" ||
+    status === "superseded"
+  ) {
+    return "border-slate-600 bg-slate-100 text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100";
   }
   return "border-amber-800 bg-amber-50 text-amber-950 dark:border-amber-200 dark:bg-amber-950 dark:text-amber-100";
+}
+
+function rosterEmployeeIds(roster: RosterPeriod): number[] {
+  return Array.from(
+    new Set(
+      roster.entries
+        .map((entry) => entry.employee_id ?? entry.employee?.id)
+        .filter((id): id is number => typeof id === "number"),
+    ),
+  );
+}
+
+function datesOverlap(
+  leftStarts: string,
+  leftEnds: string,
+  rightStarts: string,
+  rightEnds: string,
+) {
+  return leftStarts <= rightEnds && rightStarts <= leftEnds;
+}
+
+function overlappingPublishedRosters(
+  candidate: RosterPeriod,
+  rosters: RosterPeriod[],
+): RosterPeriod[] {
+  const employeeIds = new Set(rosterEmployeeIds(candidate));
+  if (!employeeIds.size) return [];
+
+  return rosters.filter((roster) => {
+    if (roster.id === candidate.id || roster.status !== "published") {
+      return false;
+    }
+    if (
+      !datesOverlap(
+        candidate.starts_on,
+        candidate.ends_on,
+        roster.starts_on,
+        roster.ends_on,
+      )
+    ) {
+      return false;
+    }
+    return rosterEmployeeIds(roster).some((id) => employeeIds.has(id));
+  });
 }
 
 function ActionError({ message }: { message: string }) {
@@ -182,6 +240,50 @@ function SchedulingActionDialog({
   const [cycleDays, setCycleDays] = useState<string[]>(
     Array.from({ length: 7 }, () => "rest"),
   );
+  const rotationPriority = useQuery({
+    queryKey: [
+      "hr-scheduling",
+      scope,
+      "rotation-priority",
+      rotation.employee_id,
+      rotation.anchor_date,
+    ],
+    queryFn: () =>
+      attendanceFetch<{
+        data: {
+          source_type: string;
+          work_schedule?: { name?: string } | null;
+        } | null;
+      }>(
+        `/scheduling/resolution?employee_id=${rotation.employee_id}&date=${rotation.anchor_date}`,
+      ),
+    enabled:
+      open &&
+      mode === "rotation" &&
+      Boolean(rotation.employee_id && rotation.anchor_date),
+  });
+  const overlappingRotation = useMemo(() => {
+    if (!rotation.employee_id) return null;
+    const employeeId = Number(rotation.employee_id);
+    return (
+      workspace.assignments.find((assignment) => {
+        if (assignment.scope_type !== "employee") return false;
+        const assignedEmployeeId =
+          assignment.employee_id ?? assignment.employee?.id;
+        if (Number(assignedEmployeeId) !== employeeId) return false;
+        if (assignment.effective_from > rotation.anchor_date) return false;
+        return (
+          !assignment.effective_to ||
+          assignment.effective_to >= rotation.anchor_date
+        );
+      }) ?? null
+    );
+  }, [rotation.anchor_date, rotation.employee_id, workspace.assignments]);
+  const winningSource = rotationPriority.data?.data?.source_type;
+  const rotationBlockedByHigherSource =
+    winningSource === "employee_schedule" ||
+    winningSource === "roster_entry" ||
+    winningSource === "temporary_schedule";
   const [roster, setRoster] = useState({
     code: "",
     name: "",
@@ -600,6 +702,11 @@ function SchedulingActionDialog({
                         }))
                       }
                       className={selectClass}
+                      aria-describedby={
+                        rotation.employee_id
+                          ? "rotation-priority-hint"
+                          : undefined
+                      }
                     >
                       <option value="">Create without assigning</option>
                       {employees.map((employee) => (
@@ -608,6 +715,61 @@ function SchedulingActionDialog({
                         </option>
                       ))}
                     </select>
+                    {rotation.employee_id &&
+                      (rotationBlockedByHigherSource ||
+                        overlappingRotation) && (
+                        <div
+                          id="rotation-priority-hint"
+                          role="status"
+                          className="rounded-xl border border-amber-800 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-200 dark:bg-amber-950 dark:text-amber-100"
+                        >
+                          <p className="flex items-start gap-2 font-bold">
+                            <AlertTriangle
+                              aria-hidden="true"
+                              className="mt-0.5 h-4 w-4 shrink-0"
+                            />
+                            This assignment may not change the 14-day schedule
+                          </p>
+                          <ul className="mt-2 list-disc space-y-1 pl-6 text-xs leading-5">
+                            {winningSource === "employee_schedule" && (
+                              <li>
+                                This employee already has a fixed schedule
+                                {rotationPriority.data?.data?.work_schedule
+                                  ?.name
+                                  ? ` (“${rotationPriority.data.data.work_schedule.name}”)`
+                                  : ""}
+                                . Fixed schedules beat rotations until they end
+                                or are removed.
+                              </li>
+                            )}
+                            {winningSource === "roster_entry" && (
+                              <li>
+                                A published roster already covers{" "}
+                                {rotation.anchor_date}. Published rosters beat
+                                rotations for those dates.
+                              </li>
+                            )}
+                            {winningSource === "temporary_schedule" && (
+                              <li>
+                                An approved temporary schedule covers{" "}
+                                {rotation.anchor_date} and will win over this
+                                rotation.
+                              </li>
+                            )}
+                            {overlappingRotation && (
+                              <li>
+                                This employee already has an active rotation
+                                assignment
+                                {overlappingRotation.template?.name
+                                  ? ` (“${overlappingRotation.template.name}”)`
+                                  : ""}
+                                . Saving another one for the same period will
+                                fail with an overlap error.
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                   </div>
                 </div>
 
@@ -1131,7 +1293,10 @@ export function ScheduleWorkspace() {
   const [employeeId, setEmployeeId] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [selectedRosterId, setSelectedRosterId] = useState<number | null>(null);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const refreshTimer = useRef<number | null>(null);
+  const newestRosterIdRef = useRef<number | null>(null);
   const statusId = useId();
 
   const workspace = useQuery({
@@ -1151,6 +1316,13 @@ export function ScheduleWorkspace() {
     enabled: isLoaded && canFetchEmployees,
   });
   const data = workspace.data?.data;
+  const selectedRoster = useMemo(() => {
+    const rosters = data?.rosters ?? [];
+    if (!rosters.length) return null;
+    return (
+      rosters.find((roster) => roster.id === selectedRosterId) ?? rosters[0]
+    );
+  }, [data?.rosters, selectedRosterId]);
   const visibleEmployees = useMemo(() => {
     const rows = employees.data?.data ?? data?.swap_candidates ?? [];
     if (data?.employee && !rows.some((item) => item.id === data.employee?.id)) {
@@ -1158,6 +1330,27 @@ export function ScheduleWorkspace() {
     }
     return rows.length ? rows : data?.employee ? [data.employee] : [];
   }, [data?.employee, data?.swap_candidates, employees.data?.data]);
+
+  useEffect(() => {
+    const rosters = data?.rosters ?? [];
+    if (!rosters.length) {
+      setSelectedRosterId(null);
+      newestRosterIdRef.current = null;
+      return;
+    }
+    const newestId = rosters[0].id;
+    const createdNewer =
+      newestRosterIdRef.current != null &&
+      newestId !== newestRosterIdRef.current;
+    newestRosterIdRef.current = newestId;
+    if (
+      selectedRosterId == null ||
+      !rosters.some((roster) => roster.id === selectedRosterId) ||
+      createdNewer
+    ) {
+      setSelectedRosterId(newestId);
+    }
+  }, [data?.rosters, selectedRosterId]);
 
   useEffect(() => {
     const token =
@@ -1209,11 +1402,39 @@ export function ScheduleWorkspace() {
 
   const publishRoster = useMutation({
     mutationFn: (roster: RosterPeriod) =>
-      attendanceFetch<{ data: RosterPeriod }>(`/rosters/${roster.id}/publish`, {
+      attendanceFetch<{
+        data: RosterPeriod;
+        meta: {
+          superseded: Array<{
+            id: number;
+            code: string;
+            name: string;
+            starts_on: string | null;
+            ends_on: string | null;
+          }>;
+          was_superseded: boolean;
+        };
+      }>(`/rosters/${roster.id}/publish`, {
         method: "POST",
       }),
-    onSuccess: async () => {
-      toast.success("Roster published.");
+    onSuccess: async (response) => {
+      const supersededNames = response.meta.superseded
+        .map((roster) => roster.name)
+        .filter(Boolean);
+      if (response.meta.was_superseded && supersededNames.length) {
+        toast.success(
+          `Roster restored as active. Superseded: ${supersededNames.join(", ")}.`,
+        );
+      } else if (response.meta.was_superseded) {
+        toast.success("Previously superseded roster restored as the active schedule.");
+      } else if (supersededNames.length) {
+        toast.success(
+          `Roster published. Superseded: ${supersededNames.join(", ")}.`,
+        );
+      } else {
+        toast.success("Roster published and now drives the live schedule.");
+      }
+      setPublishConfirmOpen(false);
       await queryClient.invalidateQueries({
         queryKey: ["hr-scheduling", scope],
       });
@@ -1228,7 +1449,15 @@ export function ScheduleWorkspace() {
 
   if (isLoaded && !canOpen) return null;
 
-  const latestRoster = data?.rosters[0] ?? null;
+  const publishImpact = selectedRoster
+    ? overlappingPublishedRosters(selectedRoster, data?.rosters ?? [])
+    : [];
+  const canPublishSelected =
+    Boolean(selectedRoster) &&
+    (selectedRoster?.status === "draft" ||
+      selectedRoster?.status === "superseded") &&
+    Boolean(data?.permissions.can_manage_rosters);
+
   const openShifts =
     data?.rosters.reduce(
       (total, roster) =>
@@ -1496,35 +1725,74 @@ export function ScheduleWorkspace() {
       <div className="grid gap-5 2xl:grid-cols-[1.35fr_1fr]">
         <Card className="border-slate-500 dark:border-slate-400">
           <CardContent className="p-0">
-            <div className="flex flex-col gap-3 border-b border-slate-500 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-400">
-              <div>
-                <h3 className="text-xl font-black">Latest roster</h3>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  {latestRoster
-                    ? `${latestRoster.name} · ${formatDateRange(
-                        latestRoster.starts_on,
-                        latestRoster.ends_on,
-                      )}`
-                    : "Generated roster entries will appear here."}
-                </p>
+            <div className="flex flex-col gap-3 border-b border-slate-500 p-5 dark:border-slate-400">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xl font-black">Roster history</h3>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {selectedRoster
+                      ? `${selectedRoster.name} · ${formatDateRange(
+                          selectedRoster.starts_on,
+                          selectedRoster.ends_on,
+                        )} · ${selectedRoster.status}`
+                      : "Generated roster entries will appear here."}
+                  </p>
+                </div>
+                {canPublishSelected && selectedRoster && (
+                    <Button
+                      type="button"
+                      className="min-h-11 bg-blue-800 text-white hover:bg-blue-900 dark:bg-cyan-200 dark:text-slate-950"
+                      onClick={() => setPublishConfirmOpen(true)}
+                      disabled={publishRoster.isPending}
+                    >
+                      {selectedRoster.status === "superseded"
+                        ? "Restore & publish"
+                        : "Publish roster"}
+                    </Button>
+                  )}
               </div>
-              {latestRoster?.status === "draft" &&
-                data?.permissions.can_manage_rosters && (
-                  <Button
-                    type="button"
-                    className="min-h-11 bg-blue-800 text-white hover:bg-blue-900 dark:bg-cyan-200 dark:text-slate-950"
-                    onClick={() => publishRoster.mutate(latestRoster)}
-                    disabled={publishRoster.isPending}
+              {(data?.rosters.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="roster-history-select">
+                    Choose a roster to review or publish
+                  </Label>
+                  <select
+                    id="roster-history-select"
+                    value={selectedRoster?.id ?? ""}
+                    onChange={(event) =>
+                      setSelectedRosterId(Number(event.target.value))
+                    }
+                    className={selectClass}
                   >
-                    Publish roster
-                  </Button>
-                )}
+                    {(data?.rosters ?? []).map((roster) => (
+                      <option key={roster.id} value={roster.id}>
+                        {roster.name} · {formatDateRange(
+                          roster.starts_on,
+                          roster.ends_on,
+                        )}{" "}
+                        · {roster.status}
+                        {roster.entries[0]?.employee?.primary_name
+                          ? ` · ${roster.entries
+                              .map((entry) => entry.employee?.primary_name)
+                              .filter(Boolean)
+                              .filter(
+                                (name, index, names) =>
+                                  names.indexOf(name) === index,
+                              )
+                              .slice(0, 3)
+                              .join(", ")}`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableCaption>
-                  Latest generated roster entries with employee, date, shift,
-                  and coverage state.
+                  Selected roster entries with employee, date, shift, and
+                  coverage state.
                 </TableCaption>
                 <TableHeader>
                   <TableRow>
@@ -1535,8 +1803,8 @@ export function ScheduleWorkspace() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {latestRoster?.entries.length ? (
-                    latestRoster.entries.slice(0, 40).map((entry) => (
+                  {selectedRoster?.entries.length ? (
+                    selectedRoster.entries.slice(0, 40).map((entry) => (
                       <TableRow key={entry.id}>
                         <TableCell className="font-semibold">
                           {entry.is_open
@@ -1662,7 +1930,7 @@ export function ScheduleWorkspace() {
         </Card>
       </div>
 
-      {latestRoster?.conflict_summary?.length ? (
+      {selectedRoster?.conflict_summary?.length ? (
         <Card className="border-amber-800 bg-amber-50 dark:border-amber-200 dark:bg-amber-950">
           <CardContent className="p-5">
             <div className="flex items-center gap-2">
@@ -1675,7 +1943,7 @@ export function ScheduleWorkspace() {
               </h3>
             </div>
             <ul className="mt-3 space-y-2 text-sm text-amber-950 dark:text-amber-50">
-              {latestRoster.conflict_summary.map((conflict, index) => (
+              {selectedRoster.conflict_summary.map((conflict, index) => (
                 <li
                   key={`${conflict.code}-${conflict.work_date}-${index}`}
                   className="rounded-lg border border-amber-800 p-3 dark:border-amber-200"
@@ -1691,6 +1959,86 @@ export function ScheduleWorkspace() {
           </CardContent>
         </Card>
       ) : null}
+
+      {selectedRoster && (
+        <AlertDialog
+          open={publishConfirmOpen}
+          onOpenChange={setPublishConfirmOpen}
+        >
+          <AlertDialogContent className="sm:max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {selectedRoster.status === "superseded"
+                  ? "Restore this roster as active?"
+                  : "Publish this roster?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <p>
+                    <span className="font-semibold text-foreground">
+                      {selectedRoster.name}
+                    </span>{" "}
+                    · {formatDateRange(
+                      selectedRoster.starts_on,
+                      selectedRoster.ends_on,
+                    )}{" "}
+                    will become the live schedule source for its employees and
+                    dates.
+                  </p>
+                  {selectedRoster.status === "superseded" && (
+                    <p className="rounded-lg border border-amber-800 bg-amber-50 p-3 text-amber-950 dark:border-amber-200 dark:bg-amber-950 dark:text-amber-100">
+                      This roster was previously superseded. Publishing it will
+                      replace the current active roster for overlapping dates.
+                    </p>
+                  )}
+                  {publishImpact.length > 0 ? (
+                    <div className="rounded-lg border border-slate-500 p-3 dark:border-slate-400">
+                      <p className="font-semibold text-foreground">
+                        These published rosters will be superseded:
+                      </p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {publishImpact.map((roster) => (
+                          <li key={roster.id}>
+                            {roster.name} ·{" "}
+                            {formatDateRange(roster.starts_on, roster.ends_on)}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-xs">
+                        History is kept. You can restore a superseded roster
+                        later by publishing it again.
+                      </p>
+                    </div>
+                  ) : (
+                    <p>
+                      No other published roster overlaps these employees and
+                      dates, so nothing else will be superseded.
+                    </p>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={publishRoster.isPending}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={publishRoster.isPending}
+                onClick={(event) => {
+                  event.preventDefault();
+                  publishRoster.mutate(selectedRoster);
+                }}
+              >
+                {publishRoster.isPending
+                  ? "Publishing…"
+                  : selectedRoster.status === "superseded"
+                    ? "Restore & publish"
+                    : "Publish roster"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {data && (
         <SchedulingActionDialog

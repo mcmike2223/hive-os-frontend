@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { GitBranch, Send, Trash2, Settings, Users, Shield, Zap, CheckCircle2 } from "lucide-react";
+import { GitBranch, Send, Trash2, Settings, Users, Shield, Zap, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -206,6 +206,7 @@ export default function WorkflowRulesPage() {
     approvable_id: "",
     trigger_event: "manual",
   });
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -276,6 +277,7 @@ export default function WorkflowRulesPage() {
       return;
     }
 
+    setIsSaving(true);
     try {
       const { product_quality_gate, ...baseFormData } = formData;
       const productQualityGate = formData.model_type === PRODUCT_MODEL_TYPE && product_quality_gate;
@@ -298,6 +300,8 @@ export default function WorkflowRulesPage() {
       loadData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to save rule.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -617,7 +621,9 @@ export default function WorkflowRulesPage() {
                   onValueChange={(v) => setFormData({ ...formData, trigger_event: v })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select trigger" />
+                    <SelectValue placeholder="Select trigger">
+                      {formData.trigger_event ? formData.trigger_event.replaceAll("_", " ") : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {ruleEvents.map((event) => (
@@ -715,8 +721,11 @@ export default function WorkflowRulesPage() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} className="px-8 bg-primary hover:bg-primary/90">Create Workflow</Button>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving} className="px-8 bg-primary hover:bg-primary/90">
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Create Workflow
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

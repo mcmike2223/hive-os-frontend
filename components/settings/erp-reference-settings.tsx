@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CirclePlus,
+  Loader2,
   Pencil,
   Search,
   Settings2,
@@ -19,6 +20,17 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -161,6 +173,8 @@ export function ErpReferenceSettings({ canManage }: { canManage: boolean }) {
   const [editingValue, setEditingValue] = useState<ReferenceValue | null>(null);
   const [form, setForm] = useState<ReferenceForm>(EMPTY_FORM);
   const [formError, setFormError] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [valueToDelete, setValueToDelete] = useState<ReferenceValue | null>(null);
 
   useEffect(() => {
     if (formError) document.getElementById("erp-reference-form-error")?.focus();
@@ -232,6 +246,8 @@ export function ErpReferenceSettings({ canManage }: { canManage: boolean }) {
   const deleteMutation = useMutation({
     mutationFn: (value: ReferenceValue) => hrSettingsFetch(`/${selectedCatalog}/${value.id}`, { method: "DELETE" }),
     onSuccess: () => {
+      setDeleteDialogOpen(false);
+      setValueToDelete(null);
       toast.success("Reference value deleted.");
       queryClient.invalidateQueries({ queryKey: ["hr-settings-values", workspaceScope, selectedCatalog] });
       queryClient.invalidateQueries({ queryKey: ["hr-settings-options", workspaceScope, selectedCatalog] });
@@ -263,8 +279,14 @@ export function ErpReferenceSettings({ canManage }: { canManage: boolean }) {
 
   const removeValue = (value: ReferenceValue) => {
     if (value.is_system) return;
-    if (window.confirm(`Delete “${displayName(value.name)}”? This action cannot be undone.`)) {
-      deleteMutation.mutate(value);
+    setValueToDelete(value);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (valueToDelete) {
+      deleteMutation.mutate(valueToDelete);
     }
   };
 
@@ -420,16 +442,39 @@ export function ErpReferenceSettings({ canManage }: { canManage: boolean }) {
                               <Button variant="ghost" size="icon" onClick={() => openEdit(value)} aria-label={`Edit ${displayName(value.name)}`} className="focus-visible:ring-slate-700 dark:focus-visible:ring-amber-300">
                                 <Pencil aria-hidden="true" className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeValue(value)}
-                                disabled={value.is_system || deleteMutation.isPending}
-                                aria-label={`Delete ${displayName(value.name)}`}
-                                className="text-red-700 hover:text-red-800 focus-visible:ring-slate-700 dark:text-red-300 dark:hover:text-red-200 dark:focus-visible:ring-amber-300"
-                              >
-                                <Trash2 aria-hidden="true" className="h-4 w-4" />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={value.is_system || deleteMutation.isPending}
+                                    aria-label={`Delete ${displayName(value.name)}`}
+                                    className="text-red-700 hover:text-red-800 focus-visible:ring-slate-700 dark:text-red-300 dark:hover:text-red-200 dark:focus-visible:ring-amber-300"
+                                    onClick={() => setValueToDelete(value)}
+                                  >
+                                    <Trash2 aria-hidden="true" className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete {displayName(valueToDelete?.name)}?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete this reference value. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="rounded-xl" disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="rounded-xl bg-destructive hover:bg-destructive/90"
+                                      onClick={confirmDelete}
+                                      disabled={deleteMutation.isPending}
+                                    >
+                                      {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                      Confirm Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </TableCell>
                         )}

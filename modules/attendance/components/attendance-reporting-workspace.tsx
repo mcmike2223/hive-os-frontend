@@ -319,6 +319,12 @@ export function AttendanceReportingWorkspace() {
   });
 
   const data = reportQuery.data?.data;
+  const filtersDirty =
+    draft.from !== filters.from ||
+    draft.to !== filters.to ||
+    draft.granularity !== filters.granularity ||
+    draft.organization_unit_id !== filters.organization_unit_id ||
+    draft.employee_id !== filters.employee_id;
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (draft.from > draft.to) {
@@ -478,7 +484,7 @@ export function AttendanceReportingWorkspace() {
               <Button
                 type="submit"
                 className="min-h-11 w-full"
-                disabled={reportQuery.isFetching}
+                disabled={!filtersDirty}
               >
                 Apply report filters
               </Button>
