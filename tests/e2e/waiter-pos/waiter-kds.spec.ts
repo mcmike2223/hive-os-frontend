@@ -1,9 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   attachDiagnostics,
   captureDiagnostics,
   frontendBaseUrl,
-  loadFixture,
   loginAs,
   websocketEventPayloads,
   websocketReceived,
@@ -28,8 +27,8 @@ type CreatedOrder = {
 };
 
 test.describe("waiter POS and KDS isolated browser acceptance", () => {
-  test("submits one server-authoritative order and receives KDS realtime updates", async ({ browser }, testInfo) => {
-    const fixture = await loadFixture();
+  test("submits one server-authoritative order and receives KDS realtime updates", async ({ browser, waiterFixture }, testInfo) => {
+    const fixture = waiterFixture;
     const waiterContext = await browser.newContext();
     const kitchenContext = await browser.newContext();
     const waiterPage = await waiterContext.newPage();

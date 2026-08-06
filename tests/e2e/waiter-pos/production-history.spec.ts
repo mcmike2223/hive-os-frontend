@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { frontendBaseUrl, loadFixture, loginAs } from "./support";
+import { expect, test } from "./fixtures";
+import { frontendBaseUrl, loginAs } from "./support";
 
 /**
  * Browser Back and Forward leave every dashboard route blank on the Next.js dev
@@ -21,8 +21,8 @@ test.describe("waiter POS production history navigation", () => {
     "Needs a production build served separately; see the comment above.",
   );
 
-  test("Back and Forward keep the dashboard rendered", async ({ browser }, testInfo) => {
-    const fixture = await loadFixture();
+  test("Back and Forward keep the dashboard rendered", async ({ browser, waiterFixture }, testInfo) => {
+    const fixture = waiterFixture;
     const context = await browser.newContext();
     const page = await context.newPage();
 

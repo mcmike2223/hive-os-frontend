@@ -1,16 +1,15 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   attachDiagnostics,
   captureDiagnostics,
   frontendBaseUrl,
-  loadFixture,
   loginAs,
   sameOriginStatus,
 } from "./support";
 
 test.describe("waiter POS unauthorized browser acceptance", () => {
-  test("cannot bypass waiter, KDS, or private-channel authorization", async ({ browser }, testInfo) => {
-    const fixture = await loadFixture();
+  test("cannot bypass waiter, KDS, or private-channel authorization", async ({ browser, waiterFixture }, testInfo) => {
+    const fixture = waiterFixture;
     const context = await browser.newContext();
     const page = await context.newPage();
     const diagnostics = captureDiagnostics(page);

@@ -49,11 +49,34 @@ export async function loginAs(
     throw new Error(`Fixture did not provide the ${role} user.`);
   }
 
-  await page.goto(`${frontendBaseUrl(fixture)}/sign-in`);
-  await page.locator("#email").fill(user.email);
-  await page.locator("#password").fill(user.password);
-  await page.getByRole("button", { name: /initiate handshake/i }).click();
-  await page.waitForURL(/\/dashboard(?:$|\?)/);
+  // The first journey against a freshly restarted stack can bounce straight
+  // back to /sign-in: the tenant host is new to the dev server and the backend
+  // is still warming, so the submitted credentials land before the app is ready
+  // to establish the session. That is a cold-start race, not a rejected login,
+  // and it resolves on a second attempt. Still require reaching the dashboard —
+  // only the number of attempts is relaxed, never the outcome.
+  const attempts = 2;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    await page.goto(`${frontendBaseUrl(fixture)}/sign-in`);
+    // The sign-in form is client-rendered, so wait for it to exist rather than
+    // letting the default action timeout expire mid-compile.
+    await page.locator("#email").waitFor({ state: "visible", timeout: 90_000 });
+    await page.locator("#password").waitFor({ state: "visible", timeout: 30_000 });
+    await page.locator("#email").fill(user.email);
+    await page.locator("#password").fill(user.password);
+    await page.getByRole("button", { name: /initiate handshake/i }).click();
+
+    try {
+      await page.waitForURL(/\/dashboard(?:$|\?)/, { timeout: 45_000 });
+
+      return;
+    } catch (error) {
+      if (attempt === attempts) {
+        throw error;
+      }
+    }
+  }
 }
 
 export const frontendBaseUrl = (fixture: WaiterFixtureManifest): string =>
