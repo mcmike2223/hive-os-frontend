@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ShieldAlert, UtensilsCrossed } from "lucide-react";
 
@@ -62,6 +62,36 @@ type WaiterRealtimeEvent = {
   to_status?: string;
 };
 
+type WaiterNotification = {
+  id: string;
+  kind: "order" | "item" | "table";
+  message: string;
+  receivedAt: number;
+};
+
+/**
+ * Realtime updates used to share one message slot, so a table-status event and
+ * an item event arriving together overwrote each other and only the last one
+ * was ever visible. Keep a short ordered queue instead: deduplicated by event
+ * id, capped so a busy service cannot grow it without bound, and trimmed by age
+ * rather than a timer that clears the whole slot.
+ */
+const MAX_NOTIFICATIONS = 4;
+const NOTIFICATION_TTL_MS = 15_000;
+
+const appendNotification = (
+  queue: WaiterNotification[],
+  notification: WaiterNotification,
+): WaiterNotification[] => {
+  if (queue.some((entry) => entry.id === notification.id)) {
+    return queue;
+  }
+
+  const cutoff = notification.receivedAt - NOTIFICATION_TTL_MS;
+
+  return [...queue.filter((entry) => entry.receivedAt > cutoff), notification].slice(-MAX_NOTIFICATIONS);
+};
+
 const createDraftIdempotencyKey = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -93,10 +123,18 @@ export default function WaiterPosPage() {
   const [guestCount, setGuestCount] = useState(2);
   const [cart, setCart] = useState<WaiterCartItem[]>([]);
   const [draftIdempotencyKey, setDraftIdempotencyKey] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<WaiterNotification[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "live" | "offline">("connecting");
   const handledRealtimeEventIds = useRef(new Set<string>());
+
+  const pushNotification = useCallback((notification: Omit<WaiterNotification, "receivedAt">) => {
+    setNotifications((queue) => appendNotification(queue, { ...notification, receivedAt: Date.now() }));
+  }, []);
+
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications((queue) => queue.filter((entry) => entry.id !== id));
+  }, []);
 
   const { data, isLoading } = useQuery<WaiterBootstrap>({
     queryKey: ["waiter-pos-bootstrap"],
@@ -150,11 +188,14 @@ export default function WaiterPosPage() {
         if (!markEventHandled(event)) return;
 
         setRealtimeStatus("live");
-        setSuccessMessage(
-          event.preparation_status === "ready"
-            ? `Kitchen marked item #${event.item_id} ready.`
-            : `Live kitchen update received for item #${event.item_id}.`,
-        );
+        pushNotification({
+          id: event.event_id ?? `item-${event.item_id}-${event.preparation_status ?? "update"}`,
+          kind: "item",
+          message:
+            event.preparation_status === "ready"
+              ? `Kitchen marked item #${event.item_id} ready.`
+              : `Live kitchen update received for item #${event.item_id}.`,
+        });
         void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
         void queryClient.invalidateQueries({ queryKey: ["hospitality-service-orders"] });
         void queryClient.invalidateQueries({ queryKey: ["hospitality", "kds"] });
@@ -163,9 +204,11 @@ export default function WaiterPosPage() {
         if (!markEventHandled(event)) return;
 
         setRealtimeStatus("live");
-        setSuccessMessage(
-          `Table ${event.table_label ?? ""} changed from ${event.from_status ?? "unknown"} to ${event.to_status ?? "unknown"}.`,
-        );
+        pushNotification({
+          id: event.event_id ?? `table-${event.table_label ?? "unknown"}-${event.to_status ?? "update"}`,
+          kind: "table",
+          message: `Table ${event.table_label ?? ""} changed from ${event.from_status ?? "unknown"} to ${event.to_status ?? "unknown"}.`,
+        });
         void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
       };
 
@@ -173,7 +216,13 @@ export default function WaiterPosPage() {
       channel.error(onSubscriptionError);
       channel.listen(".waiter.order-item.updated", onUpdate);
       channel.listen(".waiter.table-status.updated", onTableStatusUpdate);
-      onSubscribed();
+
+      // Deliberately not calling onSubscribed() here. Announcing the channel as
+      // live the moment the listeners are registered made the banner report
+      // "connected" while the broadcast server was refusing connections and not
+      // a single frame arrived — the outage was invisible to anyone using the
+      // app. Let the real subscription callback and the connection watcher be
+      // the only things that can turn it green.
 
       return () => {
         stopConnectionWatch();
@@ -193,13 +242,15 @@ export default function WaiterPosPage() {
   const submitOrderMutation = useMutation({
     mutationFn: createWaiterHospitalityOrder,
     onSuccess: (response) => {
-      setSuccessMessage(
-        response?.idempotent_replay
+      pushNotification({
+        id: `order-${response?.id ?? Date.now()}`,
+        kind: "order",
+        message: response?.idempotent_replay
           ? "Restaurant order confirmed from a safe retry."
           : response?.requires_approval
           ? "Order submitted for approval."
           : "Restaurant order sent to the kitchen.",
-      );
+      });
       setErrorMessage(null);
       setCart([]);
       setSelectedTable(null);
@@ -207,10 +258,8 @@ export default function WaiterPosPage() {
       void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
       void queryClient.invalidateQueries({ queryKey: ["hospitality-service-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["hospitality", "kds"] });
-      window.setTimeout(() => setSuccessMessage(null), 4000);
     },
     onError: (error) => {
-      setSuccessMessage(null);
       setErrorMessage(getErrorMessage(error));
     },
   });
@@ -329,14 +378,31 @@ export default function WaiterPosPage() {
         </div>
 
         <div className="space-y-2">
-          {successMessage ? (
-            <div
-              className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+          {notifications.length > 0 ? (
+            <ul
+              className="space-y-2"
+              aria-label="Live service updates"
               role="status"
+              aria-live="polite"
             >
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              {successMessage}
-            </div>
+              {notifications.map((notification) => (
+                <li
+                  key={notification.id}
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="flex-1">{notification.message}</span>
+                  <button
+                    type="button"
+                    onClick={() => dismissNotification(notification.id)}
+                    className="rounded px-1 text-emerald-700/70 hover:text-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:text-emerald-300/70 dark:hover:text-emerald-100"
+                    aria-label={`Dismiss update: ${notification.message}`}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
           ) : null}
           {errorMessage ? (
             <div className="rounded-lg border border-red-700 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:border-red-300 dark:bg-red-950/50 dark:text-red-300" role="alert">
