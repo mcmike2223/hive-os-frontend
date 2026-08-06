@@ -93,6 +93,7 @@ type EmployeeForm = {
   probation_working_days: string;
   probation_ends_on: string;
   contract_signed_at: string;
+  salary_amount: string;
   organization_unit_id: string;
   position_id: string;
   hours_per_day: string;
@@ -116,11 +117,19 @@ const EMPTY_EMPLOYEE: EmployeeForm = {
   probation_working_days: "0",
   probation_ends_on: "",
   contract_signed_at: "",
+  salary_amount: "",
   organization_unit_id: "",
   position_id: "",
   hours_per_day: "8",
   hours_per_week: "48",
 };
+
+function salaryAmountFromEmployee(employee: Employee | null): string {
+  const raw = employee?.custom_fields?.salary_amount;
+  if (raw == null || raw === "") return "";
+  const amount = Number(raw);
+  return Number.isFinite(amount) ? String(amount) : "";
+}
 
 type WorkspaceUserOption = {
   id: number;
@@ -368,6 +377,7 @@ function EmployeeDialog({
             probation_working_days: String(employee.probation_working_days),
             probation_ends_on: employee.probation_ends_on ?? "",
             contract_signed_at: employee.contract_signed_at?.slice(0, 16) ?? "",
+            salary_amount: salaryAmountFromEmployee(employee),
           }
         : {
             ...EMPTY_EMPLOYEE,
@@ -409,6 +419,20 @@ function EmployeeDialog({
         );
       }
 
+      const existingCustomFields =
+        employee?.custom_fields && typeof employee.custom_fields === "object"
+          ? { ...employee.custom_fields }
+          : {};
+      const salaryTrimmed = form.salary_amount.trim();
+      const salaryAmount =
+        salaryTrimmed === "" ? null : Number(salaryTrimmed);
+      if (
+        salaryAmount !== null &&
+        (!Number.isFinite(salaryAmount) || salaryAmount < 0)
+      ) {
+        throw new Error("Monthly salary must be a valid amount of 0 or more.");
+      }
+
       const payload = {
         user_id: form.user_id ? Number(form.user_id) : null,
         primary_name:
@@ -427,6 +451,10 @@ function EmployeeDialog({
         probation_working_days: Number(form.probation_working_days),
         probation_ends_on: form.probation_ends_on || null,
         contract_signed_at: form.contract_signed_at || null,
+        custom_fields: {
+          ...existingCustomFields,
+          salary_amount: salaryAmount,
+        },
         ...(!employee && form.organization_unit_id && form.position_id
           ? {
               organization_unit_id: Number(form.organization_unit_id),
@@ -694,6 +722,26 @@ function EmployeeDialog({
                     setForm({ ...form, hired_on: e.target.value })
                   }
                   required
+                  className={controlClass}
+                />
+              </FormField>
+              <FormField
+                id="salary-amount"
+                label="Monthly salary (ETB)"
+                help="Used by payroll for basic salary and work-entry rates. Leave blank if not set yet."
+              >
+                <Input
+                  id="salary-amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="e.g. 15000"
+                  value={form.salary_amount}
+                  onChange={(e) =>
+                    setForm({ ...form, salary_amount: e.target.value })
+                  }
+                  aria-describedby="salary-amount-help"
                   className={controlClass}
                 />
               </FormField>

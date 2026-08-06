@@ -305,6 +305,7 @@ export type Employee = {
   probation_working_days: number;
   probation_ends_on: string | null;
   profile_photo_path?: string | null;
+  custom_fields?: Record<string, unknown> | null;
   primary_assignment?: Assignment | null;
 };
 

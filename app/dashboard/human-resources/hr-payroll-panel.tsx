@@ -265,7 +265,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
               <select
                 value={form.employee_id}
                 onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-                className="mt-1 w-full rounded-md border p-2 text-xs"
+                className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <option value="">Select Employee</option>
                 {employees.map((emp: any) => (
