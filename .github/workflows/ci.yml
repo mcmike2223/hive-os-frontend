@@ -230,12 +230,36 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" hive-os-frontend
           rm -rf hive-os-frontend/.next
 
+      # NEXT_PUBLIC_* values are baked in at build time, so the build needs the
+      # same configuration the dev container gets from Compose. Without it the
+      # bundle ships defaults, the dashboard never reaches the API, and the
+      # journey fails on its first page load having proven nothing about
+      # history navigation.
+      #
+      # INTERNAL_API_URL deliberately differs from the Compose value: the
+      # container reaches the backend as http://backend:8000 on the Docker
+      # network, but this server runs on the host, where that name does not
+      # resolve and the published port is 8081.
       - name: Build the production frontend
         working-directory: hive-os-frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8081/api/v1
+          INTERNAL_API_URL: http://localhost:8081/api/v1
+          NEXT_PUBLIC_REVERB_APP_KEY: uq8zbsjhgcajsmdiwhc8
+          NEXT_PUBLIC_REVERB_HOST: localhost
+          NEXT_PUBLIC_REVERB_PORT: "9095"
+          NEXT_PUBLIC_REVERB_SCHEME: http
         run: npm run build
 
       - name: Start the production frontend
         working-directory: hive-os-frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8081/api/v1
+          INTERNAL_API_URL: http://localhost:8081/api/v1
+          NEXT_PUBLIC_REVERB_APP_KEY: uq8zbsjhgcajsmdiwhc8
+          NEXT_PUBLIC_REVERB_HOST: localhost
+          NEXT_PUBLIC_REVERB_PORT: "9095"
+          NEXT_PUBLIC_REVERB_SCHEME: http
         run: |
           nohup npx next start -p 3010 > next-start.log 2>&1 &
           echo $! > next-start.pid
@@ -258,6 +282,14 @@ jobs:
         if: always()
         working-directory: hive-os-frontend
         run: |
+          # Print the server's own output before killing it: a journey failure
+          # here is usually the server refusing to render, and that reason only
+          # exists in this log.
+          if [ -f next-start.log ]; then
+            echo "::group::next start output"
+            tail -100 next-start.log
+            echo "::endgroup::"
+          fi
           if [ -f next-start.pid ]; then
             kill "$(cat next-start.pid)" 2>/dev/null || true
             rm -f next-start.pid
