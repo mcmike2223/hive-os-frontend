@@ -125,12 +125,37 @@ jobs:
 
       # "Started" only means the container was created, not that PHP inside it
       # can answer. Migrations previously ran 0.3s after the backend started and
-      # died with exit 137, and the existing health wait is sequenced after this
-      # step so it could not help. Gate on the container actually running artisan.
+      # died with exit 137. Gate on PHP itself, not artisan: artisan cannot run
+      # until Composer dependencies exist, which is the next step.
       - name: Wait for the backend container to accept commands
         run: |
           COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
           for attempt in $(seq 1 45); do
+            if ${COMPOSE} exec -T backend php -v >/dev/null 2>&1; then
+              echo "Backend accepted PHP after ${attempt} attempt(s)."
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::The backend container never became ready to run PHP."
+          ${COMPOSE} ps
+          ${COMPOSE} logs --no-color --tail 100 backend
+          exit 1
+
+      # The backend source is bind-mounted from the checkout, and vendor/ is
+      # gitignored. A local working copy already has it, so the mount supplies
+      # it and nothing here was ever needed; a fresh CI checkout has nothing and
+      # every artisan call dies with "Failed opening required vendor/autoload.php".
+      - name: Install backend Composer dependencies
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          ${COMPOSE} exec -T backend composer install \
+            --no-interaction --prefer-dist --no-progress --no-ansi
+
+      - name: Wait for the backend to run artisan
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          for attempt in $(seq 1 30); do
             if ${COMPOSE} exec -T backend php artisan --version >/dev/null 2>&1; then
               echo "Backend accepted artisan after ${attempt} attempt(s)."
               exit 0
@@ -138,7 +163,6 @@ jobs:
             sleep 4
           done
           echo "::error::The backend container never became ready to run artisan."
-          ${COMPOSE} ps
           ${COMPOSE} logs --no-color --tail 100 backend
           exit 1
 
