@@ -109,8 +109,19 @@ jobs:
         working-directory: hive-os-frontend
         run: npx playwright install --with-deps chromium
 
+      # backend, queue and reverb all mount the same hive-backend-storage
+      # volume. Bringing them up in one `up` creates them in parallel, and on a
+      # freshly created volume they race to mkdir the same logs/ subdirectory:
+      # one wins and the others die with "failed to mkdir ... file exists".
+      # This never reproduces locally because the volume already has the
+      # directory. Start the backend first so the volume is populated once, then
+      # the services that share it.
       - name: Start disposable acceptance services
-        run: docker compose -f hive-os-infra/docker-compose.yml up -d --build db redis seaweedfs seaweedfs-bootstrap backend queue reverb frontend
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          ${COMPOSE} up -d --build db redis seaweedfs seaweedfs-bootstrap
+          ${COMPOSE} up -d --build backend
+          ${COMPOSE} up -d --build queue reverb frontend
 
       - name: Apply the reviewed central migrations
         run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan migrate --force
