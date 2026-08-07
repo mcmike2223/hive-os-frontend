@@ -154,8 +154,12 @@ export const test = base.extend<WaiterFixtures>({
     }
 
     // The id is safe to surface; the manifest holds the credentials and is
-    // never attached.
+    // never attached. Printing it as well as annotating it is what makes
+    // per-journey isolation observable in CI logs: three journeys must show
+    // three different tenants, otherwise they are sharing one and the isolation
+    // is not actually being exercised.
     testInfo.annotations.push({ type: "fixture", description: fixtureId });
+    console.log(`[waiter-pos fixture] ${testInfo.title} -> tenant ${fixtureId}`);
 
     try {
       await provide(manifest);

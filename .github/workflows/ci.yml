@@ -188,65 +188,87 @@ jobs:
       # rather than something that only happens if Playwright reaches its own
       # global teardown. Passing HIVE_E2E_FIXTURE_MANIFEST makes global.setup.ts
       # reuse this fixture instead of creating and removing a second one.
-      - name: Provision the waiter POS acceptance fixture
-        id: fixture
-        run: |
-          FIXTURE_ID="acceptance-waiter-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          echo "fixture_id=${FIXTURE_ID}" >> "${GITHUB_OUTPUT}"
-          echo "HIVE_E2E_FIXTURE_ID=${FIXTURE_ID}" >> "${GITHUB_ENV}"
-          docker compose -f hive-os-infra/docker-compose.yml exec -T backend \
-            php artisan hospitality:waiter-pos-acceptance-fixture --fixture="${FIXTURE_ID}"
-          mkdir -p hive-os-frontend/.playwright/fixtures
-          docker cp "${HIVE_E2E_BACKEND_CONTAINER}:/tmp/hive-waiter-pos-acceptance/${FIXTURE_ID}.json" \
-            hive-os-frontend/.playwright/fixtures/ci-manifest.json
-          chmod 600 hive-os-frontend/.playwright/fixtures/ci-manifest.json
-          echo "HIVE_E2E_FIXTURE_MANIFEST=.playwright/fixtures/ci-manifest.json" >> "${GITHUB_ENV}"
+      # No shared fixture is provisioned here on purpose.
+      #
+      # This step used to provision one tenant and export
+      # HIVE_E2E_FIXTURE_MANIFEST, which makes tests/e2e/waiter-pos/fixtures.ts
+      # short-circuit to that single externally managed fixture. Every journey
+      # then shared one tenant, so the per-journey isolation this suite depends
+      # on was never exercised in CI — the local suite was a stronger gate than
+      # the pipeline. Each journey now provisions and destroys its own tenant,
+      # the same way it does locally, and the residue check below proves it.
 
+      # Tee'd so the per-journey tenant identifiers can be asserted afterwards
+      # while the step still streams live and still fails on a non-zero exit.
       - name: Run waiter, KDS, unauthorized, and realtime browser acceptance
         working-directory: hive-os-frontend
-        run: npm run test:e2e:waiter-pos
+        run: |
+          set -o pipefail
+          npm run test:e2e:waiter-pos 2>&1 | tee playwright-output.log
 
-      - name: Remove the acceptance fixture
+      # Proves the journeys really did use separate tenants. If the isolation
+      # regressed to a shared fixture these would collapse to one identifier,
+      # and the suite would silently stop testing what it claims to test. Only
+      # the generated ids are printed; the manifests hold the credentials and
+      # are never surfaced.
+      - name: Assert each journey provisioned its own tenant
         if: always()
         run: |
-          FIXTURE_ID="${{ steps.fixture.outputs.fixture_id }}"
-          if [ -z "${FIXTURE_ID}" ]; then
-            echo "No fixture was provisioned; nothing to remove."
-            exit 0
+          LOG=hive-os-frontend/playwright-output.log
+          if [ ! -f "${LOG}" ]; then
+            echo "::error::No browser output was captured, so isolation cannot be proven."
+            exit 1
           fi
-          rm -f hive-os-frontend/.playwright/fixtures/ci-manifest.json
-          docker compose -f hive-os-infra/docker-compose.yml exec -T backend \
-            php artisan hospitality:waiter-pos-acceptance-fixture --fixture="${FIXTURE_ID}" --cleanup
 
-      # Cleanup must be provable, not assumed. This fails the job when the exact
-      # generated tenant row, domain row, database, or manifest survives, which is
-      # how an orphaned tenant database previously went unnoticed.
-      - name: Verify the acceptance fixture left nothing behind
+          grep -h "\[waiter-pos fixture\]" "${LOG}" || true
+
+          TOTAL=$(grep -c "\[waiter-pos fixture\]" "${LOG}" || true)
+          UNIQUE=$(grep -h "\[waiter-pos fixture\]" "${LOG}" \
+            | sed 's/.*-> tenant //' | sort -u | wc -l | tr -d '[:space:]')
+
+          echo "journeys that provisioned: ${TOTAL} | distinct tenants: ${UNIQUE}"
+
+          if [ "${TOTAL}" = "0" ]; then
+            echo "::error::No journey provisioned a tenant. Either the suite did not run, or it fell back to a shared fixture."
+            exit 1
+          fi
+
+          if [ "${TOTAL}" != "${UNIQUE}" ]; then
+            echo "::error::${TOTAL} journeys shared ${UNIQUE} tenant(s). Per-journey isolation has regressed."
+            exit 1
+          fi
+
+          echo "Each journey used its own tenant."
+
+      # Cleanup must be provable, not assumed. Each journey removes its own
+      # tenant, so nothing here knows a single fixture id — instead assert that
+      # no acceptance tenant, domain, database or manifest survived at all. This
+      # is a read-only sweep: it fails the job on residue, it never deletes.
+      - name: Verify every acceptance fixture left nothing behind
         if: always()
         run: |
-          FIXTURE_ID="${{ steps.fixture.outputs.fixture_id }}"
-          if [ -z "${FIXTURE_ID}" ]; then
-            echo "No fixture was provisioned; nothing to verify."
-            exit 0
-          fi
           COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
           FAILED=0
 
           TENANTS=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
-            "SELECT count(*) FROM tenants WHERE id = '${FIXTURE_ID}'" | tr -d '[:space:]')
+            "SELECT count(*) FROM tenants WHERE id LIKE 'acceptance%'" | tr -d '[:space:]')
           DOMAINS=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
-            "SELECT count(*) FROM domains WHERE tenant_id = '${FIXTURE_ID}'" | tr -d '[:space:]')
+            "SELECT count(*) FROM domains WHERE domain LIKE 'acceptance%'" | tr -d '[:space:]')
           DATABASES=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
-            "SELECT count(*) FROM pg_database WHERE datname = 'tenant${FIXTURE_ID}'" | tr -d '[:space:]')
+            "SELECT count(*) FROM pg_database WHERE datname LIKE 'tenantacceptance%'" | tr -d '[:space:]')
+          MANIFESTS=$(${COMPOSE} exec -T backend sh -c \
+            'ls /tmp/hive-waiter-pos-acceptance/ 2>/dev/null | wc -l' | tr -d '[:space:]')
 
-          echo "tenant rows: ${TENANTS} | domain rows: ${DOMAINS} | databases: ${DATABASES}"
-          [ "${TENANTS}" = "0" ] || { echo "::error::Tenant row ${FIXTURE_ID} survived cleanup."; FAILED=1; }
-          [ "${DOMAINS}" = "0" ] || { echo "::error::Domain rows for ${FIXTURE_ID} survived cleanup."; FAILED=1; }
-          [ "${DATABASES}" = "0" ] || { echo "::error::Database tenant${FIXTURE_ID} survived cleanup."; FAILED=1; }
+          echo "tenant rows: ${TENANTS} | domain rows: ${DOMAINS} | databases: ${DATABASES} | manifests: ${MANIFESTS}"
 
-          if ${COMPOSE} exec -T backend test -f "/tmp/hive-waiter-pos-acceptance/${FIXTURE_ID}.json"; then
-            echo "::error::Credentials manifest for ${FIXTURE_ID} survived cleanup."
-            FAILED=1
+          [ "${TENANTS}" = "0" ] || { echo "::error::Acceptance tenant rows survived cleanup."; FAILED=1; }
+          [ "${DOMAINS}" = "0" ] || { echo "::error::Acceptance domain rows survived cleanup."; FAILED=1; }
+          [ "${DATABASES}" = "0" ] || { echo "::error::Acceptance tenant databases survived cleanup."; FAILED=1; }
+          [ "${MANIFESTS}" = "0" ] || { echo "::error::Credentials manifests survived cleanup."; FAILED=1; }
+
+          if [ "${FAILED}" != "0" ]; then
+            ${COMPOSE} exec -T db psql -U hive -d hive -c \
+              "SELECT datname FROM pg_database WHERE datname LIKE 'tenantacceptance%'"
           fi
 
           exit "${FAILED}"
