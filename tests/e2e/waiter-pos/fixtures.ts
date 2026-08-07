@@ -3,7 +3,7 @@ import { chmod, mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { test as base } from "@playwright/test";
-import type { WaiterFixtureManifest } from "./support";
+import { frontendBaseUrl, type WaiterFixtureManifest } from "./support";
 
 const execFileAsync = promisify(execFile);
 const frontendRoot = process.cwd();
@@ -69,7 +69,7 @@ const provision = async (fixtureId: string): Promise<WaiterFixtureManifest> => {
  * demand. Warming it here keeps that cost out of the first assertion.
  */
 const warmTenantHost = async (manifest: WaiterFixtureManifest): Promise<void> => {
-  const baseUrl = (process.env.HIVE_E2E_FRONTEND_URL ?? manifest.frontend_url).replace(/\/$/, "");
+  const baseUrl = frontendBaseUrl(manifest);
   const deadline = Date.now() + 90_000;
 
   while (Date.now() < deadline) {

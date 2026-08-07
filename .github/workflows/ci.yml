@@ -211,6 +211,46 @@ jobs:
       # and the suite would silently stop testing what it claims to test. Only
       # the generated ids are printed; the manifests hold the credentials and
       # are never surfaced.
+      # The production-history journey pins a conclusion that only holds against
+      # a production build: Back/Forward leave the dashboard blank on the dev
+      # server, and do not on `next start`. Running it against the dev server
+      # would assert the opposite of what it exists to prove, so it needs its own
+      # production server on a separate port, beside the dev server the other
+      # journeys use. HIVE_E2E_FRONTEND_PORT redirects only the port, so each
+      # journey still resolves its own tenant host.
+      - name: Build the production frontend
+        working-directory: hive-os-frontend
+        run: npm run build
+
+      - name: Start the production frontend
+        working-directory: hive-os-frontend
+        run: |
+          nohup npx next start -p 3010 > next-start.log 2>&1 &
+          echo $! > next-start.pid
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 40 --retry-delay 3 --retry-connrefused --retry-all-errors \
+            http://localhost:3010/health
+          echo "Production server is serving on 3010."
+
+      - name: Run production history browser acceptance
+        working-directory: hive-os-frontend
+        env:
+          HIVE_E2E_PRODUCTION_HISTORY: "1"
+          HIVE_E2E_FRONTEND_PORT: "3010"
+        run: |
+          set -o pipefail
+          npx playwright test tests/e2e/waiter-pos/production-history.spec.ts 2>&1 \
+            | tee -a playwright-output.log
+
+      - name: Stop the production frontend
+        if: always()
+        working-directory: hive-os-frontend
+        run: |
+          if [ -f next-start.pid ]; then
+            kill "$(cat next-start.pid)" 2>/dev/null || true
+            rm -f next-start.pid
+          fi
+
       - name: Assert each journey provisioned its own tenant
         if: always()
         run: |

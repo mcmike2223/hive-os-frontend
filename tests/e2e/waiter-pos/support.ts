@@ -79,8 +79,33 @@ export async function loginAs(
   }
 }
 
-export const frontendBaseUrl = (fixture: WaiterFixtureManifest): string =>
-  (process.env.HIVE_E2E_FRONTEND_URL ?? fixture.frontend_url).replace(/\/$/, "");
+/**
+ * Every journey now gets its own tenant, so the host is per-fixture and cannot
+ * be replaced wholesale. HIVE_E2E_FRONTEND_URL still overrides everything for
+ * the single-fixture case, but the production-history journey needs the tenant's
+ * own host on a *different port* — a production `next start` running beside the
+ * dev server — so HIVE_E2E_FRONTEND_PORT overrides only the port and leaves
+ * tenant resolution intact.
+ */
+export const frontendBaseUrl = (fixture: WaiterFixtureManifest): string => {
+  const override = process.env.HIVE_E2E_FRONTEND_URL;
+
+  if (override) {
+    return override.replace(/\/$/, "");
+  }
+
+  const base = fixture.frontend_url.replace(/\/$/, "");
+  const port = process.env.HIVE_E2E_FRONTEND_PORT;
+
+  if (!port) {
+    return base;
+  }
+
+  const url = new URL(base);
+  url.port = port;
+
+  return url.toString().replace(/\/$/, "");
+};
 
 export function captureDiagnostics(page: Page): DiagnosticState {
   const diagnostic: DiagnosticState = {
