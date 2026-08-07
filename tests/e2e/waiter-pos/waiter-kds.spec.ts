@@ -101,8 +101,10 @@ test.describe("waiter POS and KDS isolated browser acceptance", () => {
       expect(waiterOrderRequests).toBe(1);
       await waiterPage.screenshot({ path: testInfo.outputPath("waiter-order-success.png") });
 
-      // The realtime banner is a single slot that the item-updated event
-      // overwrites, so assert the durable state instead: the waiter's own table
+      // Realtime notices accumulate in a list rather than overwriting a single
+      // slot, so any one message can legitimately be on screen more than once
+      // and a bare getByText would be a strict-mode violation waiting to
+      // happen. Assert the durable state here instead: the waiter's own table
       // card flips to occupied without a reload. The exact table-status payload
       // is still verified from the WebSocket frames at the end of this test.
       await expect(waiterPage.getByRole("button", { name: /A-01 Assigned.*occupied/i })).toBeVisible();
@@ -117,7 +119,9 @@ test.describe("waiter POS and KDS isolated browser acceptance", () => {
 
       await kdsItem.getByRole("button", { name: "NEW" }).click();
       await expect(kdsItem.getByRole("button", { name: "ACCEPTED" })).toBeVisible();
-      await expect(waiterPage.getByText(/Live kitchen update received for item #\d+/i)).toBeVisible();
+      // first(): see the note above. One notice is enough to prove delivery,
+      // and the count is not what this line is asserting.
+      await expect(waiterPage.getByText(/Live kitchen update received for item #\d+/i).first()).toBeVisible();
 
       await kdsItem.getByRole("button", { name: "ACCEPTED" }).click();
       await expect(kdsItem.getByRole("button", { name: "PREPARING" })).toBeVisible();
@@ -125,7 +129,7 @@ test.describe("waiter POS and KDS isolated browser acceptance", () => {
 
       await kdsItem.getByRole("button", { name: "PREPARING" }).click();
       await expect(kdsItem.getByRole("button", { name: "READY" })).toBeVisible();
-      await expect(waiterPage.getByText(/Kitchen marked item #\d+ ready/i)).toBeVisible();
+      await expect(waiterPage.getByText(/Kitchen marked item #\d+ ready/i).first()).toBeVisible();
       await waiterPage.screenshot({ path: testInfo.outputPath("waiter-realtime-ready.png") });
       await kitchenPage.screenshot({ path: testInfo.outputPath("kds-ready.png") });
 
