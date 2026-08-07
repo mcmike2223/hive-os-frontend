@@ -116,42 +116,33 @@ jobs:
       # This never reproduces locally because the volume already has the
       # directory. Start the backend first so the volume is populated once, then
       # the services that share it.
-      - name: Start disposable acceptance services
+      - name: Start the backing services
         run: |
           COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
           ${COMPOSE} up -d --build db redis seaweedfs seaweedfs-bootstrap
+
+      # vendor/ is gitignored and the backend source is bind-mounted from the
+      # checkout, so a fresh CI checkout has no dependencies. The container's
+      # entrypoint runs artisan, which means it crash-loops with
+      # "Restarting (255)" before anything can exec into it — dependencies have
+      # to exist before the backend starts, not after. `run --entrypoint`
+      # bypasses the failing entrypoint and uses the backend's own PHP version.
+      - name: Install backend Composer dependencies
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          ${COMPOSE} build backend
+          ${COMPOSE} run --rm --no-deps --entrypoint composer backend \
+            install --no-interaction --prefer-dist --no-progress --no-ansi
+
+      - name: Start the application services
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
           ${COMPOSE} up -d --build backend
           ${COMPOSE} up -d --build queue reverb frontend
 
       # "Started" only means the container was created, not that PHP inside it
       # can answer. Migrations previously ran 0.3s after the backend started and
-      # died with exit 137. Gate on PHP itself, not artisan: artisan cannot run
-      # until Composer dependencies exist, which is the next step.
-      - name: Wait for the backend container to accept commands
-        run: |
-          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
-          for attempt in $(seq 1 45); do
-            if ${COMPOSE} exec -T backend php -v >/dev/null 2>&1; then
-              echo "Backend accepted PHP after ${attempt} attempt(s)."
-              exit 0
-            fi
-            sleep 4
-          done
-          echo "::error::The backend container never became ready to run PHP."
-          ${COMPOSE} ps
-          ${COMPOSE} logs --no-color --tail 100 backend
-          exit 1
-
-      # The backend source is bind-mounted from the checkout, and vendor/ is
-      # gitignored. A local working copy already has it, so the mount supplies
-      # it and nothing here was ever needed; a fresh CI checkout has nothing and
-      # every artisan call dies with "Failed opening required vendor/autoload.php".
-      - name: Install backend Composer dependencies
-        run: |
-          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
-          ${COMPOSE} exec -T backend composer install \
-            --no-interaction --prefer-dist --no-progress --no-ansi
-
+      # died with exit 137.
       - name: Wait for the backend to run artisan
         run: |
           COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
