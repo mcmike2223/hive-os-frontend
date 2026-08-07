@@ -163,10 +163,20 @@ jobs:
       - name: Validate backend dependencies in the disposable service image
         run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend composer validate --no-check-publish
 
+      # Two problems here, both only visible on a cold runner. `curl --retry`
+      # does not retry a connection reset without --retry-all-errors, so the
+      # first refusal ended the step with exit 56. And the frontend was given
+      # ~10s: it is a Next.js dev server compiling from scratch, which takes far
+      # longer than that on a fresh machine. --silent keeps the backend's debug
+      # page out of the log.
       - name: Wait for backend and frontend health
         run: |
-          curl --fail --retry 30 --retry-delay 2 http://localhost:8081/up
-          curl --fail --retry 30 --retry-delay 2 http://localhost:3001/health
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors \
+            http://localhost:8081/up
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 60 --retry-delay 5 --retry-connrefused --retry-all-errors \
+            http://localhost:3001/health
 
       - name: Run focused backend waiter regression suites
         run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan test Modules/Hospitality/tests/Feature/RestaurantWaiterPosApiTest.php Modules/Hospitality/tests/Feature/RestaurantWaiterPosPhase3WorkflowTest.php
