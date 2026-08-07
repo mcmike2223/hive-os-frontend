@@ -15,9 +15,15 @@ export type WaiterFixtureManifest = {
   stations: { kitchen: number; bar: number };
   menu: {
     item_id: number;
+    item_name: string;
     variant_id: number;
     required_modifier_option_id: number;
     optional_modifier_option_id: number;
+    // Routed to the bar rather than the kitchen, and carries no modifier
+    // groups. Two distinct items are required to build a two-course order,
+    // because the cart merges a repeated item into one line by quantity.
+    second_item_id: number;
+    second_item_name: string;
   };
   users: Record<string, { email: string; password: string }>;
 };
