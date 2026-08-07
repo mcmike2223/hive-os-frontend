@@ -218,15 +218,17 @@ jobs:
       # production server on a separate port, beside the dev server the other
       # journeys use. HIVE_E2E_FRONTEND_PORT redirects only the port, so each
       # journey still resolves its own tenant host.
-      # The dev-server container owns .next and created it as root, so the
-      # runner cannot write there and `next build` dies with EACCES on
-      # .next/trace. The dev-server journeys are finished by this point, so stop
-      # the container and clear the directory: the production build should not
-      # inherit dev artifacts either way.
-      - name: Stop the dev frontend and clear its build output
+      # The dev-server container writes into the bind-mounted checkout as root,
+      # so the runner cannot overwrite what it produced and `next build` dies
+      # with EACCES — first on .next/trace, then on next-env.d.ts. Clearing a
+      # single path is too narrow: reclaim ownership of everything the container
+      # touched. The dev-server journeys are finished by this point, and the
+      # production build should not inherit dev artifacts in any case.
+      - name: Stop the dev frontend and reclaim its build output
         run: |
           docker compose -f hive-os-infra/docker-compose.yml stop frontend
-          sudo rm -rf hive-os-frontend/.next
+          sudo chown -R "$(id -u):$(id -g)" hive-os-frontend
+          rm -rf hive-os-frontend/.next
 
       - name: Build the production frontend
         working-directory: hive-os-frontend
