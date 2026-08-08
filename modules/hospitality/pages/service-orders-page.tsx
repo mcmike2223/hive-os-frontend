@@ -45,6 +45,7 @@ import {
 import type { HospitalityServiceOrder, HospitalityLocation, HospitalityReservation, HospitalityMenuItem, HospitalityServiceOrderItem } from "@/modules/hospitality/types";
 import { cn } from "@/lib/utils";
 import InvoiceDialog from "@/modules/hospitality/components/invoice-dialog";
+import OrderCoursingPanel from "@/modules/hospitality/components/order-coursing-panel";
 import { DataTable } from "@/components/datatable/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
@@ -153,6 +154,24 @@ export default function ServiceOrdersPage() {
     },
     placeholderData: (prev) => prev,
   });
+
+  // selectedOrder is a snapshot taken when the row was clicked, so coursing and
+  // transfers would keep rendering stale seats and held badges after they
+  // succeed. Read the live row back out of the refreshed list instead, falling
+  // back to the snapshot while a refetch is in flight.
+  const liveSelectedOrder = useMemo(() => {
+    if (!selectedOrder) return null;
+
+    return (
+      (ordersData?.rows as HospitalityServiceOrder[] | undefined)?.find(
+        (row) => row.id === selectedOrder.id,
+      ) ?? selectedOrder
+    );
+  }, [ordersData, selectedOrder]);
+
+  const refreshSelectedOrder = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["hospitality", "service-orders"] });
+  }, [queryClient]);
 
   // Fetch tables
   const { data: tables = [] } = useQuery<HospitalityLocation[]>({
@@ -465,7 +484,7 @@ export default function ServiceOrdersPage() {
       cell: ({ row }) => {
         const order = row.original;
         return (
-          <Badge variant="outline" className={cn("capitalize font-black border text-[10px] tracking-wider rounded-full py-0.5", statusColors[order.status])}>
+          <Badge variant="outline" className={cn("capitalize font-black border text-[11px] tracking-wider rounded-full py-0.5", statusColors[order.status])}>
             {order.status}
           </Badge>
         );
@@ -485,7 +504,7 @@ export default function ServiceOrdersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => openInvoiceDialog(order)}
-                className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-300 border-slate-800 bg-slate-950 hover:bg-slate-900 hover:text-white"
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-slate-300 border-slate-800 bg-slate-950 hover:bg-slate-900 hover:text-white"
               >
                 <FileText className="mr-1 h-3.5 w-3.5" />
                 Invoice
@@ -496,7 +515,7 @@ export default function ServiceOrdersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => openDetailDialog(order)}
-                className="h-8 text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
               >
                 <Pencil className="mr-1 h-3.5 w-3.5" />
                 Manage / Details
@@ -680,7 +699,7 @@ export default function ServiceOrdersPage() {
                                 <TableCell className="font-semibold">
                                   {item.item_name}
                                   {item.is_comp && (
-                                    <Badge variant="outline" className="ml-2 text-[10px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
+                                    <Badge variant="outline" className="ml-2 text-[11px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
                                       COMP ({item.comp_reason})
                                     </Badge>
                                   )}
@@ -825,7 +844,7 @@ export default function ServiceOrdersPage() {
                             <TableCell className="font-semibold">
                               {item.item_name}
                               {item.is_comp && (
-                                <Badge variant="outline" className="ml-2 text-[10px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
+                                <Badge variant="outline" className="ml-2 text-[11px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
                                   COMP ({item.comp_reason})
                                 </Badge>
                               )}
@@ -839,6 +858,11 @@ export default function ServiceOrdersPage() {
                     </Table>
                   </div>
                 </div>
+
+                <OrderCoursingPanel
+                  order={liveSelectedOrder ?? selectedOrder}
+                  onChanged={refreshSelectedOrder}
+                />
 
                 {/* Status Transitions */}
                 <div className="space-y-2">

@@ -9,6 +9,7 @@ import {
 
 type CreatedOrder = {
   id: number;
+  order_number: string;
   items: Array<{
     id: number;
     menu_item_id: number;
@@ -39,12 +40,18 @@ test.describe("waiter POS course hold and release", () => {
     const fixture = waiterFixture;
     const waiterContext = await browser.newContext();
     const kitchenContext = await browser.newContext();
+    const managerContext = await browser.newContext();
     const waiterPage = await waiterContext.newPage();
     const kitchenPage = await kitchenContext.newPage();
+    const managerPage = await managerContext.newPage();
     const waiterDiagnostics = captureDiagnostics(waiterPage);
     const kitchenDiagnostics = captureDiagnostics(kitchenPage);
+    const managerDiagnostics = captureDiagnostics(managerPage);
 
     try {
+      // The manager signs in later, on its own. Logging all three in at once
+      // raced the backend permission cache and the waiter's own order POST came
+      // back 403, which looks like a permission bug but is a cache warm-up.
       await Promise.all([
         loginAs(waiterPage, fixture, "waiter"),
         loginAs(kitchenPage, fixture, "chef"),
@@ -117,19 +124,29 @@ test.describe("waiter POS course hold and release", () => {
       });
       expect(holdHeld.status).toBe(422);
 
-      const heldFirst = await sameOriginJson(waiterPage, coursePath(order.id, 1, "hold"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Guest asked to wait" }),
-      });
-      expect(heldFirst.status).toBe(200);
+      // Hold and release course one through the real controls, not the API.
+      // The order detail dialog is gated on manage/edit permissions, so the
+      // manager is the actor here; the panel is the only place in the product
+      // where coursing is reachable at all.
+      await loginAs(managerPage, fixture, "manager");
+      await managerPage.goto(`${frontendBaseUrl(fixture)}/dashboard/hospitality/service-orders`);
+      await managerPage.getByPlaceholder(/search/i).first().fill(order.order_number);
+      const orderRow = managerPage.locator("tr", { hasText: order.order_number });
+      await expect(orderRow).toHaveCount(1);
+      await orderRow.getByRole("button", { name: /Manage \/ Details/i }).click();
 
-      const releasedFirst = await sameOriginJson(waiterPage, coursePath(order.id, 1, "release"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      expect(releasedFirst.status).toBe(200);
+      const panel = managerPage.getByTestId("order-coursing-panel");
+      await expect(panel).toBeVisible();
+      // Course two arrived already held, so the panel must say so before
+      // anything is clicked.
+      await expect(panel.getByTestId("course-2-held-badge")).toBeVisible();
+
+      await panel.getByTestId("hold-course-1").click();
+      await expect(panel.getByTestId("course-1-held-badge")).toBeVisible();
+
+      await panel.getByTestId("release-course-1").click();
+      await expect(panel.getByTestId("course-1-held-badge")).toHaveCount(0);
+      await managerPage.screenshot({ path: testInfo.outputPath("coursing-panel.png") });
 
       // Releasing course 2 while course 1 is still outstanding must be refused:
       // the sequence guard is the whole point of coursing.
@@ -223,8 +240,10 @@ test.describe("waiter POS course hold and release", () => {
     } finally {
       await attachDiagnostics(testInfo, waiterDiagnostics);
       await attachDiagnostics(testInfo, kitchenDiagnostics);
+      await attachDiagnostics(testInfo, managerDiagnostics);
       await waiterContext.close();
       await kitchenContext.close();
+      await managerContext.close();
     }
   });
 });

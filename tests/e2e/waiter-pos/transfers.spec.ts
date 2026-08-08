@@ -9,6 +9,7 @@ import {
 
 type CreatedOrder = {
   id: number;
+  order_number: string;
   items: Array<{ id: number; menu_item_id: number; seat_number: number | null }>;
 };
 
@@ -45,7 +46,7 @@ test.describe("waiter POS seat and table transfer", () => {
       ]);
 
       const posUrl = `${frontendBaseUrl(fixture)}/dashboard/hospitality/waiter-pos`;
-      await Promise.all([waiterPage.goto(posUrl), managerPage.goto(posUrl)]);
+      await waiterPage.goto(posUrl);
       await expect(waiterPage.getByRole("heading", { name: "Restaurant Waiter POS" })).toBeVisible();
 
       await waiterPage.getByText("A-01 Assigned", { exact: true }).click();
@@ -74,6 +75,29 @@ test.describe("waiter POS seat and table transfer", () => {
       expect(item).toBeDefined();
       expect(item?.seat_number).toBe(1);
       const itemId = item?.id as number;
+
+      // Drive the panel first, while the dialog's data is fresh. The API
+      // assertions further down prove the rules; only this part proves anyone
+      // can reach them, which until now nobody could.
+      await managerPage.goto(`${frontendBaseUrl(fixture)}/dashboard/hospitality/service-orders`);
+      await managerPage.getByPlaceholder(/search/i).first().fill(order.order_number);
+      const orderRow = managerPage.locator("tr", { hasText: order.order_number });
+      await expect(orderRow).toHaveCount(1);
+      await orderRow.getByRole("button", { name: /Manage \/ Details/i }).click();
+
+      const panel = managerPage.getByTestId("order-coursing-panel");
+      await expect(panel).toBeVisible();
+
+      await panel.getByTestId(`seat-input-${item?.id}`).fill("2");
+      await panel.getByTestId(`move-seat-${item?.id}`).click();
+      await expect(panel.getByTestId(`seat-row-${item?.id}`)).toContainText("seat 2");
+
+      await panel.getByTestId("table-transfer-select").click();
+      await managerPage.getByTestId(`table-option-${fixture.tables.unassigned}`).click();
+      await panel.getByTestId("table-transfer-reason").fill("Party moved to a quieter table");
+      await panel.getByTestId("table-transfer-submit").click();
+      await expect(managerPage.getByText(/Order moved to the new table/i)).toBeVisible();
+      await managerPage.screenshot({ path: testInfo.outputPath("transfer-panel.png") });
 
       const seatPath = `/api/v1/hospitality/service-orders/${order.id}/items/${itemId}/seat-transfer`;
       const tablePath = `/api/v1/hospitality/service-orders/${order.id}/table-transfer`;
@@ -161,8 +185,8 @@ test.describe("waiter POS seat and table transfer", () => {
         method: "POST",
         headers: { ...json, "X-Idempotency-Key": tableKey },
         body: JSON.stringify({
-          destination_location_id: fixture.tables.unassigned,
-          reason: "Party moved to a quieter table",
+          destination_location_id: fixture.tables.assigned,
+          reason: "Party moved back to the original table",
         }),
       });
       expect(tableMoved.status).toBe(200);
@@ -171,8 +195,8 @@ test.describe("waiter POS seat and table transfer", () => {
         method: "POST",
         headers: { ...json, "X-Idempotency-Key": tableKey },
         body: JSON.stringify({
-          destination_location_id: fixture.tables.unassigned,
-          reason: "Party moved to a quieter table",
+          destination_location_id: fixture.tables.assigned,
+          reason: "Party moved back to the original table",
         }),
       });
       expect(tableReplay.status).toBe(200);
@@ -183,7 +207,7 @@ test.describe("waiter POS seat and table transfer", () => {
         method: "POST",
         headers: json,
         body: JSON.stringify({
-          destination_location_id: fixture.tables.unassigned,
+          destination_location_id: fixture.tables.assigned,
           reason: "already there",
         }),
       });

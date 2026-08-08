@@ -500,6 +500,77 @@ export const createWaiterHospitalityOrder = async (
   };
 };
 
+// Coursing and reallocation. The backend rejects a non-UUID idempotency key
+// outright, so callers pass a crypto.randomUUID() or nothing at all.
+const idempotencyHeaders = (key?: string) =>
+  key ? { "X-Idempotency-Key": key } : undefined;
+
+export const holdHospitalityCourse = async (
+  orderId: number,
+  courseNumber: number,
+  payload: { reason?: string; idempotencyKey?: string } = {},
+) => {
+  const { idempotencyKey, ...body } = payload;
+
+  return (
+    await api.post(
+      `/hospitality/service-orders/${orderId}/courses/${courseNumber}/hold`,
+      body,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+  ).data;
+};
+
+export const releaseHospitalityCourse = async (
+  orderId: number,
+  courseNumber: number,
+  payload: { reason?: string; override_sequence?: boolean; idempotencyKey?: string } = {},
+) => {
+  const { idempotencyKey, ...body } = payload;
+
+  return (
+    await api.post(
+      `/hospitality/service-orders/${orderId}/courses/${courseNumber}/release`,
+      body,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+  ).data;
+};
+
+export const transferHospitalityOrderItemSeat = async (
+  orderId: number,
+  itemId: number,
+  payload: {
+    to_seat_number?: number | null;
+    quantity?: number;
+    reason?: string;
+    idempotencyKey?: string;
+  },
+) => {
+  const { idempotencyKey, ...body } = payload;
+
+  return (
+    await api.post(
+      `/hospitality/service-orders/${orderId}/items/${itemId}/seat-transfer`,
+      body,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+  ).data;
+};
+
+export const transferHospitalityOrderTable = async (
+  orderId: number,
+  payload: { destination_location_id: number; reason: string; idempotencyKey?: string },
+) => {
+  const { idempotencyKey, ...body } = payload;
+
+  return (
+    await api.post(`/hospitality/service-orders/${orderId}/table-transfer`, body, {
+      headers: idempotencyHeaders(idempotencyKey),
+    })
+  ).data;
+};
+
 // Phase 4 KDS Helpers
 export const fetchKdsOrders = async (params: Record<string, unknown> = {}) =>
   unwrapList<HospitalityKdsOrder>(
