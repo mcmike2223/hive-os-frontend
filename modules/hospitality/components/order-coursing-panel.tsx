@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -69,7 +70,16 @@ export default function OrderCoursingPanel({
     "transfer_hospitality_tables",
     "manage_hospitality_service_orders",
   ]);
+  // Mirrors HospitalityCourseWorkflowController::canOverrideSequence, which
+  // checks these two and not manage_hospitality_service_orders. It ignores the
+  // flag rather than rejecting it when the caller is unauthorized, so a stray
+  // override cannot succeed even if this box is somehow rendered.
+  const canOverrideSequence = hasAnyPermission([
+    "override_hospitality_course_sequence",
+    "manage_hospitality",
+  ]);
 
+  const [overrideSequence, setOverrideSequence] = useState(false);
   const [seatDrafts, setSeatDrafts] = useState<Record<number, string>>({});
   const [destinationTableId, setDestinationTableId] = useState("");
   const [tableReason, setTableReason] = useState("");
@@ -111,14 +121,21 @@ export default function OrderCoursingPanel({
             idempotencyKey: newIdempotencyKey(),
           })
         : releaseHospitalityCourse(order.id, courseNumber, {
+            override_sequence: canOverrideSequence && overrideSequence,
             idempotencyKey: newIdempotencyKey(),
           }),
     onSuccess: (_data, variables) => {
+      const overrode = variables.operation === "release" && canOverrideSequence && overrideSequence;
       toast.success(
         variables.operation === "hold"
           ? `Course ${variables.courseNumber} held.`
-          : `Course ${variables.courseNumber} released to the kitchen.`,
+          : overrode
+            ? `Course ${variables.courseNumber} released ahead of the prior course.`
+            : `Course ${variables.courseNumber} released to the kitchen.`,
       );
+      // Disarm the override so the next release cannot skip a course by
+      // accident. Overriding is a deliberate act, once per use.
+      setOverrideSequence(false);
       settled();
     },
     onError: (error: any) => {
@@ -239,6 +256,27 @@ export default function OrderCoursingPanel({
                   </div>
                 );
               })}
+
+              {canOverrideSequence && (
+                <label
+                  className="flex items-start gap-2 rounded border border-dashed px-3 py-2 text-sm"
+                  data-testid="override-sequence-control"
+                >
+                  <Checkbox
+                    checked={overrideSequence}
+                    onCheckedChange={(checked) => setOverrideSequence(checked === true)}
+                    data-testid="override-sequence-checkbox"
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <span className="font-bold">Release out of sequence</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Sends the next release even if an earlier course has not been served.
+                      Clears itself after one use.
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
           )}
 

@@ -162,6 +162,34 @@ test.describe("waiter POS course hold and release", () => {
       // a station.
       await expect(kitchenPage.getByText(fixture.menu.second_item_name, { exact: true })).toHaveCount(0);
 
+      // The refusal above tells the manager to "use the authorized sequence
+      // override". Prove that instruction is now actionable: arm the override
+      // and release course 2 early through the panel, which the plain release
+      // just refused.
+      await panel.getByTestId("override-sequence-checkbox").click();
+      await panel.getByTestId("release-course-2").click();
+      await expect(panel.getByTestId("course-2-held-badge")).toHaveCount(0);
+      // Released early means it really did reach the bar, ahead of a course
+      // that is still outstanding. Reload rather than trusting the broadcast:
+      // this assertion is about the release, not about realtime delivery.
+      await kitchenPage.reload();
+      await expect(
+        kitchenPage.getByText(fixture.menu.second_item_name, { exact: true }),
+      ).toHaveCount(1);
+      // The override is one-shot, so the box must have disarmed itself.
+      await expect(panel.getByTestId("override-sequence-checkbox")).not.toBeChecked();
+      await managerPage.screenshot({ path: testInfo.outputPath("sequence-override.png") });
+
+      // Put course 2 back on hold so the rest of the journey still exercises
+      // the ordinary, non-overridden path. A released course is 'new' again,
+      // which is exactly the state hold accepts.
+      await panel.getByTestId("hold-course-2").click();
+      await expect(panel.getByTestId("course-2-held-badge")).toBeVisible();
+      await kitchenPage.reload();
+      await expect(
+        kitchenPage.getByText(fixture.menu.second_item_name, { exact: true }),
+      ).toHaveCount(0);
+
       // Complete course 1 through the kitchen, which is what legitimately
       // unblocks course 2.
       await expect(kitchenPage.getByText(fixture.menu.item_name, { exact: true })).toBeVisible();
