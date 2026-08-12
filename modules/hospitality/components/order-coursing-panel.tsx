@@ -17,12 +17,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  fetchAssignableWaiters,
   fetchHospitalityTables,
   holdHospitalityCourse,
+  reassignHospitalityOrderWaiter,
   releaseHospitalityCourse,
   transferHospitalityOrderItemSeat,
   transferHospitalityOrderTable,
 } from "@/modules/hospitality/api";
+import type { AssignableWaiter } from "@/modules/hospitality/api";
 import type {
   HospitalityLocation,
   HospitalityServiceOrder,
@@ -79,7 +82,14 @@ export default function OrderCoursingPanel({
     "manage_hospitality",
   ]);
 
+  const canReassignWaiter = hasAnyPermission([
+    "reassign_hospitality_waiters",
+    "manage_hospitality_service_orders",
+  ]);
+
   const [overrideSequence, setOverrideSequence] = useState(false);
+  const [waiterId, setWaiterId] = useState("");
+  const [waiterReason, setWaiterReason] = useState("");
   const [seatDrafts, setSeatDrafts] = useState<Record<number, string>>({});
   const [destinationTableId, setDestinationTableId] = useState("");
   const [tableReason, setTableReason] = useState("");
@@ -106,6 +116,12 @@ export default function OrderCoursingPanel({
     queryKey: ["hospitality", "tables", "transfer-targets"],
     queryFn: () => fetchHospitalityTables({ per_page: 200 }),
     enabled: canMoveTables && !isFinalized,
+  });
+
+  const { data: waiters = [] } = useQuery({
+    queryKey: ["hospitality", "assignable-waiters"],
+    queryFn: fetchAssignableWaiters,
+    enabled: canReassignWaiter && !isFinalized,
   });
 
   const settled = () => {
@@ -178,9 +194,31 @@ export default function OrderCoursingPanel({
     },
   });
 
-  if (!canCourse && !canMoveSeats && !canMoveTables) return null;
+  const waiterMutation = useMutation({
+    mutationFn: () =>
+      reassignHospitalityOrderWaiter(order.id, {
+        waiter_id: Number(waiterId),
+        reason: waiterReason.trim(),
+        idempotencyKey: newIdempotencyKey(),
+      }),
+    onSuccess: () => {
+      toast.success("Order reassigned to the new waiter.");
+      setWaiterId("");
+      setWaiterReason("");
+      settled();
+    },
+    onError: (error: any) => {
+      toast.error(errorMessage(error, "Could not reassign the waiter."));
+    },
+  });
 
-  const busy = courseMutation.isPending || seatMutation.isPending || tableMutation.isPending;
+  if (!canCourse && !canMoveSeats && !canMoveTables && !canReassignWaiter) return null;
+
+  const busy =
+    courseMutation.isPending ||
+    seatMutation.isPending ||
+    tableMutation.isPending ||
+    waiterMutation.isPending;
 
   return (
     <div className="space-y-4 rounded-lg border p-4" data-testid="order-coursing-panel">
@@ -372,6 +410,54 @@ export default function OrderCoursingPanel({
                     <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                   ) : null}
                   Transfer
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {canReassignWaiter && (
+            <div className="space-y-2" data-testid="waiter-reassignment-controls">
+              <Label className="text-xs uppercase tracking-widest" htmlFor="reassign_waiter">
+                Reassign to another waiter
+              </Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select value={waiterId} onValueChange={setWaiterId}>
+                  <SelectTrigger
+                    id="reassign_waiter"
+                    className="sm:w-56"
+                    data-testid="waiter-reassign-select"
+                  >
+                    <SelectValue placeholder="New waiter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {waiters.map((waiter: AssignableWaiter) => (
+                      <SelectItem
+                        key={waiter.id}
+                        value={String(waiter.id)}
+                        data-testid={`waiter-option-${waiter.id}`}
+                      >
+                        {waiter.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Reason (required)"
+                  aria-label="Waiter reassignment reason"
+                  data-testid="waiter-reassign-reason"
+                  value={waiterReason}
+                  onChange={(event) => setWaiterReason(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  disabled={busy || !waiterId || !waiterReason.trim()}
+                  data-testid="waiter-reassign-submit"
+                  onClick={() => waiterMutation.mutate()}
+                >
+                  {waiterMutation.isPending ? (
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Reassign
                 </Button>
               </div>
             </div>

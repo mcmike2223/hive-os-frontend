@@ -99,6 +99,41 @@ test.describe("waiter POS seat and table transfer", () => {
       await expect(managerPage.getByText(/Order moved to the new table/i)).toBeVisible();
       await managerPage.screenshot({ path: testInfo.outputPath("transfer-panel.png") });
 
+      // Waiter reassignment. The candidate list is its own endpoint: the roles
+      // that may reassign cannot read the staff endpoint, so before it existed
+      // this operation had no way to name a target. Reassign to the manager
+      // rather than back to the waiter, so the order actually changes hands.
+      await panel.getByTestId("waiter-reassign-select").click();
+      await managerPage.getByRole("option", { name: "Acceptance Branch Manager" }).click();
+      await panel.getByTestId("waiter-reassign-reason").fill("Waiter went on break");
+      await panel.getByTestId("waiter-reassign-submit").click();
+      await expect(managerPage.getByText(/Order reassigned to the new waiter/i)).toBeVisible();
+
+      // The waiter who took the order must not be able to reassign it; that is
+      // a manager permission.
+      const waiterReassignAttempt = await sameOriginJson(
+        waiterPage,
+        `/api/v1/hospitality/service-orders/${order.id}/waiter-reassignment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ waiter_id: 1, reason: "waiter should not be able to" }),
+        },
+      );
+      expect(waiterReassignAttempt.status).toBe(403);
+
+      // A waiter id that does not exist must be refused rather than assigned.
+      const unknownWaiter = await sameOriginJson(
+        managerPage,
+        `/api/v1/hospitality/service-orders/${order.id}/waiter-reassignment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ waiter_id: 99999999, reason: "no such waiter" }),
+        },
+      );
+      expect(unknownWaiter.status).toBe(422);
+
       const seatPath = `/api/v1/hospitality/service-orders/${order.id}/items/${itemId}/seat-transfer`;
       const tablePath = `/api/v1/hospitality/service-orders/${order.id}/table-transfer`;
       const json = { "Content-Type": "application/json" };

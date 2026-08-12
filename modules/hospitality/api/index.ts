@@ -571,6 +571,27 @@ export const transferHospitalityOrderTable = async (
   ).data;
 };
 
+export type AssignableWaiter = { id: number; name: string; email: string };
+
+export const fetchAssignableWaiters = async (): Promise<AssignableWaiter[]> => {
+  const body = (await api.get("/hospitality/service-orders/assignable-waiters")).data;
+
+  return (body?.data ?? []) as AssignableWaiter[];
+};
+
+export const reassignHospitalityOrderWaiter = async (
+  orderId: number,
+  payload: { waiter_id: number; reason: string; idempotencyKey?: string },
+) => {
+  const { idempotencyKey, ...body } = payload;
+
+  return (
+    await api.post(`/hospitality/service-orders/${orderId}/waiter-reassignment`, body, {
+      headers: idempotencyHeaders(idempotencyKey),
+    })
+  ).data;
+};
+
 // Phase 4 KDS Helpers
 export const fetchKdsOrders = async (params: Record<string, unknown> = {}) =>
   unwrapList<HospitalityKdsOrder>(
