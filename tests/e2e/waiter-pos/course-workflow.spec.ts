@@ -128,6 +128,30 @@ test.describe("waiter POS course hold and release", () => {
       // The order detail dialog is gated on manage/edit permissions, so the
       // manager is the actor here; the panel is the only place in the product
       // where coursing is reachable at all.
+      // The waiter holds release_hospitality_courses, and until now there was
+      // nowhere in the product to use it: coursing lived only behind the
+      // manager order dialog, which is gated on permissions a waiter lacks.
+      await waiterPage.reload();
+      const waiterOrders = waiterPage.getByTestId("waiter-open-orders");
+      await expect(waiterOrders).toBeVisible();
+      await waiterOrders.getByTestId(`waiter-open-order-${order.id}`).click();
+
+      const waiterPanel = waiterOrders.getByTestId("order-coursing-panel");
+      await expect(waiterPanel).toBeVisible();
+      // The panel gates each section separately, so a waiter must get coursing
+      // and none of the manager-only reallocation controls. Asserting their
+      // absence is the point: the same component renders for both roles.
+      await expect(waiterPanel.getByTestId("seat-controls")).toHaveCount(0);
+      await expect(waiterPanel.getByTestId("table-transfer-controls")).toHaveCount(0);
+      await expect(waiterPanel.getByTestId("waiter-reassignment-controls")).toHaveCount(0);
+      await expect(waiterPanel.getByTestId("override-sequence-control")).toHaveCount(0);
+
+      await waiterPanel.getByTestId("hold-course-1").click();
+      await expect(waiterPanel.getByTestId("course-1-held-badge")).toBeVisible();
+      await waiterPanel.getByTestId("release-course-1").click();
+      await expect(waiterPanel.getByTestId("course-1-held-badge")).toHaveCount(0);
+      await waiterPage.screenshot({ path: testInfo.outputPath("waiter-coursing.png") });
+
       await loginAs(managerPage, fixture, "manager");
       await managerPage.goto(`${frontendBaseUrl(fixture)}/dashboard/hospitality/service-orders`);
       await managerPage.getByPlaceholder(/search/i).first().fill(order.order_number);
@@ -141,11 +165,12 @@ test.describe("waiter POS course hold and release", () => {
       // anything is clicked.
       await expect(panel.getByTestId("course-2-held-badge")).toBeVisible();
 
-      await panel.getByTestId("hold-course-1").click();
-      await expect(panel.getByTestId("course-1-held-badge")).toBeVisible();
-
-      await panel.getByTestId("release-course-1").click();
-      await expect(panel.getByTestId("course-1-held-badge")).toHaveCount(0);
+      // The manager sees the full panel, including the controls the waiter is
+      // correctly denied. Course one is already covered from the waiter side
+      // above, so this side only proves the manager-only surface exists.
+      await expect(panel.getByTestId("seat-controls")).toBeVisible();
+      await expect(panel.getByTestId("table-transfer-controls")).toBeVisible();
+      await expect(panel.getByTestId("override-sequence-control")).toBeVisible();
       await managerPage.screenshot({ path: testInfo.outputPath("coursing-panel.png") });
 
       // Releasing course 2 while course 1 is still outstanding must be refused:

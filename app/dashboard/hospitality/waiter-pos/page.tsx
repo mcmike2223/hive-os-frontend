@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ShieldAlert, UtensilsCrossed } from "lucide-react";
 
 import {
   createWaiterHospitalityOrder,
+  fetchHospitalityServiceOrders,
   fetchWaiterBootstrap,
 } from "@/modules/hospitality/api";
+import type { HospitalityServiceOrder } from "@/modules/hospitality/types";
+import OrderCoursingPanel from "@/modules/hospitality/components/order-coursing-panel";
 import { MenuBrowser, type WaiterCartSelection } from "@/modules/hospitality/components/waiter-pos/MenuBrowser";
 import { OrderCartDrawer, type WaiterCartItem } from "@/modules/hospitality/components/waiter-pos/OrderCartDrawer";
 import { TableGridSelector } from "@/modules/hospitality/components/waiter-pos/TableGridSelector";
@@ -151,6 +154,40 @@ export default function WaiterPosPage() {
   const assignedTableCount = data?.waiter?.assigned_table_count ?? data?.assigned_tables?.length ?? 0;
   const canViewAllTables = data?.waiter?.can_view_all_tables ?? false;
 
+  // Coursing was reachable only from the manager-facing order dialog, which is
+  // gated on edit/manage permissions a waiter does not hold. A waiter holds
+  // release_hospitality_courses and had nowhere to use it, which is backwards:
+  // the person who fires the next course is the one standing at the table.
+  const { data: openOrders = [] } = useQuery<HospitalityServiceOrder[]>({
+    queryKey: ["waiter-pos-open-orders"],
+    queryFn: () => fetchHospitalityServiceOrders({ per_page: 100 }),
+    // The global default holds a result fresh for a minute. That is wrong for
+    // this list: the waiter loads the page, sends an order seconds later, and
+    // would keep being served the empty result captured before it existed.
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  // The orders index is not scoped to the caller, so scope it here: a waiter
+  // should only be coursing the tables they are actually serving.
+  const visibleTableIds = useMemo(
+    () => new Set((tables ?? []).map((table: RestaurantTable) => table.id)),
+    [tables],
+  );
+  const courseableOrders = useMemo(
+    () =>
+      (openOrders ?? []).filter(
+        (order) =>
+          !["closed", "cancelled", "voided", "refunded", "paid"].includes(String(order.status)) &&
+          order.location_id != null &&
+          visibleTableIds.has(Number(order.location_id)),
+      ),
+    [openOrders, visibleTableIds],
+  );
+  const [courseOrderId, setCourseOrderId] = useState<number | null>(null);
+  const selectedCourseOrder =
+    courseableOrders.find((order) => order.id === courseOrderId) ?? courseableOrders[0] ?? null;
+
   useEffect(() => {
     const token = getAccessToken() ?? (typeof window !== "undefined" ? localStorage.getItem("token") : null);
     const tenantId = getTenantId();
@@ -256,6 +293,7 @@ export default function WaiterPosPage() {
       setSelectedTable(null);
       setDraftIdempotencyKey(null);
       void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
+      void queryClient.invalidateQueries({ queryKey: ["waiter-pos-open-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["hospitality-service-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["hospitality", "kds"] });
     },
@@ -425,6 +463,48 @@ export default function WaiterPosPage() {
               setErrorMessage(null);
             }}
           />
+
+          {courseableOrders.length > 0 && (
+            <section className="space-y-3" data-testid="waiter-open-orders">
+              <div>
+                <h2 className="text-lg font-black tracking-tight">Open Orders</h2>
+                <p className="text-sm text-muted-foreground">
+                  Fire the next course for a table you are serving.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {courseableOrders.map((order) => (
+                  <button
+                    key={order.id}
+                    type="button"
+                    data-testid={`waiter-open-order-${order.id}`}
+                    onClick={() => setCourseOrderId(order.id)}
+                    className={
+                      selectedCourseOrder?.id === order.id
+                        ? "rounded-md border border-indigo-400 bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-700"
+                        : "rounded-md border px-3 py-2 text-sm font-semibold"
+                    }
+                  >
+                    {order.order_number}
+                    <span className="ml-2 font-normal text-muted-foreground">
+                      {order.location?.label ?? `Table ${order.location_id}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {selectedCourseOrder && (
+                <OrderCoursingPanel
+                  order={selectedCourseOrder}
+                  onChanged={() => {
+                    void queryClient.invalidateQueries({ queryKey: ["waiter-pos-open-orders"] });
+                    void queryClient.invalidateQueries({ queryKey: ["waiter-pos-bootstrap"] });
+                  }}
+                />
+              )}
+            </section>
+          )}
 
           <MenuBrowser categories={menuCategories} onAddItem={handleAddItem} />
         </div>
