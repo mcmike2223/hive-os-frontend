@@ -9,7 +9,14 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: isCi,
   retries: isCi ? 1 : 0,
-  workers: 1,
+  // Each spec file is one journey provisioning its own tenant, and fullyParallel
+  // stays off, so raising this parallelises whole journeys and never the steps
+  // inside one. Two, not more: every journey provisions through a single
+  // backend container, and concurrent provisioning has broken this repo before.
+  // The workflow asserts one distinct tenant per journey and a clean teardown,
+  // so an isolation regression fails CI rather than going unnoticed.
+  // Overridable to debug a suspected concurrency problem by pinning it to 1.
+  workers: Number(process.env.HIVE_E2E_WORKERS ?? (isCi ? 2 : 1)),
   timeout: 120_000,
   expect: {
     timeout: 15_000,
