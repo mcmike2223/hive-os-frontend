@@ -105,6 +105,14 @@ jobs:
         working-directory: hive-os-frontend
         run: npm ci
 
+      # Caches the browser download only. --with-deps still runs, because the
+      # apt packages it installs live outside this path.
+      - name: Cache the Playwright browser download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('hive-os-frontend/package-lock.json') }}
+
       - name: Install Chromium for Playwright
         working-directory: hive-os-frontend
         run: npx playwright install --with-deps chromium
@@ -127,18 +135,55 @@ jobs:
       # "Restarting (255)" before anything can exec into it — dependencies have
       # to exist before the backend starts, not after. `run --entrypoint`
       # bypasses the failing entrypoint and uses the backend's own PHP version.
+      # Measured on run 31651059920: building this image took ~140s of the 147s
+      # that step spent, while the composer install itself took ~6s. The image
+      # is rebuilt from scratch every run because a fresh runner has no layer
+      # cache. Since the backend source is bind-mounted, the image only supplies
+      # the PHP runtime and its extensions, which is exactly what a layer cache
+      # is good at. queue and reverb declare the identical context and
+      # Dockerfile, so they are tagged from this one build instead of repeating
+      # it. Tags must match Compose's generated names, {project}-{service}, or
+      # Compose will not find them and will build again.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the backend image with a layer cache
+        uses: docker/build-push-action@v6
+        with:
+          context: hive-os-backend
+          file: hive-os-backend/Dockerfile
+          load: true
+          tags: |
+            hive-waiter-e2e-backend:latest
+            hive-waiter-e2e-queue:latest
+            hive-waiter-e2e-reverb:latest
+          cache-from: type=gha,scope=hive-backend
+          cache-to: type=gha,mode=max,scope=hive-backend
+
+      - name: Build the frontend image with a layer cache
+        uses: docker/build-push-action@v6
+        with:
+          context: hive-os-frontend
+          file: hive-os-frontend/Dockerfile
+          load: true
+          tags: hive-waiter-e2e-frontend:latest
+          cache-from: type=gha,scope=hive-frontend
+          cache-to: type=gha,mode=max,scope=hive-frontend
+
       - name: Install backend Composer dependencies
         run: |
           COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
-          ${COMPOSE} build backend
           ${COMPOSE} run --rm --no-deps --entrypoint composer backend \
             install --no-interaction --prefer-dist --no-progress --no-ansi
 
+      # No --build: the images were built above with a cache. Compose still
+      # builds anything it cannot find, so a tag mismatch degrades to the old
+      # behaviour rather than failing.
       - name: Start the application services
         run: |
           COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
-          ${COMPOSE} up -d --build backend
-          ${COMPOSE} up -d --build queue reverb frontend
+          ${COMPOSE} up -d backend
+          ${COMPOSE} up -d queue reverb frontend
 
       # "Started" only means the container was created, not that PHP inside it
       # can answer. Migrations previously ran 0.3s after the backend started and
