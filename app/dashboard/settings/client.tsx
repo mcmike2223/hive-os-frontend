@@ -25,6 +25,7 @@ import {
   UserPlus,
   ShieldCheck,
   CreditCard,
+  Radio,
   Database,
   Sparkles,
   LayoutTemplate,
@@ -94,6 +95,7 @@ import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { BackupSettings } from "@/components/settings/backup-settings";
 import { EmailSettings } from "@/components/settings/email-settings";
 import { PaymentSettings } from "@/components/settings/payment-settings";
+import RealtimeSettings from "@/modules/core/components/realtime-settings";
 import { PlanSettings } from "@/components/settings/plan-settings";
 import { TenantLandingSettings } from "@/components/settings/tenant-landing-settings";
 import SeoSettings from "@/components/settings/seo-settings";
@@ -1882,6 +1884,11 @@ function SettingsTabs({
         canManagePayments
           ? { id: "payments", label: "Payment Providers", icon: CreditCard }
           : null,
+        // Central only: Reverb is one deployment-wide service, not a per-tenant
+        // one, so tenant operators have nothing to configure here.
+        canManageGeneral && isCentralNode
+          ? { id: "realtime", label: "Realtime (Reverb)", icon: Radio }
+          : null,
         canManageLocalization
           ? {
               id: "localization",
@@ -2038,6 +2045,11 @@ function SettingsTabs({
         {canManagePayments && resolvedActiveTab === "payments" && (
           <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
             <PaymentSettings />
+          </div>
+        )}
+        {canManageGeneral && isCentralNode && resolvedActiveTab === "realtime" && (
+          <div className="p-6 border border-border/50 rounded-[2rem] bg-card/40 backdrop-blur-sm shadow-sm transition-all animate-in fade-in slide-in-from-bottom-2">
+            <RealtimeSettings />
           </div>
         )}
         {canManageLocalization && resolvedActiveTab === "localization" && (
