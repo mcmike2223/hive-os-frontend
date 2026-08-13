@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import {
   Activity,
   CalendarDays,
@@ -19,7 +18,6 @@ import {
   ShieldCheck,
   UserCheck,
   UserRoundCheck,
-  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -49,6 +47,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
 import { initEcho } from "@/lib/echo";
@@ -88,6 +92,14 @@ const stateLabels: Record<AttendanceSelfServiceStatus["state"], string> = {
   on_duty: "On duty",
   on_break: "On break",
 };
+
+type AttendanceView =
+  | "today"
+  | "issues"
+  | "reconcile"
+  | "schedules"
+  | "events"
+  | "devices";
 
 type EchoPrivateChannel = {
   listen: (
@@ -480,6 +492,7 @@ export function AttendanceWorkspace({
     "request_shift_swap",
   ]);
   const [date, setDate] = useState(today());
+  const [activeView, setActiveView] = useState<AttendanceView>("today");
   const [manualOpen, setManualOpen] = useState(false);
   const [eventEmployeeId, setEventEmployeeId] = useState("");
   const [realtimeConnected, setRealtimeConnected] = useState(false);
@@ -735,6 +748,16 @@ export function AttendanceWorkspace({
     { label: "Exceptions", value: metrics.exceptions, icon: Activity },
     { label: "Unrecorded", value: metrics.absent, icon: ShieldCheck },
   ];
+  const availableViews: AttendanceView[] = [
+    ...(canView || canPunch ? (["today"] as const) : []),
+    ...(canViewReconciliation ? (["issues", "reconcile"] as const) : []),
+    ...(canViewSchedules ? (["schedules"] as const) : []),
+    ...(canView || canPunch ? (["events"] as const) : []),
+    ...(canViewCapture ? (["devices"] as const) : []),
+  ];
+  const resolvedView = availableViews.includes(activeView)
+    ? activeView
+    : (availableViews[0] ?? "today");
 
   if (
     isLoaded &&
@@ -783,8 +806,9 @@ export function AttendanceWorkspace({
               Attendance, from punch to proof
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700 dark:text-slate-200">
-              Record the workday, see the normalized event trail, and review the
-              resulting daily record without switching pages.
+              Start with Today, then open one focused task at a time. The work
+              date stays consistent across records, issues, reconciliation, and
+              the event log.
             </p>
           </div>
 
@@ -811,26 +835,14 @@ export function AttendanceWorkspace({
               </Button>
             )}
             {canManage && (
-              <>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="min-h-11 border-slate-700 bg-white text-slate-950 hover:bg-slate-100 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
-                >
-                  <Link href="/dashboard/attendance/user-linking">
-                    <Users aria-hidden="true" />
-                    User Linking & Enrolment
-                  </Link>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setManualOpen(true)}
-                  className="min-h-11"
-                >
-                  <Plus aria-hidden="true" />
-                  Record manual event
-                </Button>
-              </>
+              <Button
+                type="button"
+                onClick={() => setManualOpen(true)}
+                className="min-h-11"
+              >
+                <Plus aria-hidden="true" />
+                Record manual event
+              </Button>
             )}
           </div>
         </div>
@@ -855,7 +867,81 @@ export function AttendanceWorkspace({
         </div>
       </header>
 
-      {canPunch && (
+      <Tabs
+        value={resolvedView}
+        onValueChange={(value) => setActiveView(value as AttendanceView)}
+        className="gap-5"
+      >
+        <Card className="border-slate-500 dark:border-slate-400">
+          <CardContent className="p-3 sm:p-4">
+            <TabsList
+              aria-label="Attendance workspace views"
+              className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-slate-400 bg-slate-100 p-1.5 sm:grid-cols-3 xl:grid-cols-6 dark:border-slate-500 dark:bg-slate-900"
+            >
+              {(canView || canPunch) && (
+                <TabsTrigger
+                  value="today"
+                  className="min-h-11 whitespace-normal px-3 text-left"
+                >
+                  <CalendarDays aria-hidden="true" />
+                  Today
+                </TabsTrigger>
+              )}
+              {canViewReconciliation && (
+                <TabsTrigger
+                  value="issues"
+                  className="min-h-11 whitespace-normal px-3 text-left"
+                >
+                  <Activity aria-hidden="true" />
+                  Fix issues
+                </TabsTrigger>
+              )}
+              {canViewReconciliation && (
+                <TabsTrigger
+                  value="reconcile"
+                  className="min-h-11 whitespace-normal px-3 text-left"
+                >
+                  <ShieldCheck aria-hidden="true" />
+                  Reconcile
+                </TabsTrigger>
+              )}
+              {canViewSchedules && (
+                <TabsTrigger
+                  value="schedules"
+                  className="min-h-11 whitespace-normal px-3 text-left"
+                >
+                  <Clock3 aria-hidden="true" />
+                  Schedules
+                </TabsTrigger>
+              )}
+              {(canView || canPunch) && (
+                <TabsTrigger
+                  value="events"
+                  className="min-h-11 whitespace-normal px-3 text-left"
+                >
+                  <History aria-hidden="true" />
+                  Event log
+                </TabsTrigger>
+              )}
+              {canViewCapture && (
+                <TabsTrigger
+                  value="devices"
+                  className="min-h-11 whitespace-normal px-3 text-left"
+                >
+                  <Fingerprint aria-hidden="true" />
+                  Devices
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <p className="mt-3 px-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+              Choose one work area. Use the Attendance Management sidebar for
+              people, device setup, device administration, and reports.
+            </p>
+          </CardContent>
+        </Card>
+
+        <TabsContent value="today" className="space-y-5">
+          {canPunch && (
         <Card className="border-slate-500 dark:border-slate-400">
           <CardContent className="p-5">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)]">
@@ -968,9 +1054,9 @@ export function AttendanceWorkspace({
             </div>
           </CardContent>
         </Card>
-      )}
+          )}
 
-      {canView && (
+          {canView && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {metricCards.map(({ label, value, icon: Icon }) => (
             <Card
@@ -992,9 +1078,9 @@ export function AttendanceWorkspace({
             </Card>
           ))}
         </div>
-      )}
+          )}
 
-      <Card className="border-slate-500 dark:border-slate-400">
+          <Card className="border-slate-500 dark:border-slate-400">
         <CardContent className="p-0">
           <div className="border-b border-slate-500 p-5 dark:border-slate-400">
             <h3 className="text-xl font-black">Daily attendance records</h3>
@@ -1065,23 +1151,40 @@ export function AttendanceWorkspace({
             </Table>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      <AttendanceCorrections date={date} />
+        {canViewReconciliation && (
+          <TabsContent value="issues">
+            <AttendanceCorrections date={date} />
+          </TabsContent>
+        )}
 
-      {canViewReconciliation && (
-        <AttendanceReconciliation
-          date={date}
-          employees={employees.data?.data ?? []}
-          canReconcile={canReconcile}
-        />
-      )}
+        {canViewReconciliation && (
+          <TabsContent value="reconcile">
+            <AttendanceReconciliation
+              date={date}
+              employees={employees.data?.data ?? []}
+              canReconcile={canReconcile}
+            />
+          </TabsContent>
+        )}
 
-      {canViewCapture && <AttendanceDeviceSummary />}
+        {canViewCapture && (
+          <TabsContent value="devices">
+            <AttendanceDeviceSummary />
+          </TabsContent>
+        )}
 
-      <ScheduleWorkspace />
+        {canViewSchedules && (
+          <TabsContent value="schedules">
+            <ScheduleWorkspace />
+          </TabsContent>
+        )}
 
-      <Card className="border-slate-500 dark:border-slate-400">
+        {(canView || canPunch) && (
+          <TabsContent value="events">
+            <Card className="border-slate-500 dark:border-slate-400">
         <CardContent className="p-0">
           <div className="grid gap-4 border-b border-slate-500 p-5 md:grid-cols-[1fr_minmax(14rem,20rem)] md:items-end dark:border-slate-400">
             <div>
@@ -1196,7 +1299,10 @@ export function AttendanceWorkspace({
             </Table>
           </div>
         </CardContent>
-      </Card>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
 
       <ManualAttendanceDialog
         open={manualOpen}

@@ -6,7 +6,7 @@ export const attendanceModule: FrontendModuleDefinition = {
   id: "attendance",
   name: "Attendance Management",
   description:
-    "Scheduling, time capture, devices, corrections, and payroll-ready reconciliation.",
+    "Track today, fix issues, manage schedules and devices, and prepare reports.",
   backendModule: "Modules\\Attendance",
   routePrefixes: [
     "/dashboard/attendance",
@@ -18,8 +18,8 @@ export const attendanceModule: FrontendModuleDefinition = {
   navItems: [
     {
       moduleId: "attendance",
-      translationKey: "nav.attendance",
-      fallbackLabel: "Attendance Management",
+      translationKey: "nav.attendance_overview",
+      fallbackLabel: "Overview & Today",
       href: "/dashboard/attendance",
       icon: Fingerprint,
       subscriptionSlug: ["attendance_management", "human_resources"],
@@ -38,7 +38,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     {
       moduleId: "attendance",
       translationKey: "nav.attendance_user_linking",
-      fallbackLabel: "User Linking & Enrolment",
+      fallbackLabel: "People & Enrolment",
       href: "/dashboard/attendance/user-linking",
       icon: UserRoundCog,
       subscriptionSlug: ["attendance_management", "human_resources"],
@@ -50,22 +50,8 @@ export const attendanceModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "attendance",
-      translationKey: "nav.attendance_device_onboarding",
-      fallbackLabel: "Device Onboarding",
-      href: "/dashboard/attendance/device-onboarding",
-      icon: PlusCircle,
-      subscriptionSlug: ["attendance_management", "human_resources"],
-      permissions: [
-        "view_attendance_devices",
-        "manage_attendance_devices",
-        "manage_attendance",
-      ],
-      placement: "primary",
-    },
-    {
-      moduleId: "attendance",
       translationKey: "nav.attendance_devices",
-      fallbackLabel: "Device Management",
+      fallbackLabel: "Devices",
       href: "/dashboard/attendance/devices",
       icon: Settings,
       subscriptionSlug: ["attendance_management", "human_resources"],
@@ -78,8 +64,22 @@ export const attendanceModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "attendance",
+      translationKey: "nav.attendance_device_onboarding",
+      fallbackLabel: "Add a Device",
+      href: "/dashboard/attendance/device-onboarding",
+      icon: PlusCircle,
+      subscriptionSlug: ["attendance_management", "human_resources"],
+      permissions: [
+        "view_attendance_devices",
+        "manage_attendance_devices",
+        "manage_attendance",
+      ],
+      placement: "primary",
+    },
+    {
+      moduleId: "attendance",
       translationKey: "nav.attendance_reports",
-      fallbackLabel: "Attendance Reports",
+      fallbackLabel: "Reports",
       href: "/dashboard/attendance/reports",
       icon: BarChart3,
       subscriptionSlug: ["attendance_management", "human_resources"],
