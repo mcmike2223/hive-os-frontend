@@ -207,7 +207,7 @@ export function PdfViewer({
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-bold truncate" title={title}>{title}</span>
             {requireTime > 0 && !isCompleted && (
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest">
                 Reading... {timeSpent}s / {requireTime}s
               </span>
             )}

@@ -551,7 +551,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
               href={file.url || "#"} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-[9px] text-primary hover:underline flex items-center gap-0.5 font-bold uppercase tracking-wider"
+              className="text-[11px] text-primary hover:underline flex items-center gap-0.5 font-bold uppercase tracking-wider"
             >
               <ExternalLink className="h-2.5 w-2.5" /> Download
             </a>
@@ -614,7 +614,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                 element?.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-xl');
                 setTimeout(() => element?.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-xl'), 2000);
               }}
-              className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline mb-1 transition-all"
+              className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:underline mb-1 transition-all"
             >
               <Reply className="h-2.5 w-2.5 rotate-180" /> JUMP TO PARENT
             </button>
@@ -623,7 +623,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm">{comment.user?.name}</span>
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                 {formatCommentDate(comment.created_at)}
               </span>
             </div>
@@ -690,10 +690,10 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                   autoFocus
                 />
                 <div className="flex items-center gap-2">
-                  <Button size="sm" className="h-8 px-3 text-[10px] uppercase tracking-wider font-bold" onClick={() => updateComment.mutate({ id: comment.id, content: `<p>${editContent}</p>` })} disabled={updateComment.isPending || !editContent.trim()}>
+                  <Button size="sm" className="h-8 px-3 text-[11px] uppercase tracking-wider font-bold" onClick={() => updateComment.mutate({ id: comment.id, content: `<p>${editContent}</p>` })} disabled={updateComment.isPending || !editContent.trim()}>
                     {updateComment.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <CheckCircle2 className="h-3 w-3 mr-2" />} Save
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 px-3 text-[10px] uppercase tracking-wider font-bold" onClick={() => { setEditingCommentId(null); setEditContent(""); }}>
+                  <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] uppercase tracking-wider font-bold" onClick={() => { setEditingCommentId(null); setEditContent(""); }}>
                     Cancel
                   </Button>
                 </div>
@@ -928,7 +928,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                                       type="button"
                                       onClick={() => setEditEnvironment(env)}
                                       className={cn(
-                                        "flex-1 px-3 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-tight transition-all",
+                                        "flex-1 px-3 py-2 rounded-xl border text-[11px] font-bold uppercase tracking-tight transition-all",
                                         editEnvironment === env
                                           ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 ring-2 ring-emerald-500/10"
                                           : "bg-background/50 border-border/50 text-muted-foreground hover:border-emerald-500/30"
@@ -1029,7 +1029,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 <span>{t('project_management.delete_for_me', 'Delete for me')}</span>
-                                <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{t('project_management.all', 'All')}</span>
+                                <span className="ml-auto text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{t('project_management.all', 'All')}</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2 py-2.5" 
@@ -1037,7 +1037,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 <span>{t('project_management.delete_for_everyone', 'Delete for everyone')}</span>
-                                <span className="ml-auto text-[10px] bg-destructive/10 px-1.5 py-0.5 rounded">{t('project_management.admin_yours', 'Admin / Yours')}</span>
+                                <span className="ml-auto text-[11px] bg-destructive/10 px-1.5 py-0.5 rounded">{t('project_management.admin_yours', 'Admin / Yours')}</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1085,7 +1085,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                             return (
                               <div key={`date-${item.date}`} className="flex items-center gap-4 py-4">
                                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/50">{label}</span>
+                                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/50">{label}</span>
                                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
                               </div>
                             );
@@ -1104,11 +1104,11 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                           <div className="flex -space-x-2">
                             {Object.keys(typingUsers).slice(0, 3).map(userId => (
                               <div key={userId} className="h-6 w-6 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center">
-                                <span className="text-[8px] font-bold text-primary">{typingUsers[userId].name.charAt(0)}</span>
+                                <span className="text-[11px] font-bold text-primary">{typingUsers[userId].name.charAt(0)}</span>
                               </div>
                             ))}
                           </div>
-                          <span className="text-[10px] text-muted-foreground font-medium italic">
+                          <span className="text-[11px] text-muted-foreground font-medium italic">
                             {Object.values(typingUsers).length === 1 ? `${Object.values(typingUsers)[0].name} is typing...` : `${Object.values(typingUsers).length} people are typing...`}
                           </span>
                         </motion.div>
@@ -1200,7 +1200,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                         <span className="font-semibold text-muted-foreground">{t('project_management.priority_level', 'Priority')} :</span>
                         <Badge 
                           variant="outline" 
-                          className={`uppercase text-[10px] tracking-wider font-bold ${
+                          className={`uppercase text-[11px] tracking-wider font-bold ${
                             task.priority === 'urgent' ? 'border-red-500 text-red-500' :
                             task.priority === 'high' ? 'border-orange-500 text-orange-500' :
                             task.priority === 'medium' ? 'border-yellow-500 text-yellow-600' :
@@ -1240,7 +1240,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                         <div className="pt-4 mt-4 border-t border-border/30 space-y-4">
                           <div className="flex items-center gap-2 mb-2">
                             <Terminal className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('project_management.software_context', 'Software Context')}</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest text-primary">{t('project_management.software_context', 'Software Context')}</span>
                           </div>
 
                           <div className="flex flex-col sm:flex-row sm:justify-between py-1 gap-1 sm:items-center">
@@ -1250,7 +1250,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                             {(() => {
                               const config = ISSUE_TYPE_CONFIG[task?.issue_type as keyof typeof ISSUE_TYPE_CONFIG] || ISSUE_TYPE_CONFIG.task;
                               return (
-                                <Badge variant="outline" className={cn("capitalize text-[10px] font-bold flex items-center gap-1.5 px-2 py-0.5", config.bg, config.color, config.border)}>
+                                <Badge variant="outline" className={cn("capitalize text-[11px] font-bold flex items-center gap-1.5 px-2 py-0.5", config.bg, config.color, config.border)}>
                                   <config.icon className="w-3 h-3" />
                                   {config.label}
                                 </Badge>
@@ -1281,7 +1281,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                               <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
                                 Environment
                               </span>
-                              <Badge variant="outline" className="capitalize text-[10px] font-bold border-emerald-500/50 text-emerald-600 bg-emerald-50 flex items-center gap-1">
+                              <Badge variant="outline" className="capitalize text-[11px] font-bold border-emerald-500/50 text-emerald-600 bg-emerald-50 flex items-center gap-1">
                                 <Server className="w-3 h-3" />
                                 {task?.environment}
                               </Badge>
@@ -1299,7 +1299,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                                 rel="noopener noreferrer"
                                 className="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all"
                               >
-                                <span className="text-[10px] font-bold text-primary">View PR</span>
+                                <span className="text-[11px] font-bold text-primary">View PR</span>
                                 <ExternalLink className="h-3 w-3 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                               </a>
                             </div>
@@ -1385,7 +1385,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                                       <Badge 
                                         variant="outline" 
                                         className={cn(
-                                          "text-[8px] h-4 px-1.5 font-black uppercase tracking-tighter",
+                                          "text-[11px] h-4 px-1.5 font-black uppercase tracking-tighter",
                                           file.status === 'approved' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
                                           file.status === 'rejected' ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
                                           "bg-amber-500/10 text-amber-500 border-amber-500/20"
@@ -1394,7 +1394,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                                         {file.status}
                                       </Badge>
                                     )}
-                                    <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
+                                    <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-widest">
                                       {file.user?.name || (file.path ? 'Manual Upload' : '')}
                                     </span>
                                   </div>
@@ -1486,15 +1486,15 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-5 w-5">
                                   <AvatarImage src={log.user?.avatar_path || undefined} />
-                                  <AvatarFallback className="text-[8px]">{log.user?.name?.charAt(0)}</AvatarFallback>
+                                  <AvatarFallback className="text-[11px]">{log.user?.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <span className="text-[11px] font-bold">{log.user?.name}</span>
                               </div>
-                              <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                              <span className="text-[11px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                                 {log.duration_minutes ? `${log.duration_minutes}m` : "Active"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                               <Clock className="h-3 w-3" />
                               {format(new Date(log.started_at), "MMM d, HH:mm")}
                               {log.ended_at && ` - ${format(new Date(log.ended_at), "HH:mm")}`}
@@ -1507,7 +1507,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                       ) : (
                         <div className="text-center py-8 rounded-xl border border-dashed border-border/60">
                           <HistoryIcon className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" />
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t('project_management.no_logs_yet', 'No logs yet')}</p>
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{t('project_management.no_logs_yet', 'No logs yet')}</p>
                         </div>
                       )}
                     </div>
@@ -1591,7 +1591,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
             </AlertDialogHeader>
           </div>
           <AlertDialogFooter className="p-6 bg-muted/20 flex sm:justify-center gap-3">
-            <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[11px] h-10 px-6">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
                 if (deleteConfirm.ids.length > 1 || (deleteConfirm.ids.length === 1 && deleteConfirm.type === 'me')) {
@@ -1600,7 +1600,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                   deleteComment.mutate({ id: deleteConfirm.ids[0], type: deleteConfirm.type });
                 }
               }}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 px-6 shadow-lg shadow-destructive/20"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl font-bold uppercase tracking-widest text-[11px] h-10 px-6 shadow-lg shadow-destructive/20"
             >
               Continue
             </AlertDialogAction>
@@ -1621,7 +1621,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                   <h3 className="text-sm font-bold truncate text-foreground">
                     {previewFile?.file_entry?.name || previewFile?.name || 'File Preview'}
                   </h3>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-black">
                     {previewFile?.file_entry?.mime_type || 'DOCUMENT'}
                   </p>
                 </div>

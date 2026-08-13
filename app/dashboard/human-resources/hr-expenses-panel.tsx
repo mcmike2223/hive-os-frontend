@@ -119,7 +119,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                         <Button
                           size="sm"
                           onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'approved' })}
-                          className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700"
+                          className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700"
                         >
                           Approve
                         </Button>
@@ -127,7 +127,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                           size="sm"
                           variant="outline"
                           onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'rejected' })}
-                          className="h-7 text-[10px] text-red-600"
+                          className="h-7 text-[11px] text-red-600"
                         >
                           Reject
                         </Button>
@@ -137,7 +137,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                       <Button
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'reimbursed' })}
-                        className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                        className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700"
                       >
                         Reimburse Payout
                       </Button>

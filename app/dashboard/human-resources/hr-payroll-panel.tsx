@@ -187,7 +187,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                   <td className="p-3 font-bold text-teal-600">{Number(p.net_salary).toLocaleString()} ETB</td>
                   <td className="p-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
                         p.status === 'paid'
                           ? 'bg-emerald-100 text-emerald-800'
                           : p.status === 'approved'
@@ -203,7 +203,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedPayslip(p)}
-                      className="h-7 text-[10px]"
+                      className="h-7 text-[11px]"
                     >
                       <Printer className="mr-1 h-3 w-3" />
                       View Payslip
@@ -212,7 +212,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                       <Button
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: p.id, status: 'approved' })}
-                        className="h-7 text-[10px]"
+                        className="h-7 text-[11px]"
                       >
                         Approve
                       </Button>
@@ -221,7 +221,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                       <Button
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: p.id, status: 'paid' })}
-                        className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                        className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700"
                       >
                         Mark Paid
                       </Button>
@@ -336,7 +336,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                   <p className="font-bold border-b pb-1">Statutory Deductions (ETB)</p>
                   <div className="flex justify-between text-red-600"><span>Income Tax (Proc 979):</span> <span>-{Number(selectedPayslip.income_tax).toLocaleString()}</span></div>
                   <div className="flex justify-between text-blue-600"><span>Employee Pension (7%):</span> <span>-{Number(selectedPayslip.employee_pension).toLocaleString()}</span></div>
-                  <div className="flex justify-between text-slate-500 text-[10px]"><span>Employer Pension (11%):</span> <span>[{Number(selectedPayslip.employer_pension).toLocaleString()}]</span></div>
+                  <div className="flex justify-between text-slate-500 text-[11px]"><span>Employer Pension (11%):</span> <span>[{Number(selectedPayslip.employer_pension).toLocaleString()}]</span></div>
                   <div className="flex justify-between font-bold text-teal-600 border-t pt-1 text-sm"><span>Net Take-Home:</span> <span>{Number(selectedPayslip.net_salary).toLocaleString()} ETB</span></div>
                 </div>
               </div>

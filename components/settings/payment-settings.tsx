@@ -295,16 +295,16 @@ export function PaymentSettings() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-lg font-black tracking-tight text-foreground">{provider.label}</h3>
                     {isActive ? (
-                      <Badge className="bg-primary/10 text-primary border-none text-[10px] uppercase tracking-widest">
+                      <Badge className="bg-primary/10 text-primary border-none text-[11px] uppercase tracking-widest">
                         Active
                       </Badge>
                     ) : null}
                     {provider.configured ? (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[10px] uppercase tracking-widest">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[11px] uppercase tracking-widest">
                         Configured
                       </Badge>
                     ) : (
-                      <Badge className="bg-amber-500/10 text-amber-600 border-none text-[10px] uppercase tracking-widest">
+                      <Badge className="bg-amber-500/10 text-amber-600 border-none text-[11px] uppercase tracking-widest">
                         Missing setup
                       </Badge>
                     )}
@@ -317,7 +317,7 @@ export function PaymentSettings() {
                   onClick={() => setDraft((prev) => prev ? ({ ...prev, active_provider: provider.key }) : prev)}
                   disabled={!provider.implemented}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-all",
+                    "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-widest transition-all",
                     isActive
                       ? "border-primary/30 bg-primary/10 text-primary"
                       : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
@@ -329,14 +329,14 @@ export function PaymentSettings() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
                   {provider.requires_billing_phone ? "Phone required" : "Phone optional"}
                 </Badge>
-                <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
                   {provider.supports_payment_methods ? "Method chooser" : "Hosted checkout"}
                 </Badge>
                 {!provider.implemented ? (
-                  <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
                     Adapter pending
                   </Badge>
                 ) : null}
@@ -373,7 +373,7 @@ export function PaymentSettings() {
 
                   return (
                     <div key={`${provider.key}-${field.key}`} className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                         {field.label}
                       </Label>
                       <Input
@@ -426,16 +426,16 @@ export function PaymentSettings() {
           </div>
           <div className="flex items-center gap-2">
             {draft.direct_transfer.configured ? (
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[10px] uppercase tracking-widest">
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[11px] uppercase tracking-widest">
                 Ready
               </Badge>
             ) : (
-              <Badge className="bg-amber-500/10 text-amber-600 border-none text-[10px] uppercase tracking-widest">
+              <Badge className="bg-amber-500/10 text-amber-600 border-none text-[11px] uppercase tracking-widest">
                 Needs active account
               </Badge>
             )}
             <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Enabled</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Enabled</span>
               <Switch
                 checked={draft.direct_transfer.enabled}
                 onCheckedChange={(checked) => updateDirectTransfer("enabled", checked)}
@@ -446,7 +446,7 @@ export function PaymentSettings() {
 
         <div className="mt-5 space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
               Customer Instructions
             </Label>
             <textarea
@@ -485,7 +485,7 @@ export function PaymentSettings() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 rounded-full border border-border/60 px-3 py-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Active</span>
                       <Switch
                         checked={Boolean(account.is_active)}
                         onCheckedChange={(checked) => updateBankAccount(account.id, "is_active", checked)}
@@ -505,7 +505,7 @@ export function PaymentSettings() {
 
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Display Label</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Display Label</Label>
                     <Input
                       value={account.label}
                       onChange={(event) => updateBankAccount(account.id, "label", event.target.value)}
@@ -514,7 +514,7 @@ export function PaymentSettings() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bank Name</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Bank Name</Label>
                     <Input
                       value={account.bank_name}
                       onChange={(event) => updateBankAccount(account.id, "bank_name", event.target.value)}
@@ -523,7 +523,7 @@ export function PaymentSettings() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Name</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Account Name</Label>
                     <Input
                       value={account.account_name}
                       onChange={(event) => updateBankAccount(account.id, "account_name", event.target.value)}
@@ -532,7 +532,7 @@ export function PaymentSettings() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Number</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Account Number</Label>
                     <Input
                       value={account.account_number}
                       onChange={(event) => updateBankAccount(account.id, "account_number", event.target.value)}
@@ -541,7 +541,7 @@ export function PaymentSettings() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Branch</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Branch</Label>
                     <Input
                       value={account.branch ?? ""}
                       onChange={(event) => updateBankAccount(account.id, "branch", event.target.value)}
@@ -550,7 +550,7 @@ export function PaymentSettings() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Internal Notes</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Internal Notes</Label>
                     <Input
                       value={account.notes ?? ""}
                       onChange={(event) => updateBankAccount(account.id, "notes", event.target.value)}

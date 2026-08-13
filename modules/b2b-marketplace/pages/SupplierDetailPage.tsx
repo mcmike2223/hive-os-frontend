@@ -111,7 +111,7 @@ export default function SupplierDetailPage({ id }: { id?: string }) {
                   <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{supplier.name}</h1>
                   {supplier.verified && <BadgeCheck className="h-6 w-6 text-blue-500" />}
                   {supplier.premium && (
-                    <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                       Premium
                     </span>
                   )}

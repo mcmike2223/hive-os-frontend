@@ -168,7 +168,7 @@ const SecureMobileLogo = ({
         <div className="max-w-[170px] truncate font-space text-base font-black tracking-tighter" title={fallbackTitle || "HIVE.OS"}>
           {fallbackTitle || "HIVE.OS"}
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           {t("nav.control_hub", "Control Hub")}
         </div>
       </div>
@@ -242,10 +242,12 @@ export function MobileSidebar() {
   });
 
   const brandSettings = brandData?.data;
+  // Falls back to the other variant so a tenant that uploaded only one logo
+  // still shows it in both themes instead of rendering nothing.
   const logoPath =
     resolvedTheme === "dark"
-      ? brandSettings?.logo_dark
-      : brandSettings?.logo_light;
+      ? brandSettings?.logo_dark || brandSettings?.logo_light
+      : brandSettings?.logo_light || brandSettings?.logo_dark;
 
   const handleLogout = () => {
     clearHiveSession();

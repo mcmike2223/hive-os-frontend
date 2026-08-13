@@ -78,9 +78,9 @@ export function ProjectAutomations({ project }: ProjectAutomationsProps) {
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-lg">{automation.name}</h3>
                   {automation.is_active ? (
-                    <Badge className="bg-emerald-500/10 text-emerald-600 border-none uppercase text-[9px] tracking-widest font-black">{t('project_management.active', 'Active')}</Badge>
+                    <Badge className="bg-emerald-500/10 text-emerald-600 border-none uppercase text-[11px] tracking-widest font-black">{t('project_management.active', 'Active')}</Badge>
                   ) : (
-                    <Badge variant="secondary" className="uppercase text-[9px] tracking-widest font-black">{t('project_management.paused', 'Paused')}</Badge>
+                    <Badge variant="secondary" className="uppercase text-[11px] tracking-widest font-black">{t('project_management.paused', 'Paused')}</Badge>
                   )}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground font-medium">

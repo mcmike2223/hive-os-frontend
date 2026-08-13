@@ -591,7 +591,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                            <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                               {t("project_management.task_title", "Task Title")}
                             </FormLabel>
                             <FormControl>
@@ -615,7 +615,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                           name="priority"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                              <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                 {t(
                                   "project_management.priority_level",
                                   "Priority Level",
@@ -626,7 +626,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 defaultValue={field.value}
                               >
                                 <FormControl>
-                                  <SelectTrigger className="bg-background border-border/40 h-11 uppercase text-[10px] font-bold tracking-widest">
+                                  <SelectTrigger className="bg-background border-border/40 h-11 uppercase text-[11px] font-bold tracking-widest">
                                     <SelectValue
                                       placeholder={t(
                                         "project_management.select_priority",
@@ -684,7 +684,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                           name="due_date"
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
-                              <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 mb-2">
+                              <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 mb-2">
                                 {t(
                                   "project_management.target_deadline",
                                   "Target Deadline",
@@ -751,7 +751,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                            <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                               {t(
                                 "project_management.requirements_context",
                                 "Requirements & Context",
@@ -803,7 +803,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
                           return (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                              <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                 {t(
                                   "project_management.project_assignees",
                                   "Project Assignees",
@@ -853,7 +853,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                             )}
                                       </div>
                                       <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                        <span className="text-[11px] font-bold text-muted-foreground uppercase">
                                           {selectedIds.length}{" "}
                                           {t(
                                             "project_management.selected",
@@ -894,7 +894,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                           <span className="font-bold group-hover:text-primary transition-colors">
                                             {user.name}
                                           </span>
-                                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                                          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
                                             {user.email}
                                           </span>
                                         </div>
@@ -914,7 +914,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         name="parent_task_id"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                            <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                               {t(
                                 "project_management.dependency_parent",
                                 "Dependency (Parent Task)",
@@ -955,7 +955,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 ))}
                               </SelectContent>
                             </Select>
-                            <p className="text-[10px] font-medium text-muted-foreground/50 mt-2 italic">
+                            <p className="text-[11px] font-medium text-muted-foreground/50 mt-2 italic">
                               {t(
                                 "project_management.dependencies_desc",
                                 "Dependencies define the workflow sequence in the Project Timeline.",
@@ -986,7 +986,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                     "Task Classification",
                                   )}
                                 </h4>
-                                <p className="text-[10px] text-muted-foreground/60 font-bold">
+                                <p className="text-[11px] text-muted-foreground/60 font-bold">
                                   {t(
                                     "project_management.task_class_desc",
                                     "Define the technical nature of this task",
@@ -1000,7 +1000,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                               name="issue_type"
                               render={({ field }) => (
                                 <FormItem className="space-y-4">
-                                  <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                                  <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                     {t(
                                       "project_management.issue_type",
                                       "Issue Type",
@@ -1039,7 +1039,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                               name="story_points"
                               render={({ field }) => (
                                 <FormItem className="space-y-4">
-                                  <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                                  <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                     {t(
                                       "project_management.complexity_story_points",
                                       "Complexity (Story Points)",
@@ -1104,7 +1104,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                     "Environment & Tracking",
                                   )}
                                 </h4>
-                                <p className="text-[10px] text-muted-foreground/60 font-bold">
+                                <p className="text-[11px] text-muted-foreground/60 font-bold">
                                   {t(
                                     "project_management.env_tracking_desc",
                                     "Traceability and deployment context",
@@ -1119,7 +1119,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 name="environment"
                                 render={({ field }) => (
                                   <FormItem className="space-y-3">
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                                    <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                       {t(
                                         "project_management.target_environment",
                                         "Target Environment",
@@ -1206,7 +1206,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 name="pr_url"
                                 render={({ field }) => (
                                   <FormItem className="space-y-3">
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                                    <FormLabel className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                                       {t(
                                         "project_management.pr_reference",
                                         "Pull Request Reference",
@@ -1281,7 +1281,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                   <p className="text-xs font-bold truncate">
                                     {file.name}
                                   </p>
-                                  <p className="text-[9px] text-muted-foreground/60 truncate font-black uppercase tracking-widest">
+                                  <p className="text-[11px] text-muted-foreground/60 truncate font-black uppercase tracking-widest">
                                     {file.path}
                                   </p>
                                 </div>

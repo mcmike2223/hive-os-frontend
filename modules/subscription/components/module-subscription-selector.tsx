@@ -139,7 +139,7 @@ export function ModuleSubscriptionSelector({
               Choose the built-in modules this tenant should be able to use.
             </p>
           </div>
-          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
             {selectedModules.length} selected
           </Badge>
         </div>
@@ -149,7 +149,7 @@ export function ModuleSubscriptionSelector({
             <div key={category} className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-px flex-1 bg-border/60" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
                   {category}
                 </p>
                 <div className="h-px flex-1 bg-border/60" />
@@ -198,26 +198,26 @@ export function ModuleSubscriptionSelector({
                       <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-foreground">{module.name}</p>
-                          <Badge variant="outline" className={cn("rounded-full px-2 py-0.5 text-[9px] uppercase tracking-widest", toneClass)}>
+                          <Badge variant="outline" className={cn("rounded-full px-2 py-0.5 text-[11px] uppercase tracking-widest", toneClass)}>
                             {module.category}
                           </Badge>
                           {isRecommended ? (
-                            <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] uppercase tracking-widest text-emerald-700">
+                            <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] uppercase tracking-widest text-emerald-700">
                               Recommended
                             </Badge>
                           ) : null}
                           {module.included_in_plan && !checked ? (
-                            <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 px-2 py-0.5 text-[9px] uppercase tracking-widest text-sky-700">
+                            <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] uppercase tracking-widest text-sky-700">
                               Included
                             </Badge>
                           ) : null}
                           {isLockedPaidAddon ? (
-                            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] uppercase tracking-widest text-amber-700">
+                            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] uppercase tracking-widest text-amber-700">
                               ETB {Number(module.monthly_price_etb ?? 0).toFixed(0)}
                             </Badge>
                           ) : null}
                           {module.status === "pending" ? (
-                            <Badge variant="outline" className="rounded-full border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[9px] uppercase tracking-widest text-indigo-700">
+                            <Badge variant="outline" className="rounded-full border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] uppercase tracking-widest text-indigo-700">
                               Payment Pending
                             </Badge>
                           ) : null}
@@ -280,7 +280,7 @@ export function ModuleSubscriptionSelector({
                 className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/70 p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-[10px] uppercase tracking-widest text-amber-700">
+                  <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-[11px] uppercase tracking-widest text-amber-700">
                     Custom Module {index + 1}
                   </Badge>
                   <Button

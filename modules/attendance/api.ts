@@ -176,15 +176,24 @@ export async function fetchUserLinkingRecords(
 }
 
 export async function previewUserLinking(): Promise<UserLinkingPreview> {
+  const previewOptions: RequestInit = {
+    method: "POST",
+    headers: {
+      "x-skip-offline-queue": "1",
+    },
+  };
+
   try {
-    const res = await attendanceFetch<{ data: UserLinkingPreview }>("/attendance/user-linking/preview", {
-      method: "POST",
-    });
+    const res = await attendanceFetch<{ data: UserLinkingPreview }>(
+      "/attendance/user-linking/preview",
+      previewOptions,
+    );
     return res.data;
   } catch {
-    const res = await hrFetch<{ data: UserLinkingPreview }>("/attendance/user-linking/preview", {
-      method: "POST",
-    });
+    const res = await hrFetch<{ data: UserLinkingPreview }>(
+      "/attendance/user-linking/preview",
+      previewOptions,
+    );
     return res.data;
   }
 }

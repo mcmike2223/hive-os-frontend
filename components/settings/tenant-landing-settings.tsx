@@ -335,7 +335,7 @@ export function TenantLandingSettings() {
       <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
         <div className="space-y-4 rounded-[2rem] border border-border/50 bg-card/40 p-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
           <div>
-            <Label className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+            <Label className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
               Business Category
             </Label>
             <div className="mt-2">
@@ -358,7 +358,7 @@ export function TenantLandingSettings() {
           </div>
 
           <div className="border-t border-border/40 pt-4 space-y-4">
-            <Label className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+            <Label className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
               Template Variant
             </Label>
             <div className="space-y-2">
@@ -383,7 +383,7 @@ export function TenantLandingSettings() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-foreground truncate">{variant.label}</p>
-                      <p className="text-[10px] text-muted-foreground truncate leading-relaxed mt-0.5">{variant.description}</p>
+                      <p className="text-[11px] text-muted-foreground truncate leading-relaxed mt-0.5">{variant.description}</p>
                     </div>
                   </button>
                 );
@@ -396,7 +396,7 @@ export function TenantLandingSettings() {
           <div className="rounded-[2rem] border border-border/50 bg-card/40 p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-mono text-[10px] uppercase">
+                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-mono text-[11px] uppercase">
                   {selectedTemplateKey} Preset
                 </Badge>
                 <span className="text-xs text-muted-foreground">

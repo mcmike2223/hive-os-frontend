@@ -85,11 +85,16 @@ export function ChatNotificationIcon() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
+          aria-label={
+            counts.unread > 0
+              ? `Messages, ${counts.unread} unread`
+              : "Messages"
+          }
           className="relative h-10 w-10 rounded-xl p-0 shrink-0 text-muted-foreground hover:text-foreground"
         >
           <MessageSquare className="h-5 w-5" />
           {counts.unread > 0 && (
-            <span className="absolute -top-1 -right-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white bg-orange-500 shadow-sm animate-pulse">
+            <span className="absolute -top-1 -right-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[11px] font-black text-white bg-orange-500 shadow-sm animate-pulse">
               {counts.unread > 99 ? '99+' : counts.unread}
             </span>
           )}
@@ -131,7 +136,7 @@ export function ChatNotificationIcon() {
                         {getChatConversationTitle(conv, currentUserId)}
                       </span>
                     {conv.unread_count && conv.unread_count > 0 && (
-                      <span className="h-5 min-w-[18px] px-1.5 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-black text-white shrink-0">
+                      <span className="h-5 min-w-[18px] px-1.5 flex items-center justify-center rounded-full bg-orange-500 text-[11px] font-black text-white shrink-0">
                         {conv.unread_count}
                       </span>
                     )}

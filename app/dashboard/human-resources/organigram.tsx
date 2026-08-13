@@ -1479,7 +1479,7 @@ export function OrganigramPanel({
                             : node.eyebrow.slice(0, 2).toUpperCase()}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[10px] font-black uppercase tracking-[0.13em] text-cyan-50">
+                          <span className="block truncate text-[11px] font-black uppercase tracking-[0.13em] text-cyan-50">
                             {node.eyebrow}
                           </span>
                           <span className="mt-1 block truncate text-base font-black text-white">
@@ -1491,7 +1491,7 @@ export function OrganigramPanel({
                         </span>
                       </span>
                       <span className="relative mt-3 flex items-center gap-2">
-                        <span className="rounded-full bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+                        <span className="rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white">
                           {node.kind === "person"
                             ? `${node.peopleCount} direct`
                             : `${node.peopleCount} people`}
@@ -1499,7 +1499,7 @@ export function OrganigramPanel({
                         {node.kind === "person" ? (
                           <span
                             className={cn(
-                              "rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide",
+                              "rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide",
                               statusStyle(
                                 node.employee?.employment_status ?? "unknown",
                               ),
@@ -1511,7 +1511,7 @@ export function OrganigramPanel({
                             )}
                           </span>
                         ) : (
-                          <span className="rounded-full bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+                          <span className="rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white">
                             {node.vacancyCount} open seats
                           </span>
                         )}

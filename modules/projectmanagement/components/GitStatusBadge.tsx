@@ -25,7 +25,7 @@ export function GitStatusBadge({ prUrl, prStatus, buildStatus }: GitStatusBadgeP
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={cn(
-                  "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase transition-all hover:scale-105",
+                  "flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-black uppercase transition-all hover:scale-105",
                   prStatus === 'merged' ? "bg-violet-500/10 text-violet-500 border border-violet-500/20" :
                   prStatus === 'closed' ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" :
                   "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
@@ -38,7 +38,7 @@ export function GitStatusBadge({ prUrl, prStatus, buildStatus }: GitStatusBadgeP
             </TooltipTrigger>
             <TooltipContent>
               <p className="text-xs font-bold">Pull Request: {prStatus || 'open'}</p>
-              <p className="text-[10px] opacity-70">Click to view on Repository</p>
+              <p className="text-[11px] opacity-70">Click to view on Repository</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

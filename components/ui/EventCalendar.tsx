@@ -121,7 +121,7 @@ export function EventCalendar({ events, onEventClick, onDayClick, className }: E
             </h2>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">{t("project_management.project_timeline", "Project Timeline")}</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em] font-bold">{t("project_management.project_timeline", "Project Timeline")}</p>
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@ export function EventCalendar({ events, onEventClick, onDayClick, className }: E
       {/* Weekdays Header */}
       <div className="grid grid-cols-7 border-b bg-muted/10 backdrop-blur-sm">
         {[t("project_management.sun", "Sun"), t("project_management.mon", "Mon"), t("project_management.tue", "Tue"), t("project_management.wed", "Wed"), t("project_management.thu", "Thu"), t("project_management.fri", "Fri"), t("project_management.sat", "Sat")].map((day) => (
-          <div key={day} className="py-4 text-center text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 border-r border-border/20 last:border-r-0">
+          <div key={day} className="py-4 text-center text-[11px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 border-r border-border/20 last:border-r-0">
             {day}
           </div>
         ))}
@@ -219,7 +219,7 @@ export function EventCalendar({ events, onEventClick, onDayClick, className }: E
                     </span>
                   </div>
                   {showEthiopian && (
-                    <span className="text-[9px] font-bold text-primary/50 mt-1">
+                    <span className="text-[11px] font-bold text-primary/50 mt-1">
                       {ethDate.day}
                     </span>
                   )}
@@ -241,7 +241,7 @@ export function EventCalendar({ events, onEventClick, onDayClick, className }: E
                     key={event.id}
                     onClick={(e) => { e.stopPropagation(); onEventClick?.(event); }}
                     className={cn(
-                      "w-full text-left px-2.5 py-1.5 rounded-xl text-[10px] font-bold truncate transition-all",
+                      "w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold truncate transition-all",
                       "hover:ring-2 hover:ring-primary/20 hover:scale-[1.02] active:scale-[0.98]",
                       "flex items-center gap-2 group/event shadow-sm border border-transparent",
                       event.color || "bg-sky-500/10 text-sky-700 border-sky-200/50"

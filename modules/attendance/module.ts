@@ -1,4 +1,4 @@
-import { BarChart3, Cpu, Fingerprint, PlusCircle, Settings } from "lucide-react";
+import { BarChart3, Fingerprint, PlusCircle, Settings, UserRoundCog } from "lucide-react";
 
 import type { FrontendModuleDefinition } from "@/modules/types";
 
@@ -13,6 +13,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     "/dashboard/attendance/device-onboarding",
     "/dashboard/attendance/devices",
     "/dashboard/attendance/reports",
+    "/dashboard/attendance/user-linking",
   ],
   navItems: [
     {
@@ -31,6 +32,19 @@ export const attendanceModule: FrontendModuleDefinition = {
         "manage_attendance",
         "view_own_schedule",
         "view_team_time",
+      ],
+      placement: "primary",
+    },
+    {
+      moduleId: "attendance",
+      translationKey: "nav.attendance_user_linking",
+      fallbackLabel: "User Linking & Enrolment",
+      href: "/dashboard/attendance/user-linking",
+      icon: UserRoundCog,
+      subscriptionSlug: ["attendance_management", "human_resources"],
+      permissions: [
+        "manage_attendance",
+        "manage_employees",
       ],
       placement: "primary",
     },

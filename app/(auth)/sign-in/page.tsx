@@ -16,7 +16,7 @@ import { useTranslation } from "@/store/use-translation";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { logFrontendAction } from "@/lib/api"; 
 import { clearHiveSession } from "@/lib/auth-sync";
-import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getTenantId, getWorkspaceScopeKey, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
+import { getBackendApiRoot, getPublicServeUrl, getTenantHeaders, getTenantId, getWorkspaceScopeKey, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
 import { initializeSessionActivity } from "@/lib/session-activity";
 
 const POST_LOGIN_REDIRECT_STORAGE_KEY = "hive_post_login_redirect";
@@ -73,7 +73,10 @@ export default function LoginPage() {
   });
 
   const brandSettings = brandData?.data;
-  const authBackgroundUrl = getBackendStorageUrl(brandSettings?.auth_background_image);
+  // Sign-in renders before authentication, so the asset has to come from the
+  // public-serve route. getBackendStorageUrl returns the token-protected
+  // /files/{id}/serve path, which 401s here and left the background blank.
+  const authBackgroundUrl = getPublicServeUrl(brandSettings?.auth_background_image);
   const displayPortalName = brandSettings?.app_title || portalName;
   const authWelcomeMessage = t('auth.login.welcome_desc', brandSettings?.auth_welcome_message || 'Authenticate your identity to decrypt your management workspace.');
 
@@ -193,7 +196,7 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm mx-auto space-y-10 mt-12 lg:mt-0">
           <div className="space-y-3">
-            <Badge variant="outline" className="font-mono text-[10px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">
+            <Badge variant="outline" className="font-mono text-[11px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">
               {brandSettings?.abbreviation ? brandSettings.abbreviation.toUpperCase() : t('auth.login.establishing_uplink', 'ESTABLISHING UPLINK...')}
             </Badge>
             <h1 className="text-4xl font-space font-black tracking-tighter sm:text-5xl">{t('auth.login.command', 'Command')} <span className="text-primary">{t('auth.login.access', 'Access')}</span></h1>
@@ -215,7 +218,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="email" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground ml-1">{t('auth.login.system_identifier', 'System Identifier')}</Label>
+                <Label htmlFor="email" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground ml-1">{t('auth.login.system_identifier', 'System Identifier')}</Label>
                 <div className="relative group">
                   <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.login.identifier_placeholder', 'user@hive.corp')} disabled={loading} className="pl-10 h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50 transition-all font-mono" />
@@ -223,8 +226,8 @@ export default function LoginPage() {
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between ml-1">
-                   <Label htmlFor="password" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t('auth.login.encryption_key', 'Encryption Key')}</Label>
-                   <Link href="/forgot-password" className="font-mono text-[9px] uppercase tracking-tighter text-primary/60 hover:text-primary transition-colors">{t('auth.login.forgot_key', 'Forgot Key?')}</Link>
+                   <Label htmlFor="password" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{t('auth.login.encryption_key', 'Encryption Key')}</Label>
+                   <Link href="/forgot-password" className="font-mono text-[11px] uppercase tracking-tighter text-primary/60 hover:text-primary transition-colors">{t('auth.login.forgot_key', 'Forgot Key?')}</Link>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />

@@ -372,12 +372,12 @@ export default function TablesManagementPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="space-y-1">
                   <h3 className="font-black text-xl tracking-tight">{table.label}</h3>
-                  <Badge variant="secondary" className="capitalize rounded-md text-[10px] font-bold px-2 py-0.5">
+                  <Badge variant="secondary" className="capitalize rounded-md text-[11px] font-bold px-2 py-0.5">
                     {table.table_type.replace('_', ' ')}
                   </Badge>
                 </div>
                 
-                <Badge className={cn("rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest border shadow-sm", statusColors[table.status])}>
+                <Badge className={cn("rounded-full px-3 py-0.5 text-[11px] font-black uppercase tracking-widest border shadow-sm", statusColors[table.status])}>
                   {table.status}
                 </Badge>
               </div>

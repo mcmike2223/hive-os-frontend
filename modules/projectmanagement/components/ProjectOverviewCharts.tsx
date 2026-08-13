@@ -1158,7 +1158,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
     if (active && payload && payload.length) {
       return (
         <div className="bg-background/90 backdrop-blur-2xl border border-primary/20 p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in duration-300">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 mb-2">{label || payload[0].name}</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 mb-2">{label || payload[0].name}</p>
           <div className="space-y-2">
             {payload.map((p, i) => (
               <div key={i} className="flex items-center justify-between gap-8">
@@ -1222,7 +1222,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     "bg-muted/10 border-border/40 text-muted-foreground opacity-50"
                   )}>
                     {isCompleted ? <CheckCircle2 className="h-3 w-3" /> : <div className="h-1.5 w-1.5 rounded-full bg-current" />}
-                    <span className="text-[9px] font-black uppercase tracking-widest">{phase}</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest">{phase}</span>
                   </div>
                   {i < 3 && <div className="h-[1px] w-4 bg-border/40" />}
                 </div>
@@ -1234,11 +1234,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
         <div className="flex flex-row xl:flex-col gap-4 relative z-10 justify-end">
           <div className="px-8 py-6 rounded-[2rem] bg-background/50 border border-border/40 flex flex-col items-center justify-center min-w-[140px] hover:border-primary/40 transition-colors">
             <span className="text-3xl font-black text-foreground">{predictiveMetrics.remainingPoints}</span>
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">Remaining Pts</span>
+            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">Remaining Pts</span>
           </div>
           <div className="px-8 py-6 rounded-[2rem] bg-background/50 border border-border/40 flex flex-col items-center justify-center min-w-[140px] hover:border-primary/40 transition-colors">
             <span className="text-3xl font-black text-primary">{predictiveMetrics.daysToFinish === Infinity ? '∞' : predictiveMetrics.daysToFinish}</span>
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">Days to Go</span>
+            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">Days to Go</span>
           </div>
         </div>
       </motion.div>
@@ -1267,15 +1267,15 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                       insight.type === 'warning' ? "bg-amber-500" : 
                       insight.type === 'success' ? "bg-emerald-500" : "bg-primary"
                     )} />
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-70">{insight.type} Signal</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.3em] opacity-70">{insight.type} Signal</span>
                   </div>
-                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter rounded-full border-foreground/10 px-2 py-0">
+                  <Badge variant="outline" className="text-[11px] font-black uppercase tracking-tighter rounded-full border-foreground/10 px-2 py-0">
                     {insight.impact}
                   </Badge>
                 </div>
                 <div className="space-y-2">
                   <h4 className="text-sm font-black text-foreground leading-tight">{insight.title}</h4>
-                  <p className="text-[10px] font-bold text-muted-foreground leading-relaxed">{insight.description}</p>
+                  <p className="text-[11px] font-bold text-muted-foreground leading-relaxed">{insight.description}</p>
                 </div>
               </div>
             </Card>
@@ -1292,7 +1292,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <Activity className="h-24 w-24 text-primary" />
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live Health
               </CardTitle>
@@ -1302,11 +1302,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <span className="text-4xl font-black tracking-tighter text-foreground group-hover:scale-105 transition-transform duration-500 origin-left">
                   {Math.round(healthMetrics.reduce((acc, m) => acc + m.A, 0) / healthMetrics.length)}%
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.efficiency_index', 'Efficiency Index')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.efficiency_index', 'Efficiency Index')}</span>
               </div>
               <div className="mt-6 flex items-center gap-2">
                 <Badge className={cn(
-                  "border-none px-3 py-1 text-[9px] font-black uppercase tracking-tighter",
+                  "border-none px-3 py-1 text-[11px] font-black uppercase tracking-tighter",
                   project.health === 'green' ? "bg-emerald-500/10 text-emerald-500" : 
                   project.health === 'yellow' ? "bg-amber-500/10 text-amber-500" : 
                   "bg-rose-500/10 text-rose-500"
@@ -1333,7 +1333,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <Users className="h-24 w-24 text-sky-500" />
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-sky-500" />
                 Team Load
               </CardTitle>
@@ -1343,7 +1343,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <span className="text-4xl font-black tracking-tighter text-foreground">
                   {Math.round(resourceUtilizationData.reduce((acc, r) => acc + r.load, 0) / (resourceUtilizationData.length || 1))}%
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.average_utilization', 'Average Utilization')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.average_utilization', 'Average Utilization')}</span>
               </div>
               <div className="mt-6 flex -space-x-3 overflow-hidden">
                 {project.members?.slice(0, 6).map((m, i) => (
@@ -1353,7 +1353,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   </div>
                 ))}
                 {(project.members?.length || 0) > 6 && (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-muted text-[10px] font-black ring-4 ring-card z-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-muted text-[11px] font-black ring-4 ring-card z-0">
                     +{project.members!.length - 6}
                   </div>
                 )}
@@ -1369,7 +1369,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <Zap className="h-24 w-24 text-amber-500" />
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                 Throughput
               </CardTitle>
@@ -1379,11 +1379,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <span className="text-4xl font-black tracking-tighter text-foreground">
                   {tasks.filter(t => t.column?.is_done).length}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.tasks_completed', 'Tasks Completed')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.tasks_completed', 'Tasks Completed')}</span>
               </div>
               <div className="mt-6 flex items-baseline gap-2">
                 <span className="text-xl font-black text-amber-500">{Math.round((tasks.filter(t => t.column?.is_done).length / (tasks.length || 1)) * 100)}%</span>
-                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">{t('project_management.overall_completion', 'Overall Completion')}</span>
+                <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">{t('project_management.overall_completion', 'Overall Completion')}</span>
               </div>
             </CardContent>
           </Card>
@@ -1396,7 +1396,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <ShieldCheck className="h-24 w-24 text-rose-500" />
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                 Risk Status
               </CardTitle>
@@ -1406,7 +1406,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <span className="text-4xl font-black tracking-tighter text-foreground">
                   {riskAssessmentData.find(d => d.name === 'Overdue')?.value || 0}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.critical_blockers', 'Critical Blockers')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{t('project_management.critical_blockers', 'Critical Blockers')}</span>
               </div>
               <div className="mt-6 flex gap-1">
                 {riskAssessmentData.map((d, i) => (
@@ -1439,14 +1439,14 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   <Cpu className="h-4 w-4 text-primary" />
                   Sprint Velocity Engine
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">{t('project_management.points_planned_vs_delivered', 'Points planned vs. actually delivered')}</CardDescription>
+                <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">{t('project_management.points_planned_vs_delivered', 'Points planned vs. actually delivered')}</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px] p-8 pt-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={sprintVelocityData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend iconType="circle" />
                     <Bar dataKey="planned" fill="hsl(var(--muted)/0.5)" radius={[6, 6, 0, 0]} name={t('project_management.planned_points', 'Planned Points')} />
@@ -1468,11 +1468,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     <Coins className="h-4 w-4 text-emerald-500" />
                     Financial Intelligence
                   </CardTitle>
-                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">{t('project_management.budget_utilization_runway_analysis', 'Budget utilization & runway analysis')}</CardDescription>
+                  <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">{t('project_management.budget_utilization_runway_analysis', 'Budget utilization & runway analysis')}</CardDescription>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-black text-foreground">{financialIntelligence.runwayDays === Infinity ? '∞' : financialIntelligence.runwayDays} Days</p>
-                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">{t('project_management.estimated_runway', 'Estimated Runway')}</p>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">{t('project_management.estimated_runway', 'Estimated Runway')}</p>
                 </div>
               </div>
             </CardHeader>
@@ -1490,8 +1490,8 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} strokeDasharray="5 5" name="Projected Revenue" />
                   <Area type="monotone" dataKey="cost" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorCost)" strokeWidth={3} name="Cumulative Cost" />
@@ -1500,11 +1500,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               </ResponsiveContainer>
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-3xl bg-background/20 border border-border/20">
-                   <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{t('project_management.daily_burn_rate', 'Daily Burn Rate')}</p>
+                   <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">{t('project_management.daily_burn_rate', 'Daily Burn Rate')}</p>
                    <p className="text-lg font-black text-foreground">{project.currency || 'USD'} {financialIntelligence.burnRate.toLocaleString()}</p>
                 </div>
                 <div className="p-4 rounded-3xl bg-background/20 border border-border/20">
-                   <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{t('project_management.utilization_label', 'Utilization')}</p>
+                   <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">{t('project_management.utilization_label', 'Utilization')}</p>
                    <p className="text-lg font-black text-primary">{financialIntelligence.utilization}%</p>
                 </div>
               </div>
@@ -1520,7 +1520,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <MessageSquare className="h-4 w-4 text-sky-500" />
                 Team Collaboration Pulse
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Daily engagement & interaction volume</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Daily engagement & interaction volume</CardDescription>
             </CardHeader>
             <CardContent className="h-[250px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -1532,7 +1532,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="engagement" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorEngage)" strokeWidth={3} />
                 </AreaChart>
@@ -1549,13 +1549,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 Checklist Velocity
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Granular progress per critical task</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Granular progress per critical task</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={checklistVelocityData} layout="vertical">
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} width={100} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} width={100} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="rate" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={15} />
                 </BarChart>
@@ -1571,13 +1571,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <ShieldCheck className="h-4 w-4 text-emerald-500" />
                 Environment Matrix
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Stability across deployment zones</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Stability across deployment zones</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={environmentStabilityData}>
                   <PolarGrid stroke="hsl(var(--foreground))" opacity={0.1} />
-                  <PolarAngleAxis dataKey="env" tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <PolarAngleAxis dataKey="env" tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Radar name="Stability" dataKey="stability" stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.4} strokeWidth={3} />
                 </RadarChart>
               </ResponsiveContainer>
@@ -1596,7 +1596,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <ShieldCheck className="h-4 w-4 text-rose-500" />
                 Quality Intelligence
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Bug trends & resolution velocity</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Bug trends & resolution velocity</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -1612,7 +1612,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="created" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorCreated)" strokeWidth={3} name="Bugs Created" />
                   <Area type="monotone" dataKey="resolved" stroke="hsl(var(--success))" fillOpacity={1} fill="url(#colorResolved)" strokeWidth={3} name="Bugs Resolved" />
@@ -1630,13 +1630,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Users className="h-4 w-4 text-sky-500" />
                 Role Contribution Matrix
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Points delivered vs efficiency per role</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Points delivered vs efficiency per role</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={roleContributionData}>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="role" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} />
+                  <XAxis dataKey="role" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="points" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Points" />
                   <Bar dataKey="efficiency" fill="hsl(var(--success)/0.5)" radius={[4, 4, 0, 0]} name="Efficiency %" />
@@ -1654,13 +1654,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Clock className="h-4 w-4 text-emerald-500" />
                 Efficiency Intelligence
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Lead Time vs Cycle Time analysis</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Lead Time vs Cycle Time analysis</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={leadCycleData}>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconType="circle" />
                   <Bar dataKey="leadTime" fill="hsl(var(--primary)/0.4)" radius={[4, 4, 0, 0]} name="Lead Time" />
@@ -1679,15 +1679,15 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Target className="h-4 w-4 text-amber-500" />
                 Resource ROI
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Points delivered per logged hour</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Points delivered per logged hour</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={resourceROIData}>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar yAxisId="left" dataKey="points" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Story Points" />
                   <Line yAxisId="right" type="monotone" dataKey="roi" stroke="hsl(var(--warning))" strokeWidth={3} name="ROI Index" />
@@ -1719,11 +1719,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-primary" />
-                      <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Actual</span>
+                      <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Actual</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full border border-primary/40 bg-transparent" />
-                      <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Ideal</span>
+                      <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Ideal</span>
                     </div>
                   </div>
                 </div>
@@ -1738,8 +1738,8 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.3)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: "hsl(var(--muted-foreground))" }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: "hsl(var(--muted-foreground))" }} dx={-10} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: "hsl(var(--muted-foreground))" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: "hsl(var(--muted-foreground))" }} dx={-10} />
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '5 5' }} />
                     <Area type="monotone" dataKey="actual" fill="url(#colorActual)" stroke="hsl(var(--primary))" strokeWidth={4} animationDuration={2000} name="Completed" />
                     <Line type="monotone" dataKey="forecast" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast" />
@@ -1760,12 +1760,12 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   <Timer className="h-3.5 w-3.5 text-success" />
                   Efficiency Flow
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Task completion speed</CardDescription>
+                <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Task completion speed</CardDescription>
               </CardHeader>
               <CardContent className="h-[280px] p-6">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={cycleTimeData}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} dy={10} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} dy={10} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="count" radius={[12, 12, 4, 4]} barSize={40} animationDuration={1500}>
                       {cycleTimeData.map((entry, index) => (
@@ -1775,7 +1775,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   </BarChart>
                 </ResponsiveContainer>
                 <div className="mt-4 flex items-center justify-center">
-                   <span className="px-4 py-2 rounded-2xl bg-success/10 text-success text-[10px] font-black uppercase tracking-widest border border-success/20">
+                   <span className="px-4 py-2 rounded-2xl bg-success/10 text-success text-[11px] font-black uppercase tracking-widest border border-success/20">
                      Peak Performance: 1-Day Cycle
                    </span>
                 </div>
@@ -1789,7 +1789,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                   <Target className="h-3.5 w-3.5 text-primary" />
                   Complexity Mix
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Workload categorization</CardDescription>
+                <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Workload categorization</CardDescription>
               </CardHeader>
               <CardContent className="h-[280px] p-0 relative">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1819,7 +1819,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 </ResponsiveContainer>
                 <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
                   <p className="text-2xl font-black tracking-tighter text-foreground">{tasks.length}</p>
-                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Total Entities</p>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Total Entities</p>
                 </div>
               </CardContent>
             </Card>
@@ -1842,7 +1842,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="75%" data={healthMetrics}>
                   <PolarGrid stroke="hsl(var(--primary))" opacity={0.1} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--foreground))', fontSize: 9, fontWeight: 900, opacity: 0.6 }} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 900, opacity: 0.6 }} />
                   <Radar 
                     name="Metrics" 
                     dataKey="A" 
@@ -1858,7 +1858,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <div className="px-8 mt-4 space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-3xl bg-background/50 border border-primary/20 shadow-xl">
                   <div className="space-y-1">
-                    <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">Sustainability Score</p>
+                    <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">Sustainability Score</p>
                     <p className="text-2xl font-black text-primary">A+</p>
                   </div>
                   <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -1881,7 +1881,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-3xl font-black tracking-tighter text-foreground">{devOpsData.builds.rate}%</p>
-                  <p className="text-[9px] font-black text-success uppercase tracking-widest">Build Reliability</p>
+                  <p className="text-[11px] font-black text-success uppercase tracking-widest">Build Reliability</p>
                 </div>
                 <div className="h-12 w-12 rounded-2xl bg-success/10 flex items-center justify-center">
                   <Activity className="h-6 w-6 text-success" />
@@ -1889,11 +1889,11 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-3xl bg-background/40 border border-border/40">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Merged PRs</p>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-1">Merged PRs</p>
                   <p className="text-xl font-black text-foreground">{devOpsData.pr.find(d => d.name === 'Merged')?.value || 0}</p>
                 </div>
                 <div className="p-4 rounded-3xl bg-background/40 border border-border/40">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Failures</p>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-1">Failures</p>
                   <p className="text-xl font-black text-destructive">{devOpsData.builds.failure}</p>
                 </div>
               </div>
@@ -1946,20 +1946,20 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     <TrendingUp className="h-4 w-4 text-primary" />
                     Financial Scenario Modeling
                   </CardTitle>
-                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Predictive cost trajectories based on performance variables</CardDescription>
+                  <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Predictive cost trajectories based on performance variables</CardDescription>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Optimistic</span>
+                    <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Optimistic</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Average</span>
+                    <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Average</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-rose-500" />
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Pessimistic</span>
+                    <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Pessimistic</span>
                   </div>
                 </div>
               </div>
@@ -1978,8 +1978,8 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="optimistic" stroke="hsl(var(--success))" fillOpacity={1} fill="url(#colorOpt)" strokeWidth={2} name="Optimistic" />
                   <Area type="monotone" dataKey="pessimistic" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorPess)" strokeWidth={2} name="Pessimistic" />
@@ -2004,7 +2004,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={projectDNA}>
                   <PolarGrid stroke="hsl(var(--primary))" opacity={0.1} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--foreground))', fontSize: 9, fontWeight: 900, opacity: 0.6 }} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 900, opacity: 0.6 }} />
                   <Radar 
                     name="DNA Profile" 
                     dataKey="A" 
@@ -2018,7 +2018,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               </ResponsiveContainer>
               <div className="px-8 pb-8">
                 <div className="p-4 rounded-3xl bg-background/40 border border-primary/10 text-center">
-                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Overall Maturity Index</p>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Overall Maturity Index</p>
                   <p className="text-xl font-black text-primary">LVL {Math.round(projectDNA.reduce((acc, d) => acc + d.A, 0) / 50)}</p>
                 </div>
               </div>
@@ -2039,7 +2039,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={taskAgingData}>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="count" radius={[10, 10, 0, 0]}>
                     {taskAgingData.map((entry, index) => (
@@ -2066,7 +2066,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <ComposedChart data={statusBottleneckData} layout="vertical">
                   <CartesianGrid strokeDasharray="5 5" horizontal={false} stroke="hsl(var(--border)/0.2)" />
                   <XAxis type="number" hide />
-                  <YAxis dataKey="status" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} width={80} />
+                  <YAxis dataKey="status" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} width={80} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="avgDays" fill="hsl(var(--destructive)/0.8)" radius={[0, 10, 10, 0]} barSize={20} name="Avg. Days in Status" />
                   <Line dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} name="Task Count" />
@@ -2089,7 +2089,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillDistributionData}>
                   <PolarGrid stroke="hsl(var(--primary))" opacity={0.1} />
-                  <PolarAngleAxis dataKey="tag" tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <PolarAngleAxis dataKey="tag" tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Radar name="Expertise" dataKey="points" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                 </RadarChart>
               </ResponsiveContainer>
@@ -2112,7 +2112,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <CardDescription className="text-xs font-bold uppercase tracking-widest mt-2 opacity-50">Team capacity vs. ongoing load analytics</CardDescription>
               </div>
               <div className="flex gap-3">
-                <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest">
                   Live Sync Active
                 </Badge>
               </div>
@@ -2130,7 +2130,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                        </div>
                        <div className="min-w-0">
                           <p className="text-sm font-black tracking-tight text-foreground truncate">{member.name}</p>
-                          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Active Member</p>
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Active Member</p>
                        </div>
                     </div>
                     <span className={cn(
@@ -2171,14 +2171,14 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <TrendingUp className="h-4 w-4 text-primary" />
                 Contributor Velocity Trend
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Weekly story points delivery per member</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Weekly story points delivery per member</CardDescription>
             </CardHeader>
             <CardContent className="h-[320px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={workloadVelocityTrend}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconType="circle" />
                   {memberWorkload.slice(0, 5).map((member, i) => (
@@ -2207,14 +2207,14 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Target className="h-4 w-4 text-amber-500" />
                 Complexity vs. Efficiency
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Story Points (X) vs. Cycle Time in Days (Y)</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Story Points (X) vs. Cycle Time in Days (Y)</CardDescription>
             </CardHeader>
             <CardContent className="h-[320px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis type="number" dataKey="complexity" name="Complexity" unit="pts" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis type="number" dataKey="efficiency" name="Cycle Time" unit="d" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis type="number" dataKey="complexity" name="Complexity" unit="pts" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis type="number" dataKey="efficiency" name="Cycle Time" unit="d" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <ZAxis type="category" dataKey="name" name="Task" />
                   <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                   <Scatter name="Tasks" data={complexityVsEfficiencyData} fill="hsl(var(--primary))">
@@ -2236,14 +2236,14 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Timer className="h-4 w-4 text-emerald-500" />
                 Stage Bottleneck Analysis
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Average residence time per status column</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Average residence time per status column</CardDescription>
             </CardHeader>
             <CardContent className="h-[320px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={statusBottleneckData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis dataKey="status" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} width={80} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis dataKey="status" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} width={80} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="avgDays" fill="hsl(var(--primary))" radius={[0, 10, 10, 0]} name="Avg Days" />
                 </BarChart>
@@ -2260,13 +2260,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Cpu className="h-4 w-4 text-sky-500" />
                 Workload Skill Balance
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Point distribution by task tags</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Point distribution by task tags</CardDescription>
             </CardHeader>
             <CardContent className="h-[320px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillDistributionData}>
                   <PolarGrid stroke="hsl(var(--border))" opacity={0.2} />
-                  <PolarAngleAxis dataKey="tag" tick={{ fontSize: 8, fontWeight: 900, fill: 'hsl(var(--muted-foreground))' }} />
+                  <PolarAngleAxis dataKey="tag" tick={{ fontSize: 11, fontWeight: 900, fill: 'hsl(var(--muted-foreground))' }} />
                   <Radar
                     name="Skill Points"
                     dataKey="points"
@@ -2300,7 +2300,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={memberRadarData}>
                   <PolarGrid stroke="hsl(var(--border))" opacity={0.3} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 900, fill: 'hsl(var(--foreground))' }} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 900, fill: 'hsl(var(--foreground))' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconType="circle" />
                   {memberWorkload.slice(0, 4).map((member, i) => (
@@ -2341,8 +2341,8 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900 }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="points" fill="url(#colorPoints)" stroke="hsl(var(--primary))" strokeWidth={3} name="Total Points" />
                   <Bar dataKey="completed" barSize={20} fill="hsl(var(--primary)/0.2)" radius={[5, 5, 0, 0]} name="Tasks Completed" />
@@ -2376,8 +2376,8 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900 }} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
                   <Area type="stepAfter" dataKey="totalPoints" stroke="hsl(var(--primary))" fill="url(#colorScopePoints)" strokeWidth={4} name="Total Complexity (Pts)" />
@@ -2400,7 +2400,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Activity className="h-4 w-4 text-primary" />
                 Velocity Consistency
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Historical stability index</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Historical stability index</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -2412,8 +2412,8 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.2)" />
-                  <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} />
+                  <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="pts" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorConsistency)" strokeWidth={3} name="Weekly Pts" />
                   <Line type="monotone" dataKey="avg" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} name="Average" />
@@ -2431,13 +2431,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Clock className="h-4 w-4 text-amber-500" />
                 Task Aging Profile
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Days in backlog distribution</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Days in backlog distribution</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={taskAgingData} layout="vertical">
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900 }} width={80} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900 }} width={80} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
                     {taskAgingData.map((entry, index) => (
@@ -2447,7 +2447,7 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-4 flex items-center justify-center">
-                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                 <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">
                     Target: {Math.round(taskAgingData[0]?.count / (tasks.length || 1) * 100)}% Fresh Rate
                  </span>
               </div>
@@ -2463,13 +2463,13 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                 <Dna className="h-4 w-4 text-emerald-500" />
                 Strategic DNA
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">Project health balance matrix</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-50">Project health balance matrix</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px] p-8 pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={projectDNA}>
                   <PolarGrid stroke="hsl(var(--border))" opacity={0.3} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fontWeight: 900, fill: 'hsl(var(--foreground))' }} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 900, fill: 'hsl(var(--foreground))' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Radar
                     name="Project DNA"
@@ -2510,40 +2510,40 @@ export function ProjectOverviewCharts({ project, tasks }: ProjectOverviewChartsP
                     <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                        <Target className="h-6 w-6 text-primary" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Next Milestone</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Next Milestone</span>
                   </div>
                   <p className="text-2xl font-black text-foreground mb-2">{nextMilestoneLabel}</p>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">ETA: {nextMilestoneEta}</p>
+                  <p className="text-[11px] font-black text-primary uppercase tracking-widest">ETA: {nextMilestoneEta}</p>
                </div>
                <div className="p-8 rounded-[3rem] bg-background/40 backdrop-blur-xl border border-border/40 hover:border-primary/40 transition-all duration-500">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
                        <Zap className="h-6 w-6 text-amber-500" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Efficiency Trend</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Efficiency Trend</span>
                   </div>
                   <p className="text-2xl font-black text-foreground mb-2">{velocityTrendLabel}</p>
-                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{velocityTrendDetail}</p>
+                  <p className="text-[11px] font-black text-amber-500 uppercase tracking-widest">{velocityTrendDetail}</p>
                </div>
                <div className="p-8 rounded-[3rem] bg-background/40 backdrop-blur-xl border border-border/40 hover:border-primary/40 transition-all duration-500">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
                        <ShieldCheck className="h-6 w-6 text-emerald-500" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Confidence Index</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Confidence Index</span>
                   </div>
                   <p className="text-2xl font-black text-foreground mb-2">{confidenceLabel}</p>
-                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Based on {tasks.length} saved tasks</p>
+                  <p className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Based on {tasks.length} saved tasks</p>
                </div>
                <div className="p-8 rounded-[3rem] bg-background/40 backdrop-blur-xl border border-border/40 hover:border-primary/40 transition-all duration-500">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="h-12 w-12 rounded-2xl bg-sky-500/10 flex items-center justify-center">
                        <Activity className="h-6 w-6 text-sky-500" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Risk Mitigation</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Risk Mitigation</span>
                   </div>
                   <p className="text-2xl font-black text-foreground mb-2">{riskMitigationLabel}</p>
-                  <p className="text-[10px] font-black text-sky-500 uppercase tracking-widest">{riskSignalCount} stale or critical tasks</p>
+                  <p className="text-[11px] font-black text-sky-500 uppercase tracking-widest">{riskSignalCount} stale or critical tasks</p>
                </div>
             </div>
           </div>

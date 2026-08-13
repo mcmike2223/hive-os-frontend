@@ -1811,7 +1811,7 @@ export function HrFormsPanel() {
                     <Icon aria-hidden="true" className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     <span className="flex-1">{tpl.name}</span>
                     {"isCustom" in tpl && tpl.isCustom ? (
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-800 dark:bg-slate-700 dark:text-slate-100">
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-800 dark:bg-slate-700 dark:text-slate-100">
                         Custom
                       </span>
                     ) : null}
@@ -2583,7 +2583,7 @@ export function HrFormsPanel() {
                   </div>
                   <p className="font-sans text-sm font-bold">{signerName}</p>
                   <p className="text-xs font-semibold text-slate-700">{signerTitle}</p>
-                  <p className="letter-export-hidden font-mono text-[10px] text-slate-600">
+                  <p className="letter-export-hidden font-mono text-[11px] text-slate-600">
                     Workflow approved · {letterDate}
                   </p>
                 </div>
@@ -2604,7 +2604,7 @@ export function HrFormsPanel() {
                       aria-label="Generated official organization seal"
                       className="flex h-24 w-24 rotate-[-12deg] items-center justify-center rounded-full border-4 border-dashed border-red-700 p-2 text-center"
                     >
-                      <div className="text-[9px] font-black uppercase leading-tight tracking-tighter text-red-700">
+                      <div className="text-[11px] font-black uppercase leading-tight tracking-tighter text-red-700">
                         ★ OFFICIAL SEAL ★<br />
                         {brand?.app_title || "HIVE.OS"}<br />
                         ADDIS ABABA

@@ -49,7 +49,7 @@ export function TenantLandingTemplateEditor({
       <div className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.02),rgba(15,23,42,0.08))]">
         <div className="flex flex-col gap-5 px-5 py-5 lg:flex-row lg:items-end lg:justify-between lg:px-6">
           <div className="max-w-3xl">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
               Landing Template Selection
             </h4>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -85,7 +85,7 @@ export function TenantLandingTemplateEditor({
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-1.5">
-              <Label className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+              <Label className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
                 Template
               </Label>
               <Select value={selectedTemplateKey} onValueChange={onTemplateVariantChange}>

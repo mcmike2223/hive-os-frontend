@@ -64,17 +64,10 @@ export default function SettingsPage() {
     },
   ];
 
-  useEffect(() => {
-    const hasTouredSettings = localStorage.getItem("hive_tour_settings_completed");
-    if (!hasTouredSettings) {
-      const timer = setTimeout(() => {
-        startTour(settingsTourSteps);
-        localStorage.setItem("hive_tour_settings_completed", "true");
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [startTour]);
-
+  // Page tours are opt-in via the "Page Tour" button below. This used to fire
+  // automatically on first visit, so a new operator was interrupted by a modal
+  // on every page they opened — on top of the welcome tour the shell already
+  // runs at first login.
   return (
     <div className="h-full w-full space-y-6">
       <div className="mb-4 mt-6 flex w-full items-center justify-end gap-3">

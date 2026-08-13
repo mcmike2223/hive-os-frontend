@@ -660,7 +660,7 @@ const { data: subscriptionCatalogData } = useQuery({
         const displayPlan = plan || "business";
         const p = displayPlan.toLowerCase();
         const colorClass = p === 'startup' ? "text-emerald-500 border-emerald-200" : p === 'business' ? "text-blue-500 border-blue-200" : "text-indigo-500 border-indigo-200";
-        return <Badge variant="outline" className={cn("uppercase text-[9px]", colorClass)}>{displayPlan}</Badge>;
+        return <Badge variant="outline" className={cn("uppercase text-[11px]", colorClass)}>{displayPlan}</Badge>;
     };
 
     const columns = React.useMemo<ColumnDef<TenantRecord>[]>(() => [
@@ -681,7 +681,7 @@ const { data: subscriptionCatalogData } = useQuery({
             accessorFn: (row) => row.business_type_meta?.label || row.business_type || "General Business",
             header: "Business Type",
             cell: ({ row }) => (
-                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[10px] uppercase tracking-wider text-primary">
+                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[11px] uppercase tracking-wider text-primary">
                     {row.original.business_type_meta?.label || row.original.business_type || "General Business"}
                 </Badge>
             ),
@@ -713,7 +713,7 @@ const { data: subscriptionCatalogData } = useQuery({
             // 🚀 THE FIX: Translate the accessor string for frontend Copy/Print
             accessorFn: (row) => row.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended"), 
             header: t('tenants.col_status', "Node Status"),
-            cell: ({ row }) => <Badge variant="outline" className={cn("uppercase text-[9px]", row.original.is_active ? "text-emerald-500 border-emerald-200 bg-emerald-50/50" : "text-destructive border-destructive/30 bg-destructive/10")}>{row.original.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended")}</Badge>
+            cell: ({ row }) => <Badge variant="outline" className={cn("uppercase text-[11px]", row.original.is_active ? "text-emerald-500 border-emerald-200 bg-emerald-50/50" : "text-destructive border-destructive/30 bg-destructive/10")}>{row.original.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended")}</Badge>
         },
         {
             id: "created_at", accessorKey: "created_at", header: t('tenants.col_provisioned', "Provisioned"),
@@ -731,24 +731,24 @@ const { data: subscriptionCatalogData } = useQuery({
                         <div className="w-px h-4 bg-border mx-1" />
                         {canSuspend && (
                             <>
-                                <Button id={row.index === 0 ? "tour-action-status" : undefined} variant="ghost" size="icon" disabled={toggleStatusMut.isPending} className="h-8 w-8" onClick={() => toggleStatusMut.mutate(tr.id)}>
+                                <Button id={row.index === 0 ? "tour-action-status" : undefined} variant="ghost" size="icon" disabled={toggleStatusMut.isPending} className="h-8 w-8" aria-label={`${tr.is_active ? t('tenants.suspend_node', 'Suspend node') : t('tenants.activate_node', 'Activate node')}: ${tr.name}`} onClick={() => toggleStatusMut.mutate(tr.id)}>
                                     <Power className={cn("h-4 w-4", tr.is_active ? "text-emerald-500" : "text-destructive")} />
                                 </Button>
-                                <Button id={row.index === 0 ? "tour-action-admin" : undefined} variant="ghost" size="icon" disabled={toggleAdminMut.isPending} className="h-8 w-8" onClick={() => toggleAdminMut.mutate(tr.id)}>
+                                <Button id={row.index === 0 ? "tour-action-admin" : undefined} variant="ghost" size="icon" disabled={toggleAdminMut.isPending} className="h-8 w-8" aria-label={`${tr.admin_active === false ? t('tenants.enable_admin', 'Enable admin access') : t('tenants.disable_admin', 'Disable admin access')}: ${tr.name}`} onClick={() => toggleAdminMut.mutate(tr.id)}>
                                     {tr.admin_active === false ? <UserX className="h-4 w-4 text-destructive" /> : <UserCheck className="h-4 w-4 text-emerald-500" />}
                                 </Button>
                             </>
                         )}
                         <div className="w-px h-4 bg-border mx-1" />
                         {canEdit && (
-                            <Button id={row.index === 0 ? "tour-action-edit" : undefined} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-indigo-600" onClick={() => openEdit(tr)}>
+                            <Button id={row.index === 0 ? "tour-action-edit" : undefined} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-indigo-600" aria-label={`${t('tenants.edit_node', 'Edit node')}: ${tr.name}`} onClick={() => openEdit(tr)}>
                                 <Pencil className="h-4 w-4" />
                             </Button>
                         )}
                         {canDelete && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button id={row.index === 0 ? "tour-action-purge" : undefined} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                    <Button id={row.index === 0 ? "tour-action-purge" : undefined} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label={`${t('tenants.purge_node', 'Purge node')}: ${tr.name}`}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>
@@ -800,7 +800,7 @@ const { data: subscriptionCatalogData } = useQuery({
                         <form id="tenant-form" onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="col-span-2 space-y-4">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5 border-b border-border/40 pb-2"><Server className="h-3.5 w-3.5" /> {t('tenants.infra', "Node Infrastructure")}</h4>
+                                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5 border-b border-border/40 pb-2"><Server className="h-3.5 w-3.5" /> {t('tenants.infra', "Node Infrastructure")}</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5 col-span-2"><Label className="text-xs uppercase tracking-widest text-muted-foreground">{t('tenants.org_name', "Organization Name")}</Label><Input required value={formName} onChange={e => setFormName(e.target.value)} placeholder="Acme Corp" className="h-11 bg-muted/30" /></div>
                                         <div className="space-y-1.5 col-span-2 sm:col-span-1"><Label className="text-xs uppercase tracking-widest text-muted-foreground">{t('tenants.node_id', "Node ID")}</Label><Input required disabled={isEdit} value={formId} onChange={e => handleIdChange(e.target.value)} placeholder="acme" className="h-11 font-mono bg-muted/30" /></div>
@@ -821,7 +821,7 @@ const { data: subscriptionCatalogData } = useQuery({
                                     </div>
                                 </div>
                                 <div className="col-span-2 space-y-4">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5 border-b border-border/40 pb-2"><LayoutTemplate className="h-3.5 w-3.5" /> Business Landing</h4>
+                                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5 border-b border-border/40 pb-2"><LayoutTemplate className="h-3.5 w-3.5" /> Business Landing</h4>
                                     <div className="space-y-1.5">
                                         <Label className="text-xs uppercase tracking-widest text-muted-foreground">Business Type</Label>
                                         <Select value={formBusinessType} onValueChange={handleBusinessTypeChange}>
@@ -861,7 +861,7 @@ const { data: subscriptionCatalogData } = useQuery({
                                     />
                                 </div>
                                 <div className="col-span-2 space-y-4 pt-2">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5 border-b border-border/40 pb-2"><UserPlus className="h-3.5 w-3.5" /> {t('tenants.super_admin', "Super Admin Settings")}</h4>
+                                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5 border-b border-border/40 pb-2"><UserPlus className="h-3.5 w-3.5" /> {t('tenants.super_admin', "Super Admin Settings")}</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5 col-span-2"><Label className="text-xs uppercase tracking-widest text-muted-foreground">{t('tenants.operator_name', "Operator Name")}</Label><Input required={!isEdit} value={formAdminName} onChange={e => setFormAdminName(e.target.value)} placeholder="Operator Name" className="h-11 bg-muted/30" /></div>
                                         <div className="space-y-1.5 col-span-2 sm:col-span-1"><Label className="text-xs uppercase tracking-widest text-muted-foreground">{t('tenants.email', "Email")}</Label><Input type="email" required={!isEdit} value={formAdminEmail} onChange={e => setFormAdminEmail(e.target.value)} placeholder="admin@acme.com" className="h-11 bg-muted/30" /></div>
@@ -898,26 +898,26 @@ const { data: subscriptionCatalogData } = useQuery({
             {/* VIEW MODAL */}
             <Dialog open={viewDialogOpen} onOpenChange={(open) => { setViewDialogOpen(open); if(!open) triggerAudit('viewed', 'Closed Deep Metric Inspection view'); }}>
                 <DialogContent className="sm:max-w-[860px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl max-h-[90vh] flex flex-col">
-                    <div className="px-6 py-6 border-b border-border/40 bg-muted/20 flex items-center gap-4 shrink-0"><div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner shrink-0"><Server className="h-7 w-7 text-primary" /></div><div><DialogTitle className="text-2xl font-black font-space tracking-tight">{viewTenant?.name}</DialogTitle><DialogDescription className="font-mono text-[10px] uppercase tracking-widest mt-1">{t('tenants.view_identity', "Node Identity")}: <span className="font-bold">{viewTenant?.id}</span></DialogDescription></div></div>
+                    <div className="px-6 py-6 border-b border-border/40 bg-muted/20 flex items-center gap-4 shrink-0"><div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner shrink-0"><Server className="h-7 w-7 text-primary" /></div><div><DialogTitle className="text-2xl font-black font-space tracking-tight">{viewTenant?.name}</DialogTitle><DialogDescription className="font-mono text-[11px] uppercase tracking-widest mt-1">{t('tenants.view_identity', "Node Identity")}: <span className="font-bold">{viewTenant?.id}</span></DialogDescription></div></div>
                     <div className="px-6 py-6 space-y-6 overflow-y-auto scrollbar-thin">
                         <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                             <div>
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('tenants.view_status', "Network Status")}</p>
-                                <Badge variant="outline" className={cn("uppercase text-[10px]", viewTenant?.is_active ? "text-emerald-500 bg-emerald-50/50" : "text-destructive bg-destructive/10")}>{viewTenant?.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended")}</Badge>
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('tenants.view_status', "Network Status")}</p>
+                                <Badge variant="outline" className={cn("uppercase text-[11px]", viewTenant?.is_active ? "text-emerald-500 bg-emerald-50/50" : "text-destructive bg-destructive/10")}>{viewTenant?.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended")}</Badge>
                             </div>
                             <div>
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('tenants.view_plan', "Capacity Plan")}</p>
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('tenants.view_plan', "Capacity Plan")}</p>
                                 {viewTenant?.plan && getPlanBadge(viewTenant.plan)}
                             </div>
                             <div>
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">Business Type</p>
-                                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[10px] uppercase tracking-wider text-primary">
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">Business Type</p>
+                                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[11px] uppercase tracking-wider text-primary">
                                     {viewTenant?.business_type_meta?.label || viewTenant?.business_type || "General Business"}
                                 </Badge>
                             </div>
                             <div>
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">Subscription</p>
-                                <Badge variant="outline" className={cn("uppercase text-[10px]", viewTenant?.subscription?.status === "expired" ? "text-destructive bg-destructive/10" : viewTenant?.subscription?.needs_renewal ? "text-amber-600 bg-amber-500/10" : "text-emerald-500 bg-emerald-500/10")}>
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">Subscription</p>
+                                <Badge variant="outline" className={cn("uppercase text-[11px]", viewTenant?.subscription?.status === "expired" ? "text-destructive bg-destructive/10" : viewTenant?.subscription?.needs_renewal ? "text-amber-600 bg-amber-500/10" : "text-emerald-500 bg-emerald-500/10")}>
                                     {String(viewTenant?.subscription?.status || "active").replaceAll("_", " ")}
                                 </Badge>
                                 <p className="mt-2 text-xs text-muted-foreground">
@@ -925,11 +925,11 @@ const { data: subscriptionCatalogData } = useQuery({
                                 </p>
                             </div>
                             <div className="col-span-2">
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('tenants.view_contact', "Super Admin Contact")}</p>
-                                <div className="flex items-center gap-2 font-mono text-sm bg-muted/30 p-3 rounded-xl border border-border/50"><Mail className="h-4 w-4 text-muted-foreground" />{viewTenant?.admin_email || t('tenants.no_email', "No email registered")}{viewTenant?.admin_email && <Badge variant="outline" className={cn("ml-auto text-[9px] uppercase border-0", viewTenant?.admin_active === false ? "text-destructive bg-destructive/10" : "text-emerald-500 bg-emerald-500/10")}>{viewTenant?.admin_active === false ? t('global.suspended', "Suspended") : t('global.active', "Active")}</Badge>}</div>
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('tenants.view_contact', "Super Admin Contact")}</p>
+                                <div className="flex items-center gap-2 font-mono text-sm bg-muted/30 p-3 rounded-xl border border-border/50"><Mail className="h-4 w-4 text-muted-foreground" />{viewTenant?.admin_email || t('tenants.no_email', "No email registered")}{viewTenant?.admin_email && <Badge variant="outline" className={cn("ml-auto text-[11px] uppercase border-0", viewTenant?.admin_active === false ? "text-destructive bg-destructive/10" : "text-emerald-500 bg-emerald-500/10")}>{viewTenant?.admin_active === false ? t('global.suspended', "Suspended") : t('global.active', "Active")}</Badge>}</div>
                             </div>
                             <div className="col-span-2">
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('nav.subscriptions', "Module Subscriptions")}</p>
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">{t('nav.subscriptions', "Module Subscriptions")}</p>
                                 <div className="space-y-3 rounded-xl border border-border/50 bg-muted/30 p-3">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                                         <Layers className="h-4 w-4 text-primary" />

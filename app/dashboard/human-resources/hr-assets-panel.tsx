@@ -118,7 +118,7 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
                         size="sm"
                         variant="outline"
                         onClick={() => updateStatusMutation.mutate({ id: a.id, status: 'returned' })}
-                        className="h-7 text-[10px]"
+                        className="h-7 text-[11px]"
                       >
                         Mark Returned
                       </Button>

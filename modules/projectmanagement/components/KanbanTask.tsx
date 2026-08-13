@@ -89,7 +89,7 @@ export const KanbanTask: React.FC<KanbanTaskProps> = ({ task, onOpen, isDone }) 
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
               {isSoftwareDev && task.issue_type && (
                 <div className={cn(
-                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit",
+                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider w-fit",
                   ISSUE_TYPE_CONFIG[task.issue_type as keyof typeof ISSUE_TYPE_CONFIG]?.bg || "bg-muted",
                   ISSUE_TYPE_CONFIG[task.issue_type as keyof typeof ISSUE_TYPE_CONFIG]?.color || "text-muted-foreground"
                 )}>
@@ -122,7 +122,7 @@ export const KanbanTask: React.FC<KanbanTaskProps> = ({ task, onOpen, isDone }) 
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {task.due_date && (
-              <div className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${isOverdue ? 'text-red-500 bg-red-500/10 font-bold' : 'text-muted-foreground bg-muted/50'}`}>
+              <div className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded ${isOverdue ? 'text-red-500 bg-red-500/10 font-bold' : 'text-muted-foreground bg-muted/50'}`}>
                 <Calendar className="h-3 w-3" />
                 {isOverdue ? t('project_management.overdue_colon', 'Overdue: ') : ''}
                 {format(new Date(task.due_date), "MMM d")}
@@ -130,7 +130,7 @@ export const KanbanTask: React.FC<KanbanTaskProps> = ({ task, onOpen, isDone }) 
             )}
 
             {isSoftwareDev && task.story_points && (
-              <div className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
+              <div className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
                 <Zap className="h-2.5 w-2.5" />
                 {task.story_points} {t('project_management.pts', 'pts')}
               </div>
@@ -143,14 +143,14 @@ export const KanbanTask: React.FC<KanbanTaskProps> = ({ task, onOpen, isDone }) 
                   {(task.assignees ?? []).slice(0, 3).map((user) => (
                     <Avatar key={user.id} className="h-5 w-5 border border-card">
                       <AvatarImage src={user.avatar_path || undefined} />
-                      <AvatarFallback className="text-[8px]">
+                      <AvatarFallback className="text-[11px]">
                         {user.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   ))}
                 </div>
                 {(task.assignees?.length ?? 0) > 3 && (
-                  <span className="ml-1 text-[9px] text-muted-foreground font-bold">
+                  <span className="ml-1 text-[11px] text-muted-foreground font-bold">
                     +{(task.assignees?.length ?? 0) - 3}
                   </span>
                 )}

@@ -199,7 +199,7 @@ export function AssignApproversDialog({
                 <ShieldAlert className="h-3.5 w-3.5" />
                 Order & Review
                 {totalSelected > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white font-bold">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[11px] text-white font-bold">
                     {totalSelected}
                   </span>
                 )}
@@ -249,7 +249,7 @@ export function AssignApproversDialog({
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="text-sm font-black tracking-tight">{user.name}</span>
-                                <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">{user.email}</span>
+                                <span className="text-[11px] text-muted-foreground font-mono uppercase tracking-tighter">{user.email}</span>
                               </div>
                             </div>
                             <Checkbox 
@@ -294,7 +294,7 @@ export function AssignApproversDialog({
                               </div>
                               <div className="flex flex-col">
                                 <span className="text-sm font-black tracking-tight">{role.name}</span>
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-[11px] text-muted-foreground">
                                   {role.users?.length || 0} member{role.users?.length !== 1 ? 's' : ''}
                                 </span>
                               </div>
@@ -324,7 +324,7 @@ export function AssignApproversDialog({
                     <div className="p-4 space-y-4">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-black uppercase tracking-widest text-primary">Approval Order</h3>
-                        <Badge variant="secondary" className="rounded-full text-[10px]">Sequential Flow</Badge>
+                        <Badge variant="secondary" className="rounded-full text-[11px]">Sequential Flow</Badge>
                       </div>
                       <div className="space-y-3">
                         {approversList
@@ -339,7 +339,7 @@ export function AssignApproversDialog({
                                 {approver.type === 'user' ? (
                                   <Avatar className="h-8 w-8">
                                     <AvatarImage src={approver.avatar} />
-                                    <AvatarFallback className="text-[8px]">{approver.name[0]}</AvatarFallback>
+                                    <AvatarFallback className="text-[11px]">{approver.name[0]}</AvatarFallback>
                                   </Avatar>
                                 ) : (
                                   <div className="h-8 w-8 rounded-full bg-primary/5 flex items-center justify-center text-primary">
@@ -348,7 +348,7 @@ export function AssignApproversDialog({
                                 )}
                                 <div className="flex flex-col">
                                   <span className="text-sm font-bold tracking-tight">{approver.name}</span>
-                                  <span className="text-[10px] text-muted-foreground italic capitalize">{approver.type}</span>
+                                  <span className="text-[11px] text-muted-foreground italic capitalize">{approver.type}</span>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -370,7 +370,7 @@ export function AssignApproversDialog({
                             </div>
                           ))}
                       </div>
-                      <p className="text-[10px] text-muted-foreground text-center px-4">
+                      <p className="text-[11px] text-muted-foreground text-center px-4">
                         Approvers will be notified in the order defined above. Sequence 2 only sees the request after Sequence 1 approves.
                       </p>
                     </div>

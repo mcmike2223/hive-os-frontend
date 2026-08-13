@@ -94,7 +94,7 @@ export function TopbarMailIcon({ activeUser }: { activeUser: ActiveMailUser | nu
           className="h-10 w-10 rounded-xl p-0 shrink-0 text-muted-foreground hover:text-foreground relative"
         >
           <Mail className="h-5 w-5" />
-          <span className={`absolute -top-1 -right-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm transition-colors ${unreadCount > 0 ? 'bg-destructive' : 'bg-muted-foreground'}`}>
+          <span className={`absolute -top-1 -right-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[11px] font-black text-white shadow-sm transition-colors ${unreadCount > 0 ? 'bg-destructive' : 'bg-muted-foreground'}`}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         </Button>
@@ -134,7 +134,7 @@ export function TopbarMailIcon({ activeUser }: { activeUser: ActiveMailUser | nu
                   <span className={`text-sm truncate pr-2 ${!mail.is_read ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
                     {mail.message.sender?.name || 'System'}
                   </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground shrink-0 mt-0.5">
                     {formatDistanceToNow(new Date(mail.message.created_at), { addSuffix: true })}
                   </span>
                 </div>

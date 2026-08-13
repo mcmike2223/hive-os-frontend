@@ -254,7 +254,7 @@ export function DashboardCharts({ projects, issueTypeDistribution = [] }: Dashbo
                     layout="horizontal"
                     iconType="circle"
                     iconSize={8}
-                    formatter={(value) => <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">{value}</span>}
+                    formatter={(value) => <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -339,7 +339,7 @@ export function DashboardCharts({ projects, issueTypeDistribution = [] }: Dashbo
                     layout="horizontal"
                     iconType="circle"
                     iconSize={8}
-                    formatter={(value) => <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">{value}</span>}
+                    formatter={(value) => <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -386,7 +386,7 @@ export function DashboardCharts({ projects, issueTypeDistribution = [] }: Dashbo
                     layout="horizontal"
                     iconType="circle"
                     iconSize={8}
-                    formatter={(value) => <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">{value}</span>}
+                    formatter={(value) => <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -409,7 +409,7 @@ export function DashboardCharts({ projects, issueTypeDistribution = [] }: Dashbo
                 <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-primary/70">
                   Engineering Issue Mix
                 </CardTitle>
-                <p className="text-[10px] font-bold text-muted-foreground/50 tracking-wider">LIVE TASK ISSUE COUNTS</p>
+                <p className="text-[11px] font-bold text-muted-foreground/50 tracking-wider">LIVE TASK ISSUE COUNTS</p>
               </CardHeader>
               <CardContent className="h-[300px] w-full px-8">
                 {issueTypeData.length > 0 ? (
@@ -442,7 +442,7 @@ export function DashboardCharts({ projects, issueTypeDistribution = [] }: Dashbo
                     <div className="w-full md:w-1/2 grid grid-cols-2 gap-3 pb-8">
                       {issueTypeData.map((item) => (
                         <div key={item.name} className="flex flex-col gap-1 p-3 rounded-2xl bg-background/40 border border-border/50">
-                          <span className="text-[9px] font-black tracking-widest text-muted-foreground/60">{item.name}</span>
+                          <span className="text-[11px] font-black tracking-widest text-muted-foreground/60">{item.name}</span>
                           <div className="flex items-center justify-between">
                             <span className="text-lg font-black tracking-tighter" style={{ color: item.color }}>{item.value}</span>
                             <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }} />

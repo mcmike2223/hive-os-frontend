@@ -146,7 +146,7 @@ export function HrRecruitmentPanel() {
               <div key={s.code} className="rounded-xl border border-slate-300 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900 min-w-[200px]">
                 <div className="flex items-center justify-between border-b pb-2 mb-3">
                   <span className="font-bold text-xs">{s.label}</span>
-                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold dark:bg-slate-800">
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800">
                     {stageApplicants.length}
                   </span>
                 </div>
@@ -155,7 +155,7 @@ export function HrRecruitmentPanel() {
                     <div key={app.id} className="rounded-lg border bg-white p-3 shadow-sm dark:bg-slate-950 text-xs space-y-2">
                       <div className="font-bold text-sm">{app.candidate_name}</div>
                       <div className="text-slate-500 text-[11px]">{app.email}</div>
-                      <div className="text-slate-400 text-[10px]">Job: {app.job_posting?.title || 'General'}</div>
+                      <div className="text-slate-400 text-[11px]">Job: {app.job_posting?.title || 'General'}</div>
                       <div className="flex items-center justify-between pt-2 border-t">
                         {app.stage !== 'hired' && (
                           <Button
@@ -167,7 +167,7 @@ export function HrRecruitmentPanel() {
                                 updateStageMutation.mutate({ id: app.id, stage: STAGES[nextIdx].code });
                               }
                             }}
-                            className="h-6 text-[10px] px-1 text-amber-600"
+                            className="h-6 text-[11px] px-1 text-amber-600"
                           >
                             Advance <ArrowRight className="ml-1 h-3 w-3" />
                           </Button>
@@ -176,13 +176,13 @@ export function HrRecruitmentPanel() {
                           <Button
                             size="sm"
                             onClick={() => hireMutation.mutate(app.id)}
-                            className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                            className="h-6 text-[11px] bg-emerald-600 hover:bg-emerald-700"
                           >
                             Hire Candidate
                           </Button>
                         )}
                         {app.stage === 'hired' && (
-                          <span className="flex items-center text-emerald-600 font-bold text-[10px]">
+                          <span className="flex items-center text-emerald-600 font-bold text-[11px]">
                             <CheckCircle className="mr-1 h-3 w-3" /> Employee Active
                           </span>
                         )}
@@ -200,7 +200,7 @@ export function HrRecruitmentPanel() {
             <div key={p.id} className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-slate-400">{p.code}</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 capitalize">
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800 capitalize">
                   {p.status}
                 </span>
               </div>

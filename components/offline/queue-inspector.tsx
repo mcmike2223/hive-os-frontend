@@ -329,7 +329,7 @@ export function OfflineQueueInspector() {
         <Bug className="h-4 w-4" />
         {queuedCount > 0 && (
           <span
-            className={`absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white ${isOnline ? "bg-emerald-500" : "bg-amber-500"}`}
+            className={`absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold text-white ${isOnline ? "bg-emerald-500" : "bg-amber-500"}`}
             aria-hidden
           >
             {queuedCount > 99 ? "99+" : queuedCount}
@@ -355,7 +355,7 @@ export function OfflineQueueInspector() {
               <Bug className="h-3.5 w-3.5" />
               <span className="text-xs font-semibold">Offline queue</span>
               <span
-                className={`inline-flex h-4 items-center rounded-full px-1.5 text-[10px] font-medium ${isOnline ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
+                className={`inline-flex h-4 items-center rounded-full px-1.5 text-[11px] font-medium ${isOnline ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
               >
                 {isOnline ? "online" : "offline"}
               </span>
@@ -414,10 +414,10 @@ export function OfflineQueueInspector() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium">{item.label}</p>
-                      <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                      <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
                         {describeItem(item)}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
                         {formatAge(item.createdAt)} · {formatBytes(itemSize(item))}
                       </p>
                     </div>
@@ -440,7 +440,7 @@ export function OfflineQueueInspector() {
 
           {history.length > 0 && (
             <div className="max-h-32 overflow-y-auto border-t border-border bg-muted/20">
-              <p className="px-3 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Recent activity
               </p>
               <ul className="px-3 py-1">
@@ -465,7 +465,7 @@ export function OfflineQueueInspector() {
                         `Dropped ${entry.label}${"reason" in entry && entry.reason ? ` — ${entry.reason}` : ""}`}
                       {entry.type === "queued" && `Queued ${entry.label}`}
                     </span>
-                    <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/70">
+                    <span className="ml-auto shrink-0 text-[11px] text-muted-foreground/70">
                       {formatAge(new Date(entry.at).toISOString())}
                     </span>
                   </li>

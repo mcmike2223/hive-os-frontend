@@ -56,6 +56,7 @@ import {
   isTenantSession,
 } from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
+import { TOUR_EXPAND_NAV_EVENT } from "@/lib/tour-events";
 
 type SidebarIcon = React.ComponentType<{
   className?: string;
@@ -137,7 +138,7 @@ const SecureSidebarLogo = ({
           <div className="text-base font-black tracking-tighter font-space truncate max-w-[160px]" title={fallbackTitle || "HIVE.OS"}>
             {fallbackTitle || "HIVE.OS"}
           </div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">
             {t("nav.control_hub", "Control Hub")}
           </div>
         </div>
@@ -215,6 +216,30 @@ function SidebarInner({
   useEffect(() => {
     setIsMounted(true);
     setIsTenantNode(isTenantSession());
+  }, []);
+
+  // The System Tour walks every sidebar entry, but children of a collapsed
+  // group are not in the DOM, so those steps were silently filtered out and the
+  // tour appeared to jump over whole sections. The topbar dispatches this event
+  // before building its step list; we expand everything so each target exists.
+  useEffect(() => {
+    const expandAll = () => {
+      setIsModulesOpen(true);
+      setIsAppsOpen(true);
+      setIsInventoryOpen(true);
+      setIsWarehouseOpen(true);
+      setIsHospitalityOpen(true);
+      setIsProjectManagementOpen(true);
+      setIsWorkflowOpen(true);
+      setIsLmsOpen(true);
+      setIsB2BMarketplaceOpen(true);
+      setIsHumanResourcesOpen(true);
+      setIsAttendanceOpen(true);
+      setIsPayrollOpen(true);
+    };
+
+    window.addEventListener(TOUR_EXPAND_NAV_EVENT, expandAll);
+    return () => window.removeEventListener(TOUR_EXPAND_NAV_EVENT, expandAll);
   }, []);
 
   const workspaceScope = getWorkspaceScopeKey();
@@ -506,10 +531,14 @@ function SidebarInner({
 
   const brand = useMemo(() => {
     const isDark = resolvedTheme === "dark";
+    // Fall back to the other variant rather than rendering nothing. Most tenants
+    // upload a single logo, and requiring both meant the brand disappeared
+    // entirely in whichever theme they had not filled in.
     const logoUrl = isDark
-      ? brandSettings?.logo_dark
-      : brandSettings?.logo_light;
-    const sidebarIconUrl = brandSettings?.sidebar_icon;
+      ? brandSettings?.logo_dark || brandSettings?.logo_light
+      : brandSettings?.logo_light || brandSettings?.logo_dark;
+    // Likewise, a collapsed sidebar with no dedicated icon falls back to the logo.
+    const sidebarIconUrl = brandSettings?.sidebar_icon || logoUrl;
     const displayLogo = collapsed ? sidebarIconUrl : logoUrl;
 
     return (
@@ -537,6 +566,8 @@ function SidebarInner({
             <Button
               variant="ghost"
               onClick={onToggle}
+              aria-label={t("global.collapse_sidebar", "Collapse sidebar")}
+              aria-expanded={true}
               className="h-9 w-9 rounded-xl p-0 text-muted-foreground shrink-0 border border-border/40 bg-background/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
             >
               <PanelLeftClose className="h-5 w-5" />
@@ -548,6 +579,8 @@ function SidebarInner({
             <Button
               variant="ghost"
               onClick={onToggle}
+              aria-label={t("global.expand_sidebar", "Expand sidebar")}
+              aria-expanded={false}
               className="h-10 w-10 rounded-2xl p-0 border border-border/40 bg-background/60 hover:bg-primary/10 hover:text-primary hover:border-primary/30 text-muted-foreground shadow-sm transition-all"
             >
               <PanelLeftOpen className="h-5 w-5" />

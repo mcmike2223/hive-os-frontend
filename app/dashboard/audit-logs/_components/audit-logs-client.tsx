@@ -372,7 +372,7 @@ export function AuditLogsClient() {
 
     const getEventBadge = (event: string) => {
         const ev = event?.toLowerCase() || 'unknown';
-        const base = "uppercase tracking-widest text-[9px] px-2 py-0.5 rounded-full border font-bold";
+        const base = "uppercase tracking-widest text-[11px] px-2 py-0.5 rounded-full border font-bold";
         if (ev.includes('login') || ev.includes('logged')) return <Badge variant="outline" className={`${base} text-blue-500 border-blue-200 bg-blue-50/50`}>{event}</Badge>;
         if (ev.includes('fail') || ev.includes('block')) return <Badge variant="outline" className={`${base} text-destructive border-destructive/30 bg-destructive/10`}>{event}</Badge>;
         switch (ev) {
@@ -389,7 +389,7 @@ export function AuditLogsClient() {
 
     const columns = React.useMemo<ColumnDef<AuditLogRecord>[]>(() => {
         const baseCols: ColumnDef<AuditLogRecord>[] = [
-            { id: "id", accessorKey: "id", header: t('audit.col_id', "ID"), size: 60, cell: ({ row }) => <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-0.5"><Hash className="h-3 w-3" />{row.original.id}</span> },
+            { id: "id", accessorKey: "id", header: t('audit.col_id', "ID"), size: 60, cell: ({ row }) => <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-0.5"><Hash className="h-3 w-3" />{row.original.id}</span> },
             { 
                 id: "event", 
                 accessorFn: (row) => getTranslatedEventString(row.event), 
@@ -406,7 +406,7 @@ export function AuditLogsClient() {
                 cell: ({ row }) => (
                     <div className="flex items-center gap-1">
                         <span className="tour-audit-action-view flex">
-                            <Button variant="ghost" size="icon" onClick={() => { setViewLog(row.original); triggerAudit('viewed', `Inspected Log ID: ${row.original.id}`); }}><Eye className="h-4 w-4 text-blue-500" /></Button>
+                            <Button variant="ghost" size="icon" aria-label={t('audit.view_log', 'View log details') + ` (ID ${row.original.id})`} onClick={() => { setViewLog(row.original); triggerAudit('viewed', `Inspected Log ID: ${row.original.id}`); }}><Eye className="h-4 w-4 text-blue-500" /></Button>
                         </span>
                         
                         {viewMode === 'archived' && canDeleteArchivedLogs && (
@@ -504,7 +504,7 @@ export function AuditLogsClient() {
                     
                     <div className={cn("grid w-full gap-3 xl:grid-cols-4", !isActive && "overflow-x-auto")}>
                         <div id="tour-audit-filters-event" className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
-                            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                 <Filter className="h-3.5 w-3.5" />
                                 {t('audit.filter_event_label', 'Event Matrix')}
                             </div>
@@ -523,7 +523,7 @@ export function AuditLogsClient() {
                         </div>
 
                         <div className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
-                            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                 <Shield className="h-3.5 w-3.5" />
                                 {t('audit.filter_module_label', 'Module')}
                             </div>
@@ -550,7 +550,7 @@ export function AuditLogsClient() {
                         </div>
 
                         <div className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
-                            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                 <UserIcon className="h-3.5 w-3.5" />
                                 {t('audit.filter_operator', 'Operator')}
                             </div>
@@ -578,7 +578,7 @@ export function AuditLogsClient() {
 
                         {!isTenant && (
                             <div id="tour-audit-filters-node" className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
-                                <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                     <Server className="h-3.5 w-3.5" />
                                     {t('audit.filter_scope_label', 'Node Scope')}
                                 </div>
@@ -620,7 +620,7 @@ export function AuditLogsClient() {
             <div className={cn("grid gap-3 rounded-2xl border border-border/50 bg-card/30 p-4 shadow-sm", !isTenant ? "md:grid-cols-[1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr]")}>
                 {!isTenant && (
                     <div className="rounded-2xl border border-border/40 bg-background/60 p-3">
-                        <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                             <Server className="h-3.5 w-3.5" />
                             {t('audit.filter_node_label', 'Specific Node')}
                         </div>
@@ -648,15 +648,15 @@ export function AuditLogsClient() {
                 )}
 
                 <div className="rounded-2xl border border-border/40 bg-background/60 p-3">
-                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                         <Calendar className="h-3.5 w-3.5" />
                         {t('audit.filter_date_label', 'Date Window')}
                     </div>
                     <div id="tour-audit-filters-date" className="space-y-3">
                         <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-muted/40 p-1">
-                            <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => applyDatePreset(0)}>{t('audit.today', 'Today')}</Button>
-                            <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => applyDatePreset(7)}>7D</Button>
-                            <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => applyDatePreset(30)}>30D</Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(0)}>{t('audit.today', 'Today')}</Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(7)}>7D</Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(30)}>30D</Button>
                             {(startDate || endDate) && (
                                 <Button variant="ghost" size="icon" className="ml-auto h-7 w-7 text-destructive" onClick={() => { setStartDate(""); setEndDate(""); setPage(1); triggerAudit('filtered', 'Cleared date filters'); }}>
                                     <RotateCcw className="w-3 h-3" />
@@ -779,25 +779,25 @@ export function AuditLogsClient() {
                         <div className="h-14 w-14 rounded-2xl flex items-center justify-center border shadow-inner shrink-0 bg-primary/10 border-primary/20 text-primary z-10"><Activity className="h-7 w-7" /></div>
                         <div className="flex-1 z-10">
                             <DialogTitle className="text-2xl font-black font-space tracking-tight flex items-center gap-3">{t('audit.inspection', 'Forensic Inspection')} {viewLog && getEventBadge(viewLog.event)}</DialogTitle>
-                            <DialogDescription className="font-mono text-[10px] uppercase tracking-widest mt-1 text-muted-foreground">{t('audit.worm_id', 'WORM Record ID')}: <span className="font-bold text-foreground">#{viewLog?.id}</span></DialogDescription>
+                            <DialogDescription className="font-mono text-[11px] uppercase tracking-widest mt-1 text-muted-foreground">{t('audit.worm_id', 'WORM Record ID')}: <span className="font-bold text-foreground">#{viewLog?.id}</span></DialogDescription>
                         </div>
                     </div>
                     <div className="px-6 py-6 max-h-[60vh] overflow-y-auto space-y-6 scrollbar-thin">
                         <div className="bg-card p-5 rounded-2xl border border-border/50 shadow-sm space-y-4">
                             <div className="flex items-start gap-3">
                                 <FileText className="w-5 h-5 text-primary mt-0.5" />
-                                <div><p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">{t('audit.exec_desc', 'Execution Description')}</p><p className="text-sm font-medium leading-relaxed">{viewLog?.description}</p></div>
+                                <div><p className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold mb-1">{t('audit.exec_desc', 'Execution Description')}</p><p className="text-sm font-medium leading-relaxed">{viewLog?.description}</p></div>
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold ml-1">{t('audit.payload', 'Raw Payload Block')}</p>
-                            <div className="bg-[#0D0D0D] text-[#4ADE80] p-4 rounded-xl font-mono text-[11px] overflow-x-auto border border-zinc-800/80 shadow-inner">
+                            <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold ml-1">{t('audit.payload', 'Raw Payload Block')}</p>
+                            <div className="bg-[hsl(var(--terminal-surface))] text-[hsl(var(--terminal-foreground))] p-4 rounded-xl font-mono text-[11px] overflow-x-auto border border-border shadow-inner">
                                 <pre>{JSON.stringify(viewLog?.properties || {}, null, 2)}</pre>
                             </div>
                         </div>
                     </div>
                     <div className="px-6 py-4 border-t border-border/40 bg-muted/30 flex justify-between items-center">
-                        <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest flex items-center gap-1"><Shield className="w-3 h-3" /> {t('audit.verified', 'Integrity Verified')}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-widest flex items-center gap-1"><Shield className="w-3 h-3" /> {t('audit.verified', 'Integrity Verified')}</span>
                         <Button variant="outline" onClick={() => setViewLog(null)} className="rounded-xl px-8 shadow-sm">{t('audit.close_inspection', 'Close Inspection')}</Button>
                     </div>
                 </DialogContent>

@@ -298,7 +298,7 @@ export function ShelvesPage() {
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold">{shelf.name}</p>
-                {isHighlighted && <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">Current Warehouse</Badge>}
+                {isHighlighted && <Badge variant="secondary" className="text-[11px] h-5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">Current Warehouse</Badge>}
               </div>
               <p className="text-xs text-muted-foreground">{shelf.code || t("inventory.common.no_code", "No code")}</p>
             </div>

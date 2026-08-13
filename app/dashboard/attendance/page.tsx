@@ -9,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function AttendancePage() {
-  return <AttendanceWorkspace />;
+  return (
+    <>
+      <h1 className="sr-only">Attendance Management</h1>
+      <AttendanceWorkspace />
+    </>
+  );
 }

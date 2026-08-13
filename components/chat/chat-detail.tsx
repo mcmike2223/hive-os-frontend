@@ -791,13 +791,13 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                 <div className="flex items-center gap-2">
                   <h2 className="font-bold text-foreground text-sm">{displayTitle}</h2>
                   {isConversationEncrypted && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                       <Lock className="h-3 w-3" />
                       E2E Encrypted
                     </span>
                   )}
                   {!isConversationEncrypted && isConversationSecureMode && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                       <Lock className="h-3 w-3" />
                       E2E Ready
                     </span>
@@ -867,7 +867,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                     {!isOwn && (
                       <Avatar className="h-8 w-8 rounded-full shrink-0">
                         <AvatarImage src={message.sender?.avatar_url} />
-                        <AvatarFallback className="text-[10px] bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 font-bold">
+                        <AvatarFallback className="text-[11px] bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 font-bold">
                           {message.sender?.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -926,7 +926,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                           )}
                         </div>
                         <div className={cn(
-                          "flex items-center gap-1.5 text-[10px] text-muted-foreground px-1",
+                          "flex items-center gap-1.5 text-[11px] text-muted-foreground px-1",
                           isOwn ? "justify-end" : "justify-start"
                         )}>
                           <span>{formatMessageTime(message.created_at)}</span>

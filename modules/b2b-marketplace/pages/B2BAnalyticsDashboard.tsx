@@ -167,7 +167,7 @@ export default function B2BAnalyticsDashboard() {
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 11 }}
                 width={120}
                 stroke="currentColor"
                 className="text-muted-foreground"
@@ -213,7 +213,7 @@ export default function B2BAnalyticsDashboard() {
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={data.price_bands}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="currentColor" className="text-muted-foreground" />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="currentColor" className="text-muted-foreground" />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} stroke="currentColor" className="text-muted-foreground" />
               <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12 }} cursor={{ fill: "rgba(16,185,129,0.08)" }} />
               <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#10b981" />

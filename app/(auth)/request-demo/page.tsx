@@ -149,7 +149,7 @@ export default function RequestDemoPage() {
       <div className="pt-24 px-4 pb-20">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
-            <Badge className="mb-3 bg-primary/10 text-primary border-none font-mono text-[10px] tracking-widest uppercase">
+            <Badge className="mb-3 bg-primary/10 text-primary border-none font-mono text-[11px] tracking-widest uppercase">
               Enterprise Demo
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-black font-space tracking-tight mb-3">
@@ -164,7 +164,7 @@ export default function RequestDemoPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   First Name *
                 </Label>
                 <div className="relative">
@@ -179,7 +179,7 @@ export default function RequestDemoPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Last Name *
                 </Label>
                 <Input
@@ -194,7 +194,7 @@ export default function RequestDemoPage() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Work Email *
                 </Label>
                 <div className="relative">
@@ -210,7 +210,7 @@ export default function RequestDemoPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Phone</Label>
+                <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Phone</Label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -225,7 +225,7 @@ export default function RequestDemoPage() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Company Name *
                 </Label>
                 <div className="relative">
@@ -240,7 +240,7 @@ export default function RequestDemoPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Company Size *
                 </Label>
                 <Select value={formData.companySize} onValueChange={(value) => handleInputChange("companySize", value)}>
@@ -259,7 +259,7 @@ export default function RequestDemoPage() {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Interested Modules (Select all that apply)
               </Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -282,7 +282,7 @@ export default function RequestDemoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Additional Message
               </Label>
               <Textarea

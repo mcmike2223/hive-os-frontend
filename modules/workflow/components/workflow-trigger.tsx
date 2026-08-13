@@ -192,7 +192,7 @@ export function WorkflowTrigger({
           ) : null}
 
           {approvalGate.isProduct && !approvalGate.canApprove ? (
-            <span className="max-w-[220px] text-[10px] font-medium leading-snug text-muted-foreground">
+            <span className="max-w-[220px] text-[11px] font-medium leading-snug text-muted-foreground">
               {approvalGate.message}
             </span>
           ) : null}

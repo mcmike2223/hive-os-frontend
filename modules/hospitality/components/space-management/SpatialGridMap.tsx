@@ -43,7 +43,7 @@ export default function SpatialGridMap({ zones, businessType, onLocationClick }:
           <div className="flex items-center gap-4 px-2">
             <h3 className="text-2xl font-black tracking-tighter uppercase">{zone.name}</h3>
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-            <Badge variant="outline" className="rounded-full px-4 py-1 border-white/10 bg-white/5 text-[10px] font-black opacity-60">
+            <Badge variant="outline" className="rounded-full px-4 py-1 border-white/10 bg-white/5 text-[11px] font-black opacity-60">
               {zone.locations?.length || 0} {isNightclub ? "Units" : "Tables"}
             </Badge>
           </div>
@@ -91,7 +91,7 @@ export default function SpatialGridMap({ zones, businessType, onLocationClick }:
 
                         <div className="flex flex-col items-center text-center">
                           <span className="text-sm font-black tracking-tighter uppercase line-clamp-1">{location.label}</span>
-                          <span className="text-[8px] font-black opacity-60 uppercase tracking-[0.2em] mt-0.5">
+                          <span className="text-[11px] font-black opacity-60 uppercase tracking-[0.2em] mt-0.5">
                             Cap: {location.capacity}
                           </span>
                         </div>
@@ -113,12 +113,12 @@ export default function SpatialGridMap({ zones, businessType, onLocationClick }:
                         <div className="flex items-center justify-between gap-6">
                           <div>
                             <h5 className="text-xl font-black tracking-tight">{location.label}</h5>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                               {isNightclub ? "Sofa Lounge" : "Dining Table"}
                             </p>
                           </div>
                           <Badge className={cn(
-                            "rounded-full border-none px-4 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-white",
+                            "rounded-full border-none px-4 py-1 text-[11px] font-black uppercase tracking-[0.15em] text-white",
                             statusColors[location.status]
                           )}>
                             {location.status}
@@ -127,7 +127,7 @@ export default function SpatialGridMap({ zones, businessType, onLocationClick }:
 
                         <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                           <div className="space-y-1">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Capacity</p>
+                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Capacity</p>
                             <p className="text-sm font-black flex items-center gap-1.5">
                               <Users className="h-4 w-4 opacity-40" />
                               {location.capacity} People
@@ -135,7 +135,7 @@ export default function SpatialGridMap({ zones, businessType, onLocationClick }:
                           </div>
                           {isNightclub && (
                             <div className="space-y-1">
-                              <p className="text-[8px] font-black text-primary uppercase tracking-widest">Min Spend</p>
+                              <p className="text-[11px] font-black text-primary uppercase tracking-widest">Min Spend</p>
                               <p className="text-sm font-black text-primary">ETB {location.min_spend}</p>
                             </div>
                           )}
@@ -147,13 +147,13 @@ export default function SpatialGridMap({ zones, businessType, onLocationClick }:
                               {location.staff.name.charAt(0)}
                             </div>
                             <div>
-                              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Assigned Staff</p>
+                              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Assigned Staff</p>
                               <p className="text-xs font-bold">{location.staff.name}</p>
                             </div>
                           </div>
                         )}
                         
-                        <p className="text-[9px] font-medium text-muted-foreground/60 italic">
+                        <p className="text-[11px] font-medium text-muted-foreground/60 italic">
                           Click to manage status and assignments
                         </p>
                       </div>

@@ -964,14 +964,14 @@ function ProductDetailSheet({
                   <div className="p-6 pt-2">
                     <div className="flex items-center justify-between mb-4">
                       <div className="space-y-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Registry Name</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Registry Name</p>
                         <p className="text-lg font-black text-white truncate max-w-[220px]">{getAssetNameFromPath(product.image) || "Default Registry"}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         {product.country_of_origin && (
                           <div className="flex flex-col items-end">
-                             <p className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground/40">Origin</p>
-                             <Badge variant="outline" className="rounded-lg text-[10px] border-white/10">{countryLabel}</Badge>
+                             <p className="text-[11px] font-black uppercase tracking-[0.1em] text-muted-foreground/40">Origin</p>
+                             <Badge variant="outline" className="rounded-lg text-[11px] border-white/10">{countryLabel}</Badge>
                           </div>
                         )}
                         {imageUrl && (
@@ -989,11 +989,11 @@ function ProductDetailSheet({
                     
                     <div className="space-y-4 pt-2">
                       <div className="flex justify-between items-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                        <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Stock Code</span>
+                        <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">Stock Code</span>
                         <span className="text-xs font-mono font-bold text-white">{product.stock_code || "N/A"}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                        <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">UOM / Unit</span>
+                        <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">UOM / Unit</span>
                         <span className="text-xs font-bold text-white">{product.uom || "PCS"} / {product.unit || "unit"}</span>
                       </div>
                     </div>
@@ -1095,13 +1095,13 @@ function ProductDetailSheet({
                   <div className="space-y-8">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Base Price</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Base Price</p>
                         <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                           {formatProductMoney(product.unit_price, currencyCode) ?? "N/A"}
                         </p>
                       </div>
                       <div className="space-y-1 text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Tax Rate</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Tax Rate</p>
                         <p className="text-xl font-bold text-white/80">
                           {product.tax_rate}%
                         </p>
@@ -1109,13 +1109,13 @@ function ProductDetailSheet({
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Cost Basis</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Cost Basis</p>
                         <p className="text-xl font-bold text-muted-foreground/80">
                           {formatProductMoney(product.cost_of_good, currencyCode) ?? "--"}
                         </p>
                       </div>
                       <div className="space-y-1 text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Sale Price</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Sale Price</p>
                         <p className="text-xl font-bold text-orange-500">
                           {formatProductMoney(product.sale_price, currencyCode) ?? "N/A"}
                         </p>
@@ -1134,7 +1134,7 @@ function ProductDetailSheet({
                           <p className="text-lg font-black text-primary">
                             {((parseFloat(product.unit_price) - parseFloat(product.cost_of_good)) / parseFloat(product.unit_price) * 100).toFixed(1)}%
                           </p>
-                          <p className="text-[9px] font-bold text-primary/40 uppercase tracking-tighter">Gross Profitability</p>
+                          <p className="text-[11px] font-bold text-primary/40 uppercase tracking-tighter">Gross Profitability</p>
                         </div>
                       </div>
                     )}
@@ -1143,7 +1143,7 @@ function ProductDetailSheet({
 
                     <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
                       <div className="space-y-1">
-                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Stock Level</p>
+                         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Stock Level</p>
                          <div className="flex items-baseline gap-2">
                             <span className={cn(
                               "text-xl font-black",
@@ -1153,18 +1153,18 @@ function ProductDetailSheet({
                             )}>
                               {product.quantity || 0}
                             </span>
-                            <span className="text-[10px] font-bold text-muted-foreground/40">{product.unit || "unit"}</span>
+                            <span className="text-[11px] font-bold text-muted-foreground/40">{product.unit || "unit"}</span>
                             {product.track_inventory && parseFloat(product.quantity || "0") <= (product.reorder_point || 0) && (
-                              <Badge variant="destructive" className="ml-2 h-4 text-[8px] px-1 rounded-sm animate-bounce uppercase">Low Stock</Badge>
+                              <Badge variant="destructive" className="ml-2 h-4 text-[11px] px-1 rounded-sm animate-bounce uppercase">Low Stock</Badge>
                             )}
                          </div>
                       </div>
                       <div className="space-y-1 text-center">
-                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Reorder</p>
+                         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Reorder</p>
                          <p className="text-sm font-bold text-white">{product.reorder_point || 0}</p>
                       </div>
                       <div className="space-y-1 text-right">
-                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Package</p>
+                         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Package</p>
                          <p className="text-sm font-bold text-white">{product.units_per_package || 1} / {product.uom || "PCS"}</p>
                       </div>
                     </div>
@@ -1172,12 +1172,12 @@ function ProductDetailSheet({
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                         <div className="flex items-center gap-3">
                            <div className={cn("h-2 w-2 rounded-full", product.track_inventory ? "bg-emerald-500" : "bg-slate-500")} />
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Track Inventory</span>
-                           <Badge variant="outline" className="text-[9px] h-5 border-white/5">{product.track_inventory ? "YES" : "NO"}</Badge>
+                           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Track Inventory</span>
+                           <Badge variant="outline" className="text-[11px] h-5 border-white/5">{product.track_inventory ? "YES" : "NO"}</Badge>
                         </div>
                         <div className="flex items-center gap-3 justify-end">
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Backorders</span>
-                           <Badge variant="outline" className={cn("text-[9px] h-5", product.allow_backorders ? "text-emerald-500 border-emerald-500/20" : "text-slate-500 border-slate-500/20")}>
+                           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Backorders</span>
+                           <Badge variant="outline" className={cn("text-[11px] h-5", product.allow_backorders ? "text-emerald-500 border-emerald-500/20" : "text-slate-500 border-slate-500/20")}>
                              {product.allow_backorders ? "ALLOWED" : "DENIED"}
                            </Badge>
                         </div>
@@ -1195,22 +1195,22 @@ function ProductDetailSheet({
 
                   <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                     <div className="space-y-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Weight</p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Weight</p>
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                        <span className="text-sm font-bold">{product.weight || "--"} <span className="text-[10px] text-muted-foreground/40">{product.weight_unit || "kg"}</span></span>
+                        <span className="text-sm font-bold">{product.weight || "--"} <span className="text-[11px] text-muted-foreground/40">{product.weight_unit || "kg"}</span></span>
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Lead Time</p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Lead Time</p>
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                        <span className="text-sm font-bold">{product.lead_time_days || "--"} <span className="text-[10px] text-muted-foreground/40">days</span></span>
+                        <span className="text-sm font-bold">{product.lead_time_days || "--"} <span className="text-[11px] text-muted-foreground/40">days</span></span>
                       </div>
                     </div>
                     {product.hs_code && (
                       <div className="space-y-1.5 col-span-2 pt-2 border-t border-border/50">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">HS Code</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">HS Code</p>
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                           <span className="text-sm font-bold font-mono tracking-widest">{product.hs_code}</span>
@@ -1220,23 +1220,23 @@ function ProductDetailSheet({
                   </div>
 
                   <div className="rounded-2xl bg-muted/30 p-4 space-y-4">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Spatial Dimensions</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Spatial Dimensions</p>
                     <div className="flex items-center justify-between">
                       <div className="text-center">
-                        <p className="text-[10px] text-muted-foreground font-medium mb-1">Length</p>
+                        <p className="text-[11px] text-muted-foreground font-medium mb-1">Length</p>
                         <p className="text-sm font-black">{product.length || "0"}</p>
                       </div>
                       <div className="h-8 w-px bg-border/50" />
                       <div className="text-center">
-                        <p className="text-[10px] text-muted-foreground font-medium mb-1">Width</p>
+                        <p className="text-[11px] text-muted-foreground font-medium mb-1">Width</p>
                         <p className="text-sm font-black">{product.width || "0"}</p>
                       </div>
                       <div className="h-8 w-px bg-border/50" />
                       <div className="text-center">
-                        <p className="text-[10px] text-muted-foreground font-medium mb-1">Height</p>
+                        <p className="text-[11px] text-muted-foreground font-medium mb-1">Height</p>
                         <p className="text-sm font-black">{product.height || "0"}</p>
                       </div>
-                      <div className="ml-2 px-2 py-1 rounded bg-background text-[10px] font-bold text-muted-foreground/60">
+                      <div className="ml-2 px-2 py-1 rounded bg-background text-[11px] font-bold text-muted-foreground/60">
                         {product.dimension_unit || "mm"}
                       </div>
                     </div>
@@ -1254,7 +1254,7 @@ function ProductDetailSheet({
                       </div>
                       <h3 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/80">Composition</h3>
                     </div>
-                    <Badge variant="outline" className="rounded-lg font-bold text-[10px]">
+                    <Badge variant="outline" className="rounded-lg font-bold text-[11px]">
                       {product.variants?.length || 0} Variants
                     </Badge>
                   </div>
@@ -1265,11 +1265,11 @@ function ProductDetailSheet({
                         {product.variants.slice(0, 4).map((variant) => (
                           <div key={variant.id} className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/50 hover:bg-muted/40 transition-colors group cursor-default">
                             <span className="text-xs font-bold truncate max-w-[140px]">{variant.name || variant.sku}</span>
-                            <span className="text-[10px] font-mono bg-background px-2 py-1 rounded-lg group-hover:text-primary transition-colors">{variant.sku || "--"}</span>
+                            <span className="text-[11px] font-mono bg-background px-2 py-1 rounded-lg group-hover:text-primary transition-colors">{variant.sku || "--"}</span>
                           </div>
                         ))}
                         {product.variants.length > 4 && (
-                          <Button variant="ghost" className="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary mt-2">
+                          <Button variant="ghost" className="w-full text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary mt-2">
                             + {product.variants.length - 4} more variants
                           </Button>
                         )}
@@ -1296,11 +1296,11 @@ function ProductDetailSheet({
                     <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                       {attributeRows.length > 0 && (
                         <div className="space-y-3">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Extended Attributes</p>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-primary/60">Extended Attributes</p>
                           <div className="grid grid-cols-1 gap-2">
                             {attributeRows.map((attr, idx) => (
                               <div key={`${attr.key}-${idx}`} className="flex justify-between items-center p-2 rounded-xl bg-white/5 border border-white/5">
-                                <span className="text-[10px] font-medium text-muted-foreground uppercase">{attr.key.replace(/_/g, " ")}</span>
+                                <span className="text-[11px] font-medium text-muted-foreground uppercase">{attr.key.replace(/_/g, " ")}</span>
                                 <span className="text-xs font-bold text-white">{String(attr.value)}</span>
                               </div>
                             ))}
@@ -1310,11 +1310,11 @@ function ProductDetailSheet({
 
                       {nutritionRows.length > 0 && (
                         <div className="space-y-3">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-orange-500/60">Nutritional Profile</p>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-orange-500/60">Nutritional Profile</p>
                           <div className="grid grid-cols-2 gap-2">
                             {nutritionRows.map((attr, idx) => (
                               <div key={`${attr.key}-${idx}`} className="flex flex-col p-2 rounded-xl bg-white/5 border border-white/5">
-                                <span className="text-[9px] font-medium text-muted-foreground uppercase">{attr.key}</span>
+                                <span className="text-[11px] font-medium text-muted-foreground uppercase">{attr.key}</span>
                                 <span className="text-xs font-black text-white">{String(attr.value)}</span>
                               </div>
                             ))}
@@ -1338,14 +1338,14 @@ function ProductDetailSheet({
                     <div className="flex items-start gap-4">
                       <div className="mt-1 h-2 w-2 rounded-full bg-primary/40 ring-4 ring-primary/5" />
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Provisioned</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Provisioned</p>
                         <p className="text-xs font-bold" suppressHydrationWarning>{formatProductDate(product.created_at)}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">
                       <div className="mt-1 h-2 w-2 rounded-full bg-emerald-400/40 ring-4 ring-emerald-400/5" />
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Last Synchronization</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Last Synchronization</p>
                         <p className="text-xs font-bold" suppressHydrationWarning>{formatProductDate(product.updated_at)}</p>
                       </div>
                     </div>
@@ -1354,25 +1354,25 @@ function ProductDetailSheet({
                   <div className="pt-4 mt-4 border-t border-border/50 flex flex-col gap-4">
                     {product.tags && product.tags.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Tags</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Tags</p>
                         <div className="flex flex-wrap gap-2">
                           {product.tags.map((tag) => (
-                             <Badge key={tag.id} variant="secondary" className="rounded-md font-medium text-[10px] border border-border/50">{tag.name}</Badge>
+                             <Badge key={tag.id} variant="secondary" className="rounded-md font-medium text-[11px] border border-border/50">{tag.name}</Badge>
                           ))}
                         </div>
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="rounded-lg text-[9px] font-bold bg-slate-500/5 text-slate-500 hover:bg-slate-500/10 transition-colors">
+                      <Badge variant="secondary" className="rounded-lg text-[11px] font-bold bg-slate-500/5 text-slate-500 hover:bg-slate-500/10 transition-colors">
                         ID: {product.id.toString().slice(0, 8)}
                       </Badge>
                       {product.parent_product_id && (
-                        <Badge variant="secondary" className="rounded-lg text-[9px] font-bold bg-indigo-500/5 text-indigo-500 hover:bg-indigo-500/10 transition-colors">
+                        <Badge variant="secondary" className="rounded-lg text-[11px] font-bold bg-indigo-500/5 text-indigo-500 hover:bg-indigo-500/10 transition-colors">
                           VARIANT OF: {product.parent?.name || product.parent_product_id}
                         </Badge>
                       )}
                     {product.category && (
-                      <Badge variant="secondary" className="rounded-lg text-[9px] font-bold bg-blue-500/5 text-blue-500 hover:bg-blue-500/10 transition-colors">
+                      <Badge variant="secondary" className="rounded-lg text-[11px] font-bold bg-blue-500/5 text-blue-500 hover:bg-blue-500/10 transition-colors">
                         PATH: {product.category.name}
                       </Badge>
                     )}
@@ -1400,7 +1400,7 @@ function ProductDetailSheet({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border/50 bg-muted/20 p-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">{label}</p>
       <p className="mt-2 text-sm font-semibold">{value}</p>
     </div>
   );

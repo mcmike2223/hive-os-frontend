@@ -5,7 +5,7 @@ import React from "react";
 
 export function DashboardFooter() {
   return (
-    <footer className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest border-t border-border/40 bg-background/30 rounded-2xl backdrop-blur-md">
+    <footer className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-mono text-muted-foreground uppercase tracking-widest border-t border-border/40 bg-background/30 rounded-2xl backdrop-blur-md">
       <div>&copy; {new Date().getFullYear()} Techive Technology Solutions</div>
       <div className="flex items-center gap-4">
         <span className="flex items-center gap-1">

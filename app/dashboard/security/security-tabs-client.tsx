@@ -127,17 +127,8 @@ export function SecurityTabsClient({ tenantId, tenantName, defaultTab }: Props) 
 
   }, [showUsers, showRoles, showPerms, activeTab, onTabChange, startTour, t]);
 
-  useEffect(() => {
-    if (!isLoaded || isCompletelyDenied) return;
-    const hasToured = localStorage.getItem('hive_tour_security_completed');
-    if (!hasToured && isTabAllowed) {
-      const timer = setTimeout(() => {
-        handleStartTour();
-        localStorage.setItem('hive_tour_security_completed', 'true');
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoaded, isCompletelyDenied, isTabAllowed, handleStartTour]);
+  // Opt-in only — see the "Page Tour" control. Auto-starting meant a first-time
+  // operator hit an unsolicited modal on each page in turn.
 
   if (!isLoaded) {
     return <TabbedModuleSkeleton rows={6} cols={5} />;
@@ -195,7 +186,7 @@ export function SecurityTabsClient({ tenantId, tenantName, defaultTab }: Props) 
 
           <div className="hidden lg:flex shrink-0 items-center gap-2 px-3 text-muted-foreground border-l border-border/50">
             <Lock className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="text-[10px] font-mono uppercase tracking-widest font-semibold text-foreground">
+            <span className="text-[11px] font-mono uppercase tracking-widest font-semibold text-foreground">
               {t('security.encrypted', 'Encrypted')}
             </span>
           </div>

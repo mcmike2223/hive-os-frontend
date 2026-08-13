@@ -70,7 +70,7 @@ export default function GuestListSidebar() {
         className="fixed right-0 top-1/2 -translate-y-1/2 rounded-l-[2rem] h-20 w-14 shadow-2xl z-40 bg-primary hover:bg-primary/90 flex flex-col items-center justify-center gap-1 group transition-all hover:w-16 border-y border-l border-white/10"
       >
         <Users className="h-6 w-6 text-primary-foreground group-hover:scale-110 transition-transform" />
-        <span className="text-[10px] font-black uppercase tracking-tighter text-primary-foreground [writing-mode:vertical-lr] rotate-180">Guests</span>
+        <span className="text-[11px] font-black uppercase tracking-tighter text-primary-foreground [writing-mode:vertical-lr] rotate-180">Guests</span>
       </Button>
 
       <AnimatePresence>
@@ -100,7 +100,7 @@ export default function GuestListSidebar() {
                       <Users className="h-8 w-8 text-primary" />
                       Guest List
                     </h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
                       {guests?.filter(g => g.status === 'pending').length || 0} Waiting • {guests?.filter(g => g.status === 'arrived').length || 0} Arrived
                     </p>
                   </div>
@@ -125,12 +125,12 @@ export default function GuestListSidebar() {
                   {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 opacity-50">
                       <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                      <p className="mt-6 font-black uppercase text-[10px] tracking-[0.2em] animate-pulse">Retrieving List</p>
+                      <p className="mt-6 font-black uppercase text-[11px] tracking-[0.2em] animate-pulse">Retrieving List</p>
                     </div>
                   ) : filteredGuests?.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
                       <SearchX className="h-16 w-16 mb-4 text-muted-foreground/20" />
-                      <p className="font-black uppercase text-[10px] tracking-[0.2em]">No Matches Found</p>
+                      <p className="font-black uppercase text-[11px] tracking-[0.2em]">No Matches Found</p>
                     </div>
                   ) : (
                     filteredGuests?.map((guest) => (
@@ -150,12 +150,12 @@ export default function GuestListSidebar() {
                           <div className="space-y-2">
                             <h4 className="font-black tracking-tight text-xl">{guest.guest_name}</h4>
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className="rounded-full text-[10px] font-black uppercase py-0.5 px-3 h-6 flex items-center gap-1.5 border-primary/30 text-primary bg-primary/5">
+                              <Badge variant="outline" className="rounded-full text-[11px] font-black uppercase py-0.5 px-3 h-6 flex items-center gap-1.5 border-primary/30 text-primary bg-primary/5">
                                 <Users className="h-3 w-3" />
                                 {guest.expected_party_size} Guests
                               </Badge>
                               {guest.promoter && (
-                                <div className="flex items-center gap-1.5 px-3 h-6 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                <div className="flex items-center gap-1.5 px-3 h-6 rounded-full bg-white/5 border border-white/5 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                   {guest.promoter.name}
                                 </div>
@@ -169,7 +169,7 @@ export default function GuestListSidebar() {
                             </div>
                           ) : (
                             <Button 
-                              className="rounded-2xl h-12 px-6 font-black text-[10px] uppercase tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95"
+                              className="rounded-2xl h-12 px-6 font-black text-[11px] uppercase tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95"
                               onClick={() => {
                                 const count = window.prompt(`Actual headcount for ${guest.guest_name}?`, guest.expected_party_size.toString());
                                 if (count !== null) {
@@ -192,7 +192,7 @@ export default function GuestListSidebar() {
                         </div>
                         
                         {guest.status === 'arrived' && (
-                          <div className="mt-4 pt-4 border-t border-primary/10 text-[10px] font-black uppercase text-primary/70 tracking-[0.1em] flex items-center gap-2">
+                          <div className="mt-4 pt-4 border-t border-primary/10 text-[11px] font-black uppercase text-primary/70 tracking-[0.1em] flex items-center gap-2">
                             <Clock className="h-3.5 w-3.5" />
                             Checked in with {guest.actual_arrived_count} people
                           </div>

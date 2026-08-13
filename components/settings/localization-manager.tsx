@@ -217,7 +217,7 @@ export function LocalizationManager() {
         </div>
 
         <div className="border border-border/50 rounded-[2.5rem] bg-card overflow-hidden shadow-sm">
-          <div className="grid grid-cols-12 p-5 bg-muted/30 text-[10px] font-black uppercase text-muted-foreground border-b border-border/50 tracking-widest">
+          <div className="grid grid-cols-12 p-5 bg-muted/30 text-[11px] font-black uppercase text-muted-foreground border-b border-border/50 tracking-widest">
             <div className="col-span-6 pl-4">{t('localization.system_folders', 'System Language Folders')}</div>
             <div className="col-span-6 text-right pr-4">{t('global.actions', 'Actions')}</div>
           </div>
@@ -231,7 +231,7 @@ export function LocalizationManager() {
                     </div>
                     <div>
                       <p className="font-semibold text-sm">{lang.name} <span className="text-muted-foreground font-mono text-xs ml-1">(/{lang.code})</span></p>
-                      {lang.is_default && <Badge className="bg-blue-600 hover:bg-blue-700 text-[9px] h-4 mt-1 tracking-widest border-none shadow-sm">{t('localization.master_source', 'MASTER SOURCE')}</Badge>}
+                      {lang.is_default && <Badge className="bg-blue-600 hover:bg-blue-700 text-[11px] h-4 mt-1 tracking-widest border-none shadow-sm">{t('localization.master_source', 'MASTER SOURCE')}</Badge>}
                     </div>
                   </div>
                   <div className="col-span-6 flex justify-end gap-2 pr-4">
@@ -327,7 +327,7 @@ export function LocalizationManager() {
         </Button>
         <div>
           <h3 className="font-bold text-sm">{safeLanguages.find((l: any) => l.code === activeTargetCode)?.name} {t('localization.node', 'Node')}</h3>
-          <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">{t('localization.folder', 'Folder:')} /{activeTargetCode}</p>
+          <p className="text-[11px] text-muted-foreground uppercase font-black tracking-widest">{t('localization.folder', 'Folder:')} /{activeTargetCode}</p>
         </div>
         
         <div className="flex-1" />
@@ -353,7 +353,7 @@ export function LocalizationManager() {
       <div className="grid grid-cols-12 gap-4 h-[650px]">
         {/* FILE SIDEBAR */}
         <div className="col-span-3 border border-border/50 rounded-[3rem] bg-card p-4 overflow-y-auto shadow-sm">
-          <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-4 pl-2">{t('localization.json_files', 'JSON Files')}</h4>
+          <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-widest mb-4 pl-2">{t('localization.json_files', 'JSON Files')}</h4>
           <div className="space-y-1">
             {fileGroups.map(group => (
               <button
@@ -378,7 +378,7 @@ export function LocalizationManager() {
             </div>
           )}
 
-          <div className="grid grid-cols-12 p-5 bg-muted/30 border-b border-border/50 text-[9px] font-black uppercase text-muted-foreground tracking-widest shrink-0">
+          <div className="grid grid-cols-12 p-5 bg-muted/30 border-b border-border/50 text-[11px] font-black uppercase text-muted-foreground tracking-widest shrink-0">
             <div className="col-span-3 pl-4">{t('localization.system_id', 'System Identifier')}</div>
             <div className="col-span-4 text-center">{t('localization.master', 'Master')} ({sourceLang?.code})</div>
             <div className="col-span-5 text-right pr-6">{t('localization.entry', 'Entry')}</div>
@@ -389,7 +389,7 @@ export function LocalizationManager() {
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2 opacity-50">
                 <FileJson className="h-10 w-10 mb-2" />
                 <p className="text-sm font-medium">{t('localization.no_keys', 'No system keys found in this view')}</p>
-                <p className="text-[10px] uppercase font-mono tracking-widest opacity-50 mt-2">
+                <p className="text-[11px] uppercase font-mono tracking-widest opacity-50 mt-2">
                   <Bug className="h-3 w-3 inline mr-1" /> DEBUG: Raw keys in memory: {allKeys.length}
                 </p>
               </div>
@@ -398,7 +398,7 @@ export function LocalizationManager() {
                 const displayKey = activeFileGroup !== 'All' ? key.split('.').slice(1).join('.') || key : key;
                 return (
                   <div key={key} className="grid grid-cols-12 items-center p-3 rounded-[1.5rem] hover:bg-muted/20 group transition-all duration-200">
-                    <div className="col-span-3 font-mono text-[10px] text-muted-foreground/70 truncate pl-2 pr-2" title={key}>
+                    <div className="col-span-3 font-mono text-[11px] text-muted-foreground/70 truncate pl-2 pr-2" title={key}>
                       {displayKey}
                     </div>
                     <div className="col-span-4 text-[13px] font-semibold text-center px-4 leading-relaxed line-clamp-2" title={finalBase[key]}>
@@ -471,16 +471,16 @@ export function LocalizationManager() {
             <div className="space-y-5 mb-10">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase ml-1 text-muted-foreground tracking-widest">{t('localization.file_name', 'File Name')}</label>
+                  <label className="text-[11px] font-black uppercase ml-1 text-muted-foreground tracking-widest">{t('localization.file_name', 'File Name')}</label>
                   <Input placeholder={t('localization.file_name_placeholder', "e.g. auth")} value={form.group} onChange={e => setForm({...form, group: e.target.value})} className="h-14 rounded-2xl font-mono text-xs border-muted-foreground/20" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase ml-1 text-muted-foreground tracking-widest">{t('localization.key_name', 'Key Name')}</label>
+                  <label className="text-[11px] font-black uppercase ml-1 text-muted-foreground tracking-widest">{t('localization.key_name', 'Key Name')}</label>
                   <Input placeholder={t('localization.key_name_placeholder', "e.g. login_title")} value={form.key} onChange={e => setForm({...form, key: e.target.value})} className="h-14 rounded-2xl font-mono text-xs border-muted-foreground/20" />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase ml-1 text-muted-foreground tracking-widest">{t('localization.master_value', 'Master Value')} ({sourceLang?.code})</label>
+                <label className="text-[11px] font-black uppercase ml-1 text-muted-foreground tracking-widest">{t('localization.master_value', 'Master Value')} ({sourceLang?.code})</label>
                 <Input placeholder={t('localization.master_value_placeholder', "The text to translate...")} value={form.value} onChange={e => setForm({...form, value: e.target.value})} className="h-14 rounded-2xl text-sm border-muted-foreground/20" />
               </div>
             </div>

@@ -324,7 +324,7 @@ export default function StaffShiftsPage() {
         const shift = row.original;
         return (
           <div className="flex flex-col gap-1 items-start">
-            <Badge variant="secondary" className={`capitalize font-black border text-[10px] tracking-wider rounded-full py-0.5 px-2 ${roleColors[shift.role || "other"]}`}>
+            <Badge variant="secondary" className={`capitalize font-black border text-[11px] tracking-wider rounded-full py-0.5 px-2 ${roleColors[shift.role || "other"]}`}>
               {shift.role || "Other"}
             </Badge>
             {shift.zone && (
@@ -341,11 +341,11 @@ export default function StaffShiftsPage() {
       cell: ({ row }) => {
         const shift = row.original;
         return shift.is_confirmed ? (
-          <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 rounded-full font-bold text-[10px] tracking-wider py-0.5 px-2">
+          <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 rounded-full font-bold text-[11px] tracking-wider py-0.5 px-2">
             Confirmed
           </Badge>
         ) : (
-          <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-full border border-amber-200 font-bold text-[10px] tracking-wider py-0.5 px-2">
+          <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-full border border-amber-200 font-bold text-[11px] tracking-wider py-0.5 px-2">
             Pending
           </Badge>
         );

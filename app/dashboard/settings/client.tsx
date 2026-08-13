@@ -64,9 +64,24 @@ import {
 } from "@/lib/runtime-context";
 import {
   applyBrandRuntime,
+  DEFAULT_PRIMARY_COLOR,
   normalizeBrandHex,
   resolveBrandFontStack,
 } from "@/lib/brand-theme";
+import {
+  BRAND_FONTS,
+  BRAND_FONT_SIZES,
+  BRAND_FONT_STYLES,
+  BRAND_FONT_WEIGHTS,
+  BRAND_TEXT_TRANSFORMS,
+  DEFAULT_FONT_FAMILY,
+  findBrandFont,
+  normalizeBrandChoice,
+} from "@/lib/brand-fonts";
+
+// Header colour for generated documents. Not a brand token — it is persisted
+// tenant data, so it needs a literal default rather than a CSS variable.
+const DEFAULT_DOCUMENT_HEADER_COLOR = "#1e293b";
 import {
   SettingsPanelSkeleton,
   SettingsWorkspaceSkeleton,
@@ -151,14 +166,18 @@ const createInitialBrandForm = () => ({
   sidebar_icon: "",
   app_title: "",
   footer_text: "",
-  primary_color: "#10b981",
+  primary_color: DEFAULT_PRIMARY_COLOR,
   auth_background_image: "",
   auth_welcome_message: "",
-  font_family: "Inter",
+  font_family: DEFAULT_FONT_FAMILY,
+  font_size: "default",
+  font_weight: "normal",
+  font_style: "normal",
+  text_transformation: "uppercase",
   meta_description: "",
   og_image: "",
   hide_watermark: false,
-  document_header_color: "#1e293b",
+  document_header_color: DEFAULT_DOCUMENT_HEADER_COLOR,
   company_tax_id: "",
   pdf_logo: "",
   letterhead_header_url: "",
@@ -167,12 +186,27 @@ const createInitialBrandForm = () => ({
 
 type BrandFormData = ReturnType<typeof createInitialBrandForm>;
 
-const BRAND_FONT_OPTIONS = [
-  { value: "Inter", label: "Inter" },
-  { value: "Space Grotesk", label: "Space Grotesk" },
-  { value: "JetBrains Mono", label: "JetBrains Mono" },
-  { value: "System UI", label: "System UI" },
-];
+// The subset applyBrandRuntime reads. Extracted so the live preview, the
+// unmount restore, and the post-save snapshot cannot fall out of sync — the
+// typography fields were previously missing from all three.
+const toBrandRuntime = (form: Pick<
+  BrandFormData,
+  "primary_color" | "font_family" | "font_size" | "font_weight" | "font_style" | "text_transformation"
+>) => ({
+  primary_color: form.primary_color,
+  font_family: form.font_family,
+  font_size: form.font_size,
+  font_weight: form.font_weight,
+  font_style: form.font_style,
+  text_transformation: form.text_transformation,
+});
+
+// Options come from lib/brand-fonts so this picker and applyBrandRuntime can
+// never drift; adding a family there makes it selectable here automatically.
+const BRAND_FONT_OPTIONS = BRAND_FONTS.map((font) => ({
+  value: font.value,
+  label: font.bundled ? font.label : `${font.label} (system)`,
+}));
 
 const BRAND_THEME_PRESETS = [
   {
@@ -223,18 +257,12 @@ const SecureBrandAsset = ({
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
-    if (previewUrl) {
-      setBlobUrl(previewUrl);
-      setIsFetching(false);
-      return;
-    }
-    if (!path) {
-      setBlobUrl(null);
-      setIsFetching(false);
-      return;
-    }
+    // A freshly picked asset lives behind the same authenticated storage route as
+    // a saved one. Handing its URL straight to <img src> could not send the
+    // Authorization header, so every upload preview 404'd and rendered blank —
+    // both paths now go through the same authenticated fetch.
+    const resolvedUrl = previewUrl || (path ? getBackendStorageUrl(path) : null);
 
-    const resolvedUrl = getBackendStorageUrl(path);
     if (!resolvedUrl) {
       setBlobUrl(null);
       setIsFetching(false);
@@ -242,10 +270,13 @@ const SecureBrandAsset = ({
     }
 
     let isMounted = true;
+    let objectUrl: string | null = null;
+
     const fetchSecureAsset = async () => {
       setIsFetching(true);
       try {
-        const res = await fetch(`${resolvedUrl}?cb=${lastSaved}`, {
+        const separator = resolvedUrl.includes("?") ? "&" : "?";
+        const res = await fetch(`${resolvedUrl}${separator}cb=${lastSaved}`, {
           headers: getAuthHeaders(),
         });
         if (!res.ok) throw new Error(`Backend returned ${res.status}`);
@@ -255,17 +286,24 @@ const SecureBrandAsset = ({
           throw new Error(`Expected image`);
 
         const blob = await res.blob();
-        if (isMounted) setBlobUrl(URL.createObjectURL(blob));
-      } catch (err) {
-        if (isMounted) setBlobUrl(`${resolvedUrl}?cb=${lastSaved}`);
+        if (!isMounted) return;
+
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      } catch {
+        // Public/unauthenticated storage still resolves directly.
+        if (isMounted) setBlobUrl(resolvedUrl);
       } finally {
         if (isMounted) setIsFetching(false);
       }
     };
 
     fetchSecureAsset();
+
     return () => {
       isMounted = false;
+      // Without this every re-render of a picker leaked a blob into memory.
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [path, previewUrl, lastSaved]);
 
@@ -284,7 +322,7 @@ const SecureBrandAsset = ({
       />
     );
   return (
-    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+    <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
       {fallbackText}
     </span>
   );
@@ -383,10 +421,7 @@ function BrandSettings() {
     null,
   );
   const [lastSaved, setLastSaved] = useState(Date.now());
-  const savedBrandRef = React.useRef({
-    primary_color: "#10b981",
-    font_family: "Inter",
-  });
+  const savedBrandRef = React.useRef(toBrandRuntime(createInitialBrandForm()));
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ["brandSettings", "protected", workspaceScope],
@@ -402,24 +437,39 @@ function BrandSettings() {
         }
       });
 
-      const nextSnapshot = { ...createInitialBrandForm(), ...sanitizedData };
+      const defaults = createInitialBrandForm();
+
+      // The blanket null -> "" pass above is right for free-text fields but wrong
+      // for the enum-backed typography pickers. An unrecognised value (empty, or
+      // a legacy raw-CSS one like "14px") leaves the Select trigger blank while
+      // the runtime applies the default — the control ends up lying about what
+      // is actually rendered. Snap each to a value the picker can display.
+      sanitizedData.font_family = findBrandFont(sanitizedData.font_family).value;
+      sanitizedData.font_size = normalizeBrandChoice(BRAND_FONT_SIZES, sanitizedData.font_size, defaults.font_size);
+      sanitizedData.font_weight = normalizeBrandChoice(BRAND_FONT_WEIGHTS, sanitizedData.font_weight, defaults.font_weight);
+      sanitizedData.font_style = normalizeBrandChoice(BRAND_FONT_STYLES, sanitizedData.font_style, defaults.font_style);
+      sanitizedData.text_transformation = normalizeBrandChoice(BRAND_TEXT_TRANSFORMS, sanitizedData.text_transformation, defaults.text_transformation);
+
+      const nextSnapshot = { ...defaults, ...sanitizedData };
       setFormData(nextSnapshot);
       setSavedSnapshot(nextSnapshot);
-      savedBrandRef.current = {
-        primary_color: nextSnapshot.primary_color,
-        font_family: nextSnapshot.font_family,
-      };
+      savedBrandRef.current = toBrandRuntime(nextSnapshot);
     }
   }, [settingsData]);
 
   useEffect(() => {
     if (isLoading) return;
 
-    applyBrandRuntime({
-      primary_color: formData.primary_color,
-      font_family: formData.font_family,
-    });
-  }, [formData.primary_color, formData.font_family, isLoading]);
+    applyBrandRuntime(toBrandRuntime(formData));
+  }, [
+    formData.primary_color,
+    formData.font_family,
+    formData.font_size,
+    formData.font_weight,
+    formData.font_style,
+    formData.text_transformation,
+    isLoading,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -440,10 +490,7 @@ function BrandSettings() {
       setPreviews({});
       setLastSaved(Date.now());
       setSavedSnapshot(formData);
-      savedBrandRef.current = {
-        primary_color: formData.primary_color,
-        font_family: formData.font_family,
-      };
+      savedBrandRef.current = toBrandRuntime(formData);
       queryClient.invalidateQueries({ queryKey: ["brandSettings"] });
       queryClient.invalidateQueries({ queryKey: ["publicBrandSettings"] });
     },
@@ -479,7 +526,7 @@ function BrandSettings() {
     value: string,
     normalize = false,
   ) => {
-    const fallback = key === "document_header_color" ? "#1e293b" : "#10b981";
+    const fallback = key === "document_header_color" ? DEFAULT_DOCUMENT_HEADER_COLOR : DEFAULT_PRIMARY_COLOR;
     setFormData((prev) => ({
       ...prev,
       [key]: normalize ? normalizeBrandHex(value, fallback) : value,
@@ -502,10 +549,7 @@ function BrandSettings() {
     setFormData({ ...savedSnapshot });
     setPreviews({});
     setLastSaved(Date.now());
-    applyBrandRuntime({
-      primary_color: savedSnapshot.primary_color,
-      font_family: savedSnapshot.font_family,
-    });
+    applyBrandRuntime(toBrandRuntime(savedSnapshot));
     toast.success(
       t("settings.brand_reset", "Brand draft reset to saved settings."),
     );
@@ -517,7 +561,7 @@ function BrandSettings() {
   const previewPrimaryColor = normalizeBrandHex(formData.primary_color);
   const previewDocumentColor = normalizeBrandHex(
     formData.document_header_color,
-    "#1e293b",
+    DEFAULT_DOCUMENT_HEADER_COLOR,
   );
   const previewLogoPath =
     formData.logo_dark || formData.logo_light || formData.sidebar_icon;
@@ -542,7 +586,7 @@ function BrandSettings() {
         wide ? "col-span-1 sm:col-span-2 md:col-span-3" : "col-span-1",
       )}
     >
-      <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
+      <Label className="text-[11px] font-black text-muted-foreground uppercase tracking-widest text-center">
         {label}
       </Label>
       <div className="relative group p-1 rounded-2xl bg-card border-2 border-dashed border-border/50 hover:border-primary transition-all duration-300">
@@ -574,7 +618,7 @@ function BrandSettings() {
             className="absolute inset-0 z-10 flex min-h-11 cursor-pointer flex-col items-center justify-center bg-black/70 text-white opacity-100 transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
           >
             <Upload aria-hidden="true" className="h-6 w-6 mb-1" />
-            <span className="text-[10px] font-bold uppercase">
+            <span className="text-[11px] font-bold uppercase">
               {t("settings.change", "Change")}
             </span>
           </button>
@@ -586,7 +630,7 @@ function BrandSettings() {
         </div>
       </div>
       {previews[targetKey] && (
-        <p className="text-[9px] font-bold text-amber-500 animate-pulse text-center uppercase tracking-widest mt-1">
+        <p className="text-[11px] font-bold text-amber-500 animate-pulse text-center uppercase tracking-widest mt-1">
           Unsaved
         </p>
       )}
@@ -626,7 +670,7 @@ function BrandSettings() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-border/50">
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground">
               {t("settings.primary_color", "Theme Color")}
             </Label>
             <div className="flex gap-2 bg-muted/30 h-12 rounded-xl p-2 border border-input">
@@ -651,7 +695,7 @@ function BrandSettings() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground">
               {t("settings.footer", "Footer Text")}
             </Label>
             <Input
@@ -663,7 +707,7 @@ function BrandSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground">
               {t("settings.font_family", "Interface Font")}
             </Label>
             <Select
@@ -684,8 +728,63 @@ function BrandSettings() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Interface Scale / Text Weight / Text Style / Label Casing.
+              The backend has stored these four since the brand matrix shipped;
+              nothing read them until now, so saving them had no visible effect. */}
+          {(
+            [
+              {
+                key: "font_size" as const,
+                label: t("settings.font_size", "Interface Scale"),
+                options: BRAND_FONT_SIZES,
+                fallback: "default",
+              },
+              {
+                key: "font_weight" as const,
+                label: t("settings.font_weight", "Text Weight"),
+                options: BRAND_FONT_WEIGHTS,
+                fallback: "normal",
+              },
+              {
+                key: "font_style" as const,
+                label: t("settings.font_style", "Text Style"),
+                options: BRAND_FONT_STYLES,
+                fallback: "normal",
+              },
+              {
+                key: "text_transformation" as const,
+                label: t("settings.text_transformation", "Label Casing"),
+                options: BRAND_TEXT_TRANSFORMS,
+                fallback: "uppercase",
+              },
+            ]
+          ).map((field) => (
+            <div className="space-y-2" key={field.key}>
+              <Label className="text-[11px] font-bold uppercase text-muted-foreground">
+                {field.label}
+              </Label>
+              <Select
+                value={formData[field.key] || field.fallback}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, [field.key]: value }))
+                }
+              >
+                <SelectTrigger className="bg-muted/30 h-12 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {field.options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
           <div className="space-y-2 md:col-span-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground">
               {t("settings.meta_description", "Meta Description")}
             </Label>
             <textarea
@@ -712,7 +811,7 @@ function BrandSettings() {
                   fontFamily: resolveBrandFontStack(formData.font_family),
                 }}
               >
-                <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+                <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
                   {t("settings.live_preview", "Live Preview")}
                 </p>
                 <h3 className="mt-3 text-2xl font-black tracking-tight text-foreground">
@@ -756,7 +855,7 @@ function BrandSettings() {
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <span
-                  className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary-foreground"
+                  className="rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest text-primary-foreground"
                   style={{ backgroundColor: previewPrimaryColor }}
                 >
                   {t("settings.primary", "Primary")}
@@ -823,7 +922,7 @@ function BrandSettings() {
             wide
           />
           <div className="col-span-1 space-y-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground">
               {t("settings.welcome_msg", "Auth Message")}
             </Label>
             <textarea
@@ -880,7 +979,7 @@ function BrandSettings() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-border/50">
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground pl-1">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground pl-1">
               {t("settings.company_tin", "Company TIN / Tax ID")}
             </Label>
             <Input
@@ -896,7 +995,7 @@ function BrandSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase text-muted-foreground pl-1">
+            <Label className="text-[11px] font-bold uppercase text-muted-foreground pl-1">
               {t("settings.pdf_header_color", "PDF Header Color")}
             </Label>
             <div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input">
@@ -1125,7 +1224,7 @@ function GeneralSettings() {
         {/* Basic Identifiers */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 pb-6 border-b border-border/50">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.app_title", "Organization / Company Name")}
             </Label>
             <Input
@@ -1138,7 +1237,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.abbreviation", "Abbreviation / Short Code")}
             </Label>
             <Input
@@ -1151,7 +1250,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.motto", "Organization Motto")}
             </Label>
             <Input
@@ -1164,7 +1263,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.tin_number", "TIN / Tax Registration No.")}
             </Label>
             <Input
@@ -1185,7 +1284,7 @@ function GeneralSettings() {
         {/* Mission, Vision, Values, Products */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-border/50">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.mission", "Mission Statement")}
             </Label>
             <RichTextEditor
@@ -1198,7 +1297,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.vision", "Vision Statement")}
             </Label>
             <RichTextEditor
@@ -1211,7 +1310,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.core_value", "Core Values")}
             </Label>
             <RichTextEditor
@@ -1224,7 +1323,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.product", "Products & Services Overview")}
             </Label>
             <RichTextEditor
@@ -1241,7 +1340,7 @@ function GeneralSettings() {
         {/* Contact & Location */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.address", "Headquarters Address")}
             </Label>
             <Input
@@ -1254,7 +1353,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.website", "Website URL")}
             </Label>
             <Input
@@ -1268,7 +1367,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.email", "Corporate Contact Email")}
             </Label>
             <Input
@@ -1282,7 +1381,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.phone_number", "Phone Number")}
             </Label>
             <Input
@@ -1296,7 +1395,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.fax_number", "Fax Number")}
             </Label>
             <Input
@@ -1310,7 +1409,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.po_box", "P.O. Box")}
             </Label>
             <Input
@@ -1344,7 +1443,7 @@ function GeneralSettings() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-border/50">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               <Mail className="inline h-3 w-3 mr-1" />{" "}
               {t("settings.sys_sender_name", "System Sender Name")}
             </Label>
@@ -1360,7 +1459,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.sys_sender_address", "System Sender Address")}
             </Label>
             <Input
@@ -1377,7 +1476,7 @@ function GeneralSettings() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.pub_support_email", "Public Support Email")}
             </Label>
             <Input
@@ -1389,7 +1488,7 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground">
               {t("settings.pub_support_phone", "Public Support Phone")}
             </Label>
             <Input
@@ -1602,7 +1701,7 @@ function GeneralSettings() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground flex items-center gap-2">
               <HardDrive className="h-3 w-3" />{" "}
               {t("settings.max_upload", "Max Upload Size")}
             </Label>
@@ -1637,7 +1736,7 @@ function GeneralSettings() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2">
+            <Label className="text-[11px] font-black uppercase text-muted-foreground flex items-center gap-2">
               <Clock className="h-3 w-3" />{" "}
               {t("settings.session_timeout", "Session Timeout (Minutes)")}
             </Label>
@@ -1658,7 +1757,7 @@ function GeneralSettings() {
 
           {isTenantNode === false && formData.maintenance_mode && (
             <div className="space-y-2 md:col-span-2 mt-4 pt-6 border-t border-border/50 animate-in fade-in slide-in-from-top-4 duration-500">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-destructive pl-1 flex items-center gap-2">
+              <Label className="text-[11px] font-black uppercase tracking-widest text-destructive pl-1 flex items-center gap-2">
                 <Activity className="h-3 w-3 animate-pulse" />{" "}
                 {t("settings.live_ticker", "Live Status Ticker Message")}
               </Label>

@@ -266,7 +266,7 @@ export function BrandSettings() {
 
         return (
             <div className={cn("flex flex-col gap-2", wide ? "col-span-1 sm:col-span-2 md:col-span-3" : "col-span-1")}>
-                <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">{label}</Label>
+                <Label className="text-[11px] font-black text-muted-foreground uppercase tracking-widest text-center">{label}</Label>
                 <div className="relative group p-1 rounded-2xl bg-gradient-to-tr from-primary/10 via-primary/5 to-transparent hover:from-primary/30 transition-colors duration-500">
                     <div className={cn("rounded-xl border-4 border-background bg-muted flex items-center justify-center overflow-hidden relative shadow-inner", wide ? "h-64" : "h-32")}>
                         
@@ -274,7 +274,7 @@ export function BrandSettings() {
                             <img src={displayUrl} alt={label} className={cn("max-h-full max-w-full transition-transform duration-500 group-hover:scale-105", wide ? "object-cover w-full h-full p-0" : "object-contain p-2")} />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full w-full opacity-50">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{fallbackText}</span>
+                                <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">{fallbackText}</span>
                             </div>
                         )}
 
@@ -284,7 +284,7 @@ export function BrandSettings() {
                             className="absolute inset-0 bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer z-10"
                         >
                             <Upload className="h-6 w-6 mb-1 animate-bounce" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{t('settings.change_img', 'Change')}</span>
+                            <span className="text-[11px] font-bold uppercase tracking-widest">{t('settings.change_img', 'Change')}</span>
                         </button>
                         
                         {previews[targetKey] && (
@@ -294,7 +294,7 @@ export function BrandSettings() {
                         )}
                     </div>
                 </div>
-                {previews[targetKey] && <p className="text-[9px] font-bold text-amber-500 animate-pulse text-center uppercase tracking-widest mt-1">Unsaved</p>}
+                {previews[targetKey] && <p className="text-[11px] font-bold text-amber-500 animate-pulse text-center uppercase tracking-widest mt-1">Unsaved</p>}
             </div>
         );
     };
@@ -317,10 +317,10 @@ export function BrandSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 pt-6 border-t border-border/50">
-                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.app_title', 'App Title')}</Label><Input value={formData.app_title} onChange={(e) => setFormData(prev => ({...prev, app_title: e.target.value}))} className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-bold" /></div>
-                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.primary_color', 'Primary Theme Color')}</Label><div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input focus-within:ring-1 focus-within:ring-primary"><input type="color" value={formData.primary_color} onChange={(e) => setFormData(prev => ({...prev, primary_color: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" /><Input value={formData.primary_color} onChange={(e) => setFormData(prev => ({...prev, primary_color: e.target.value}))} className="border-none h-8 bg-transparent shadow-none font-mono uppercase" /></div></div>
+                    <div className="space-y-2"><Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.app_title', 'App Title')}</Label><Input value={formData.app_title} onChange={(e) => setFormData(prev => ({...prev, app_title: e.target.value}))} className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-bold" /></div>
+                    <div className="space-y-2"><Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.primary_color', 'Primary Theme Color')}</Label><div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input focus-within:ring-1 focus-within:ring-primary"><input type="color" value={formData.primary_color} onChange={(e) => setFormData(prev => ({...prev, primary_color: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" /><Input value={formData.primary_color} onChange={(e) => setFormData(prev => ({...prev, primary_color: e.target.value}))} className="border-none h-8 bg-transparent shadow-none font-mono uppercase" /></div></div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.typography', 'Typography Style')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.typography', 'Typography Style')}</Label>
                         <Select value={formData.font_family} onValueChange={(val) => setFormData(prev => ({...prev, font_family: val}))}>
                             <SelectTrigger className="bg-muted/30 h-12 rounded-xl focus:ring-primary"><SelectValue placeholder="Select a font" /></SelectTrigger>
                             <SelectContent className="rounded-xl border-border/50">
@@ -339,7 +339,7 @@ export function BrandSettings() {
                     <BrandImageSelector label={t('settings.login_bg', 'Login Background Image')} targetKey="auth_background_image" fallbackText={t('settings.no_bg', 'NO BACKGROUND')} wide />
                     <div className="space-y-6 col-span-1">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.welcome_msg', 'Welcome Message')}</Label>
+                            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.welcome_msg', 'Welcome Message')}</Label>
                             <textarea value={formData.auth_welcome_message} onChange={(e) => setFormData(prev => ({...prev, auth_welcome_message: e.target.value}))} className="w-full bg-muted/30 h-48 rounded-xl focus-visible:ring-primary border border-input p-3 text-sm resize-none" placeholder={t('settings.welcome_placeholder', 'Sign in to access your secure control hub.')} />
                         </div>
                     </div>
@@ -356,8 +356,8 @@ export function BrandSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-border/50">
-                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.company_tin', 'Company TIN / Tax ID')}</Label><Input value={formData.company_tax_id} onChange={(e) => setFormData(prev => ({...prev, company_tax_id: e.target.value}))} placeholder="0001234567" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-bold" /></div>
-                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.pdf_header_color', 'PDF Header Color')}</Label><div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input"><input type="color" value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" /><Input value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="border-none h-8 bg-transparent shadow-none font-mono uppercase" /></div></div>
+                    <div className="space-y-2"><Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.company_tin', 'Company TIN / Tax ID')}</Label><Input value={formData.company_tax_id} onChange={(e) => setFormData(prev => ({...prev, company_tax_id: e.target.value}))} placeholder="0001234567" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-bold" /></div>
+                    <div className="space-y-2"><Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.pdf_header_color', 'PDF Header Color')}</Label><div className="flex items-center gap-3 bg-muted/30 h-12 rounded-xl p-2 border border-input"><input type="color" value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" /><Input value={formData.document_header_color} onChange={(e) => setFormData(prev => ({...prev, document_header_color: e.target.value}))} className="border-none h-8 bg-transparent shadow-none font-mono uppercase" /></div></div>
                 </div>
             </div>
 

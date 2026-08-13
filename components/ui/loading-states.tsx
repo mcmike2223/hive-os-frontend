@@ -35,7 +35,7 @@ export function FullScreenPlaceholder({
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary/80">
+            <p className="text-[11px] font-black uppercase tracking-[0.35em] text-primary/80">
               HIVE.OS
             </p>
             <h1 className="mt-2 text-2xl font-black tracking-tight text-foreground">
@@ -64,7 +64,7 @@ export function FullScreenPlaceholder({
           <div className="rounded-[1.5rem] border border-border/50 bg-background/60 p-5">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="h-4 w-4" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em]">
+              <p className="text-[11px] font-black uppercase tracking-[0.3em]">
                 Secure Boot
               </p>
             </div>

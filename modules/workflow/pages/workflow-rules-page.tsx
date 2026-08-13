@@ -446,7 +446,7 @@ export default function WorkflowRulesPage() {
               <CardContent className="bg-muted/30 py-6 border-y border-muted">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Trigger Event</span>
+                    <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">Trigger Event</span>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="capitalize">{def.trigger_event.replace("_", " ")}</Badge>
                       {def.signature_required && <Badge variant="secondary">Signature</Badge>}
@@ -454,7 +454,7 @@ export default function WorkflowRulesPage() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-[200px] space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Approvers Sequence</span>
+                    <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">Approvers Sequence</span>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
   {def.approver_ids?.map((approver: number | {id: number, sequence: number}) => {
     const uid = typeof approver === 'number' ? approver : approver.id;
@@ -476,7 +476,7 @@ export default function WorkflowRulesPage() {
 </div>
                   </div>
                   <div className="space-y-1 text-center pr-4">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Required</span>
+                    <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">Required</span>
                     <div className="text-2xl font-black text-primary">{def.required_approvals}</div>
                   </div>
                 </div>
@@ -659,7 +659,7 @@ export default function WorkflowRulesPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-1">
                     <Label>Product Quality Assurance Gate</Label>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Product approvals use the latest real QA batch status. QA passed unlocks approval; QA failed routes the approver to rejection with signature and notes.
                     </p>
                   </div>
@@ -679,7 +679,7 @@ export default function WorkflowRulesPage() {
             <div className="flex items-center justify-between p-4 border rounded-xl">
               <div className="space-y-0.5">
                 <Label>Minimum Required Approvals</Label>
-                <p className="text-[10px] text-muted-foreground">Number of approvals needed to complete the process.</p>
+                <p className="text-[11px] text-muted-foreground">Number of approvals needed to complete the process.</p>
               </div>
               <Input
                 type="number"
@@ -694,7 +694,7 @@ export default function WorkflowRulesPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Require Signature</Label>
-                  <p className="text-[10px] text-muted-foreground">Approvers must sign before approving or rejecting.</p>
+                  <p className="text-[11px] text-muted-foreground">Approvers must sign before approving or rejecting.</p>
                 </div>
                 <Switch
                   checked={formData.signature_required}
@@ -704,7 +704,7 @@ export default function WorkflowRulesPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Prevent Duplicate Pending Requests</Label>
-                  <p className="text-[10px] text-muted-foreground">Re-use the active pending workflow instead of creating duplicates.</p>
+                  <p className="text-[11px] text-muted-foreground">Re-use the active pending workflow instead of creating duplicates.</p>
                 </div>
                 <Switch
                   checked={formData.prevent_duplicate_pending}

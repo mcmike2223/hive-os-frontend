@@ -211,10 +211,10 @@ export function ModuleSubscriptionCheckoutDialog({
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
           <div className="space-y-3 rounded-[1.5rem] border border-border/60 bg-muted/20 p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-muted-foreground">
                 {mode === "renewal" ? "Plan & Modules" : "Modules"}
               </p>
-              <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
                 {modules.length} selected
               </Badge>
             </div>
@@ -231,7 +231,7 @@ export function ModuleSubscriptionCheckoutDialog({
                       {module.description}
                     </p>
                   </div>
-                  <Badge variant="outline" className="shrink-0 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+                  <Badge variant="outline" className="shrink-0 rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
                     {module.included_in_plan ? "Included" : `ETB ${Number(module.monthly_price_etb ?? 0).toFixed(0)}`}
                   </Badge>
                 </div>
@@ -429,7 +429,7 @@ export function ModuleSubscriptionCheckoutDialog({
                     )}
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
+                    <p className="text-[11px] font-black uppercase tracking-[0.24em] text-muted-foreground">
                       {mode === "renewal" ? "Estimated Renewal Charge" : "Estimated Monthly Charge"}
                     </p>
                     <p className="mt-1 text-lg font-black tracking-tight text-foreground">
@@ -437,7 +437,7 @@ export function ModuleSubscriptionCheckoutDialog({
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
                   {directTransferSelected ? "Direct Transfer" : providerLabel}
                 </Badge>
               </div>

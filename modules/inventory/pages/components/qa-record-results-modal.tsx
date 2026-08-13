@@ -316,7 +316,7 @@ export function QaRecordResultsModal({ isOpen, onClose, batchId }: QaRecordResul
         <div className="grid grid-cols-2 gap-1.5 border-b border-border/10 bg-muted/20 px-8 py-1.5 md:grid-cols-5">
           {stageProgress.map((stage) => (
             <div key={stage.stage} className="rounded-xl border border-border/40 bg-background/60 p-2">
-              <p className="text-[8px] font-black uppercase tracking-[0.1em] text-muted-foreground truncate">
+              <p className="text-[11px] font-black uppercase tracking-[0.1em] text-muted-foreground truncate">
                 {stage.stageLabel}
               </p>
               <div className="flex items-center justify-between gap-1">
@@ -325,7 +325,7 @@ export function QaRecordResultsModal({ isOpen, onClose, batchId }: QaRecordResul
                 </div>
                 <Badge
                   variant="outline"
-                  className={`h-4 text-[8px] px-1.5 ${
+                  className={`h-4 text-[11px] px-1.5 ${
                     stage.failed > 0
                       ? "border-rose-500/30 bg-rose-500/10 text-rose-600"
                       : stage.pending > 0
@@ -342,7 +342,7 @@ export function QaRecordResultsModal({ isOpen, onClose, batchId }: QaRecordResul
 
         <div className="grid gap-3 border-b border-border/10 px-8 py-1.5 md:grid-cols-5">
           <div className="space-y-1">
-            <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Tested At
             </Label>
             <Input
@@ -353,7 +353,7 @@ export function QaRecordResultsModal({ isOpen, onClose, batchId }: QaRecordResul
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Sample Size
             </Label>
             <Input
@@ -365,7 +365,7 @@ export function QaRecordResultsModal({ isOpen, onClose, batchId }: QaRecordResul
               className="h-8 text-xs rounded-lg bg-muted/30"
             />
           </div>
-          <div className="md:col-span-3 flex items-center gap-2 rounded-xl border border-border/40 bg-muted/10 p-2 text-[10px] text-muted-foreground">
+          <div className="md:col-span-3 flex items-center gap-2 rounded-xl border border-border/40 bg-muted/10 p-2 text-[11px] text-muted-foreground">
             <ShieldAlert className="h-3.5 w-3.5 text-primary shrink-0" />
             <p className="leading-tight">
               <span className="font-bold text-foreground">Workflow:</span> Record checks across stages. Mandatory failures keep the batch in quarantine.
@@ -525,7 +525,7 @@ export function QaRecordResultsModal({ isOpen, onClose, batchId }: QaRecordResul
               ))}
 
               <section className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                   Lab Notes / Disposition
                 </Label>
                 <RichTextEditor

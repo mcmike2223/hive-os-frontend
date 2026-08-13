@@ -413,6 +413,19 @@ export function canAccessDashboardRoute(
   }
 
   if (matchesPrefix(path, "/dashboard/attendance")) {
+    if (matchesPrefix(path, "/dashboard/attendance/user-linking")) {
+      return (
+        hasSubscribedModule(access, [
+          "attendance_management",
+          "human_resources",
+        ]) &&
+        access.hasAnyPermission([
+          "manage_attendance",
+          "manage_employees",
+        ])
+      );
+    }
+
     if (matchesPrefix(path, "/dashboard/attendance/reports")) {
       return (
         hasSubscribedModule(access, [

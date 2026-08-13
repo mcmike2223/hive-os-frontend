@@ -706,7 +706,7 @@ export function UsersTabClient(props: Props) {
           <div className="flex items-center gap-3">
             <Avatar className={cn("h-9 w-9 border", isSuper ? "border-amber-500/50" : "border-border")}>
               <AvatarImage src={u.avatarUrl || ""} alt={u.name || "User"} className="object-cover bg-muted" />
-              <AvatarFallback className={cn("text-white text-[10px] font-bold", isSuper ? "bg-amber-600" : "bg-gradient-to-br from-emerald-500 to-teal-600")}>
+              <AvatarFallback className={cn("text-white text-[11px] font-bold", isSuper ? "bg-amber-600" : "bg-gradient-to-br from-emerald-500 to-teal-600")}>
                 {initials(u.name, u.email)}
               </AvatarFallback>
             </Avatar>
@@ -739,14 +739,15 @@ export function UsersTabClient(props: Props) {
         return (
           <div className="flex items-center gap-2.5">
             <span className="tour-users-action-status flex">
-              <Switch 
-                checked={u.isActive} 
-                onCheckedChange={() => handleToggle(u.id, u.isActive)} 
-                disabled={toggleMut.isPending || isProtectedUser(u) || !canEdit} 
-                className="data-[state=checked]:bg-emerald-500" 
+              <Switch
+                checked={u.isActive}
+                onCheckedChange={() => handleToggle(u.id, u.isActive)}
+                disabled={toggleMut.isPending || isProtectedUser(u) || !canEdit}
+                aria-label={`${u.isActive ? t('users.deactivate', 'Deactivate') : t('users.activate', 'Activate')} ${u.name || u.email}`}
+                className="data-[state=checked]:bg-emerald-500"
               />
             </span>
-            <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md", u.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground")}>
+            <span className={cn("text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md", u.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground")}>
               {u.isActive ? t('global.active', "Active") : t('global.locked', "Locked")}
             </span>
           </div>
@@ -767,7 +768,7 @@ export function UsersTabClient(props: Props) {
       cell: ({ row }) => {
         const u = row.original;
         
-        if (isProtectedUser(u)) return <div className="flex justify-end"><Badge variant="outline" className="text-[9px] uppercase tracking-widest text-amber-600 border-amber-200 bg-amber-50/50">Protected</Badge></div>;
+        if (isProtectedUser(u)) return <div className="flex justify-end"><Badge variant="outline" className="text-[11px] uppercase tracking-widest text-amber-600 border-amber-200 bg-amber-50/50">Protected</Badge></div>;
         
         return (
           <div className="flex items-center justify-end gap-1">
@@ -860,7 +861,9 @@ export function UsersTabClient(props: Props) {
         
         <div className="flex w-full items-stretch gap-3 sm:w-auto">
           <div className="min-w-32 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2.5">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-800 dark:text-amber-300">
+            {/* Sits inside a bg-primary/10 card — hardcoded amber here dated from
+                when --primary was amber and clashed once it became emerald. */}
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-primary">
               {t("users.total_users", "Total users")}
             </p>
             <p className="mt-1 text-2xl font-black tabular-nums text-foreground">
@@ -1014,7 +1017,7 @@ export function UsersTabClient(props: Props) {
                           {selectedStaff ? (
                             <div className="flex flex-col text-left">
                               <span className="font-semibold text-foreground text-sm">{selectedStaff.name}</span>
-                              <span className="text-[10px] text-muted-foreground capitalize">
+                              <span className="text-[11px] text-muted-foreground capitalize">
                                 Role: {selectedStaff.role} • {selectedStaff.email}
                               </span>
                             </div>
@@ -1066,7 +1069,7 @@ export function UsersTabClient(props: Props) {
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-semibold text-foreground text-sm">{s.name}</span>
-                                    <span className="text-[10px] text-muted-foreground capitalize">
+                                    <span className="text-[11px] text-muted-foreground capitalize">
                                       Role: {s.role} • {s.email}
                                     </span>
                                   </div>
@@ -1078,14 +1081,14 @@ export function UsersTabClient(props: Props) {
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <p className="text-[10px] text-muted-foreground/80 mt-1">Linking a staff profile will automatically fill in their details and connect them to shifts/tables.</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-1">Linking a staff profile will automatically fill in their details and connect them to shifts/tables.</p>
                   </div>
                 )}
 
                 <div className="sm:col-span-2 space-y-1.5">
                   <Label htmlFor="name" className={cn(fieldErrors.name && "text-destructive")}>{t('users.full_name', 'Full Name')} <span className="text-destructive">*</span></Label>
                   <Input id="name" value={formName} onChange={(e) => { setFormName(e.target.value); validateField("name", e.target.value); }} required placeholder="e.g. Sarah Connor" className={cn("bg-muted/30 h-11 transition-all", fieldErrors.name && "border-destructive focus-visible:ring-destructive")} />
-                  {fieldErrors.name && <p className="text-[10px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle className="h-3 w-3" /> {fieldErrors.name}</p>}
+                  {fieldErrors.name && <p className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle className="h-3 w-3" /> {fieldErrors.name}</p>}
                 </div>
 
                 <div className="sm:col-span-2 space-y-1.5">
@@ -1094,7 +1097,7 @@ export function UsersTabClient(props: Props) {
                     <Mail className={cn("absolute left-3 top-3 h-4 w-4", fieldErrors.email ? "text-destructive" : "text-muted-foreground")} />
                     <Input id="email" type="email" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); validateField("email", e.target.value); }} required disabled={isEdit} placeholder="user@hive.os" className={cn("pl-9 bg-muted/30 h-11 transition-all", fieldErrors.email && "border-destructive focus-visible:ring-destructive text-destructive")} />
                   </div>
-                  {fieldErrors.email && <p className="text-[10px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle className="h-3 w-3" /> {fieldErrors.email}</p>}
+                  {fieldErrors.email && <p className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle className="h-3 w-3" /> {fieldErrors.email}</p>}
                 </div>
 
                 <div className="space-y-1.5">
@@ -1144,7 +1147,7 @@ export function UsersTabClient(props: Props) {
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className={cn(fieldErrors.password && "text-destructive")}>
                     {t('users.encryption_key', 'Encryption Key')} 
-                    {isEdit && <span className="text-[10px] font-medium text-emerald-500 ml-2 uppercase tracking-tight">({t('users.unchanged', 'Leave blank to keep current')})</span>}
+                    {isEdit && <span className="text-[11px] font-medium text-emerald-500 ml-2 uppercase tracking-tight">({t('users.unchanged', 'Leave blank to keep current')})</span>}
                   </Label>
                   <div className="relative">
                     <Input id="password" type={showPassword ? "text" : "password"} value={formPassword} onChange={(e) => { setFormPassword(e.target.value); validateField("password", e.target.value); }} required={!isEdit} placeholder={isEdit ? t('users.unchanged_placeholder', "Unchanged...") : "••••••••"} className={cn("pr-9 bg-muted/30 h-11 placeholder:text-muted-foreground/50 transition-all", fieldErrors.password && "border-destructive focus-visible:ring-destructive text-destructive")} />
@@ -1152,7 +1155,7 @@ export function UsersTabClient(props: Props) {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {fieldErrors.password && <p className="text-[10px] text-destructive font-bold uppercase tracking-widest flex items-start gap-1 mt-1 animate-in fade-in leading-tight"><AlertCircle className="h-3 w-3 shrink-0 mt-[1px]" /> {fieldErrors.password}</p>}
+                  {fieldErrors.password && <p className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-start gap-1 mt-1 animate-in fade-in leading-tight"><AlertCircle className="h-3 w-3 shrink-0 mt-[1px]" /> {fieldErrors.password}</p>}
                 </div>
               </div>
               
@@ -1259,7 +1262,7 @@ export function UsersTabClient(props: Props) {
                     <p className="text-sm text-muted-foreground text-center py-4">{t('users.no_permissions', 'No permissions available')}</p>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">{t('users.permissions_desc', 'Select the permissions this role should have.')}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{t('users.permissions_desc', 'Select the permissions this role should have.')}</p>
               </div>
             </div>
 

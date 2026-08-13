@@ -35,7 +35,7 @@ export function ModuleSubscriptionSummary({
           key={`${module.source}-${module.slug}`}
           variant="outline"
           className={cn(
-            "rounded-full border-border/60 bg-background/80 px-3 py-1 text-[10px] uppercase tracking-widest",
+            "rounded-full border-border/60 bg-background/80 px-3 py-1 text-[11px] uppercase tracking-widest",
             module.source === "custom" ? "text-amber-600" : "text-foreground/80"
           )}
         >
@@ -45,7 +45,7 @@ export function ModuleSubscriptionSummary({
       {remainingCount > 0 ? (
         <Badge
           variant="outline"
-          className="rounded-full border-border/60 bg-muted/40 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground"
+          className="rounded-full border-border/60 bg-muted/40 px-3 py-1 text-[11px] uppercase tracking-widest text-muted-foreground"
         >
           +{remainingCount} more
         </Badge>

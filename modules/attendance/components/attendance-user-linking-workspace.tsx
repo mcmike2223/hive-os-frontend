@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -36,6 +36,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableCaption,
   TableHead,
   TableHeader,
   TableRow,
@@ -65,28 +66,28 @@ function statusBadge(status: UserLinkingRecord["link_status"]) {
     case "linked":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-          <CheckCircle2 className="h-3.5 w-3.5" />
+          <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" />
           Linked
         </span>
       );
     case "unlinked":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-          <UserX className="h-3.5 w-3.5" />
+          <UserX aria-hidden="true" className="h-3.5 w-3.5" />
           Unlinked
         </span>
       );
     case "ambiguous":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 dark:bg-purple-950 dark:text-purple-200">
-          <AlertTriangle className="h-3.5 w-3.5" />
+          <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5" />
           Ambiguous
         </span>
       );
     case "employee_only":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-          <Users className="h-3.5 w-3.5" />
+          <Users aria-hidden="true" className="h-3.5 w-3.5" />
           Employee Record Only
         </span>
       );
@@ -100,7 +101,7 @@ function enrolmentBadge(status: UserLinkingRecord["enrolment_status"]) {
     case "enrolled":
       return (
         <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-          <ShieldCheck className="h-3.5 w-3.5" />
+          <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5" />
           Enrolled
         </span>
       );
@@ -123,11 +124,11 @@ export function AttendanceUserLinkingWorkspace() {
   const scope = getWorkspaceScopeKey();
   const queryClient = useQueryClient();
   const { hasAnyPermission, isLoaded } = usePermissions();
+  const previewTriggerRef = useRef<HTMLButtonElement>(null);
 
   const canManage = hasAnyPermission([
     "manage_attendance",
     "manage_employees",
-    "view_attendance",
   ]);
 
   const [page, setPage] = useState(1);
@@ -159,7 +160,7 @@ export function AttendanceUserLinkingWorkspace() {
   const employeesList = useQuery({
     queryKey: ["hr-employees-unlinked-candidates", scope],
     queryFn: () => attendanceFetch<Paginated<Employee>>("/employees?per_page=100"),
-    enabled: manualOpen,
+    enabled: manualOpen && canManage,
   });
 
   const previewMutation = useMutation({
@@ -168,7 +169,10 @@ export function AttendanceUserLinkingWorkspace() {
       setPreviewData(data);
       setPreviewOpen(true);
     },
-    onError: (err: Error) => toast.error(err.message || "Failed to generate bulk linking preview."),
+    onError: () =>
+      toast.error(
+        "Unable to generate the linking preview. No changes were made. Check your connection and try again.",
+      ),
   });
 
   const executeMutation = useMutation({
@@ -247,6 +251,48 @@ export function AttendanceUserLinkingWorkspace() {
     { label: "Missing Enrolment", value: summaryData.employees_missing_enrolment, icon: ShieldCheck, color: "text-rose-600" },
   ];
 
+  const hasLoadError = summary.isError || records.isError;
+  const loadErrorMessage =
+    summary.error?.message ||
+    records.error?.message ||
+    "Attendance account data could not be loaded.";
+  const refreshLinkingData = () => {
+    void summary.refetch();
+    void records.refetch();
+  };
+
+  if (!isLoaded) {
+    return (
+      <Card className="border-slate-500 dark:border-slate-400">
+        <CardContent className="p-6" role="status">
+          <RefreshCw
+            aria-hidden="true"
+            className="mr-2 inline h-5 w-5 animate-spin motion-reduce:animate-none"
+          />
+          Loading attendance account access...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!canManage) {
+    return (
+      <section aria-labelledby="user-linking-denied-title">
+        <Card className="border-slate-500 dark:border-slate-400">
+          <CardContent className="p-6">
+            <h1 id="user-linking-denied-title" className="text-2xl font-black">
+              User Linking & Enrolment
+            </h1>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+              This page requires permission to manage attendance or employees.
+              Ask an administrator to update your role.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="user-linking-title" className="space-y-6">
       <header className="overflow-hidden rounded-2xl border border-blue-700 bg-blue-50 p-6 text-slate-950 dark:border-cyan-300 dark:bg-slate-950 dark:text-slate-50">
@@ -254,7 +300,7 @@ export function AttendanceUserLinkingWorkspace() {
           <div>
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-blue-800 dark:text-cyan-200">
               <Link href="/dashboard/attendance" className="inline-flex items-center gap-1 hover:underline">
-                <ArrowLeft className="h-3.5 w-3.5" />
+                <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
                 Attendance Management
               </Link>
               <span>/</span>
@@ -270,13 +316,14 @@ export function AttendanceUserLinkingWorkspace() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
+              ref={previewTriggerRef}
               type="button"
               variant="outline"
               onClick={() => previewMutation.mutate()}
               disabled={previewMutation.isPending}
               className="min-h-11 border-slate-700 bg-white text-slate-950 hover:bg-slate-100 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
             >
-              <Eye className="mr-1.5 h-4 w-4" />
+              <Eye aria-hidden="true" className="mr-1.5 h-4 w-4" />
               {previewMutation.isPending ? "Generating Preview…" : "Preview Linking"}
             </Button>
             <Button
@@ -285,7 +332,7 @@ export function AttendanceUserLinkingWorkspace() {
               disabled={executeMutation.isPending}
               className="min-h-11"
             >
-              <LinkIcon className="mr-1.5 h-4 w-4" />
+              <LinkIcon aria-hidden="true" className="mr-1.5 h-4 w-4" />
               {executeMutation.isPending ? "Linking Users…" : "Link All Eligible Users"}
             </Button>
             <Button
@@ -295,7 +342,7 @@ export function AttendanceUserLinkingWorkspace() {
               disabled={enrolMutation.isPending}
               className="min-h-11"
             >
-              <ShieldCheck className="mr-1.5 h-4 w-4" />
+              <ShieldCheck aria-hidden="true" className="mr-1.5 h-4 w-4" />
               {enrolMutation.isPending ? "Enrolling…" : "Enrol All Eligible Employees"}
             </Button>
           </div>
@@ -311,7 +358,7 @@ export function AttendanceUserLinkingWorkspace() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{card.label}</span>
-                  <Icon className={`h-4 w-4 ${card.color}`} />
+                  <Icon aria-hidden="true" className={`h-4 w-4 ${card.color}`} />
                 </div>
                 <p className="mt-2 text-2xl font-black">{card.value}</p>
               </CardContent>
@@ -326,58 +373,118 @@ export function AttendanceUserLinkingWorkspace() {
           <CardTitle className="text-lg font-bold">Tenant Account Linking Records</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {hasLoadError && (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-700 bg-red-50 p-4 text-red-950 dark:border-red-300 dark:bg-red-950 dark:text-red-100"
+            >
+              <div>
+                <p className="font-bold">Unable to load account linking data</p>
+                <p className="mt-1 text-sm">{loadErrorMessage}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 border-red-700 bg-white text-red-950 hover:bg-red-100 dark:border-red-300 dark:bg-red-950 dark:text-red-100 dark:hover:bg-red-900"
+                onClick={refreshLinkingData}
+                disabled={summary.isFetching || records.isFetching}
+              >
+                <RefreshCw
+                  aria-hidden="true"
+                  className={`mr-2 h-4 w-4 ${summary.isFetching || records.isFetching ? "animate-spin motion-reduce:animate-none" : ""}`}
+                />
+                Try again
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative min-w-64 flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search user name, email, employee name or code…"
-                value={search}
+            <div className="min-w-0 flex-1 basis-64">
+              <Label htmlFor="user-linking-search" className="mb-2 block">
+                Search accounts
+              </Label>
+              <div className="relative">
+                <Search
+                  aria-hidden="true"
+                  className="absolute left-3 top-3 h-4 w-4 text-slate-600 dark:text-slate-300"
+                />
+                <Input
+                  id="user-linking-search"
+                  type="search"
+                  placeholder="Search user name, email, employee name or code…"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="min-h-11 pl-9"
+                />
+              </div>
+            </div>
+            <div className="w-full space-y-2 sm:w-56">
+              <Label htmlFor="user-linking-status">Link status</Label>
+              <select
+                id="user-linking-status"
+                value={filterStatus}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  setFilterStatus(e.target.value);
                   setPage(1);
                 }}
-                className="pl-9 min-h-11"
-              />
+                className={selectClass}
+              >
+                <option value="all">All Link Statuses</option>
+                <option value="linked">Linked Only</option>
+                <option value="unlinked">Unlinked Only</option>
+                <option value="ambiguous">Ambiguous Matches</option>
+                <option value="employee_only">Unmatched Employees</option>
+              </select>
             </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                setPage(1);
-              }}
-              className={`${selectClass} w-auto`}
-            >
-              <option value="all">All Link Statuses</option>
-              <option value="linked">Linked Only</option>
-              <option value="unlinked">Unlinked Only</option>
-              <option value="ambiguous">Ambiguous Matches</option>
-              <option value="employee_only">Unmatched Employees</option>
-            </select>
           </div>
 
           <div className="rounded-md border border-slate-300 dark:border-slate-700 overflow-x-auto">
-            <Table>
+            <Table aria-busy={records.isLoading}>
+              <TableCaption className="sr-only">
+                User accounts, employee records, linking state, attendance
+                enrolment, and available management actions.
+              </TableCaption>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User Account</TableHead>
-                  <TableHead>Employee Record</TableHead>
-                  <TableHead>Match Method</TableHead>
-                  <TableHead>Link Status</TableHead>
-                  <TableHead>Attendance Enrolment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead scope="col">User Account</TableHead>
+                  <TableHead scope="col">Employee Record</TableHead>
+                  <TableHead scope="col">Match Method</TableHead>
+                  <TableHead scope="col">Link Status</TableHead>
+                  <TableHead scope="col">Attendance Enrolment</TableHead>
+                  <TableHead scope="col" className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                      <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    <TableCell
+                      colSpan={6}
+                      role="status"
+                      className="py-8 text-center text-slate-700 dark:text-slate-200"
+                    >
+                      <RefreshCw
+                        aria-hidden="true"
+                        className="mx-auto mb-2 h-5 w-5 animate-spin motion-reduce:animate-none"
+                      />
                       Loading account linking records…
+                    </TableCell>
+                  </TableRow>
+                ) : records.isError ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="py-8 text-center text-red-800 dark:text-red-200"
+                    >
+                      Account linking records are currently unavailable. Use
+                      “Try again” above.
                     </TableCell>
                   </TableRow>
                 ) : (records.data?.data.length ?? 0) === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={6} className="py-8 text-center text-slate-700 dark:text-slate-200">
                       No matching records found.
                     </TableCell>
                   </TableRow>
@@ -388,22 +495,22 @@ export function AttendanceUserLinkingWorkspace() {
                         {row.user_name ? (
                           <div>
                             <p className="font-bold">{row.user_name}</p>
-                            <p className="text-xs text-slate-500">{row.user_email}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">{row.user_email}</p>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">No user account</span>
+                          <span className="text-xs italic text-slate-600 dark:text-slate-300">No user account</span>
                         )}
                       </TableCell>
                       <TableCell>
                         {row.employee_name ? (
                           <div>
                             <p className="font-bold">{row.employee_name}</p>
-                            <p className="text-xs text-slate-500 font-mono">
+                            <p className="font-mono text-xs text-slate-600 dark:text-slate-300">
                               {formatEmployeeNumber(row.employee_number)}
                             </p>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">No employee record</span>
+                          <span className="text-xs italic text-slate-600 dark:text-slate-300">No employee record</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -417,8 +524,10 @@ export function AttendanceUserLinkingWorkspace() {
                         <div className="flex items-center justify-end gap-1">
                           {row.link_status === "unlinked" && row.user_id && (
                             <Button
+                              type="button"
                               size="sm"
                               variant="outline"
+                              className="min-h-11"
                               onClick={() => {
                                 setSelectedUser({
                                   id: row.user_id!,
@@ -429,15 +538,16 @@ export function AttendanceUserLinkingWorkspace() {
                                 setManualOpen(true);
                               }}
                             >
-                              <LinkIcon className="h-3.5 w-3.5 mr-1" />
+                              <LinkIcon aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
                               Link
                             </Button>
                           )}
                           {row.link_status === "linked" && row.employee_id && (
                             <Button
+                              type="button"
                               size="sm"
                               variant="ghost"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                              className="min-h-11 text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-950 dark:hover:text-red-200"
                               onClick={() => {
                                 setUnlinkEmployee({
                                   id: row.employee_id!,
@@ -447,7 +557,7 @@ export function AttendanceUserLinkingWorkspace() {
                                 setUnlinkOpen(true);
                               }}
                             >
-                              <Unlink className="h-3.5 w-3.5 mr-1" />
+                              <Unlink aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
                               Unlink
                             </Button>
                           )}
@@ -463,21 +573,25 @@ export function AttendanceUserLinkingWorkspace() {
           {/* Pagination */}
           {(records.data?.meta.last_page ?? 1) > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-700 dark:text-slate-200">
                 Page {records.data?.meta.current_page} of {records.data?.meta.last_page} ({records.data?.meta.total} total)
               </p>
               <div className="flex items-center gap-2">
                 <Button
+                  type="button"
                   size="sm"
                   variant="outline"
+                  className="min-h-11"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
                   Previous
                 </Button>
                 <Button
+                  type="button"
                   size="sm"
                   variant="outline"
+                  className="min-h-11"
                   disabled={page >= (records.data?.meta.last_page ?? 1)}
                   onClick={() => setPage((p) => p + 1)}
                 >
@@ -491,7 +605,13 @@ export function AttendanceUserLinkingWorkspace() {
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent
+          className="max-h-[85vh] overflow-y-auto sm:max-w-2xl"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            previewTriggerRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Bulk Linking Dry-Run Preview</DialogTitle>
             <DialogDescription>
@@ -530,9 +650,9 @@ export function AttendanceUserLinkingWorkspace() {
 
               {previewData.will_link.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-sm mb-2 text-emerald-700 dark:text-emerald-300">
+                  <h3 className="mb-2 text-sm font-bold text-emerald-700 dark:text-emerald-300">
                     Safe 1-to-1 Deterministic Matches Ready To Link:
-                  </h4>
+                  </h3>
                   <div className="max-h-48 overflow-y-auto rounded border border-slate-200 dark:border-slate-800 p-2 text-xs space-y-1">
                     {previewData.will_link.map((item: any, idx) => (
                       <div key={idx} className="flex items-center justify-between py-1 border-b last:border-b-0">
@@ -551,10 +671,17 @@ export function AttendanceUserLinkingWorkspace() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => setPreviewOpen(false)}
+            >
               Close
             </Button>
             <Button
+              type="button"
+              className="min-h-11"
               onClick={() => executeMutation.mutate()}
               disabled={executeMutation.isPending || (previewData?.summary.will_link ?? 0) === 0}
             >
@@ -576,34 +703,63 @@ export function AttendanceUserLinkingWorkspace() {
 
           <div className="space-y-4 my-4">
             <div className="space-y-1">
-              <Label className="text-xs text-slate-500">Selected User</Label>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-200">Selected User</p>
               <p className="font-bold">{selectedUser?.name}</p>
-              <p className="text-xs font-mono text-slate-500">{selectedUser?.email}</p>
+              <p className="font-mono text-xs text-slate-600 dark:text-slate-300">{selectedUser?.email}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="manual-employee-select">Select Target Employee Record *</Label>
+              <Label htmlFor="manual-employee-select">
+                Select Target Employee Record
+                <span aria-hidden="true"> *</span>
+                <span className="sr-only"> (required)</span>
+              </Label>
               <select
                 id="manual-employee-select"
+                required
                 value={selectedEmployeeId}
                 onChange={(e) => setSelectedEmployeeId(e.target.value)}
                 className={selectClass}
+                disabled={employeesList.isLoading}
               >
-                <option value="">Choose an employee</option>
+                <option value="">
+                  {employeesList.isLoading ? "Loading employees…" : "Choose an employee"}
+                </option>
                 {employeesList.data?.data.map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.primary_name} · {formatEmployeeNumber(emp.employee_number)} ({emp.work_email || "no email"})
                   </option>
                 ))}
               </select>
+              {employeesList.isError && (
+                <div role="alert" className="rounded-md border border-red-700 bg-red-50 p-3 text-sm text-red-950 dark:border-red-300 dark:bg-red-950 dark:text-red-100">
+                  <p>Employee records could not be loaded.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 min-h-11 border-red-700 bg-white text-red-950 hover:bg-red-100 dark:border-red-300 dark:bg-red-950 dark:text-red-100 dark:hover:bg-red-900"
+                    onClick={() => void employeesList.refetch()}
+                    disabled={employeesList.isFetching}
+                  >
+                    Try again
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setManualOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => setManualOpen(false)}
+            >
               Cancel
             </Button>
             <Button
+              type="button"
+              className="min-h-11"
               onClick={() => resolveMutation.mutate()}
               disabled={resolveMutation.isPending || !selectedEmployeeId}
             >
@@ -625,11 +781,18 @@ export function AttendanceUserLinkingWorkspace() {
           </DialogHeader>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUnlinkOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => setUnlinkOpen(false)}
+            >
               Cancel
             </Button>
             <Button
+              type="button"
               variant="destructive"
+              className="min-h-11"
               onClick={() => unlinkMutation.mutate()}
               disabled={unlinkMutation.isPending}
             >

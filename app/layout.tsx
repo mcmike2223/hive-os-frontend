@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Script from "next/script";
 import { headers } from "next/headers";
-import type { CSSProperties } from "react";
+import localFont from "next/font/local";
 
 import Providers from "@/components/providers";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -16,13 +16,60 @@ import { fetchPublicBrandSettings, fetchSeoSettings } from "@/lib/seo";
 // 🚀 IMPORT OUR NEW GLOBAL SETTINGS PROVIDER
 import { SettingsProvider } from "@/components/providers/settings-provider";
 
-// Build-safe fallbacks keep the application usable when a deployment cannot
-// reach Google Fonts. Branding can still override --brand-font-family at runtime.
-const fontVariables = {
-  "--font-inter": "Inter, ui-sans-serif, system-ui, sans-serif",
-  "--font-space": "'Space Grotesk', Inter, ui-sans-serif, sans-serif",
-  "--font-mono": "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-} as CSSProperties;
+// Self-hosted from app/fonts rather than next/font/google. The build machine's
+// route to fonts.gstatic.com takes 3-4s per file across ~20 files, so the fetch
+// intermittently timed out and next/font silently degraded every family to
+// local("Arial") metrics — shipping Arial with no error. Local files make the
+// build deterministic and offline-safe, and drop the render-blocking fetch.
+// Each file is the variable font covering the full weight range.
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter-latin.woff2", style: "normal" },
+    { path: "./fonts/inter-latin-ext.woff2", style: "normal" },
+  ],
+  weight: "100 900",
+  display: "swap",
+  variable: "--font-inter",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
+});
+
+const spaceGrotesk = localFont({
+  src: [
+    { path: "./fonts/space-grotesk-latin.woff2", style: "normal" },
+    { path: "./fonts/space-grotesk-latin-ext.woff2", style: "normal" },
+  ],
+  weight: "300 700",
+  display: "swap",
+  variable: "--font-space",
+  fallback: ["ui-sans-serif", "sans-serif"],
+});
+
+// Editorial accent face — used for the single italic word in display headlines
+// (landing hero, auth headings). Not a variable font, so both cuts are listed
+// explicitly; `style` must be set per file or next/font maps italic to the
+// upright file and the browser synthesises a slant.
+const instrumentSerif = localFont({
+  src: [
+    { path: "./fonts/instrument-serif-latin.woff2", style: "normal", weight: "400" },
+    { path: "./fonts/instrument-serif-latin-ext.woff2", style: "normal", weight: "400" },
+    { path: "./fonts/instrument-serif-italic-latin.woff2", style: "italic", weight: "400" },
+    { path: "./fonts/instrument-serif-italic-latin-ext.woff2", style: "italic", weight: "400" },
+  ],
+  display: "swap",
+  variable: "--font-serif",
+  fallback: ["ui-serif", "Georgia", "serif"],
+});
+
+const jetbrainsMono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono-latin.woff2", style: "normal" },
+    { path: "./fonts/jetbrains-mono-latin-ext.woff2", style: "normal" },
+  ],
+  weight: "100 800",
+  display: "swap",
+  variable: "--font-mono",
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+});
 
 // Render metadata at request time so titles/description reflect the live central
 // SEO config (the backend is unreachable during build, which would bake defaults).
@@ -104,7 +151,7 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      style={fontVariables}
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
     >
       <body
         suppressHydrationWarning

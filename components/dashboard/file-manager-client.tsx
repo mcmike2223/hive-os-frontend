@@ -1767,7 +1767,7 @@ export function FileManagerClient({
       return (
         <div className="flex flex-col items-center justify-center bg-black rounded-2xl h-full min-h-[400px] border border-border/50 overflow-hidden shadow-inner w-full relative">
           {!adaptiveStreamingReady && (
-            <div className="absolute top-4 left-4 z-20 rounded-full border border-white/10 bg-black/65 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/70 backdrop-blur-xl">
+            <div className="absolute top-4 left-4 z-20 rounded-full border border-white/10 bg-black/65 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-white/70 backdrop-blur-xl">
               Adaptive quality preparing...
             </div>
           )}
@@ -1993,7 +1993,7 @@ export function FileManagerClient({
             {activeFilter === "all" &&
               !currentFolderId &&
               !activePlaylistId && (
-                <span className="hidden lg:inline-block ml-auto bg-emerald-500 text-emerald-950 text-[10px] px-2 py-0.5 rounded-full">
+                <span className="hidden lg:inline-block ml-auto bg-emerald-500 text-emerald-950 text-[11px] px-2 py-0.5 rounded-full">
                   {folders.length + allFiles.length}
                 </span>
               )}
@@ -2029,7 +2029,7 @@ export function FileManagerClient({
           </button>
 
           <div className="hidden lg:block h-px bg-border/50 w-full my-2"></div>
-          <p className="hidden lg:block text-[10px] font-black uppercase text-muted-foreground tracking-widest px-3 mb-1">
+          <p className="hidden lg:block text-[11px] font-black uppercase text-muted-foreground tracking-widest px-3 mb-1">
             Playlists
           </p>
           <div className="flex lg:flex-col gap-1">
@@ -2081,7 +2081,7 @@ export function FileManagerClient({
               </div>
             ))}
             {playlists.length === 0 && (
-              <p className="hidden lg:block text-[10px] text-muted-foreground px-3 italic">
+              <p className="hidden lg:block text-[11px] text-muted-foreground px-3 italic">
                 No playlists yet
               </p>
             )}
@@ -2107,7 +2107,7 @@ export function FileManagerClient({
         <div className="bg-background/40 p-4 rounded-2xl border border-border/50 hidden lg:block mt-auto">
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs font-bold tracking-wide">Storage</span>
-            <span className="text-[10px] text-muted-foreground font-mono">
+            <span className="text-[11px] text-muted-foreground font-mono">
               {folders.length + allFiles.length} files
             </span>
           </div>
@@ -2115,7 +2115,7 @@ export function FileManagerClient({
             value={storagePercentage}
             className="h-1.5 bg-muted mb-2 [&>div]:bg-emerald-500"
           />
-          <p className="text-[10px] text-muted-foreground font-mono">
+          <p className="text-[11px] text-muted-foreground font-mono">
             {formatBytes(metrics.total_used)} used of{" "}
             {formatBytes(MAX_STORAGE_BYTES)}
           </p>
@@ -2331,7 +2331,7 @@ export function FileManagerClient({
                 <Button
                   variant="link"
                   size="sm"
-                  className="h-auto p-0 text-[10px] uppercase tracking-widest text-emerald-500"
+                  className="h-auto p-0 text-[11px] uppercase tracking-widest text-emerald-500"
                   onClick={() => setActiveTypeFilter(null)}
                 >
                   Clear Filter <X className="h-3 w-3 ml-1" />
@@ -2653,7 +2653,7 @@ export function FileManagerClient({
 
                 {/* List View Headers */}
                 {viewMode === "list" && displayedFiles.length > 0 && (
-                  <div className="flex items-center gap-4 px-4 pb-2 mb-2 border-b border-border/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <div className="flex items-center gap-4 px-4 pb-2 mb-2 border-b border-border/50 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                     <div className="w-8"></div> <div className="w-10"></div>
                     <span className="flex-1">File Name</span>
                     <span className="w-24 text-right hidden sm:block">
@@ -2778,10 +2778,10 @@ export function FileManagerClient({
                               </h4>
                               {viewMode === "grid" && (
                                 <div className="flex justify-between items-center px-1 mt-1">
-                                  <span className="text-[10px] text-muted-foreground font-mono uppercase truncate max-w-[70%]">
+                                  <span className="text-[11px] text-muted-foreground font-mono uppercase truncate max-w-[70%]">
                                     {media?.mime_type?.split("/")[1] || "FILE"}
                                   </span>
-                                  <span className="text-[10px] text-muted-foreground font-mono font-medium bg-muted/50 px-1.5 rounded shrink-0">
+                                  <span className="text-[11px] text-muted-foreground font-mono font-medium bg-muted/50 px-1.5 rounded shrink-0">
                                     {media?.human_size}
                                   </span>
                                 </div>
@@ -3002,7 +3002,7 @@ export function FileManagerClient({
             <DialogTitle>Move Items</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
+            <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
               Destination Folder
             </label>
             <select
@@ -3067,7 +3067,7 @@ export function FileManagerClient({
             <DialogTitle>Rename Item</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
+            <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
               New Name
             </label>
             <Input
@@ -3114,7 +3114,7 @@ export function FileManagerClient({
           </DialogHeader>
           <form onSubmit={handleCreateFolder}>
             <div className="py-4">
-              <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
+              <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
                 Folder Name
               </label>
               <Input
@@ -3229,14 +3229,14 @@ export function FileManagerClient({
                     <div className="flex gap-2 mt-3">
                       <Badge
                         variant="secondary"
-                        className="font-mono text-[10px] uppercase tracking-widest bg-muted/80"
+                        className="font-mono text-[11px] uppercase tracking-widest bg-muted/80"
                       >
                         {selectedFile.media_details?.mime_type?.split("/")[1] ||
                           "FILE"}
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="font-mono text-[10px] border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
+                        className="font-mono text-[11px] border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
                       >
                         {selectedFile.media_details?.human_size}
                       </Badge>
@@ -3245,7 +3245,7 @@ export function FileManagerClient({
 
                   <div className="flex-1 p-6 space-y-8">
                     <div className="space-y-4">
-                      <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      <h4 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                         <Info className="h-3.5 w-3.5" /> File Information
                       </h4>
                       <div className="space-y-4 bg-muted/20 p-4 rounded-2xl border border-border/50">
@@ -3254,7 +3254,7 @@ export function FileManagerClient({
                             <CalendarDays className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
                               Uploaded On
                             </p>
                             <p className="text-sm font-bold truncate">
@@ -3269,7 +3269,7 @@ export function FileManagerClient({
                             <HardDrive className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
                               Exact Size
                             </p>
                             <p className="text-sm font-mono truncate">
@@ -3287,12 +3287,12 @@ export function FileManagerClient({
                       hasVideoPlayer && (
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <h4 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                               <Subtitles className="h-3.5 w-3.5" /> Subtitles
                             </h4>
                             <Badge
                               variant="outline"
-                              className="text-[10px] bg-background"
+                              className="text-[11px] bg-background"
                             >
                               {selectedFile.media_details?.subtitles?.length ||
                                 0}
@@ -3311,7 +3311,7 @@ export function FileManagerClient({
                                   <div className="flex items-center gap-3 shrink-0">
                                     <Badge
                                       variant="secondary"
-                                      className="font-mono text-[10px] bg-background"
+                                      className="font-mono text-[11px] bg-background"
                                     >
                                       {sub.srcLang}
                                     </Badge>
@@ -3424,7 +3424,7 @@ export function FileManagerClient({
                     </Button>
                     {downloadingFileId === selectedFile.id && (
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                           <span>
                             {downloadPhase === "downloading"
                               ? "Downloading file"
@@ -3527,7 +3527,7 @@ export function FileManagerClient({
           </div>
           <div className="p-6 space-y-5 overflow-y-auto scrollbar-thin min-w-0">
             <div className="space-y-1.5 min-w-0">
-              <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block">
+              <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
                 Selected File
               </label>
               <div className="flex items-center bg-muted/50 border border-border/50 h-10 rounded-xl px-3 text-sm font-mono min-w-0 w-full overflow-hidden">
@@ -3539,7 +3539,7 @@ export function FileManagerClient({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
               <div className="space-y-1.5 min-w-0">
-                <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block">
+                <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
                   Language Code
                 </label>
                 <select
@@ -3556,7 +3556,7 @@ export function FileManagerClient({
                 </select>
               </div>
               <div className="space-y-1.5 min-w-0">
-                <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground block">
+                <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
                   Display Label
                 </label>
                 <Input
@@ -3613,7 +3613,7 @@ export function FileManagerClient({
             <div className="space-y-5 py-4 px-1">
               <div className="grid grid-cols-2 gap-4 min-w-0">
                 <div className="space-y-2 min-w-0">
-                  <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">
+                  <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground">
                     Save in Folder
                   </label>
                   <select
@@ -3635,7 +3635,7 @@ export function FileManagerClient({
                   </select>
                 </div>
                 <div className="space-y-2 min-w-0">
-                  <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">
+                  <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground">
                     Base Name
                   </label>
                   <Input
@@ -3687,13 +3687,13 @@ export function FileManagerClient({
                       <p className="text-sm font-bold text-foreground truncate w-full text-center px-2 max-w-full drop-shadow-sm">
                         {uploadFile.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground font-mono mt-1">
+                      <p className="text-[11px] text-muted-foreground font-mono mt-1">
                         {formatBytes(uploadFile.size)}
                       </p>
                       {uploadProgress > 0 && (
                         <div className="w-full mt-6 space-y-2 px-2 shrink-0 animate-in fade-in zoom-in duration-300">
                           <div className="flex justify-between items-end mb-1">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80 animate-pulse">
+                            <span className="text-[11px] font-black uppercase tracking-widest text-emerald-500/80 animate-pulse">
                               Processing Chunk
                             </span>
                             <span className="text-xl font-black text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
@@ -3730,7 +3730,7 @@ export function FileManagerClient({
               </div>
               {uploadFile && !uploadFile.type.startsWith("image/") && (
                 <div className="space-y-2 pt-4 border-t border-border/50 overflow-hidden min-w-0">
-                  <label className="text-[10px] font-black tracking-widest uppercase text-muted-foreground flex items-center gap-2">
+                  <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground flex items-center gap-2">
                     <ImagePlus className="h-3 w-3 shrink-0" /> Custom Thumbnail
                     (Optional)
                   </label>
@@ -3832,7 +3832,7 @@ export function FileManagerClient({
                     <span className="font-bold text-base block leading-none">
                       {pl.name}
                     </span>
-                    <span className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/60 mt-1 block">
+                    <span className="text-[11px] uppercase tracking-widest font-black text-muted-foreground/60 mt-1 block">
                       Custom Playlist
                     </span>
                   </div>
@@ -3937,7 +3937,7 @@ function MetricCard({
         </div>
         <Badge
           variant="outline"
-          className="text-[9px] font-mono opacity-60 bg-transparent border-border/50"
+          className="text-[11px] font-mono opacity-60 bg-transparent border-border/50"
         >
           {count}
         </Badge>
@@ -3946,7 +3946,7 @@ function MetricCard({
         <p className="text-xs font-bold text-foreground truncate w-full">
           {title}
         </p>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 truncate w-full">
+        <p className="text-[11px] font-mono text-muted-foreground mt-0.5 truncate w-full">
           {formatBytes(size)}
         </p>
       </div>

@@ -715,7 +715,7 @@ export default function TenantSignupPage() {
           {/* Header */}
           {step !== "confirm" && (
             <div className="text-center mb-10">
-              <Badge className="mb-3 bg-primary/10 text-primary border-none font-mono text-[10px] tracking-widest uppercase">
+              <Badge className="mb-3 bg-primary/10 text-primary border-none font-mono text-[11px] tracking-widest uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse mr-2" />
                 New Workspace Registration
               </Badge>
@@ -750,7 +750,7 @@ export default function TenantSignupPage() {
                         )}>
                           {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                         </div>
-                        <span className={cn("text-[10px] font-bold uppercase tracking-widest hidden sm:block",
+                        <span className={cn("text-[11px] font-bold uppercase tracking-widest hidden sm:block",
                           active ? "text-foreground" : "text-muted-foreground"
                         )}>{s.label}</span>
                       </div>
@@ -786,7 +786,7 @@ export default function TenantSignupPage() {
                       )}
                     >
                       {meta.highlight && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full shadow-md shadow-indigo-500/30">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[11px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full shadow-md shadow-indigo-500/30">
                           Most Popular
                         </div>
                       )}
@@ -799,22 +799,22 @@ export default function TenantSignupPage() {
                         <Icon className={cn("h-5 w-5", meta.color)} />
                       </div>
 
-                      <p className={cn("text-[10px] font-black uppercase tracking-widest mb-0.5", meta.color)}>{meta.label}</p>
-                      <p className="text-[10px] text-muted-foreground mb-3">{meta.tagline}</p>
+                      <p className={cn("text-[11px] font-black uppercase tracking-widest mb-0.5", meta.color)}>{meta.label}</p>
+                      <p className="text-[11px] text-muted-foreground mb-3">{meta.tagline}</p>
 
                       <div className="mb-3">
                         <span className="text-2xl font-black text-foreground">{meta.price}</span>
-                        <span className="text-[10px] text-muted-foreground ml-1">{meta.priceNote}</span>
+                        <span className="text-[11px] text-muted-foreground ml-1">{meta.priceNote}</span>
                       </div>
 
-                      <div className={cn("rounded-lg px-2 py-1 mb-3 text-[10px] font-bold flex items-center gap-1.5", meta.color, `bg-gradient-to-br ${meta.bg}`)}>
+                      <div className={cn("rounded-lg px-2 py-1 mb-3 text-[11px] font-bold flex items-center gap-1.5", meta.color, `bg-gradient-to-br ${meta.bg}`)}>
                         <HardDrive className="h-3 w-3 shrink-0" />
                         {meta.storageLabel} storage
                       </div>
 
                       <ul className="space-y-1.5">
                         {meta.features.slice(0, 4).map((f, i) => (
-                          <li key={i} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          <li key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             <Check className={cn("h-3 w-3 shrink-0", meta.color)} />
                             {f}
                           </li>
@@ -843,11 +843,11 @@ export default function TenantSignupPage() {
                     <PlanIcon className={cn("h-7 w-7", planMeta.color)} />
                   </div>
                   <div className="flex-1">
-                    <p className={cn("text-[10px] font-black uppercase tracking-widest mb-0.5", planMeta.color)}>Selected: {planMeta.label}</p>
+                    <p className={cn("text-[11px] font-black uppercase tracking-widest mb-0.5", planMeta.color)}>Selected: {planMeta.label}</p>
                     <p className="text-sm text-muted-foreground">{planMeta.tagline}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {planMeta.features.map((f, i) => (
-                        <span key={i} className="text-[10px] bg-background/50 border border-border/50 px-2 py-0.5 rounded-full text-muted-foreground">
+                        <span key={i} className="text-[11px] bg-background/50 border border-border/50 px-2 py-0.5 rounded-full text-muted-foreground">
                           {f}
                         </span>
                       ))}
@@ -856,7 +856,7 @@ export default function TenantSignupPage() {
                   <div className="text-right shrink-0">
                     <p className="text-2xl font-black text-foreground">{planMeta.price}</p>
                     <p className="text-xs text-muted-foreground">{planMeta.priceNote}</p>
-                    {isFree && <Badge className="mt-1 bg-emerald-500/10 text-emerald-500 border-none text-[10px]">No card required</Badge>}
+                    {isFree && <Badge className="mt-1 bg-emerald-500/10 text-emerald-500 border-none text-[11px]">No card required</Badge>}
                   </div>
                 </div>
               )}
@@ -891,7 +891,7 @@ export default function TenantSignupPage() {
                 <div className="space-y-6">
                   {/* Org name */}
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Organization Name *</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Organization Name *</Label>
                     <div className="relative group">
                       <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
@@ -906,7 +906,7 @@ export default function TenantSignupPage() {
 
                   {/* Tenant ID (read-only derived) */}
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workspace ID (auto-generated)</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Workspace ID (auto-generated)</Label>
                     <div className="relative group">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -935,7 +935,7 @@ export default function TenantSignupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Business Type *</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Business Type *</Label>
                     <Select value={businessType} onValueChange={setBusinessType}>
                       <SelectTrigger className="h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50">
                         <SelectValue />
@@ -957,11 +957,11 @@ export default function TenantSignupPage() {
                   </div>
 
                   <div className="border-t border-border/50 pt-6">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Administrator Account</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">Administrator Account</p>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {/* Admin name */}
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Full Name *</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Full Name *</Label>
                         <div className="relative group">
                           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                           <Input
@@ -975,7 +975,7 @@ export default function TenantSignupPage() {
                       </div>
                       {/* Admin email */}
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Work Email *</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Work Email *</Label>
                         <div className="relative group">
                           <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                           <Input
@@ -991,7 +991,7 @@ export default function TenantSignupPage() {
                     </div>
                     {/* Password */}
                     <div className="space-y-2 mt-4">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Password (min 8 characters) *</Label>
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Password (min 8 characters) *</Label>
                       <div className="relative group">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
@@ -1017,7 +1017,7 @@ export default function TenantSignupPage() {
                               <div key={i} className={cn("h-1 w-8 rounded-full transition-all", adminPassword.length >= i * 2 ? (i <= 2 ? "bg-amber-500" : "bg-emerald-500") : "bg-border")} />
                             ))}
                           </div>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground">
                             {adminPassword.length < 6 ? "Too short" : adminPassword.length < 8 ? "Weak" : adminPassword.length < 12 ? "Good" : "Strong"}
                           </span>
                         </div>
@@ -1058,7 +1058,7 @@ export default function TenantSignupPage() {
                 "rounded-[2rem] border p-6 mb-5 bg-gradient-to-br",
                 planMeta.bg, `ring-1 ${planMeta.ring} border-transparent`
               )}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Order Summary</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">Order Summary</p>
                 <div className="space-y-3">
                   {[
                     { label: "Plan", value: `${planMeta.label} — ${planMeta.price} ${planMeta.priceNote}` },
@@ -1102,14 +1102,14 @@ export default function TenantSignupPage() {
 
               {!isFree && (
                 <div className="rounded-[2rem] border border-border/50 bg-card/40 backdrop-blur-md p-6 mb-5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">
                     Checkout Details
                   </p>
 
                   <div className="space-y-4">
                     {directTransferEnabled && (
                       <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                           Payment Path
                         </Label>
                         <div className="grid gap-3 md:grid-cols-2">
@@ -1165,7 +1165,7 @@ export default function TenantSignupPage() {
                     {checkoutChannel === "gateway" ? (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                             {requiresBillingPhone ? "Billing Phone *" : "Contact Phone"}
                           </Label>
                           <div className="overflow-hidden rounded-xl border border-border bg-muted/30 transition-colors focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50">
@@ -1193,7 +1193,7 @@ export default function TenantSignupPage() {
 
                         {usesHostedArifPayPortal ? (
                           <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                               Payment Provider
                             </Label>
                             <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4 ring-1 ring-primary/20">
@@ -1211,7 +1211,7 @@ export default function TenantSignupPage() {
                           </div>
                         ) : showPaymentMethodSelector ? (
                           <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                               Payment Method
                             </Label>
                             {providerMethods.map((m: { code: string; label: string }) => {
@@ -1247,7 +1247,7 @@ export default function TenantSignupPage() {
                           </div>
                         ) : (
                           <div className="rounded-2xl border border-border/50 bg-background/50 px-4 py-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                               Active Provider
                             </p>
                             <p className="mt-1 text-sm font-bold text-foreground">{providerLabel}</p>
@@ -1259,7 +1259,7 @@ export default function TenantSignupPage() {
                       </>
                     ) : (
                       <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                           Direct Transfer Details
                         </Label>
                         {directTransfer?.instructions && (
@@ -1307,7 +1307,7 @@ export default function TenantSignupPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                             Transaction Reference *
                           </Label>
                           <Input
@@ -1534,7 +1534,7 @@ function ConfirmSuccess({ tenantId, workspaceHost, orgName, planLabel, planColor
       </p>
 
       <div className="rounded-[2rem] border border-emerald-500/20 bg-emerald-500/5 p-6 max-w-sm mx-auto mb-8 text-left">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Access Details</p>
+        <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-3">Access Details</p>
         <div className="space-y-2">
           {[
             { label: "Workspace URL", value: workspaceHost || buildTenantDomain(tenantId), mono: true },

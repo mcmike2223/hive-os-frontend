@@ -580,7 +580,7 @@ export default function FileConverterPage() {
 
                         <div className="space-y-5 flex-1">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.paper_size', "Paper Size")}</Label>
+                                <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.paper_size', "Paper Size")}</Label>
                                 <Select value={settings.paper_size} onValueChange={(v) => setSettings({...settings, paper_size: v})}>
                                     <SelectTrigger className="bg-muted/30 rounded-xl"><SelectValue /></SelectTrigger>
                                     <SelectContent className="rounded-xl border-border/50">
@@ -591,23 +591,23 @@ export default function FileConverterPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.orientation', "Orientation")}</Label>
+                                <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.orientation', "Orientation")}</Label>
                                 <Select value={settings.orientation} onValueChange={(v) => setSettings({...settings, orientation: v})}>
                                     <SelectTrigger className="bg-muted/30 rounded-xl"><SelectValue /></SelectTrigger>
                                     <SelectContent className="rounded-xl border-border/50"><SelectItem value="portrait">{t('tools.portrait', "Portrait (Vertical)")}</SelectItem><SelectItem value="landscape">{t('tools.landscape', "Landscape (Horizontal)")}</SelectItem></SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.print_backgrounds', "Print Backgrounds")}</Label>
+                                <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.print_backgrounds', "Print Backgrounds")}</Label>
                                 <Select value={settings.print_background} onValueChange={(v) => setSettings({...settings, print_background: v})}>
                                     <SelectTrigger className="bg-muted/30 rounded-xl"><SelectValue /></SelectTrigger>
                                     <SelectContent className="rounded-xl border-border/50"><SelectItem value="true">{t('tools.yes_preserve', "Yes (Preserve Colors/Graphics)")}</SelectItem><SelectItem value="false">{t('tools.no_clean', "No (Clean White Document)")}</SelectItem></SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.page_margins', "Page Margins (Inches)")}</Label>
+                                <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">{t('tools.page_margins', "Page Margins (Inches)")}</Label>
                                 <Input type="number" min="0" step="0.1" value={settings.margins} onChange={(e) => setSettings({...settings, margins: parseFloat(e.target.value) || 0})} className="bg-muted/30 rounded-xl font-mono" />
-                                <p className="text-[10px] text-muted-foreground">{t('tools.margins_desc', "Set to 0 if your HTML already has internal padding.")}</p>
+                                <p className="text-[11px] text-muted-foreground">{t('tools.margins_desc', "Set to 0 if your HTML already has internal padding.")}</p>
                             </div>
                         </div>
                     </div>

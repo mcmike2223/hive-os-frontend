@@ -343,25 +343,25 @@ export default function ImageConverterPage() {
                            
                           <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center text-[10px] font-mono text-muted-foreground">
+                          <div className="h-full w-full flex items-center justify-center text-[11px] font-mono text-muted-foreground">
                             {file.name.split(".").pop()?.toUpperCase()}
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold truncate">{file.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
                       </div>
                       {conv && (
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] rounded-full px-2">
+                          <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[11px] rounded-full px-2">
                             <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
                             {formatBytes(conv.convertedSize)}
                           </Badge>
-                          <Button size="sm" variant="outline" className="h-7 rounded-full text-[10px] px-3" onClick={() => setPreviewItem(conv)}>
+                          <Button size="sm" variant="outline" className="h-7 rounded-full text-[11px] px-3" onClick={() => setPreviewItem(conv)}>
                             <ZoomIn className="h-3 w-3 mr-1" /> Preview
                           </Button>
-                          <Button size="sm" className="h-7 rounded-full text-[10px] px-3 bg-sky-500 hover:bg-sky-600 text-white" onClick={() => downloadOne(conv)}>
+                          <Button size="sm" className="h-7 rounded-full text-[11px] px-3 bg-sky-500 hover:bg-sky-600 text-white" onClick={() => downloadOne(conv)}>
                             <Download className="h-3 w-3 mr-1" /> Save
                           </Button>
                         </div>
@@ -405,7 +405,7 @@ export default function ImageConverterPage() {
 
             {/* Output Format */}
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                 Output Format
               </Label>
               <div className="grid grid-cols-2 gap-2">
@@ -422,7 +422,7 @@ export default function ImageConverterPage() {
                   >
                     <span className="text-base">{fmt.icon}</span>
                     <span className="text-xs font-black">{fmt.label}</span>
-                    <span className="text-[9px] leading-tight opacity-60">{fmt.description}</span>
+                    <span className="text-[11px] leading-tight opacity-60">{fmt.description}</span>
                   </button>
                 ))}
               </div>
@@ -432,7 +432,7 @@ export default function ImageConverterPage() {
             {showQuality && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                     Quality
                   </Label>
                   <span className="text-xs font-black text-primary">{quality}%</span>
@@ -445,7 +445,7 @@ export default function ImageConverterPage() {
                   onValueChange={([v]) => setQuality(v)}
                   className="w-full"
                 />
-                <div className="flex justify-between text-[9px] text-muted-foreground">
+                <div className="flex justify-between text-[11px] text-muted-foreground">
                   <span>Smaller file</span>
                   <span>Best quality</span>
                 </div>
@@ -454,7 +454,7 @@ export default function ImageConverterPage() {
 
             {/* Tips */}
             <div className="rounded-xl bg-muted/30 border border-border/40 p-3 space-y-1.5">
-              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Tips</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Tips</p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 {outputFormat === "image/png" && "PNG is lossless and supports transparent backgrounds. Great for logos and icons."}
                 {outputFormat === "image/jpeg" && "JPEG is ideal for photos. Quality 85-95 gives the best file size / quality balance."}
@@ -528,21 +528,21 @@ export default function ImageConverterPage() {
             <div className="grid grid-cols-2 gap-0 h-[60vh]">
               <div className="relative border-r border-border/40 bg-muted/20 flex items-center justify-center overflow-hidden">
                 <div className="absolute top-2 left-2 z-10">
-                  <Badge variant="secondary" className="text-[10px] rounded-full">Original</Badge>
+                  <Badge variant="secondary" className="text-[11px] rounded-full">Original</Badge>
                 </div>
                 { }
                 <img src={previewItem.originalUrl} alt="Original" className="max-h-full max-w-full object-contain" />
-                <div className="absolute bottom-2 left-2 text-[10px] text-muted-foreground bg-background/70 rounded-full px-2 py-0.5">
+                <div className="absolute bottom-2 left-2 text-[11px] text-muted-foreground bg-background/70 rounded-full px-2 py-0.5">
                   {formatBytes(previewItem.originalSize)}
                 </div>
               </div>
               <div className="relative bg-muted/20 flex items-center justify-center overflow-hidden">
                 <div className="absolute top-2 left-2 z-10">
-                  <Badge className="text-[10px] rounded-full bg-emerald-500 text-white">Converted · {selectedFormat.label}</Badge>
+                  <Badge className="text-[11px] rounded-full bg-emerald-500 text-white">Converted · {selectedFormat.label}</Badge>
                 </div>
                 { }
                 <img src={previewItem.convertedUrl} alt="Converted" className="max-h-full max-w-full object-contain" />
-                <div className="absolute bottom-2 right-2 text-[10px] text-muted-foreground bg-background/70 rounded-full px-2 py-0.5">
+                <div className="absolute bottom-2 right-2 text-[11px] text-muted-foreground bg-background/70 rounded-full px-2 py-0.5">
                   {formatBytes(previewItem.convertedSize)}
                 </div>
               </div>

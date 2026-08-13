@@ -838,7 +838,7 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                         )}
                       </div>
                       <div className="rounded-2xl border border-border/50 bg-muted/10 p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Saved Asset Path</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Saved Asset Path</p>
                         <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">{imageDisplayPath}</p>
                       </div>
                     </Field>

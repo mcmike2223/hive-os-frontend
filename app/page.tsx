@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Activity,
   ArrowRight,
   ArrowUp,
   BatteryCharging,
@@ -17,29 +16,39 @@ import {
   Database,
   FileText,
   Globe,
-  LineChart,
   Network,
   PieChart,
   ShieldCheck,
   SmartphoneNfc,
-  Truck,
-  Users,
   Wallet,
   Zap,
 } from "lucide-react";
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTranslation } from "@/store/use-translation";
+import { LandingNavbar } from "@/modules/landing/components/landing-navbar";
+import { LandingHero } from "@/modules/landing/components/landing-hero";
+import { LandingProof } from "@/modules/landing/components/landing-proof";
+import { LandingMetrics } from "@/modules/landing/components/landing-metrics";
+import { LandingSecurity } from "@/modules/landing/components/landing-security";
+import { LandingCompare } from "@/modules/landing/components/landing-compare";
+import { Reveal, RevealGroup, RevealItem, SpotlightCard } from "@/modules/landing/components/reveal";
+import {
+  Eyebrow,
+  IconPlate,
+  SectionHeading,
+  SectionShell,
+  WindowChrome,
+} from "@/modules/landing/components/section";
+import { EASE, springSoft } from "@/modules/landing/motion";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   getBackendApiRoot,
-  getBackendStorageUrl,
+  getPublicServeUrl,
   getTenantHeaders,
   getTenantId,
   getWorkspaceScopeKey,
@@ -100,6 +109,84 @@ function SafeLogo({
       className={className}
       onError={() => setFailed(true)}
     />
+  );
+}
+
+type FooterLink = { label: string; href?: string; section?: string };
+
+/** Footer link list. Renders a real anchor or a scroll button — never dead text. */
+function FooterColumn({
+  title,
+  links,
+  onSection,
+}: {
+  title: string;
+  links: FooterLink[];
+  onSection: (id: string) => void;
+}) {
+  const itemClass =
+    "group flex items-center gap-2 text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary";
+  const dot = (
+    <span className="h-1 w-1 shrink-0 rounded-full bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
+  );
+
+  return (
+    <div>
+      <h4 className="mb-6 font-space font-bold uppercase tracking-wider text-foreground">
+        {title}
+      </h4>
+      <ul className="space-y-3 text-sm font-medium text-muted-foreground">
+        {links.map((link) => (
+          <li key={link.label}>
+            {link.href ? (
+              <Link href={link.href} className={itemClass}>
+                {dot}
+                {link.label}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => link.section && onSection(link.section)}
+                className={itemClass}
+              >
+                {dot}
+                {link.label}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Payslip line item — keeps the label/amount rhythm identical down the card. */
+function Row({
+  label,
+  value,
+  currency,
+  tone = "default",
+  muted,
+}: {
+  label: string;
+  value: string;
+  currency: string;
+  tone?: "default" | "negative";
+  muted?: boolean;
+}) {
+  return (
+    <div className={cn("flex items-baseline justify-between gap-4", muted && "text-[11px]")}>
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "tabular-nums",
+          tone === "negative" && "text-destructive",
+          muted && "text-muted-foreground",
+        )}
+      >
+        {value} <span className="text-muted-foreground">{currency}</span>
+      </span>
+    </div>
   );
 }
 
@@ -285,7 +372,8 @@ function LandingUI({
     const darkLogo = brandSettings?.logo_dark;
     const lightLogo = brandSettings?.logo_light;
     const activeLogo = isDark ? darkLogo || lightLogo : lightLogo || darkLogo;
-    return getBackendStorageUrl(activeLogo);
+    // Landing page is unauthenticated — the logo must resolve publicly.
+    return getPublicServeUrl(activeLogo);
   }, [brandSettings, isDark]);
 
   const appTitle = brandSettings?.app_title || initialPortalName;
@@ -293,7 +381,7 @@ function LandingUI({
   // 🌍 BROWSER METADATA SYNC
   useEffect(() => {
     if (brandSettings?.favicon) {
-      const favUrl = getBackendStorageUrl(brandSettings.favicon);
+      const favUrl = getPublicServeUrl(brandSettings.favicon);
       let link: HTMLLinkElement | null =
         document.querySelector("link[rel~='icon']");
       if (!link) {
@@ -413,22 +501,26 @@ function LandingUI({
     { name: t('landing.partners.ethiotelecom', 'ETHIO TELECOM'), logo: "/logos/ethiotelecom.png" },
   ];
 
+  // `landing.platform_faq.*`, not `landing.faq.*`: the restaurant tenant
+  // template uses landing.faq.q1..q4 for its own questions ("What is the dress
+  // code?"), and whichever dictionary seeded last won — the platform FAQ was
+  // rendering restaurant copy. The two namespaces can no longer collide.
   const faqs = [
     {
-      q: t('landing.faq.q1', 'Does Hive ERP work during internet outages?'),
-      a: t('landing.faq.a1', 'Yes. Our mobile apps and POS systems feature offline-sync. They store data locally and automatically push to the central cloud once connection is restored.'),
+      q: t('landing.platform_faq.q1', 'Does Hive ERP work during internet outages?'),
+      a: t('landing.platform_faq.a1', 'Yes. Our mobile apps and POS systems feature offline-sync. They store data locally and automatically push to the central cloud once connection is restored.'),
     },
     {
-      q: t('landing.faq.q2', 'Is our corporate data stored locally in Ethiopia?'),
-      a: t('landing.faq.a2', 'We offer hybrid deployments. You can choose to host your Node on our secure AWS infrastructure, or deploy an On-Premise instance directly within your local data center for strict INSA compliance.'),
+      q: t('landing.platform_faq.q2', 'Is our corporate data stored locally in Ethiopia?'),
+      a: t('landing.platform_faq.a2', 'We offer hybrid deployments. You can choose to host your Node on our secure AWS infrastructure, or deploy an On-Premise instance directly within your local data center for strict INSA compliance.'),
     },
     {
-      q: t('landing.faq.q3', 'Can we integrate existing legacy software?'),
-      a: t('landing.faq.a3', 'Absolutely. Hive comes with a comprehensive REST API and webhooks, allowing Techive Technology Solutions to build custom bridges to your existing software.'),
+      q: t('landing.platform_faq.q3', 'Can we integrate existing legacy software?'),
+      a: t('landing.platform_faq.a3', 'Absolutely. Hive comes with a comprehensive REST API and webhooks, allowing Techive Technology Solutions to build custom bridges to your existing software.'),
     },
     {
-      q: t('landing.faq.q4', 'How does the multi-tenant architecture work?'),
-      a: t('landing.faq.a4', 'Each company gets its own isolated database schema. This guarantees zero data-bleed between clients while allowing us to push instantaneous system updates to everyone simultaneously.'),
+      q: t('landing.platform_faq.q4', 'How does the multi-tenant architecture work?'),
+      a: t('landing.platform_faq.a4', 'Each company gets its own isolated database schema. This guarantees zero data-bleed between clients while allowing us to push instantaneous system updates to everyone simultaneously.'),
     },
   ];
 
@@ -522,764 +614,790 @@ function LandingUI({
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden">
       {/* 🚀 SCROLL TO TOP BUTTON */}
-      {showScrollTop && (
-        <Button
-          onClick={scrollToTop}
-          size="icon"
-          className="fixed bottom-8 right-8 z-[100] h-12 w-12 rounded-full shadow-2xl shadow-primary/30 border border-primary/20 bg-primary/90 text-primary-foreground hover:bg-primary hover:-translate-y-1 transition-all duration-300 animate-in fade-in zoom-in"
-        >
-          <ArrowUp className="h-6 w-6" />
-        </Button>
-      )}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 12 }}
+            transition={springSoft}
+            className="fixed bottom-8 right-8 z-[100]"
+          >
+            <Button
+              onClick={scrollToTop}
+              size="icon"
+              aria-label={t("landing.nav.back_to_top", "Back to top")}
+              className="h-12 w-12 rounded-full border border-primary/20 bg-primary/90 text-primary-foreground shadow-2xl shadow-primary/30 transition-all duration-300 hover:-translate-y-1 hover:bg-primary"
+            >
+              <ArrowUp className="h-6 w-6" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- BACKGROUND --- */}
-      <canvas
-        id="hive-canvas"
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none opacity-30 z-0"
-      />
       <div className="tech-grid fixed inset-0 z-0 pointer-events-none opacity-40" />
       <div className="vignette fixed inset-0 z-0 pointer-events-none" />
 
       {/* --- NAVBAR --- */}
-      <nav className="fixed top-0 z-50 flex w-full items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur-xl transition-all">
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-space text-xl font-bold tracking-tight hover:text-primary transition-colors group"
-        >
-          {/* 🚀 Safely render Logo without CORS fetch */}
+      <LandingNavbar
+        isTenant={initialIsTenant}
+        onNavigateSection={scrollToSection}
+        brand={
           <SafeLogo
             src={rawLogoUrl}
             alt={appTitle}
-            className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
+            className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
             fallback={
               <div className="flex items-center gap-2">
-                <Globe className="text-primary h-5 w-5 group-hover:rotate-180 transition-transform duration-700" />
+                <Globe className="text-primary h-5 w-5 transition-transform duration-700 group-hover:rotate-180" />
                 <span>{appTitle}</span>
               </div>
             }
           />
-        </Link>
-
-        <div className="hidden md:flex items-center gap-6 text-xs font-bold text-muted-foreground font-space uppercase">
-          <button
-            onClick={() => scrollToSection("modules")}
-            className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          >
-            {t('landing.nav.modules', 'Modules')}
-          </button>
-          <button
-            onClick={() => scrollToSection("fintech")}
-            className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          >
-            {t('landing.nav.payments', 'Payments')}
-          </button>
-          <button
-            onClick={() => scrollToSection("mobility")}
-            className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          >
-            {t('landing.nav.mobility', 'Smart Mobility')}
-          </button>
-          <button
-            onClick={() => scrollToSection("hr")}
-            className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          >
-            {t('landing.nav.payroll', 'Payroll')}
-          </button>
-          <button
-            onClick={() => scrollToSection("architecture")}
-            className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          >
-            {t('landing.nav.architecture', 'Architecture')}
-          </button>
-          {!initialIsTenant && (
-            <button
-              onClick={() => scrollToSection("pricing")}
-              className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer text-primary font-black"
-            >
-              {t('landing.nav.pricing', 'Pricing')}
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <LanguageSwitcher />
-          <ThemeToggle />
-          <div className="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l border-border">
-            <Link href="/sign-in">
-              <Button
-                variant="ghost"
-                className="font-space font-bold uppercase tracking-wider hover:bg-primary/10 hover:text-primary transition-all duration-300"
-              >
-                {t('landing.nav.signin', 'Sign In')}
-              </Button>
-            </Link>
-            {!initialIsTenant && (
-              <Link href="/auth/signup">
-                <Button className="font-space font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 border-none hover:scale-105 transition-all duration-300 [clip-path:polygon(10%_0,100%_0,100%_70%,90%_100%,0_100%,0_30%)]">
-                  {t('landing.nav.deploy', 'Deploy Node')}
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
+        }
+      />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center">
-        <div className="mb-6 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-mono tracking-widest text-primary shadow-[0_0_15px_hsl(var(--primary)_/_0.3)] animate-in fade-in slide-in-from-bottom-4 duration-1000">
-          <span className="mr-2 h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-          {initialIsTenant
-            ? `${t('landing.hero.connected_node', 'CONNECTED NODE')}: ${appTitle}`
-            : t('landing.hero.dev_by', "DEVELOPED BY TECHIVE TECHNOLOGY SOLUTIONS")}
-        </div>
+      <LandingHero
+        isTenant={initialIsTenant}
+        appTitle={appTitle}
+        canvasSlot={
+          <canvas
+            id="hive-canvas"
+            ref={canvasRef}
+            className="pointer-events-none absolute inset-0 h-full w-full opacity-30"
+          />
+        }
+      />
 
-        <h1 className="max-w-5xl font-space text-5xl font-black leading-tight tracking-tighter md:text-7xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100 drop-shadow-2xl">
-          {initialIsTenant ? (
-            <>
-              {t('landing.hero.unified_mgmt', 'Unified Management')} <br />
-              <span className="relative inline-block mt-2 mb-2 group">
-                <span className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/40 transition-all duration-700"></span>
-                <span className="relative bg-gradient-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent animate-text-shimmer uppercase">
-                  {appTitle}
-                </span>
-              </span>{" "}
-              <br /> {t('landing.hero.dashboard', 'Dashboard')}
-            </>
-          ) : (
-            <>
-              {t('landing.hero.unify_ops', 'Unify Your')} <br />{" "}
-              <span className="bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent animate-text-shimmer">
-                {t('landing.hero.enterprise_ops', 'Enterprise Operations')}
-              </span>
-            </>
-          )}
-        </h1>
-
-        <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl font-inter animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-          {initialIsTenant
-            ? t('landing.hero.access_node', `Access the central node for :appTitle. Oversee HR, track freight logistics, and manage financial ledgers in real-time.`, { appTitle })
-            : t('landing.hero.hive_desc', "Hive is the comprehensive ERP solution built for scalable businesses in Ethiopia. Connect your Finance, HR, and Supply Chain with local tax and banking integrations.")}
-        </p>
-
-        {/* --- 3D DASHBOARD PREVIEW --- */}
-        <div className="mt-20 w-full max-w-6xl [perspective:2000px] relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/20 blur-[120px] rounded-full pointer-events-none animate-pulse-hex"></div>
-
-          <div className="relative grid grid-cols-[80px_250px_1fr] overflow-hidden rounded-xl border border-primary/30 bg-background/60 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] h-[500px] md:h-[650px] animate-float-deck group hover:border-primary/60 transition-colors duration-500">
-            <div className="absolute inset-0 w-full h-[2px] bg-primary/50 shadow-[0_0_15px_hsl(var(--primary))] z-50 animate-scan-beam pointer-events-none"></div>
-
-            <div className="flex flex-col items-center gap-6 border-r border-border bg-muted/20 pt-8 z-10">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)_/_0.2)] hover:scale-110 transition-transform cursor-pointer">
-                <LineChart className="h-6 w-6" />
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-                <Truck className="h-6 w-6" />
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-                <Users className="h-6 w-6" />
-              </div>
-              <div className="mt-auto mb-5 text-muted-foreground">
-                <Activity className="h-6 w-6 animate-pulse" />
-              </div>
-            </div>
-
-            <div className="hidden md:block border-r border-border bg-muted/5 p-8 font-mono text-sm text-left z-10 relative">
-              <div className="mb-6 text-xs text-muted-foreground uppercase tracking-widest">
-                &gt; {t('landing.preview.system_modules', 'System Modules')}
-              </div>
-              <div className="space-y-6">
-                <div className="flex justify-between items-center group/item cursor-pointer">
-                  <span className="text-muted-foreground group-hover/item:text-primary transition-colors">
-                    {t('landing.preview.gl', 'General Ledger')}
-                  </span>
-                  <span className="text-green-500 flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>{" "}
-                    {t('landing.preview.synced', 'SYNCED')}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center group/item cursor-pointer">
-                  <span className="text-muted-foreground group-hover/item:text-primary transition-colors">
-                    {t('landing.preview.freight', 'Freight & Fleet')}
-                  </span>
-                  <span className="text-green-500 flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>{" "}
-                    {t('landing.preview.active', 'ACTIVE')}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center group/item cursor-pointer">
-                  <span className="text-muted-foreground group-hover/item:text-primary transition-colors">
-                    {t('landing.preview.payroll_proc', 'Payroll Proc.')}
-                  </span>
-                  <span className="text-yellow-500 animate-pulse">{t('landing.preview.pending', 'PENDING')}</span>
-                </div>
-              </div>
-
-              <div className="absolute bottom-8 left-8 right-8 h-auto rounded border border-primary/20 bg-primary/5 p-4 text-primary text-xs shadow-inner overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent -translate-x-full animate-[shimmer-text_3s_infinite]"></div>
-                {t('landing.preview.server_status', 'SERVER STATUS')}: <br />{" "}
-                <span className="text-lg font-bold">{t('landing.preview.optimal', 'OPTIMAL')}</span>
-                <div className="mt-3 h-1 w-full bg-primary/20 rounded overflow-hidden">
-                  <div className="h-full bg-primary w-[98%] shadow-[0_0_10px_hsl(var(--primary))]"></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 bg-card/10 text-left z-10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 animate-pulse-hex"></div>
-
-              <div className="flex items-end justify-between border-b border-border pb-6">
-                <div>
-                  <h2 className="font-space text-3xl font-bold">
-                    {t('landing.executive_summary.title', 'Executive Summary')}
-                  </h2>
-                  <div className="font-mono text-xs text-primary mt-1 flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>{" "}
-                    {t('landing.executive_summary.real_time', 'REAL-TIME DATA')}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-space text-4xl font-black tracking-tight drop-shadow-lg">
-                    24.5M ETB
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {t('landing.executive_summary.gross_revenue', 'GROSS REVENUE (YTD)')}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
-                  <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">
-                    {t('landing.executive_summary.active_loads', 'ACTIVE LOADS')}
-                  </div>
-                  <div className="font-space text-3xl font-bold">142</div>
-                  <div className="text-xs text-green-500 mt-1 flex items-center gap-1">
-                    <ArrowRight className="rotate-[-45deg] h-3 w-3" /> {t('landing.executive_summary.in_transit', '12 In Transit')}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
-                  <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">
-                    {t('landing.executive_summary.employee_headcount', 'EMPLOYEE HEADCOUNT')}
-                  </div>
-                  <div className="font-space text-3xl font-bold">420</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {t('landing.executive_summary.across_branches', 'Across 4 Branches')}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
-                  <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">
-                    {t('landing.executive_summary.system_latency', 'SYSTEM LATENCY')}
-                  </div>
-                  <div className="font-space text-3xl font-bold">12ms</div>
-                  <div className="mt-4 h-1 w-full bg-muted rounded-full overflow-hidden relative">
-                    <div className="absolute top-0 left-0 h-full bg-primary w-[5%] shadow-[0_0_10px_hsl(var(--primary))]"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* --- PLATFORM FACTS --- */}
+      <LandingMetrics />
 
       {/* --- BENTO GRID MODULES --- */}
-      <section
-        id="modules"
-        className="py-24 px-4 max-w-6xl mx-auto border-t border-border"
-      >
-        <div className="text-center mb-16">
-          <Badge className="mb-4 bg-primary/20 text-primary border-none shadow-none">
-            {t('landing.modules.badge', 'ALL-IN-ONE SOLUTION')}
-          </Badge>
-          <h2 className="font-space text-4xl md:text-5xl font-bold mb-4">
-            {t('landing.modules.title_part1', 'Unified')} <span className="text-primary">{t('landing.modules.title_part2', 'Ecosystem')}</span>
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            {t('landing.modules.desc', 'Stop switching between ten different spreadsheets. Hive centralizes every aspect of your Ethiopian business operations into one seamless dashboard.')}
-          </p>
-        </div>
+      <SectionShell id="modules" tone="base" glow="primary">
+        <SectionHeading
+          eyebrow={t("landing.modules.badge", "All-in-one solution")}
+          title={t("landing.modules.title_part1", "Unified")}
+          accent={t("landing.modules.title_part2", "Ecosystem")}
+          description={t(
+            "landing.modules.desc",
+            "Stop switching between ten different spreadsheets. Hive centralizes every aspect of your Ethiopian business operations into one seamless dashboard.",
+          )}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-4 h-auto md:h-[600px]">
-          <div className="md:col-span-2 md:row-span-2 rounded-2xl border border-border bg-card/50 p-8 hover:border-primary/50 transition-all duration-300 group relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-700"></div>
-            <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 text-primary">
-                <Wallet className="w-7 h-7" />
-              </div>
-              <h3 className="text-3xl font-space font-bold mb-3">
-                {t('landing.modules.finance_title', 'Intelligent Finance')}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-                {t('landing.modules.finance_desc', 'Automated ERCA tax compliance, local bank API integrations for immediate reconciliation, and multi-currency ledger management (ETB/USD).')}
-              </p>
-            </div>
-            <div className="mt-8 bg-background border border-border rounded-xl p-4 shadow-inner">
-              <div className="flex justify-between items-center text-sm font-mono border-b border-border pb-2 mb-2">
-                <span className="text-muted-foreground">{t('landing.modules.telebirr_sync', 'Telebirr Sync')}</span>
-                <span className="text-green-500">{t('landing.preview.success', 'SUCCESS')}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-mono">
-                <span className="text-muted-foreground">{t('landing.modules.vat_calc', 'VAT Calculation')}</span>
-                <span className="text-green-500">{t('landing.modules.automated', 'AUTOMATED')}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="md:col-span-2 md:row-span-1 rounded-2xl border border-border bg-card/50 p-8 hover:border-primary/50 transition-all duration-300 group relative overflow-hidden">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary">
-                  <Boxes className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-space font-bold mb-2">
-                  {t('landing.modules.inventory_title', 'Inventory Management')}
+        {/* No fixed row height: the finance tile's inner ledger panel is taller
+            than half the grid, and a hard `h-[34rem]` made it overflow its own
+            card. Rows size to the tallest content and the spanning tile
+            stretches to match. */}
+        <RevealGroup
+          step={0.1}
+          className="grid grid-cols-1 gap-4 md:grid-cols-4 md:grid-rows-2"
+        >
+          <RevealItem variant="scale" className="min-h-0 md:col-span-2 md:row-span-2">
+            <SpotlightCard className="group flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-border/70 bg-card/40 p-8 backdrop-blur-sm transition-colors duration-300 hover:border-primary/40">
+              <div
+                aria-hidden
+                className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl transition-colors duration-700 group-hover:bg-primary/20"
+              />
+              <div className="relative">
+                <IconPlate size="lg" className="mb-6">
+                  <Wallet className="h-7 w-7" />
+                </IconPlate>
+                <h3 className="mb-3 font-space text-2xl font-bold tracking-tight md:text-3xl">
+                  {t("landing.modules.finance_title", "Intelligent Finance")}
                 </h3>
-                <p className="text-muted-foreground text-sm">
-                  {t('landing.modules.inventory_desc', 'Multi-branch stock syncing, automated reorder triggers, and warehouse routing.')}
+                <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+                  {t(
+                    "landing.modules.finance_desc",
+                    "Automated ERCA tax compliance, local bank API integrations for immediate reconciliation, and multi-currency ledger management (ETB/USD).",
+                  )}
+                </p>
+              </div>
+
+              <div className="relative mt-8 overflow-hidden rounded-2xl border border-border/70 bg-background/70">
+                <WindowChrome
+                  label={t("landing.modules.ledger_label", "Ledger sync")}
+                  status={t("landing.modules.ledger_status", "Auto")}
+                />
+                <div className="divide-y divide-border/60">
+                  {[
+                    {
+                      k: t("landing.modules.telebirr_sync", "Telebirr Sync"),
+                      v: t("landing.preview.success", "SUCCESS"),
+                    },
+                    {
+                      k: t("landing.modules.vat_calc", "VAT Calculation"),
+                      v: t("landing.modules.automated", "AUTOMATED"),
+                    },
+                    {
+                      k: t("landing.modules.cbe_recon", "CBE Reconciliation"),
+                      v: t("landing.modules.matched", "MATCHED"),
+                    },
+                  ].map((row) => (
+                    <div
+                      key={row.k}
+                      className="flex items-center justify-between px-4 py-2.5 font-mono text-[12px]"
+                    >
+                      <span className="text-muted-foreground">{row.k}</span>
+                      <span className="flex items-center gap-1.5 text-primary">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        {row.v}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SpotlightCard>
+          </RevealItem>
+
+          <RevealItem variant="scale" className="min-h-0 md:col-span-2 md:row-span-1">
+            <SpotlightCard className="flex h-full items-start gap-5 overflow-hidden rounded-3xl border border-border/70 bg-card/40 p-8 backdrop-blur-sm transition-colors duration-300 hover:border-primary/40">
+              <IconPlate size="lg">
+                <Boxes className="h-6 w-6" />
+              </IconPlate>
+              <div>
+                <h3 className="mb-2 font-space text-xl font-bold">
+                  {t("landing.modules.inventory_title", "Inventory Management")}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(
+                    "landing.modules.inventory_desc",
+                    "Multi-branch stock syncing, automated reorder triggers, and warehouse routing.",
+                  )}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[
+                    t("landing.modules.tag_reorder", "Reorder points"),
+                    t("landing.modules.tag_transfers", "Branch transfers"),
+                    t("landing.modules.tag_batch", "Batch & expiry"),
+                  ].map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </SpotlightCard>
+          </RevealItem>
+
+          <RevealItem variant="scale" className="min-h-0 md:col-span-1 md:row-span-1">
+            <SpotlightCard className="flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-border/70 bg-card/40 p-7 backdrop-blur-sm transition-colors duration-300 hover:border-primary/40">
+              <IconPlate size="lg" className="mb-5">
+                <ShieldCheck className="h-6 w-6" />
+              </IconPlate>
+              <div>
+                <h3 className="mb-2 font-space text-xl font-bold">
+                  {t("landing.modules.compliance_title", "Compliance")}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t("landing.modules.compliance_desc", "INSA & NBE aligned reporting.")}
+                </p>
+              </div>
+            </SpotlightCard>
+          </RevealItem>
+
+          <RevealItem variant="scale" className="min-h-0 md:col-span-1 md:row-span-1">
+            <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl bg-primary p-7 text-primary-foreground shadow-xl shadow-primary/20 transition-transform duration-300 hover:-translate-y-0.5">
+              <div
+                aria-hidden
+                className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary-foreground/10 blur-2xl"
+              />
+              <PieChart className="relative mb-5 h-9 w-9 opacity-90" />
+              <div className="relative">
+                <h3 className="mb-2 font-space text-xl font-bold">
+                  {t("landing.modules.bi_title", "Real-Time BI")}
+                </h3>
+                <p className="text-sm text-primary-foreground/80">
+                  {t("landing.modules.bi_desc", "Predictive operational analytics.")}
                 </p>
               </div>
             </div>
-          </div>
-
-          <div className="md:col-span-1 md:row-span-1 rounded-2xl border border-border bg-card/50 p-8 hover:border-primary/50 transition-all duration-300 group relative overflow-hidden">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h3 className="text-xl font-space font-bold mb-2">{t('landing.modules.compliance_title', 'Compliance')}</h3>
-            <p className="text-muted-foreground text-sm">
-              {t('landing.modules.compliance_desc', 'INSA & NBE aligned reporting.')}
-            </p>
-          </div>
-
-          <div className="md:col-span-1 md:row-span-1 rounded-2xl border border-border bg-primary p-8 text-primary-foreground hover:scale-[1.02] transition-transform duration-300 shadow-xl shadow-primary/20">
-            <PieChart className="w-10 h-10 mb-4 opacity-80" />
-            <h3 className="text-xl font-space font-bold mb-2">{t('landing.modules.bi_title', 'Real-Time BI')}</h3>
-            <p className="text-primary-foreground/80 text-sm">
-              {t('landing.modules.bi_desc', 'Predictive operational analytics.')}
-            </p>
-          </div>
-        </div>
-      </section>
+          </RevealItem>
+        </RevealGroup>
+      </SectionShell>
 
       {/* --- FINTECH & PAYMENT GATEWAY INTEGRATION --- */}
-      <section
-        id="fintech"
-        className="py-24 bg-card/20 relative overflow-hidden border-t border-border"
-      >
-        <div className="absolute left-0 bottom-0 w-1/2 h-full bg-green-500/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+      <SectionShell id="fintech" tone="raised" glow="primary">
+        {/* `title_lead` is a new key on purpose. `title_part1` is seeded in the
+            backend dictionary as the bare word "Native", and a stored value
+            always beats the default written here — the heading rendered as
+            "Native Sync". Same reason the FAQ heading below uses `title_lead`. */}
+        <SectionHeading
+          eyebrow={t("landing.fintech.pill", "Financial ecosystem")}
+          title={t("landing.fintech.title_lead", "Native payment gateway")}
+          accent={t("landing.fintech.title_part3", "Sync")}
+          description={t(
+            "landing.fintech.desc",
+            "We understand the Ethiopian financial landscape. Hive bridges the gap between your operational ERP and localized payment processors.",
+          )}
+        />
 
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-green-500/10 text-green-500 border-none shadow-none">
-              {t('landing.fintech.pill', 'FINANCIAL ECOSYSTEM')}
-            </Badge>
-            <h2 className="font-space text-4xl md:text-5xl font-bold mb-4">
-              {t('landing.fintech.title_part1', 'Native')} <span className="text-green-500">{t('landing.fintech.title_part2', 'Payment Gateway')}</span>{" "}
-              {t('landing.fintech.title_part3', 'Sync')}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              {t('landing.fintech.desc', 'We understand the Ethiopian financial landscape. Hive bridges the gap between your operational ERP and localized payment processors.')}
-            </p>
+        <RevealGroup step={0.1} className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {[
+            {
+              icon: Zap,
+              title: t("landing.fintech.chapa_title", "Chapa & ArifPay Ready"),
+              desc: t(
+                "landing.fintech.chapa_desc",
+                "Connect directly to Ethiopia's leading modern payment gateways. Auto-reconcile invoices, track digital disbursements, and accept mobile payments natively.",
+              ),
+            },
+            {
+              icon: Building2,
+              title: t("landing.fintech.nbe_title", "NBE Criteria Compliant"),
+              desc: t(
+                "landing.fintech.nbe_desc",
+                "Our financial modules strictly adhere to the regulatory criteria set by the National Bank of Ethiopia, ensuring your reporting and ledger management remain fully compliant.",
+              ),
+            },
+            {
+              icon: Network,
+              title: t("landing.fintech.routing_title", "Multi-Channel Routing"),
+              desc: t(
+                "landing.fintech.routing_desc",
+                "Process payroll directly to CBE, distribute funds via Telebirr, or handle card payments seamlessly across branches with centralized, real-time oversight.",
+              ),
+            },
+          ].map(({ icon: Icon, title, desc }) => (
+            <RevealItem key={title} variant="scale">
+              <SpotlightCard className="group h-full rounded-3xl border border-border/70 bg-background/60 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5">
+                <IconPlate size="lg" className="mb-6 transition-transform group-hover:scale-105">
+                  <Icon className="h-6 w-6" />
+                </IconPlate>
+                <h3 className="mb-3 font-space text-xl font-bold">{title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+              </SpotlightCard>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+
+        {/* Settlement strip: makes the reconciliation claim concrete. */}
+        <Reveal variant="scale" className="mt-6">
+          <div className="overflow-hidden rounded-3xl border border-border/70 bg-background/60 backdrop-blur-sm">
+            <WindowChrome
+              label={t("landing.fintech.settlement_label", "Settlement queue")}
+              status={t("landing.fintech.settlement_status", "Reconciled")}
+            />
+            <div className="grid divide-y divide-border/60 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4">
+              {[
+                { rail: "Telebirr", amount: "412,900", count: "184" },
+                { rail: "CBE Birr", amount: "1,204,500", count: "96" },
+                { rail: "Chapa", amount: "88,240", count: "51" },
+                { rail: "ArifPay", amount: "247,110", count: "77" },
+              ].map((row) => (
+                <div
+                  key={row.rail}
+                  className="border-border/60 px-6 py-5 sm:border-r sm:last:border-r-0"
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {row.rail}
+                  </p>
+                  <p className="mt-2 font-space text-xl font-bold tabular-nums">
+                    {row.amount}{" "}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {t("landing.hr.currency", "ETB")}
+                    </span>
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-primary">
+                    {row.count} {t("landing.fintech.txns", "txns matched")}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-background border border-border rounded-2xl p-8 hover:border-green-500/40 transition-all group shadow-sm">
-              <div className="w-14 h-14 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Zap className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-bold font-space mb-3">
-                {t('landing.fintech.chapa_title', 'Chapa & ArifPay Ready')}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {t('landing.fintech.chapa_desc', "Connect directly to Ethiopia's leading modern payment gateways. Auto-reconcile invoices, track digital disbursements, and accept mobile payments natively.")}
-              </p>
-            </div>
-
-            <div className="bg-background border border-border rounded-2xl p-8 hover:border-blue-500/40 transition-all group shadow-sm">
-              <div className="w-14 h-14 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Building2 className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-bold font-space mb-3">
-                {t('landing.fintech.nbe_title', 'NBE Criteria Compliant')}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {t('landing.fintech.nbe_desc', 'Our financial modules strictly adhere to the regulatory criteria set by the National Bank of Ethiopia, ensuring your reporting and ledger management remain fully compliant.')}
-              </p>
-            </div>
-
-            <div className="bg-background border border-border rounded-2xl p-8 hover:border-purple-500/40 transition-all group shadow-sm">
-              <div className="w-14 h-14 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Network className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-bold font-space mb-3">
-                {t('landing.fintech.routing_title', 'Multi-Channel Routing')}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {t('landing.fintech.routing_desc', 'Process payroll directly to CBE, distribute funds via Telebirr, or handle card payments seamlessly across branches with centralized, real-time oversight.')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </Reveal>
+      </SectionShell>
 
       {/* --- SMART MOBILITY & INFRASTRUCTURE --- */}
-      <section
-        id="mobility"
-        className="py-24 bg-background border-y border-border relative overflow-hidden"
-      >
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
-          <div className="flex-1">
-            <Badge className="mb-4 bg-blue-500/10 text-blue-500 border-none shadow-none">
-              {t('landing.mobility.badge', 'INFRASTRUCTURE MODULES')}
-            </Badge>
-            <h2 className="font-space text-4xl md:text-5xl font-bold mb-6">
-              {t('landing.mobility.title_part1', 'Smart Mobility &')} <span className="text-blue-500">{t('landing.mobility.title_part2', 'Fleet Operations')}</span>
+      <SectionShell id="mobility" tone="base" glow="cool">
+        <div className="flex flex-col items-center gap-14 lg:flex-row lg:gap-16">
+          <Reveal className="flex-1">
+            <Eyebrow align="left">
+              {t("landing.mobility.badge", "Infrastructure modules")}
+            </Eyebrow>
+            <h2 className="mb-6 text-balance font-space text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] md:text-5xl">
+              {t("landing.mobility.title_part1", "Smart mobility &")}{" "}
+              <span className="font-serif font-normal italic tracking-[-0.03em] text-primary">
+                {t("landing.mobility.title_part2", "Fleet Operations")}
+              </span>
             </h2>
-            <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              {t('landing.mobility.desc', 'Expand beyond basic tracking. Hive features advanced integration capabilities for municipalities, transit authorities, and logistics giants.')}
+            <p className="mb-9 text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
+              {t(
+                "landing.mobility.desc",
+                "Expand beyond basic tracking. Hive features advanced integration capabilities for municipalities, transit authorities, and logistics giants.",
+              )}
             </p>
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="mt-1 bg-blue-500/10 p-2 rounded-lg text-blue-500 shrink-0">
-                  <Car size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold mb-1">
-                    {t('landing.mobility.traffic_title', 'Smart Traffic & Toll Management')}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.mobility.traffic_desc', 'Automate toll collection and traffic violation processing via direct API integration with Telebirr and local transit databases.')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="mt-1 bg-blue-500/10 p-2 rounded-lg text-blue-500 shrink-0">
-                  <BatteryCharging size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold mb-1">{t('landing.mobility.ev_title', 'EV Dashboard Integration')}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.mobility.ev_desc', 'Manage an Electric Vehicle fleet with specialized dashboard modules tracking battery health, charging node status, and route optimization.')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 relative">
-            <div className="w-full h-[400px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden relative group">
-              <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
-              <div className="h-12 border-b border-border bg-muted/50 flex items-center px-4 justify-between">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-                <span className="font-mono text-xs font-bold text-muted-foreground tracking-widest uppercase">
-                  {t('landing.mobility.node_id', 'NODE // MOBILITY')}
-                </span>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+            <ul className="space-y-6">
+              {[
+                {
+                  icon: Car,
+                  title: t(
+                    "landing.mobility.traffic_title",
+                    "Smart Traffic & Toll Management",
+                  ),
+                  desc: t(
+                    "landing.mobility.traffic_desc",
+                    "Automate toll collection and traffic violation processing via direct API integration with Telebirr and local transit databases.",
+                  ),
+                },
+                {
+                  icon: BatteryCharging,
+                  title: t("landing.mobility.ev_title", "EV Dashboard Integration"),
+                  desc: t(
+                    "landing.mobility.ev_desc",
+                    "Manage an Electric Vehicle fleet with specialized dashboard modules tracking battery health, charging node status, and route optimization.",
+                  ),
+                },
+              ].map(({ icon: Icon, title, desc }) => (
+                <li key={title} className="flex gap-4">
+                  <IconPlate accent="cool">
+                    <Icon className="h-5 w-5" />
+                  </IconPlate>
                   <div>
-                    <h3 className="font-space font-bold text-xl">
-                      {t('landing.mobility.active_tolls', 'Active Tolls (A.A. Expressway)')}
+                    <h4 className="mb-1 font-space font-bold">{title}</h4>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
+          <Reveal variant="scale" className="w-full flex-1">
+            <div className="overflow-hidden rounded-3xl border border-border/70 bg-card/60 shadow-2xl shadow-background backdrop-blur-sm">
+              <WindowChrome
+                label={t("landing.mobility.node_id", "Node // Mobility")}
+                status={t("landing.mobility.telebirr_sync", "Telebirr sync active")}
+                accent="cool"
+              />
+              <div className="p-6">
+                <div className="mb-6 flex items-end justify-between gap-4">
+                  <div>
+                    <h3 className="font-space text-lg font-bold leading-tight">
+                      {t("landing.mobility.active_tolls", "Active Tolls (A.A. Expressway)")}
                     </h3>
-                    <p className="text-xs text-muted-foreground font-mono mt-1">
-                      {t('landing.mobility.telebirr_sync', 'TELEBIRR SYNC: ACTIVE')}
+                    <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {t("landing.mobility.gantry", "Gantry 04 · Northbound")}
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-500">842</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t('landing.mobility.vehicles_processed_hr', 'Vehicles Processed/Hr')}
+                    <div className="font-space text-3xl font-bold tabular-nums text-sky-500">
+                      842
+                    </div>
+                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {t("landing.mobility.vehicles_processed_hr", "Vehicles / hr")}
                     </div>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {[
                     {
                       plate: "A 42315 AA",
-                      status: t('landing.mobility.cleared', "CLEARED"),
-                      amount: `45.00 ${t('landing.hr.currency', 'ETB')}`,
-                      time: t('landing.mobility.just_now', "Just Now"),
+                      status: t("landing.mobility.cleared", "CLEARED"),
+                      tone: "text-primary bg-primary/10",
+                      amount: "45.00",
                     },
                     {
                       plate: "B 19482 OR",
-                      status: t('landing.mobility.pending', "PENDING"),
-                      amount: `120.00 ${t('landing.hr.currency', 'ETB')}`,
-                      time: t('landing.mobility.min_ago', "1 min ago"),
+                      status: t("landing.mobility.pending", "PENDING"),
+                      tone: "text-amber-500 bg-amber-500/10",
+                      amount: "120.00",
                     },
                     {
                       plate: "EV 00412 AA",
-                      status: t('landing.mobility.exempt', "EXEMPT"),
-                      amount: `0.00 ${t('landing.hr.currency', 'ETB')}`,
-                      time: t('landing.mobility.mins_ago', "5 mins ago"),
+                      status: t("landing.mobility.exempt", "EXEMPT"),
+                      tone: "text-sky-500 bg-sky-500/10",
+                      amount: "0.00",
                     },
-                  ].map((row, idx) => (
+                  ].map((row) => (
                     <div
-                      key={idx}
-                      className="flex justify-between items-center p-3 rounded bg-background border border-border"
+                      key={row.plate}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/70 p-3"
                     >
-                      <div className="font-mono text-sm font-bold bg-muted px-2 py-1 rounded">
+                      <span className="rounded-md bg-muted px-2 py-1 font-mono text-[13px] font-bold tracking-tight">
                         {row.plate}
-                      </div>
-                      <div
-                        className={`text-xs font-bold ${row.status === "CLEARED" ? "text-green-500" : row.status === "EXEMPT" ? "text-blue-500" : "text-yellow-500"}`}
+                      </span>
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider",
+                          row.tone,
+                        )}
                       >
                         {row.status}
-                      </div>
-                      <div className="font-mono text-sm">{row.amount}</div>
+                      </span>
+                      <span className="font-mono text-[13px] tabular-nums">
+                        {row.amount}{" "}
+                        <span className="text-muted-foreground">
+                          {t("landing.hr.currency", "ETB")}
+                        </span>
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
-      </section>
+      </SectionShell>
 
       {/* --- LOCALIZED HR & PAYROLL --- */}
-      <section id="hr" className="py-24 bg-card/10 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
-          <div className="flex-1 order-2 md:order-1 relative">
-            <div className="bg-background border border-border rounded-xl shadow-xl p-6 relative max-w-sm mx-auto transform -rotate-2 hover:rotate-0 transition-transform duration-500 z-10">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-full flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-primary absolute top-3 right-3" />
-              </div>
-              <h3 className="font-space font-bold text-xl border-b border-border pb-4 mb-4">
-                {t('landing.hr.payslip_title', 'Payslip Generation')}
-              </h3>
-              <div className="space-y-4 font-mono text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('landing.hr.gross_salary', 'Gross Salary')}</span>
-                  <span>25,000.00 {t('landing.hr.currency', 'ETB')}</span>
+      <SectionShell id="hr" tone="raised" glow="primary">
+        <div className="flex flex-col items-center gap-14 lg:flex-row lg:gap-16">
+          <Reveal variant="scale" className="order-2 w-full flex-1 lg:order-1">
+            <div className="relative mx-auto max-w-sm">
+              <div
+                aria-hidden
+                className="absolute left-1/2 top-1/2 -z-10 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[90px]"
+              />
+              <div className="overflow-hidden rounded-3xl border border-border/70 bg-background/80 shadow-2xl shadow-background backdrop-blur-sm transition-transform duration-500 hover:-translate-y-1">
+                <WindowChrome
+                  label={t("landing.hr.payslip_title", "Payslip generation")}
+                  status={t("landing.hr.payslip_status", "Approved")}
+                />
+                <div className="space-y-3.5 p-6 font-mono text-[13px]">
+                  <Row
+                    label={t("landing.hr.gross_salary", "Gross Salary")}
+                    value="25,000.00"
+                    currency={t("landing.hr.currency", "ETB")}
+                  />
+                  <Row
+                    label={t("landing.hr.income_tax", "Income Tax (ERCA)")}
+                    value="-4,550.00"
+                    currency={t("landing.hr.currency", "ETB")}
+                    tone="negative"
+                  />
+                  <Row
+                    label={t("landing.hr.pension_emp", "Pension (7% Emp)")}
+                    value="-1,750.00"
+                    currency={t("landing.hr.currency", "ETB")}
+                    tone="negative"
+                  />
+                  <div className="h-px bg-border/70" />
+                  <Row
+                    label={t("landing.hr.pension_boss", "Employer Pension (11%)")}
+                    value="2,750.00"
+                    currency={t("landing.hr.currency", "ETB")}
+                    muted
+                  />
+                  <div className="h-px bg-border/70" />
+                  <div className="flex items-baseline justify-between pt-1">
+                    <span className="font-space text-sm font-bold">
+                      {t("landing.hr.net_pay", "Net Pay")}
+                    </span>
+                    <span className="font-space text-2xl font-bold tabular-nums text-primary">
+                      18,700.00{" "}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {t("landing.hr.currency", "ETB")}
+                      </span>
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-destructive">
-                  <span className="text-muted-foreground">
-                    {t('landing.hr.income_tax', 'Income Tax (ERCA)')}
+                <div className="flex items-center gap-2 border-t border-border/60 bg-primary/5 px-6 py-3">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    {t("landing.hr.payslip_note", "Bands applied automatically")}
                   </span>
-                  <span>-4,550.00 {t('landing.hr.currency', 'ETB')}</span>
-                </div>
-                <div className="flex justify-between text-destructive">
-                  <span className="text-muted-foreground">
-                    {t('landing.hr.pension_emp', 'Pension (7% Emp)')}
-                  </span>
-                  <span>-1,750.00 {t('landing.hr.currency', 'ETB')}</span>
-                </div>
-                <div className="w-full h-px bg-border my-2"></div>
-                <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>{t('landing.hr.pension_boss', 'Employer Pension (11%)')}</span>
-                  <span>2,750.00 {t('landing.hr.currency', 'ETB')}</span>
-                </div>
-                <div className="w-full h-px bg-border my-2"></div>
-                <div className="flex justify-between font-bold text-lg text-primary pt-2">
-                  <span>{t('landing.hr.net_pay', 'Net Pay')}</span>
-                  <span>18,700.00 {t('landing.hr.currency', 'ETB')}</span>
-                </div>
-
-              </div>
-            </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/20 blur-[80px] rounded-full -z-10"></div>
-          </div>
-
-          <div className="flex-1 order-1 md:order-2">
-            <Badge className="mb-4 bg-primary/10 text-primary border-none shadow-none">
-              {t('landing.hr.badge', 'HUMAN RESOURCES')}
-            </Badge>
-            <h2 className="font-space text-4xl md:text-5xl font-bold mb-6">
-              {t('landing.hr.title_part1', 'Ethiopian')} <span className="text-primary">{t('landing.hr.title_part2', 'Payroll & Pension')}</span>
-            </h2>
-            <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              {t('landing.hr.desc', "Managing payroll shouldn't require a master's degree in tax law. Hive automatically handles ERCA tax brackets and POESSA pension splits for your entire workforce.")}
-            </p>
-            <ul className="space-y-4">
-              <li className="flex gap-4">
-                <Calculator className="text-primary shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold">{t('landing.hr.deductions_title', 'Automated Deductions')}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.hr.deductions_desc', 'System auto-calculates the progressive income tax tiers and exact 7% (Employee) / 11% (Employer) pension splits instantly.')}
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <FileText className="text-primary shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold">{t('landing.hr.compliance_title', 'Compliance Reporting')}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.hr.compliance_desc', 'Generate month-end Ministry of Revenue and Pension Agency declaration formats with one click.')}
-                  </p>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* --- MULTI-TENANCY & DOCKER ARCHITECTURE --- */}
-      <section
-        id="architecture"
-        className="py-24 border-y border-border relative overflow-hidden bg-background"
-      >
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-full bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
-          <div className="flex-1 order-2 md:order-1">
-            <div className="relative w-full aspect-square max-w-md mx-auto">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-2xl transform rotate-3 animate-pulse-hex"></div>
-              <div className="absolute inset-0 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-                <div className="bg-muted/50 border-b border-border p-3 flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-                <div className="p-6 font-mono text-sm text-muted-foreground flex-1 overflow-hidden relative">
-                  <p className="text-primary mb-2">
-                    {t('landing.architecture.docker_init', '# Docker Swarm Cluster Init')}
-                  </p>
-                  <p className="opacity-80">
-                    {t('landing.architecture.deploying', 'Deploying isolated tenant environments...')}
-                  </p>
-                  <p className="opacity-80 mt-2">
-                    &gt; docker-compose -f hive.yml up -d
-                  </p>
-                  <p className="text-green-500 mt-2">[+] {t('landing.architecture.running', 'Running 4/4')}</p>
-                  <p className="opacity-80 pl-4">{t('landing.architecture.network_created', '✔ Network hive_mesh created')}</p>
-                  <p className="opacity-80 pl-4">
-                    {t('landing.architecture.container_started', '✔ Container {name} Started').replace('{name}', 'tenant_a_db')}
-                  </p>
-                  <p className="opacity-80 pl-4">
-                    {t('landing.architecture.container_started', '✔ Container {name} Started').replace('{name}', 'tenant_b_db')}
-                  </p>
-                  <p className="text-primary mt-4 animate-pulse">_</p>
                 </div>
               </div>
             </div>
-          </div>
-          <div className="flex-1 order-1 md:order-2">
-            <Badge className="mb-4 bg-primary/20 text-primary border-none shadow-none">
-              {t('landing.architecture.badge', 'TECHIVE ENGINEERING')}
-            </Badge>
-            <h2 className="font-space text-4xl md:text-5xl font-bold mb-6">
-              {t('landing.architecture.title_part1', 'Containerized')} <span className="text-primary">{t('landing.architecture.title_part2', 'Multi-Tenancy')}</span>
+          </Reveal>
+
+          <Reveal className="order-1 flex-1 lg:order-2">
+            <Eyebrow align="left">{t("landing.hr.badge", "Human resources")}</Eyebrow>
+            <h2 className="mb-6 text-balance font-space text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] md:text-5xl">
+              {t("landing.hr.title_part1", "Ethiopian")}{" "}
+              <span className="font-serif font-normal italic tracking-[-0.03em] text-primary">
+                {t("landing.hr.title_part2", "Payroll & Pension")}
+              </span>
             </h2>
-            <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-              {t('landing.architecture.desc', 'Scale without boundaries. Hive operates on a heavily optimized, Dockerized environment that strictly isolates databases at the container level.')}
+            <p className="mb-9 text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
+              {t(
+                "landing.hr.desc",
+                "Managing payroll shouldn't require a master's degree in tax law. Hive automatically handles ERCA tax brackets and POESSA pension splits for your entire workforce.",
+              )}
             </p>
             <ul className="space-y-6">
-              <li className="flex gap-4 group">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">
-                  <Code2 size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">
-                    {t('landing.architecture.security_title', 'Isolated Data Schemas')}
-                  </h4>
-                  <p className="text-muted-foreground text-sm">
-                    {t('landing.architecture.security_desc', 'Every corporate tenant operates within its own dedicated database schema, preventing catastrophic data bleed.')}
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-4 group">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">
-                  <Database size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">
-                    {t('landing.architecture.deployment_title', 'Hybrid Cloud & On-Prem')}
-                  </h4>
-                  <p className="text-muted-foreground text-sm">
-                    {t('landing.architecture.deployment_desc', 'Deploy seamlessly on AWS infrastructure or containerize the entire platform for strictly isolated On-Premise deployments.')}
-                  </p>
-                </div>
-              </li>
+              {[
+                {
+                  icon: Calculator,
+                  title: t("landing.hr.deductions_title", "Automated Deductions"),
+                  desc: t(
+                    "landing.hr.deductions_desc",
+                    "System auto-calculates the progressive income tax tiers and exact 7% (Employee) / 11% (Employer) pension splits instantly.",
+                  ),
+                },
+                {
+                  icon: FileText,
+                  title: t("landing.hr.compliance_title", "Compliance Reporting"),
+                  desc: t(
+                    "landing.hr.compliance_desc",
+                    "Generate month-end Ministry of Revenue and Pension Agency declaration formats with one click.",
+                  ),
+                },
+              ].map(({ icon: Icon, title, desc }) => (
+                <li key={title} className="flex gap-4">
+                  <IconPlate>
+                    <Icon className="h-5 w-5" />
+                  </IconPlate>
+                  <div>
+                    <h4 className="mb-1 font-space font-bold">{title}</h4>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+                  </div>
+                </li>
+              ))}
             </ul>
-          </div>
+          </Reveal>
         </div>
-      </section>
+      </SectionShell>
+
+      {/* --- MULTI-TENANCY & DOCKER ARCHITECTURE --- */}
+      <SectionShell id="architecture" tone="base" glow="primary">
+        <div className="flex flex-col items-center gap-14 lg:flex-row lg:gap-16">
+          <Reveal variant="scale" className="order-2 w-full flex-1 lg:order-1">
+            <div className="relative mx-auto max-w-md">
+              <div
+                aria-hidden
+                className="absolute -inset-3 -z-10 rotate-3 rounded-3xl bg-gradient-to-tr from-primary/20 to-transparent"
+              />
+              <div className="overflow-hidden rounded-3xl border border-border/70 bg-card/80 shadow-2xl shadow-background backdrop-blur-sm">
+                <WindowChrome
+                  label={t("landing.architecture.terminal_label", "hive-mesh · deploy")}
+                  status={t("landing.architecture.running", "Running 4/4")}
+                />
+                <div className="space-y-1.5 p-6 font-mono text-[13px] leading-relaxed text-muted-foreground">
+                  <p className="text-primary">
+                    {t("landing.architecture.docker_init", "# Docker Swarm Cluster Init")}
+                  </p>
+                  <p>
+                    {t(
+                      "landing.architecture.deploying",
+                      "Deploying isolated tenant environments...",
+                    )}
+                  </p>
+                  <p className="pt-2 text-foreground">
+                    <span className="text-primary">$</span> docker compose -f hive.yml up -d
+                  </p>
+                  <p className="pt-2 text-primary">
+                    [+] {t("landing.architecture.running", "Running 4/4")}
+                  </p>
+                  {["hive_mesh", "tenant_a_db", "tenant_b_db", "gateway"].map((name) => (
+                    <p key={name} className="pl-4">
+                      <span className="text-primary">✔</span> {name}
+                      <span className="text-muted-foreground/60"> started</span>
+                    </p>
+                  ))}
+                  <p className="pt-3 text-primary blink-caret">_</p>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal className="order-1 flex-1 lg:order-2">
+            <Eyebrow align="left">
+              {t("landing.architecture.badge", "Techive engineering")}
+            </Eyebrow>
+            <h2 className="mb-6 text-balance font-space text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] md:text-5xl">
+              {t("landing.architecture.title_part1", "Containerized")}{" "}
+              <span className="font-serif font-normal italic tracking-[-0.03em] text-primary">
+                {t("landing.architecture.title_part2", "Multi-Tenancy")}
+              </span>
+            </h2>
+            <p className="mb-9 text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
+              {t(
+                "landing.architecture.desc",
+                "Scale without boundaries. Hive operates on a heavily optimized, Dockerized environment that strictly isolates databases at the container level.",
+              )}
+            </p>
+            <ul className="space-y-6">
+              {[
+                {
+                  icon: Code2,
+                  title: t("landing.architecture.security_title", "Isolated Data Schemas"),
+                  desc: t(
+                    "landing.architecture.security_desc",
+                    "Every corporate tenant operates within its own dedicated database schema, preventing catastrophic data bleed.",
+                  ),
+                },
+                {
+                  icon: Database,
+                  title: t("landing.architecture.deployment_title", "Hybrid Cloud & On-Prem"),
+                  desc: t(
+                    "landing.architecture.deployment_desc",
+                    "Deploy seamlessly on AWS infrastructure or containerize the entire platform for strictly isolated On-Premise deployments.",
+                  ),
+                },
+              ].map(({ icon: Icon, title, desc }) => (
+                <li key={title} className="group flex gap-4">
+                  <IconPlate className="transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="h-5 w-5" />
+                  </IconPlate>
+                  <div>
+                    <h4 className="mb-1 font-space font-bold">{title}</h4>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </SectionShell>
 
       {/* --- FIELD OPERATIONS & MOBILE --- */}
-      <section className="py-24 px-4 max-w-6xl mx-auto border-b border-border overflow-hidden">
-        <div className="flex flex-col md:flex-row items-center gap-16">
-          <div className="flex-1">
-            <Badge className="mb-4 bg-secondary text-secondary-foreground border-none shadow-none">
-              {t('landing.field.badge', 'FIELD READY')}
-            </Badge>
-            <h2 className="font-space text-4xl md:text-5xl font-bold mb-6">
-              {t('landing.field.title_part1', 'Built for the')} <span className="text-primary">{t('landing.field.title_part2', 'Road')}</span>
+      <SectionShell id="field" tone="raised" glow="none">
+        <div className="flex flex-col items-center gap-14 lg:flex-row lg:gap-20">
+          <Reveal className="flex-1">
+            <Eyebrow align="left">{t("landing.field.badge", "Field ready")}</Eyebrow>
+            <h2 className="mb-6 text-balance font-space text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] md:text-5xl">
+              {t("landing.field.title_part1", "Built for the")}{" "}
+              <span className="font-serif font-normal italic tracking-[-0.03em] text-primary">
+                {t("landing.field.title_part2", "Road")}
+              </span>
             </h2>
-            <p className="text-muted-foreground text-lg mb-8">
-              {t('landing.field.desc', "Operations in Ethiopia don't always have reliable internet. Our native applications are designed with aggressive offline-caching, allowing your team to work anywhere.")}
+            <p className="mb-9 text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
+              {t(
+                "landing.field.desc",
+                "Operations in Ethiopia don't always have reliable internet. Our native applications are designed with aggressive offline-caching, allowing your team to work anywhere.",
+              )}
             </p>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-card/50 border border-border">
-                <CloudLightning className="text-primary w-8 h-8 shrink-0" />
-                <div>
-                  <h4 className="font-bold">{t('landing.field.offline_title', 'Offline-First Sync')}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.field.offline_desc', 'Scan waybills and register deliveries offline. System syncs when connection returns.')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-card/50 border border-border">
-                <SmartphoneNfc className="text-primary w-8 h-8 shrink-0" />
-                <div>
-                  <h4 className="font-bold">{t('landing.field.mobile_title', 'Mobile POS Integration')}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.field.mobile_desc', 'Equip sales agents with mobile point-of-sale systems linked directly to your central inventory.')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            <RevealGroup step={0.08} className="space-y-3">
+              {[
+                {
+                  icon: CloudLightning,
+                  title: t("landing.field.offline_title", "Offline-First Sync"),
+                  desc: t(
+                    "landing.field.offline_desc",
+                    "Scan waybills and register deliveries offline. System syncs when connection returns.",
+                  ),
+                },
+                {
+                  icon: SmartphoneNfc,
+                  title: t("landing.field.mobile_title", "Mobile POS Integration"),
+                  desc: t(
+                    "landing.field.mobile_desc",
+                    "Equip sales agents with mobile point-of-sale systems linked directly to your central inventory.",
+                  ),
+                },
+              ].map(({ icon: Icon, title, desc }) => (
+                <RevealItem key={title}>
+                  <div className="flex items-start gap-4 rounded-2xl border border-border/70 bg-card/40 p-5 transition-colors hover:border-primary/40">
+                    <IconPlate>
+                      <Icon className="h-5 w-5" />
+                    </IconPlate>
+                    <div>
+                      <h4 className="mb-1 font-space font-bold">{title}</h4>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+                    </div>
+                  </div>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          </Reveal>
 
-          <div className="flex-1 relative flex justify-center">
-            <div className="w-72 h-[600px] border-[8px] border-muted rounded-[3rem] bg-background shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-muted rounded-b-xl z-20"></div>
-              <div className="absolute inset-0 bg-card/30 p-6 pt-12 flex flex-col gap-4">
-                <div className="w-full h-24 rounded-xl bg-primary/20 animate-pulse"></div>
-                <div className="w-3/4 h-6 rounded bg-muted"></div>
-                <div className="w-full h-12 rounded-lg bg-muted/50 mt-4"></div>
-                <div className="w-full h-12 rounded-lg bg-muted/50"></div>
-                <div className="w-full h-12 rounded-lg bg-muted/50"></div>
-                <div className="mt-auto w-full h-16 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/40 group-hover:scale-105 transition-transform cursor-pointer">
-                  {t('landing.field.sync_data', 'SYNC DATA')}
+          {/* Handset shows the actual offline-queue UI rather than grey skeleton
+              blocks, which read as an unfinished mockup. */}
+          <Reveal variant="scale" className="flex flex-1 justify-center">
+            <div className="relative">
+              <div
+                aria-hidden
+                className="absolute left-1/2 top-1/2 -z-10 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-[90px]"
+              />
+              <div className="relative h-[560px] w-[280px] overflow-hidden rounded-[2.75rem] border-[10px] border-muted bg-background shadow-2xl shadow-background">
+                <div className="absolute left-1/2 top-0 z-20 h-6 w-28 -translate-x-1/2 rounded-b-2xl bg-muted" />
+
+                <div className="flex h-full flex-col">
+                  <div className="flex items-center justify-between border-b border-border/60 bg-card/60 px-4 pb-2.5 pt-9">
+                    <span className="font-space text-sm font-bold">
+                      {t("landing.field.app_title", "Waybills")}
+                    </span>
+                    <span className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-amber-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      {t("landing.field.offline_badge", "Offline")}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 space-y-2.5 overflow-hidden p-4">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
+                      {t("landing.field.queued", "Queued locally · 6")}
+                    </p>
+                    {[
+                      { id: "WB-8841", place: "Bole → Adama", state: "queued" },
+                      { id: "WB-8840", place: "Merkato → Hawassa", state: "queued" },
+                      { id: "WB-8839", place: "Kality → Dire Dawa", state: "queued" },
+                      { id: "WB-8838", place: "Bole → Bahir Dar", state: "sent" },
+                      { id: "WB-8837", place: "Piassa → Adama", state: "sent" },
+                    ].map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 px-3 py-2.5"
+                      >
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 shrink-0 rounded-full",
+                            row.state === "sent" ? "bg-primary" : "bg-amber-500",
+                          )}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-[11px] font-bold">{row.id}</p>
+                          <p className="truncate text-[10px] text-muted-foreground">
+                            {row.place}
+                          </p>
+                        </div>
+                        <Check
+                          className={cn(
+                            "h-3.5 w-3.5 shrink-0",
+                            row.state === "sent" ? "text-primary" : "text-muted-foreground/30",
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-4 pt-0">
+                    <div className="flex h-14 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary font-space text-sm font-bold uppercase tracking-wider text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]">
+                      <CloudLightning className="h-4 w-4" />
+                      {t("landing.field.sync_data", "Sync data")}
+                    </div>
+                    <p className="mt-2.5 text-center font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {t("landing.field.auto_note", "Auto-syncs when signal returns")}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
-      </section>
+      </SectionShell>
+
+      {/* --- SECURITY & DATA RESIDENCY --- */}
+      <LandingSecurity />
+
+      {/* --- CUSTOMER PROOF --- */}
+      <LandingProof />
+
+      {/* --- POSITIONING TABLE --- */}
+      {!initialIsTenant && <LandingCompare />}
 
       {/* ─── HOW IT WORKS ──────────────────────────────────────────────── */}
       {!initialIsTenant && (
-        <section
-          id="how-it-works"
-          className="py-24 bg-background border-b border-border relative overflow-hidden"
-        >
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 blur-[120px] rounded-full" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full" />
-          </div>
+        <SectionShell id="how-it-works" tone="base" glow="primary">
+          <SectionHeading
+            eyebrow={t("landing.how.badge", "Two ways to get started")}
+            title={t("landing.how.title_part1", "How onboarding")}
+            accent={t("landing.how.title_part3", "Works")}
+            description={t(
+              "landing.how.desc",
+              "Every organization on Hive chooses their own deployment path. Self-service is instant, or let our admin team provision your node manually.",
+            )}
+          />
 
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="text-center mb-16">
-              <Badge className="mb-4 bg-indigo-500/10 text-indigo-500 border-none shadow-none">
-                {t('landing.how.badge', 'TWO WAYS TO GET STARTED')}
-              </Badge>
-              <h2 className="font-space text-4xl md:text-5xl font-bold mb-4">
-                {t('landing.how.title_part1', 'How')} <span className="text-indigo-500">{t('landing.how.title_part2', 'Onboarding')}</span> {t('landing.how.title_part3', 'Works')}
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                {t('landing.how.desc', 'Every organization on Hive chooses their own deployment path. Self-service is instant, or let our admin team provision your node manually.')}
-              </p>
-
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <RevealGroup step={0.14} className="grid gap-6 md:grid-cols-2">
               {/* Self-Service Path */}
-              <div className="relative rounded-[2rem] border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-violet-500/5 p-8 hover:shadow-lg hover:shadow-indigo-500/10 transition-all group">
-                <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+              <RevealItem variant="scale"><div className="relative h-full rounded-[2rem] border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-violet-500/5 p-8 hover:shadow-lg hover:shadow-indigo-500/10 transition-all group">
+                <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
                   {t('landing.how.self_service', 'Self-Service')}
                 </div>
                 <div className="h-14 w-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6">
@@ -1337,8 +1455,10 @@ function LandingUI({
               </div>
 
               {/* Admin-Provisioned Path */}
-              <div className="relative rounded-[2rem] border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-8 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
-                <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              </RevealItem>
+
+              <RevealItem variant="scale"><div className="relative h-full rounded-[2rem] border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-8 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
+                <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
                   {t('landing.how.admin_managed', 'Admin-Managed')}
                 </div>
                 <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
@@ -1397,35 +1517,28 @@ function LandingUI({
                   </Button>
                 </Link>
               </div>
-            </div>
+              </RevealItem>
+            </RevealGroup>
           </div>
-        </section>
+        </SectionShell>
       )}
 
       {/* ─── PRICING & PLAN COMPARISON ────────────────────────────────── */}
       {!initialIsTenant && (
-        <section
-          id="pricing"
-          className="py-24 bg-card/20 relative overflow-hidden border-b border-border"
-        >
-          <div className="absolute left-0 top-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-          <div className="absolute right-0 bottom-0 w-96 h-96 bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <SectionShell id="pricing" tone="raised" glow="primary" innerClassName="max-w-7xl">
+          <SectionHeading
+            eyebrow={t("landing.pricing.badge", "Subscription plans")}
+            title={t("landing.pricing.title_part1", "Transparent")}
+            accent={t("landing.pricing.title_part2", "Pricing")}
+            description={t(
+              "landing.pricing.desc",
+              "Every plan includes an isolated tenant workspace, secure mailbox, and a bundled module stack. Add more modules anytime via ArifPay checkout.",
+            )}
+          />
 
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="text-center mb-16">
-              <Badge className="mb-4 bg-primary/20 text-primary border-none shadow-none">
-                {t('landing.pricing.badge', 'SUBSCRIPTION PLANS')}
-              </Badge>
-              <h2 className="font-space text-4xl md:text-5xl font-bold mb-4">
-                {t('landing.pricing.title_part1', 'Transparent')} <span className="text-primary">{t('landing.pricing.title_part2', 'Pricing')}</span>
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                {t('landing.pricing.desc', 'Every plan includes an isolated tenant workspace, secure mailbox, and a bundled module stack. Add more modules anytime via ArifPay checkout.')}
-              </p>
-            </div>
-
+          <div>
             {/* Plan grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            <RevealGroup step={0.07} className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
               {(
                 [
                   {
@@ -1530,195 +1643,227 @@ function LandingUI({
                   },
                 ] as const
               ).map((plan) => (
-                <div
-                  key={plan.key}
+                <RevealItem key={plan.key} variant="scale" className="min-h-0">
+                <SpotlightCard
                   className={cn(
-                    "relative flex flex-col rounded-[2rem] p-6 border transition-all duration-300 hover:shadow-xl overflow-hidden",
+                    "flex h-full flex-col overflow-hidden rounded-3xl border p-6 transition-all duration-300",
                     plan.highlight
-                      ? `ring-2 ${plan.ring} border-transparent bg-gradient-to-br ${plan.bg} shadow-lg`
-                      : "border-border/50 bg-card/40 backdrop-blur-md hover:bg-card/60 hover:border-primary/30",
+                      ? "border-primary/40 bg-primary/[0.07] shadow-xl shadow-primary/10 lg:-my-2 lg:py-8"
+                      : "border-border/60 bg-card/40 backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card/70",
                   )}
                 >
                   {plan.highlight && (
-                    <div
-                      className={cn(
-                        "absolute top-0 inset-x-0 h-1 rounded-t-[2rem] bg-gradient-to-r",
-                        "from-indigo-500 via-violet-500 to-purple-500",
-                      )}
-                    />
-                  )}
-                  {"highlight" in plan && plan.highlight && (
-                    <div className="absolute top-5 right-5 text-[9px] font-black uppercase tracking-widest bg-indigo-500 text-white px-2 py-0.5 rounded-full">
-                      {t('landing.pricing.popular', 'Popular')}
-                    </div>
+                    <>
+                      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
+                      <div className="absolute right-5 top-5 rounded-full bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-primary-foreground">
+                        {t("landing.pricing.popular", "Popular")}
+                      </div>
+                    </>
                   )}
 
                   <div
                     className={cn(
-                      "text-xs font-black uppercase tracking-widest mb-1",
-                      plan.color,
+                      "mb-1 font-mono text-[11px] font-bold uppercase tracking-[0.18em]",
+                      plan.highlight ? "text-primary" : "text-muted-foreground",
                     )}
                   >
                     {plan.label}
                   </div>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    {plan.tagline}
-                  </p>
+                  <p className="mb-5 text-xs text-muted-foreground">{plan.tagline}</p>
 
-                  <div className="mb-5">
-                    <span className="text-3xl font-black text-foreground">
+                  {/* text-2xl, not larger: at five columns "ETB 12,999" wraps
+                      onto a second line above ~1.6rem and knocks the quota chip
+                      out of alignment with the other four cards. */}
+                  <div className="mb-5 flex items-baseline gap-1">
+                    <span className="whitespace-nowrap font-space text-2xl font-bold leading-none tracking-tight">
                       {plan.price}
                     </span>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      {plan.priceNote}
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">{plan.priceNote}</span>
                   </div>
 
-                  <div
-                    className={cn(
-                      "rounded-xl px-3 py-2 mb-5 text-xs font-bold flex items-center gap-2",
-                      plan.color,
-                      `bg-gradient-to-br ${plan.bg}`,
-                    )}
-                  >
-                    <Globe className="h-3.5 w-3.5 shrink-0" />
-                    {plan.storage} {t('landing.pricing.mailbox_quota', 'mailbox quota')}
+                  <div className="mb-5 flex items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2 font-mono text-[11px] font-bold text-muted-foreground">
+                    <Globe className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {plan.storage} {t("landing.pricing.mailbox_quota", "quota")}
                   </div>
 
-                  <ul className="space-y-2.5 flex-1 mb-6">
+                  <ul className="mb-6 flex-1 space-y-2.5">
                     {plan.features.map((f, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center gap-2 text-xs text-muted-foreground"
-                      >
-                        <Check
-                          className={cn("h-3.5 w-3.5 shrink-0", plan.color)}
-                        />
-                        {f}
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="leading-snug">{f}</span>
                       </li>
                     ))}
                   </ul>
 
-                  <Link href="/auth/signup">
+                  <Link href="/auth/signup" className="mt-auto block">
                     <Button
                       size="sm"
                       className={cn(
-                        "w-full rounded-xl font-bold uppercase tracking-wider text-xs gap-1.5 transition-all",
+                        "w-full gap-1.5 rounded-xl font-space text-xs font-bold uppercase tracking-wider transition-all",
                         plan.highlight
-                          ? "bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-md shadow-indigo-500/30"
-                          : "variant-outline border-current/30 bg-transparent hover:bg-current/10",
+                          ? "border-none bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:bg-primary/90"
+                          : "border-border/70 bg-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
                       )}
                       variant={plan.highlight ? "default" : "outline"}
                     >
-                      {t('landing.pricing.get_started', 'Get Started')} <ArrowRight className="h-3 w-3" />
+                      {t("landing.pricing.get_started", "Get Started")}
+                      <ArrowRight className="h-3 w-3" />
                     </Button>
                   </Link>
-                </div>
+                </SpotlightCard>
+                </RevealItem>
               ))}
-            </div>
+            </RevealGroup>
 
             {/* Admin-provision callout */}
-            <div className="mt-10 rounded-[2rem] border border-border/50 bg-card/30 backdrop-blur-md p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-6 w-6 text-amber-500" />
+            <Reveal variant="scale" className="mt-8">
+              <div className="flex flex-col items-center justify-between gap-6 rounded-3xl border border-border/60 bg-card/30 p-6 backdrop-blur-sm sm:flex-row">
+                <div className="flex items-center gap-4">
+                  <IconPlate size="lg" accent="warm">
+                    <ShieldCheck className="h-6 w-6" />
+                  </IconPlate>
+                  <div>
+                    <p className="font-space font-bold text-foreground">
+                      {t("landing.pricing.managed_title", "Need a managed deployment?")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {t(
+                        "landing.pricing.managed_desc",
+                        "Central admins can provision tenant workspaces with custom quotas and module overrides from the admin panel.",
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-black text-foreground">
-                    {t('landing.pricing.managed_title', 'Need a managed deployment?')}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.pricing.managed_desc', 'Central admins can provision tenant workspaces with custom quotas and module overrides from the admin panel.')}
-                  </p>
-                </div>
+                <Link href="/sign-in" className="shrink-0">
+                  <Button
+                    variant="outline"
+                    className="gap-2 whitespace-nowrap rounded-xl border-amber-500/30 font-space font-bold uppercase tracking-wider transition-all hover:bg-amber-500/10 hover:text-amber-500"
+                  >
+                    {t("landing.pricing.admin_portal", "Admin Portal")}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
-              <Link href="/sign-in" className="shrink-0">
-                <Button
-                  variant="outline"
-                  className="font-space font-bold uppercase tracking-wider border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-500 transition-all gap-2 whitespace-nowrap"
-                >
-                  {t('landing.pricing.admin_portal', 'Admin Portal')} <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
+            </Reveal>
           </div>
-        </section>
+        </SectionShell>
       )}
 
       {/* 🚀 Partner Slider */}
       <PartnerSlider partners={partners} />
 
       {/* --- FAQ --- */}
-      <section className="py-24 px-4 max-w-4xl mx-auto border-b border-border">
-        <div className="text-center mb-12">
-          <Badge className="mb-4 bg-muted text-muted-foreground border-none shadow-none">
-            {t('landing.faq.badge', 'KNOWLEDGE BASE')}
-          </Badge>
-          <h2 className="font-space text-4xl font-bold mb-4">
-            {t('landing.faq.title', 'Frequently Asked Questions')}
-          </h2>
-        </div>
+      <SectionShell id="faq" tone="base" glow="none" innerClassName="max-w-4xl">
+        <SectionHeading
+          eyebrow={t("landing.faq.badge", "Knowledge base")}
+          title={t("landing.faq.title_lead", "Frequently asked")}
+          accent={t("landing.faq.title_accent", "Questions")}
+        />
 
-        <div className="space-y-4">
-          {faqs.map((faq, idx) => (
-            <div
-              key={idx}
-              className="border border-border bg-card/30 rounded-xl overflow-hidden transition-all duration-300"
-            >
-              <button
-                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full text-left px-6 py-5 flex justify-between items-center hover:bg-muted/20 transition-colors"
-              >
-                <span className="font-bold font-space pr-4">{faq.q}</span>
-                <ChevronRight
-                  className={`w-5 h-5 text-primary transition-transform duration-300 shrink-0 ${openFaq === idx ? "rotate-90" : ""}`}
-                />
-              </button>
+        <RevealGroup className="space-y-3" step={0.06}>
+          {faqs.map((faq, idx) => {
+            const isOpen = openFaq === idx;
+            return (
+              <RevealItem key={idx}>
+                <div
+                  className={cn(
+                    "overflow-hidden rounded-2xl border transition-colors duration-300",
+                    isOpen
+                      ? "border-primary/40 bg-card/60"
+                      : "border-border/70 bg-card/30 hover:border-border",
+                  )}
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-panel-${idx}`}
+                    className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-foreground/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+                  >
+                    <span className="font-space font-bold">{faq.q}</span>
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-300",
+                        isOpen
+                          ? "rotate-90 border-primary/40 bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground",
+                      )}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </span>
+                  </button>
 
-              <div
-                className={`px-6 text-muted-foreground text-sm overflow-hidden transition-all duration-500 ease-in-out ${openFaq === idx ? "max-h-40 pb-6 opacity-100" : "max-h-0 py-0 opacity-0"}`}
-              >
-                {faq.a}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+                  {/* Was a max-h-40 transition, which silently clipped the longer
+                      answers (the on-premise and multi-tenancy ones both overflow).
+                      height:auto has no ceiling. */}
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        id={`faq-panel-${idx}`}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.32, ease: EASE }}
+                        className="overflow-hidden"
+                      >
+                        <p className="px-6 pb-6 text-muted-foreground text-sm leading-relaxed">
+                          {faq.a}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </RevealItem>
+            );
+          })}
+        </RevealGroup>
+      </SectionShell>
 
       {/* --- FINAL CTA --- */}
       {!initialIsTenant && (
-        <section className="py-32 px-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-primary/5"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-full bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
+        <section className="relative overflow-hidden border-t border-border/60 px-4 py-28 md:py-36">
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+            <div className="absolute inset-0 bg-primary/[0.04]" />
+            <div className="absolute left-1/2 top-1/2 h-[28rem] w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[110px]" />
+            <div className="tech-grid absolute inset-0 opacity-30" />
+          </div>
 
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <h2 className="font-space text-5xl md:text-6xl font-black mb-6">
-              {t('landing.cta.title_part1', 'Ready to deploy your')}
-              <br />
-              <span className="text-primary">{t('landing.cta.title_part2', 'Hive workspace?')}</span>
+          <Reveal className="relative z-10 mx-auto max-w-3xl text-center">
+            <Eyebrow>{t("landing.cta.eyebrow", "Get started")}</Eyebrow>
+            <h2 className="text-balance font-space text-[2.5rem] font-bold leading-[1.05] tracking-[-0.025em] md:text-6xl">
+              {t("landing.cta.title_part1", "Ready to deploy your")}{" "}
+              <span className="font-serif font-normal italic tracking-[-0.03em] text-primary">
+                {t("landing.cta.title_part2", "Hive workspace?")}
+              </span>
             </h2>
-            <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-              {t('landing.cta.desc', 'Pick a plan and get your isolated tenant node provisioned in minutes — or contact the admin team for a managed setup.')}
+            <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
+              {t(
+                "landing.cta.desc",
+                "Pick a plan and get your isolated tenant node provisioned in minutes — or contact the admin team for a managed setup.",
+              )}
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/auth/signup">
-                <Button className="px-8 py-6 text-lg font-space font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 border-none hover:scale-105 transition-all duration-300 gap-2">
-                  {t('landing.cta.pill_plan', 'Start Free — Pick a Plan')} <ArrowRight className="h-5 w-5" />
+                <Button className="gap-2 rounded-full border-none bg-primary px-8 py-6 font-space text-base font-bold uppercase tracking-wider text-primary-foreground shadow-xl shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/90">
+                  {t("landing.cta.pill_plan", "Start Free — Pick a Plan")}
+                  <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/sign-in">
                 <Button
                   variant="outline"
-                  className="px-8 py-6 text-lg font-space font-bold uppercase tracking-wider hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                  className="rounded-full border-border/70 px-8 py-6 font-space text-base font-bold uppercase tracking-wider transition-all duration-300 hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
                 >
-                  {t('landing.how.admin_signin', 'Admin Sign In')}
+                  {t("landing.how.admin_signin", "Admin Sign In")}
                 </Button>
               </Link>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              {t('landing.cta.note', 'No credit card required for Larva & Startup plans · Powered by ArifPay')}
+            <p className="mt-7 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t(
+                "landing.cta.note",
+                "No credit card required for Larva & Startup plans · Powered by ArifPay",
+              )}
             </p>
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -1762,53 +1907,32 @@ function LandingUI({
             </div>
           </div>
 
-          <div>
-            <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">
-              {t('landing.footer.modules', 'Modules')}
-            </h4>
-            <ul className="space-y-3 text-sm text-muted-foreground font-medium">
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.nav.fintech', 'Financial Ledger')}
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.nav.mobility', 'Smart Mobility')}
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.nav.hr', 'Human Resources')}
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.fields.asset', 'Asset Management')}
-              </li>
-            </ul>
-          </div>
+          {/* These were <li>s with cursor-pointer and no handler — they looked
+              clickable and did nothing. Every entry now goes somewhere real:
+              an on-page section, or a route that exists. */}
+          <FooterColumn
+            title={t("landing.footer.modules", "Modules")}
+            links={[
+              { label: t("landing.nav.fintech", "Financial Ledger"), section: "fintech" },
+              { label: t("landing.nav.mobility", "Smart Mobility"), section: "mobility" },
+              { label: t("landing.nav.hr", "Human Resources"), section: "hr" },
+              { label: t("landing.security.eyebrow", "Trust & Governance"), section: "security" },
+              { label: t("landing.nav.pricing", "Pricing"), section: "pricing" },
+            ]}
+            onSection={scrollToSection}
+          />
 
-          <div>
-            <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">
-              {t('landing.footer.company', 'Company')}
-            </h4>
-            <ul className="space-y-3 text-sm text-muted-foreground font-medium">
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.footer.docs', 'Documentation')}
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.footer.sales', 'Contact Sales')}
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.footer.location', 'Addis Ababa HQ')}
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
-                {t('landing.footer.status', 'System Status')}
-              </li>
-            </ul>
-          </div>
+          <FooterColumn
+            title={t("landing.footer.company", "Company")}
+            links={[
+              { label: t("landing.footer.docs", "Documentation"), href: "/api-docs" },
+              { label: t("landing.footer.sales", "Contact Sales"), href: "/request-demo" },
+              { label: t("landing.nav.demo", "Request a demo"), href: "/request-demo" },
+              { label: t("landing.nav.faq", "FAQ"), section: "faq" },
+              { label: t("landing.nav.proof", "Customer outcomes"), section: "proof" },
+            ]}
+            onSection={scrollToSection}
+          />
         </div>
 
         <div className="mx-auto max-w-6xl mt-16 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono relative z-10">
@@ -1831,7 +1955,7 @@ function LandingUI({
                 />
                 <div className="bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 overflow-hidden relative">
                   <div className="absolute inset-0 bg-primary/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                  <span className="font-bold text-primary uppercase tracking-widest text-[10px] relative z-10">
+                  <span className="font-bold text-primary uppercase tracking-widest text-[11px] relative z-10">
                     {t('landing.footer.powered', 'POWERED BY HIVE ERP')}
                   </span>
                 </div>

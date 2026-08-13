@@ -275,7 +275,7 @@ function TaskRow({ task, onClick, t }: { task: Task; onClick: () => void; t: any
               {task.title}
             </h3>
             {task.issue_type && (
-              <Badge variant="outline" className="text-[10px] uppercase font-black px-1.5 py-0 bg-background/50">
+              <Badge variant="outline" className="text-[11px] uppercase font-black px-1.5 py-0 bg-background/50">
                 {task.issue_type}
               </Badge>
             )}
@@ -307,7 +307,7 @@ function TaskRow({ task, onClick, t }: { task: Task; onClick: () => void; t: any
         <div className="flex items-center gap-6">
           {task.due_date && (
             <div className="flex flex-col items-center md:items-end">
-              <span className="text-[10px] uppercase font-bold opacity-40">{t('project_management.due_date', 'Due Date')}</span>
+              <span className="text-[11px] uppercase font-bold opacity-40">{t('project_management.due_date', 'Due Date')}</span>
               <span className={cn(
                 "text-sm font-medium flex items-center gap-1.5",
                 new Date(task.due_date) < new Date() ? "text-rose-500" : "text-muted-foreground"
@@ -319,7 +319,7 @@ function TaskRow({ task, onClick, t }: { task: Task; onClick: () => void; t: any
           )}
 
           <div className="flex flex-col items-center md:items-end">
-            <span className="text-[10px] uppercase font-bold opacity-40">{t('project_management.priority', 'Priority')}</span>
+            <span className="text-[11px] uppercase font-bold opacity-40">{t('project_management.priority', 'Priority')}</span>
             <Badge className={cn("mt-1 font-bold", priorityColor[task.priority])}>
               {task.priority}
             </Badge>

@@ -423,7 +423,7 @@ export function AudioPlayer({
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-black leading-tight">{resolvedTrack.title}</p>
-            <p className="truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
+            <p className="truncate text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
               {resolvedTrack.artist || "HIVE.OS Audio"}
             </p>
           </div>
@@ -516,7 +516,7 @@ export function AudioPlayer({
               <div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">
+                  <span className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">
                     Premium Audio
                   </span>
                 </div>
@@ -541,7 +541,7 @@ export function AudioPlayer({
               >
                 <ListMusic className="h-5 w-5" />
                 {queue.length > 0 ? (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-black text-emerald-950">
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[11px] font-black text-emerald-950">
                     {queue.length}
                   </span>
                 ) : null}
@@ -628,14 +628,14 @@ export function AudioPlayer({
                 >
                   <Repeat className="h-4 w-4" />
                   {repeatMode === "track" ? (
-                    <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 px-1 text-[8px] font-black text-emerald-950">
+                    <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 px-1 text-[11px] font-black text-emerald-950">
                       1
                     </span>
                   ) : null}
                 </button>
                 <button
                   onClick={cyclePlaybackRate}
-                  className="rounded-xl bg-muted/70 px-2 py-1 text-[10px] font-black text-muted-foreground transition-all hover:bg-muted hover:text-foreground dark:bg-white/5 dark:hover:bg-white/10"
+                  className="rounded-xl bg-muted/70 px-2 py-1 text-[11px] font-black text-muted-foreground transition-all hover:bg-muted hover:text-foreground dark:bg-white/5 dark:hover:bg-white/10"
                   title="Playback speed"
                 >
                   {playbackRate}x
@@ -675,7 +675,7 @@ export function AudioPlayer({
                 aria-valuetext={`${formatTime(effectiveCurrentTime)} of ${formatTime(effectiveDuration)}`}
                 className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-white/10"
               />
-            <div className="flex items-center justify-between px-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="flex items-center justify-between px-1 text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
               <span>{formatTime(effectiveCurrentTime)}</span>
               <span>{formatTime(effectiveDuration)}</span>
             </div>
@@ -829,7 +829,7 @@ export function AudioPlayer({
                   <span className="text-sm font-bold text-foreground">
                     {isInAnyPlaylist ? "Manage Playlists" : "Add to Playlist"}
                   </span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                     Stable library organization
                   </span>
                 </div>
@@ -848,7 +848,7 @@ export function AudioPlayer({
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-bold text-foreground">Add to Queue</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                   Keep the flow going
                 </span>
               </div>
@@ -869,7 +869,7 @@ export function AudioPlayer({
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-bold text-foreground">Download Track</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                   Offline listening
                 </span>
               </div>
@@ -897,7 +897,7 @@ export function AudioPlayer({
             {playlists.length === 0 ? (
               <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/70 text-muted-foreground dark:border-white/10">
                 <FolderPlus className="h-7 w-7" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em]">
                   No playlists yet
                 </p>
               </div>
@@ -985,7 +985,7 @@ export function AudioPlayer({
               <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
                 Up Next
               </h3>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">
                 {queueBadgeLabel}
               </p>
             </div>
@@ -993,7 +993,7 @@ export function AudioPlayer({
               {queue.length > 0 ? (
                 <button
                   onClick={clearQueue}
-                  className="rounded-xl px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/10"
+                  className="rounded-xl px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground dark:hover:bg-white/10"
                 >
                   Clear
                 </button>
@@ -1041,7 +1041,7 @@ export function AudioPlayer({
                       <p className="truncate text-sm font-bold text-foreground">
                         {trackItem.title}
                       </p>
-                      <p className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">
                         {trackItem.artist || "HIVE.OS Audio"}
                       </p>
                     </div>

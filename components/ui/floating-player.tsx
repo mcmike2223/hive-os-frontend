@@ -282,7 +282,7 @@ export function FloatingPlayer() {
               <p className="max-w-[180px] truncate text-xs font-black leading-tight">
                 {currentTrack.title}
               </p>
-              <p className="max-w-[180px] truncate text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="max-w-[180px] truncate text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                 {isPlaying ? "Playing in background" : currentTrack.artist || "HIVE.OS Audio"}
               </p>
             </div>

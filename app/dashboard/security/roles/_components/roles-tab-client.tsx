@@ -278,16 +278,16 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
         return (
           <div className="flex items-center gap-1 flex-wrap max-w-[300px]">
             {perms.slice(0, 3).map((p: PermissionRecord) => (
-              <Badge key={p.id} variant="secondary" className="text-[10px] font-mono tracking-tighter bg-muted/50">
+              <Badge key={p.id} variant="secondary" className="text-[11px] font-mono tracking-tighter bg-muted/50">
                 {p.name}
               </Badge>
             ))}
             {perms.length > 3 && (
-              <Badge variant="outline" className="text-[10px] font-mono border-dashed text-primary bg-primary/5 border-primary/20">
+              <Badge variant="outline" className="text-[11px] font-mono border-dashed text-primary bg-primary/5 border-primary/20">
                 +{perms.length - 3} {t('global.more', 'more')}
               </Badge>
             )}
-            {perms.length === 0 && <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest bg-muted px-2 py-0.5 rounded">{t('roles.no_access', 'No Access')}</span>}
+            {perms.length === 0 && <span className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest bg-muted px-2 py-0.5 rounded">{t('roles.no_access', 'No Access')}</span>}
           </div>
         );
       },
@@ -330,7 +330,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
 
             {canDelete && (
               isCore ? (
-                 <div className="w-8 flex justify-center"><Badge variant="outline" className="text-[9px] uppercase tracking-widest text-amber-600 border-amber-200 bg-amber-50/50 px-1">Core</Badge></div>
+                 <div className="w-8 flex justify-center"><Badge variant="outline" className="text-[11px] uppercase tracking-widest text-amber-600 border-amber-200 bg-amber-50/50 px-1">Core</Badge></div>
               ) : (
                 <span className="tour-roles-action-purge flex">
                   <AlertDialog>
@@ -438,7 +438,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
                   <Label className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Key className="h-3 w-3" /> {t('roles.assign_caps', 'Assign Capabilities')}
                   </Label>
-                  <Badge variant="outline" className="font-mono text-[10px] bg-primary/5 text-primary border-primary/20">
+                  <Badge variant="outline" className="font-mono text-[11px] bg-primary/5 text-primary border-primary/20">
                     {selectedPermissions.length} / {permissionsData?.length || 0} {t('global.active', 'Active')}
                   </Badge>
                 </div>
@@ -472,13 +472,13 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
 
                   <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     <Filter className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <Button type="button" variant={permissionFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setPermissionFilter("all")} className="h-6 text-[10px] px-2.5 rounded-full">
+                    <Button type="button" variant={permissionFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setPermissionFilter("all")} className="h-6 text-[11px] px-2.5 rounded-full">
                       {t('global.all', 'All')}
                     </Button>
-                    <Button type="button" variant={permissionFilter === "active" ? "default" : "outline"} size="sm" onClick={() => setPermissionFilter("active")} className="h-6 text-[10px] px-2.5 rounded-full">
+                    <Button type="button" variant={permissionFilter === "active" ? "default" : "outline"} size="sm" onClick={() => setPermissionFilter("active")} className="h-6 text-[11px] px-2.5 rounded-full">
                       {t('global.active', 'Active')} ({enabledPerms.length})
                     </Button>
-                    <Button type="button" variant={permissionFilter === "available" ? "default" : "outline"} size="sm" onClick={() => setPermissionFilter("available")} className="h-6 text-[10px] px-2.5 rounded-full">
+                    <Button type="button" variant={permissionFilter === "available" ? "default" : "outline"} size="sm" onClick={() => setPermissionFilter("available")} className="h-6 text-[11px] px-2.5 rounded-full">
                       {t('roles.available', 'Available')} ({disabledPerms.length})
                     </Button>
                   </div>
@@ -495,7 +495,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
                     <>
                       {(permissionFilter === "all" || permissionFilter === "active") && enabledPerms.length > 0 && (
                         <div className="space-y-2">
-                          <h4 className="text-[10px] uppercase tracking-widest text-primary font-bold flex items-center gap-1.5 px-1">
+                          <h4 className="text-[11px] uppercase tracking-widest text-primary font-bold flex items-center gap-1.5 px-1">
                             <CheckCircle2 className="h-3 w-3" /> {t('roles.active_caps', 'Active Capabilities')}
                           </h4>
                           <div className="grid gap-1">
@@ -511,7 +511,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
 
                       {(permissionFilter === "all" || permissionFilter === "available") && disabledPerms.length > 0 && (
                         <div className="space-y-2">
-                          <h4 className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5 px-1 mt-2">
+                          <h4 className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5 px-1 mt-2">
                             <Circle className="h-3 w-3" /> {t('roles.available_caps', 'Available Capabilities')}
                           </h4>
                           <div className="grid gap-1">
@@ -550,7 +550,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
             </div>
             <div>
               <DialogTitle className="text-2xl font-black font-space tracking-tight">{viewRole?.name}</DialogTitle>
-              <DialogDescription className="font-mono text-[10px] uppercase tracking-widest mt-1">{t('roles.caps_overview', 'Network Capabilities Overview')}</DialogDescription>
+              <DialogDescription className="font-mono text-[11px] uppercase tracking-widest mt-1">{t('roles.caps_overview', 'Network Capabilities Overview')}</DialogDescription>
             </div>
           </div>
           
@@ -568,7 +568,7 @@ export function RolesTabClient({ tenantId, tenantName, companySettings, branding
             )}
             
             <div className="space-y-3">
-              <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
+              <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
                 <Key className="h-3 w-3" /> {t('roles.explicit_caps', 'Explicitly Bound Capabilities')}
               </div>
               <div className="flex flex-wrap gap-2.5">

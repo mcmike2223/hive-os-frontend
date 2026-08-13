@@ -272,7 +272,7 @@ export default function MenuManagementPage() {
                 onClick={() => setActive3DModel({ url: item.model_3d_url!, name: item.name })}
               >
                 <Box className="h-4 w-4 text-blue-500" />
-                <span className="text-[8px] font-black uppercase tracking-wider leading-none">3D</span>
+                <span className="text-[11px] font-black uppercase tracking-wider leading-none">3D</span>
               </Button>
             );
           }
@@ -380,7 +380,7 @@ export default function MenuManagementPage() {
               variant="outline"
               size="sm"
               onClick={() => openEditDialog(item)}
-              className="h-8 text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+              className="h-8 text-[11px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
             >
               <Pencil className="mr-1 h-3.5 w-3.5" />
               Edit
@@ -393,7 +393,7 @@ export default function MenuManagementPage() {
                   deleteMutation.mutate(item.id);
                 }
               }}
-              className="h-8 text-[10px] font-black uppercase tracking-widest text-red-600 border-red-200 bg-red-50 hover:bg-red-100"
+              className="h-8 text-[11px] font-black uppercase tracking-widest text-red-600 border-red-200 bg-red-50 hover:bg-red-100"
             >
               <Trash2 className="mr-1 h-3.5 w-3.5" />
               Delete
@@ -526,7 +526,7 @@ export default function MenuManagementPage() {
                         formData.image_url.toLowerCase().endsWith(".glb") || formData.image_url.toLowerCase().endsWith(".gltf") ? (
                           <div className="flex flex-col items-center justify-center text-blue-500">
                             <Box className="h-6 w-6" />
-                            <span className="text-[8px] font-black uppercase tracking-wider">3D</span>
+                            <span className="text-[11px] font-black uppercase tracking-wider">3D</span>
                           </div>
                         ) : (
                           <SecureAssetImage src={formData.image_url} alt="Preview" className="h-full w-full object-cover" />
@@ -558,7 +558,7 @@ export default function MenuManagementPage() {
                           </Button>
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground">
                         Select or upload an image using the file manager.
                       </p>
                     </div>
@@ -572,7 +572,7 @@ export default function MenuManagementPage() {
                       {formData.model_3d_url ? (
                         <div className="flex flex-col items-center justify-center text-blue-500">
                           <Box className="h-6 w-6" />
-                          <span className="text-[8px] font-black uppercase tracking-wider">3D</span>
+                          <span className="text-[11px] font-black uppercase tracking-wider">3D</span>
                         </div>
                       ) : (
                         <Box className="h-6 w-6 text-muted-foreground/40" />
@@ -601,7 +601,7 @@ export default function MenuManagementPage() {
                           </Button>
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground">
                         Select or upload a 3D model (.glb / .gltf) using the file manager.
                       </p>
                     </div>

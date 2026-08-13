@@ -217,7 +217,7 @@ export default function VideoAudioConverterPage() {
               {mode === "video" ? <Film className="h-5 w-5 text-muted-foreground" /> : <Music className="h-5 w-5 text-muted-foreground" />}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold truncate">{file.name}</p>
-                <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
+                <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
               </div>
               <button onClick={() => { setFile(null); setOutputUrl(null); }} className="text-muted-foreground hover:text-destructive">
                 <X className="h-4 w-4" />
@@ -240,7 +240,7 @@ export default function VideoAudioConverterPage() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                 <Server className="h-3 w-3" />
                 Processing on Hive FFmpeg service — no browser limits, handles files up to 500MB
               </div>
@@ -277,7 +277,7 @@ export default function VideoAudioConverterPage() {
             <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Settings</h2>
 
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Output Format</Label>
+              <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Output Format</Label>
               <div className="grid grid-cols-3 gap-2">
                 {formats.map((fmt) => (
                   <button
@@ -298,13 +298,13 @@ export default function VideoAudioConverterPage() {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                   {mode === "audio" ? "Bitrate / Quality" : "Quality"}
                 </Label>
                 <span className="text-xs font-black text-violet-500">{quality}%</span>
               </div>
               <Slider min={10} max={100} step={5} value={[quality]} onValueChange={([v]) => setQuality(v)} />
-              <div className="flex justify-between text-[9px] text-muted-foreground">
+              <div className="flex justify-between text-[11px] text-muted-foreground">
                 <span>Smaller file</span><span>Best quality</span>
               </div>
             </div>
@@ -313,7 +313,7 @@ export default function VideoAudioConverterPage() {
               <div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/10 p-4">
                 <div className="space-y-0.5">
                   <Label className="text-xs font-black uppercase tracking-widest">High Compression</Label>
-                  <p className="text-[10px] text-muted-foreground">Significantly reduce file size with minor quality loss</p>
+                  <p className="text-[11px] text-muted-foreground">Significantly reduce file size with minor quality loss</p>
                 </div>
                 <Switch checked={compress} onCheckedChange={setCompress} />
               </div>
@@ -325,7 +325,7 @@ export default function VideoAudioConverterPage() {
                 <Server className="h-3.5 w-3.5 text-violet-500" />
                 <p className="text-[11px] font-black text-violet-600">FFmpeg Docker Service</p>
               </div>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Conversion runs on the server using the full FFmpeg binary with all codec support. No browser memory limits — handles files up to 500MB.
               </p>
             </div>

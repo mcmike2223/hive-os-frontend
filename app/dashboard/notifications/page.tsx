@@ -212,7 +212,7 @@ export default function NotificationsPage() {
                     >
                       {notification.title}
                     </h3>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
                       {notification.created_at
                         ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })
                         : "just now"}
@@ -222,7 +222,7 @@ export default function NotificationsPage() {
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.body}</p>
                   ) : null}
                   <div className="mt-2">
-                    <Badge variant="outline" className="rounded-full capitalize text-[10px]">
+                    <Badge variant="outline" className="rounded-full capitalize text-[11px]">
                       {notification.category.replace(/_/g, " ")}
                     </Badge>
                   </div>

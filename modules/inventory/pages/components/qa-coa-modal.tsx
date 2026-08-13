@@ -172,7 +172,7 @@ export function QaCoaModal({ isOpen, onClose, batchId }: QaCoaModalProps) {
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {coa?.compliance.stage_summary.map((stage) => (
                       <div key={stage.stage} className="rounded-2xl border border-border/40 bg-muted/20 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{stage.stage_label}</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">{stage.stage_label}</p>
                         <p className="mt-2 text-2xl font-black">{stage.passed_tests}/{stage.total_tests}</p>
                         <p className="text-xs text-muted-foreground">
                           {stage.failed_tests > 0
@@ -196,14 +196,14 @@ export function QaCoaModal({ isOpen, onClose, batchId }: QaCoaModalProps) {
                       <div className="space-y-0.5">
                         <p className="font-bold tracking-tight text-foreground">{result.test_name}</p>
                         {result.stage_label ? (
-                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">{result.stage_label}</p>
+                          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/70">{result.stage_label}</p>
                         ) : null}
                         <p className="text-xs font-medium text-muted-foreground">{result.recorded_at ? format(new Date(result.recorded_at), "PPP p") : "-"}</p>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className={`font-mono font-black ${result.is_passed ? 'text-emerald-600' : 'text-rose-600'}`}>{result.test_value}</p>
-                          <Badge variant="ghost" className="h-auto p-0 font-bold text-[10px] opacity-40 uppercase tracking-widest">{result.is_passed ? t("inventory.qa.pass", "Pass") : t("inventory.qa.fail", "Fail")}</Badge>
+                          <Badge variant="ghost" className="h-auto p-0 font-bold text-[11px] opacity-40 uppercase tracking-widest">{result.is_passed ? t("inventory.qa.pass", "Pass") : t("inventory.qa.fail", "Fail")}</Badge>
                         </div>
                         {result.is_passed ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <XCircle className="h-5 w-5 text-rose-500" />}
                       </div>
@@ -214,7 +214,7 @@ export function QaCoaModal({ isOpen, onClose, batchId }: QaCoaModalProps) {
                     <div key={`missing-${i}`} className="flex items-center justify-between rounded-[1.5rem] border border-dashed border-yellow-500/20 bg-yellow-500/5 p-4">
                       <div className="space-y-0.5 opacity-60">
                         <p className="font-bold tracking-tight text-yellow-800/80">{test}</p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-yellow-600/60">{t("inventory.qa.missing", "Missing Test")}</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-yellow-600/60">{t("inventory.qa.missing", "Missing Test")}</p>
                       </div>
                       <AlertTriangle className="h-5 w-5 text-yellow-500/50" />
                     </div>
@@ -224,7 +224,7 @@ export function QaCoaModal({ isOpen, onClose, batchId }: QaCoaModalProps) {
                     <div key={`failure-${i}`} className="flex items-center justify-between rounded-[1.5rem] border border-dashed border-rose-500/20 bg-rose-500/5 p-4">
                       <div className="space-y-0.5 opacity-80">
                         <p className="font-bold tracking-tight text-rose-700">{test}</p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70">Mandatory failure</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-rose-600/70">Mandatory failure</p>
                       </div>
                       <XCircle className="h-5 w-5 text-rose-500/70" />
                     </div>

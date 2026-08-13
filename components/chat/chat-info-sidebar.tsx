@@ -179,14 +179,14 @@ export default function ChatInfoSidebar() {
         <div className="space-y-6">
            <div className="flex items-center justify-between">
               <SectionLabel label="Shared Repository" />
-              <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">See All</button>
+              <button className="text-[11px] font-black text-primary uppercase tracking-widest hover:underline">See All</button>
            </div>
           
           <Tabs defaultValue="media" className="w-full">
             <TabsList className="w-full bg-slate-100 dark:bg-muted/30 p-1.5 rounded-2xl h-12">
-              <TabsTrigger value="media" className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Media</TabsTrigger>
-              <TabsTrigger value="files" className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Files</TabsTrigger>
-              <TabsTrigger value="links" className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Links</TabsTrigger>
+              <TabsTrigger value="media" className="flex-1 rounded-xl font-black text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Media</TabsTrigger>
+              <TabsTrigger value="files" className="flex-1 rounded-xl font-black text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Files</TabsTrigger>
+              <TabsTrigger value="links" className="flex-1 rounded-xl font-black text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Links</TabsTrigger>
             </TabsList>
             
             <TabsContent value="media" className="mt-6">
@@ -265,7 +265,7 @@ export default function ChatInfoSidebar() {
 }
 
 function SectionLabel({ label, color = "text-muted-foreground/40" }: { label: string, color?: string }) {
-  return <h4 className={cn("text-[10px] font-black uppercase tracking-[0.2em]", color)}>{label}</h4>;
+  return <h4 className={cn("text-[11px] font-black uppercase tracking-[0.2em]", color)}>{label}</h4>;
 }
 
 function ActionButton({ icon, label }: { icon: React.ReactNode, label: string }) {
@@ -274,7 +274,7 @@ function ActionButton({ icon, label }: { icon: React.ReactNode, label: string })
       <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl shadow-sm border-border/40 hover:border-primary hover:bg-primary/5 transition-all group">
         <div className="group-hover:scale-110 transition-transform">{icon}</div>
       </Button>
-      <span className="text-[10px] font-bold text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-bold text-muted-foreground">{label}</span>
     </div>
   );
 }
@@ -294,7 +294,7 @@ function ActionItem({ icon, title, description, color }: { icon: React.ReactNode
         </div>
         <div className="text-left">
            <p className="text-[13px] font-black text-foreground">{title}</p>
-           <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-tight">{description}</p>
+           <p className="text-[11px] font-bold text-muted-foreground/50 uppercase tracking-tight">{description}</p>
         </div>
       </div>
       <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
@@ -338,7 +338,7 @@ function FileCard({ file }: { file: SharedFile }) {
         </div>
         <div className="flex flex-col min-w-0">
           <span className="text-[13px] font-extrabold truncate group-hover:text-primary transition-colors">{file.name || 'document.pdf'}</span>
-          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-tight">{((file.size ?? 0) / 1024 / 1024).toFixed(2)} MB · {file.type || 'FILE'}</span>
+          <span className="text-[11px] text-muted-foreground font-black uppercase tracking-tight">{((file.size ?? 0) / 1024 / 1024).toFixed(2)} MB · {file.type || 'FILE'}</span>
         </div>
       </div>
       <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl hover:bg-slate-100">
@@ -356,7 +356,7 @@ function LinkCard({ link }: { link: SharedLink }) {
        </div>
        <div className="flex-1 min-w-0">
           <p className="text-[13px] font-black truncate">{link.title || link.url}</p>
-          <p className="text-[10px] font-bold text-primary truncate leading-tight">{link.url}</p>
+          <p className="text-[11px] font-bold text-primary truncate leading-tight">{link.url}</p>
        </div>
        <ExternalLink className="h-4 w-4 text-muted-foreground/30" />
     </div>

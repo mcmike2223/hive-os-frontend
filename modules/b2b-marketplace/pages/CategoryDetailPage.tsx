@@ -37,7 +37,7 @@ function ProductTile({ product }: { product: B2BProduct }) {
         )}
         <div className="absolute top-2 left-2 flex flex-wrap gap-1">
           {product.badges.slice(0, 2).map((b) => (
-            <Badge key={b} className="bg-background/90 text-foreground border border-border/60 text-[10px]">{b}</Badge>
+            <Badge key={b} className="bg-background/90 text-foreground border border-border/60 text-[11px]">{b}</Badge>
           ))}
         </div>
       </div>
@@ -48,7 +48,7 @@ function ProductTile({ product }: { product: B2BProduct }) {
         </div>
         <p className="mt-2 text-lg font-black text-primary">{product.price}</p>
         <p className="text-[11px] text-muted-foreground">MOQ: {product.moq}</p>
-        <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
           {product.location && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{product.location}</span>}
           {product.lead_time && <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{product.lead_time}</span>}
         </div>

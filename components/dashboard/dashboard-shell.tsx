@@ -9,6 +9,7 @@ import { DashboardFooter } from "./footer";
 import { DashboardSidebarDesktop } from "./sidebar-desktop";
 import { DashboardTopbar } from "./topbar";
 import { useTour } from "@/components/providers/tour-provider";
+import { useTranslation } from "@/store/use-translation";
 
 const SIDEBAR_KEY = "hive_sidebar_collapsed";
 
@@ -36,6 +37,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const { startTour, isActive } = useTour();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // 🚀 DELAYED TRIGGER TO ENSURE DOM IS READY AND BRANDING IS APPLIED
@@ -47,43 +49,54 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       const welcomeCompletedLocal = localStorage.getItem("hive_welcome_tour_completed");
 
       if (user && !user.has_completed_welcome_tour && !welcomeCompletedLocal) {
-        startTour([
-          { 
-            target: 'body', 
-            title: 'Welcome to HIVE.OS', 
-            content: 'Your Neural Control Interface is now active. Let\'s align your protocols for peak performance.',
-            placement: 'center'
+        // Every string here used to be a hardcoded English literal, so the
+        // first-login tour stayed English even for an Amharic operator.
+        const welcomeSteps = [
+          {
+            target: 'body',
+            title: t('tour.welcome_title', 'Welcome to HIVE.OS'),
+            content: t('tour.welcome_desc', 'Your control interface is ready. Here is a quick orientation — you can replay it any time from System Tour in the header.'),
+            placement: 'center' as const,
           },
-          { 
-            target: '#tour-nav-overview', 
-            title: 'Mission Control', 
-            content: 'Real-time telemetry and revenue metrics aggregated across your entire node network.',
-            placement: 'right'
+          {
+            target: '#tour-nav-overview',
+            title: t('tour.welcome_overview_title', 'Mission Control'),
+            content: t('tour.welcome_overview_desc', 'Real-time telemetry and revenue metrics aggregated across your entire node network.'),
+            placement: 'right' as const,
           },
-          { 
-            target: '#tour-nav-security', 
-            title: 'Zero-Trust Security', 
-            content: 'Manage operator clearances and cryptographic roles with granular precision.',
-            placement: 'right'
+          {
+            target: '#tour-nav-security',
+            title: t('tour.welcome_security_title', 'Zero-Trust Security'),
+            content: t('tour.welcome_security_desc', 'Manage operator clearances and cryptographic roles with granular precision.'),
+            placement: 'right' as const,
           },
-          { 
-            target: '#tour-topbar-search', 
-            title: 'Global Search', 
-            content: 'Instantly query any module, user, or system log from this central terminal.',
-            placement: 'bottom'
+          {
+            target: '#tour-topbar-search',
+            title: t('tour.welcome_search_title', 'Global Search'),
+            content: t('tour.welcome_search_desc', 'Instantly query any module, user, or system log from this central terminal.'),
+            placement: 'bottom' as const,
           },
-          { 
-            target: '#tour-topbar-profile', 
-            title: 'Operator Profile', 
-            content: 'Configure your individual preferences or securely disconnect from the matrix.',
-            placement: 'bottom-end'
-          }
-        ], 'welcome');
+          {
+            target: '#tour-topbar-profile',
+            title: t('tour.welcome_profile_title', 'Operator Profile'),
+            content: t('tour.welcome_profile_desc', 'Configure your individual preferences or securely disconnect from the matrix.'),
+            placement: 'bottom-end' as const,
+          },
+        ];
+
+        // Drop any step whose anchor is not on screen (permissions or a narrow
+        // viewport can hide them) so the tour never stalls on a dead target.
+        startTour(
+          welcomeSteps.filter(
+            (step) => step.target === 'body' || document.querySelector(step.target),
+          ),
+          'welcome',
+        );
       }
     }, 2000); // 2 second delay for premium feel and layout stability
 
     return () => clearTimeout(timer);
-  }, [startTour, isActive]);
+  }, [startTour, isActive, t]);
 
   useEffect(() => {
     const handleFocus = () => syncUserSession();

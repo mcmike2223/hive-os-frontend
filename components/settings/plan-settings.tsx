@@ -147,21 +147,21 @@ function PlanCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className={cn("font-black text-base tracking-tight", color)}>{plan.label}</span>
             {plan.is_disabled && (
-              <Badge className="bg-destructive/10 text-destructive border-none text-[10px]">Disabled</Badge>
+              <Badge className="bg-destructive/10 text-destructive border-none text-[11px]">Disabled</Badge>
             )}
             {plan.key === "business" && !plan.is_disabled && (
-              <Badge className="bg-indigo-500/10 text-indigo-500 border-none text-[10px]">Popular</Badge>
+              <Badge className="bg-indigo-500/10 text-indigo-500 border-none text-[11px]">Popular</Badge>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
             <span className="text-xs text-muted-foreground font-mono">
               {plan.monthly_price_etb === 0 ? "Free" : `ETB ${plan.monthly_price_etb.toLocaleString()}/mo`}
             </span>
-            <span className="text-[10px] text-muted-foreground">·</span>
+            <span className="text-[11px] text-muted-foreground">·</span>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <HardDrive className="h-3 w-3" /> {fmtStorage(plan.storage_mb)}
             </span>
-            <span className="text-[10px] text-muted-foreground">·</span>
+            <span className="text-[11px] text-muted-foreground">·</span>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Layers className="h-3 w-3" /> {plan.enabled_modules.length} modules
             </span>
@@ -178,7 +178,7 @@ function PlanCard({
           {/* Row: Label + Description */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Plan Label</Label>
+              <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Plan Label</Label>
               <Input
                 value={plan.label}
                 onChange={e => onUpdate(plan.key, { label: e.target.value })}
@@ -186,7 +186,7 @@ function PlanCard({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Monthly Price (ETB)</Label>
+              <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Monthly Price (ETB)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">ETB</span>
                 <Input
@@ -203,7 +203,7 @@ function PlanCard({
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description (shown on pricing page)</Label>
+            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Description (shown on pricing page)</Label>
             <Input
               value={plan.description}
               onChange={e => onUpdate(plan.key, { description: e.target.value })}
@@ -214,7 +214,7 @@ function PlanCard({
 
           {/* Storage */}
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
               Storage Quota (MB) = {fmtStorage(plan.storage_mb)}
             </Label>
             <div className="flex items-center gap-3">
@@ -234,7 +234,7 @@ function PlanCard({
                     type="button"
                     onClick={() => onUpdate(plan.key, { storage_mb: mb })}
                     className={cn(
-                      "px-2 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                      "px-2 py-1 rounded-lg text-[11px] font-bold border transition-all",
                       plan.storage_mb === mb
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-muted/30 border-border hover:bg-muted"
@@ -249,13 +249,13 @@ function PlanCard({
 
           {/* Module Checkboxes grouped by category */}
           <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
               Included Modules ({plan.enabled_modules.length} / {catalog.length})
             </Label>
             <div className="space-y-3">
               {Object.entries(byCategory).map(([category, mods]) => (
                 <div key={category}>
-                  <p className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg mb-2 w-fit", CATEGORY_COLOR[category] ?? "bg-muted/30 text-muted-foreground")}>
+                  <p className={cn("text-[11px] font-black uppercase tracking-widest px-2 py-1 rounded-lg mb-2 w-fit", CATEGORY_COLOR[category] ?? "bg-muted/30 text-muted-foreground")}>
                     {category}
                   </p>
                   <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -282,7 +282,7 @@ function PlanCard({
                           <div className="min-w-0">
                             <p className={cn("text-xs font-bold leading-tight truncate", active ? "text-foreground" : "text-muted-foreground")}>{mod.name}</p>
                             {mod.monthly_price_etb > 0 && (
-                              <p className="text-[10px] text-muted-foreground/70 font-mono">+ETB {mod.monthly_price_etb}</p>
+                              <p className="text-[11px] text-muted-foreground/70 font-mono">+ETB {mod.monthly_price_etb}</p>
                             )}
                           </div>
                         </button>

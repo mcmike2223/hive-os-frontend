@@ -875,7 +875,7 @@ export function TenantLandingTemplateSettings() {
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-4 rounded-[2rem] border border-border/50 bg-card/40 p-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
               Business Types
             </p>
             <p className="mt-2 text-sm text-muted-foreground">

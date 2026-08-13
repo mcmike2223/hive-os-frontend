@@ -274,7 +274,7 @@ export default function GifConverterPage() {
                   <Film className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold truncate">{f.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{formatBytes(f.size)}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatBytes(f.size)}</p>
                   </div>
                   <button onClick={() => setFiles((p) => p.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive">
                     <X className="h-4 w-4" />
@@ -296,7 +296,7 @@ export default function GifConverterPage() {
               <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                 <Server className="h-3 w-3" />
                 FFmpeg uses a 2-pass palette method for best GIF colour quality
               </div>
@@ -334,33 +334,33 @@ export default function GifConverterPage() {
               <>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Frame Rate (FPS)</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Frame Rate (FPS)</Label>
                     <span className="text-xs font-black text-emerald-500">{fps} fps</span>
                   </div>
                   <Slider min={1} max={30} step={1} value={[fps]} onValueChange={([v]) => setFps(v)} />
-                  <div className="flex justify-between text-[9px] text-muted-foreground">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
                     <span>Smaller file</span><span>Smoother</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Width (px)</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Width (px)</Label>
                     <span className="text-xs font-black text-emerald-500">{scale}px</span>
                   </div>
                   <Slider min={120} max={1280} step={40} value={[scale]} onValueChange={([v]) => setScale(v)} />
-                  <div className="flex justify-between text-[9px] text-muted-foreground">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
                     <span>120px</span><span>1280px</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Max Duration</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Max Duration</Label>
                     <span className="text-xs font-black text-emerald-500">{duration}s</span>
                   </div>
                   <Slider min={1} max={60} step={1} value={[duration]} onValueChange={([v]) => setDuration(v)} />
-                  <div className="flex justify-between text-[9px] text-muted-foreground">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
                     <span>1s</span><span>60s</span>
                   </div>
                 </div>
@@ -373,7 +373,7 @@ export default function GifConverterPage() {
                 <Server className="h-3.5 w-3.5 text-emerald-500" />
                 <p className="text-[11px] font-black text-emerald-600">FFmpeg Docker Service</p>
               </div>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Uses FFmpeg&apos;s 2-pass palette method for best GIF quality. Runs server-side — no browser limits.
               </p>
             </div>

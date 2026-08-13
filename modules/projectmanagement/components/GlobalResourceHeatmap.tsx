@@ -64,7 +64,7 @@ export function GlobalResourceHeatmap() {
           <h3 className="text-2xl font-black tracking-tight">Global Resource Heatmap</h3>
           <p className="text-muted-foreground font-medium mt-1">Cross-project workload distribution for the next 14 days.</p>
         </div>
-        <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 bg-background/40 p-3 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60 bg-background/40 p-3 rounded-2xl border border-white/5">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-muted/30 shadow-inner" /> <span>Free</span>
           </div>
@@ -84,10 +84,10 @@ export function GlobalResourceHeatmap() {
         <table className="w-full border-separate border-spacing-y-2">
           <thead>
             <tr>
-              <th className="p-4 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 min-w-[240px]">Resource</th>
+              <th className="p-4 text-left text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 min-w-[240px]">Resource</th>
               {days.map(day => (
                 <th key={day.toISOString()} className="p-2 text-center min-w-[48px]">
-                  <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-tighter">{format(day, "EEE")}</p>
+                  <p className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-tighter">{format(day, "EEE")}</p>
                   <p className={cn(
                     "text-sm font-black mt-1",
                     isSameDay(day, new Date()) ? "text-primary" : "text-muted-foreground/70"
@@ -111,7 +111,7 @@ export function GlobalResourceHeatmap() {
                     </Avatar>
                     <div className="min-w-0">
                       <p className="text-sm font-black truncate group-hover:text-primary transition-colors">{user.name}</p>
-                      <Badge variant="outline" className="text-[9px] uppercase font-black px-1.5 py-0 bg-white/5 border-white/10 opacity-60">
+                      <Badge variant="outline" className="text-[11px] uppercase font-black px-1.5 py-0 bg-white/5 border-white/10 opacity-60">
                         Developer
                       </Badge>
                     </div>
@@ -142,13 +142,13 @@ export function GlobalResourceHeatmap() {
                             <div className="space-y-2">
                               <p className="font-black text-xs border-b border-border/10 pb-1">{data.count} Tasks • {format(day, "PPP")}</p>
                               {data.tasks.map((t: any) => (
-                                <div key={t.id} className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
+                                <div key={t.id} className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
                                   <div className="h-1 w-1 rounded-full bg-primary" />
                                   <span className="truncate max-w-[150px]">{t.title}</span>
-                                  <span className="text-[9px] opacity-50 ml-auto">({t.project?.name})</span>
+                                  <span className="text-[11px] opacity-50 ml-auto">({t.project?.name})</span>
                                 </div>
                               ))}
-                              {data.count === 0 && <p className="text-[10px] text-muted-foreground italic">No tasks assigned</p>}
+                              {data.count === 0 && <p className="text-[11px] text-muted-foreground italic">No tasks assigned</p>}
                             </div>
                           </TooltipContent>
                         </Tooltip>

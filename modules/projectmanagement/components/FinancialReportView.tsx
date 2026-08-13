@@ -294,7 +294,7 @@ const cumulativeData = useMemo(() => {
         <div className="relative z-10 mb-4 lg:mb-0">
           <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
             {t('project_management.financial_intelligence', 'Financial Intelligence')}
-            <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] uppercase tracking-widest px-2">{t('project_management.enterprise_v2', 'ENTERPRISE v2.0')}</Badge>
+            <Badge variant="secondary" className="bg-primary/10 text-primary text-[11px] uppercase tracking-widest px-2">{t('project_management.enterprise_v2', 'ENTERPRISE v2.0')}</Badge>
           </h2>
           <p className="text-xs text-muted-foreground font-medium mt-1 uppercase tracking-wider opacity-70 flex items-center gap-2">
             <Sparkles className="h-3 w-3 text-primary" />
@@ -309,7 +309,7 @@ const cumulativeData = useMemo(() => {
                 key={s}
                 onClick={() => setSelectedScenario(s)}
                 className={cn(
-                  "px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  "px-4 py-1.5 text-[11px] font-black uppercase tracking-widest rounded-lg transition-all",
                   selectedScenario === s 
                     ? "bg-card text-primary shadow-sm border border-border/40" 
                     : "text-muted-foreground hover:text-foreground"
@@ -324,7 +324,7 @@ const cumulativeData = useMemo(() => {
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 px-4 gap-2 text-primary border-primary/20 hover:bg-primary/5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all" 
+              className="h-9 px-4 gap-2 text-primary border-primary/20 hover:bg-primary/5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all" 
               onClick={onConfigureBudget}
             >
               <Settings className="h-3.5 w-3.5" />
@@ -392,7 +392,7 @@ const cumulativeData = useMemo(() => {
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/5 rounded-lg border border-primary/10">
                   <Activity className="h-3 w-3 text-primary animate-pulse" />
-                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">AI ENGINE ACTIVE</span>
+                  <span className="text-[11px] font-black text-primary uppercase tracking-tighter">AI ENGINE ACTIVE</span>
                 </div>
               </div>
             </CardHeader>
@@ -468,13 +468,13 @@ const cumulativeData = useMemo(() => {
               </div>
               <div className="mt-6 flex items-center gap-4">
                 <div className="flex-1 p-4 rounded-2xl bg-muted/30 border border-border/40">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Estimated Exhaustion</p>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground mb-1">Estimated Exhaustion</p>
                   <p className="text-lg font-black text-rose-500">
                     ~{(runwayDays / 7).toFixed(1)} Weeks
                   </p>
                 </div>
                 <div className="flex-1 p-4 rounded-2xl bg-muted/30 border border-border/40">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Burn Rate Confidence</p>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground mb-1">Burn Rate Confidence</p>
                   <p className="text-lg font-black text-primary">{Math.min(99.9, 100 - (report.risk_score * 0.5)).toFixed(1)}%</p>
                 </div>
               </div>
@@ -525,7 +525,7 @@ const cumulativeData = useMemo(() => {
                   </span>
                 </div>
                 <Progress value={Math.max(0, Math.min(100, report.profitability))} className={cn("h-1.5", report.profitability >= 0 ? "bg-emerald-500/10" : "bg-rose-500/10")} />
-                <p className="text-[9px] text-muted-foreground leading-tight italic">
+                <p className="text-[11px] text-muted-foreground leading-tight italic">
                   Projected revenue of {report.currency} {estimatedRevenue.toLocaleString()} {report.profitability >= 20 ? "shows strong profitability" : "requires careful cost management"} for the given scope.
                 </p>
               </div>
@@ -583,13 +583,13 @@ const cumulativeData = useMemo(() => {
               </div>
               <div className="mt-6 flex justify-between items-center bg-muted/30 p-4 rounded-2xl border border-border/40">
                 <div>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Total Expected ROI</p>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground mb-1">Total Expected ROI</p>
                   <p className="text-xl font-black text-primary">
                     {report.currency} {(roiData[roiData.length-1]?.roi || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Yield Factor</p>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground mb-1">Yield Factor</p>
                   <p className="text-xl font-black text-emerald-500">
                     {(roiData[roiData.length-1]?.yield || 0).toFixed(1)}%
                   </p>
@@ -631,7 +631,7 @@ const cumulativeData = useMemo(() => {
               </div>
               <div className="mt-8 p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 flex items-start gap-3">
                 <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
                   <span className="font-bold text-rose-500 uppercase mr-1">Financial Status:</span> 
                   {report.risk_score > 70 
                     ? `Critical risk detected. High burn rate and timeline pressure in ${selectedScenario} mode.`
@@ -696,7 +696,7 @@ const cumulativeData = useMemo(() => {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-black">{report.currency} {(member.cost || 0).toLocaleString()}</p>
-                      <p className="text-[10px] text-muted-foreground font-medium">{member.hours || 0}h logged</p>
+                      <p className="text-[11px] text-muted-foreground font-medium">{member.hours || 0}h logged</p>
                     </div>
                   </div>
                 ))}
@@ -839,7 +839,7 @@ const cumulativeData = useMemo(() => {
                     </Badge>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Burn Velocity</p>
+                    <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-1">Burn Velocity</p>
                     <p className="text-xl font-black text-primary">
                       {report.currency} {Math.round(totalCosts / (report.weekly_trend?.length || 1)).toLocaleString()}/wk
                     </p>
@@ -847,7 +847,7 @@ const cumulativeData = useMemo(() => {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                  <div className="flex justify-between text-[11px] font-black uppercase tracking-widest">
                     <span className="text-muted-foreground">Exhaustion Probability</span>
                     <span className="text-foreground">{Math.round(report.risk_score * 0.8)}% at Week 4</span>
                   </div>
@@ -863,7 +863,7 @@ const cumulativeData = useMemo(() => {
                 <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
                   <div className="flex items-center gap-3">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <p className="text-[10px] font-bold text-foreground leading-snug">
+                    <p className="text-[11px] font-bold text-foreground leading-snug">
                       AI RECOMMENDATION: {report.risk_score > 60 
                         ? `Transition to LEAN scenario to extend runway by ${Math.round(runwayDays * 0.4)} days and mitigate overspending.`
                         : `Current velocity is stable. Maintaining OPTIMAL scenario will maximize ROI yield for the next milestone.`
@@ -911,7 +911,7 @@ function StatsCard({
             </div>
             {trend && (
               <div className={cn(
-                "flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm",
+                "flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full shadow-sm",
                 trend === 'up' ? "text-emerald-600 bg-emerald-500/10" : "text-rose-600 bg-rose-500/10"
               )}>
                 {trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -920,9 +920,9 @@ function StatsCard({
             )}
           </div>
           <div className="space-y-1.5">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
             <p className="text-2xl font-black tracking-tight group-hover:text-primary transition-colors text-foreground">{value}</p>
-            <p className="text-[10px] text-muted-foreground font-bold opacity-70">{subValue}</p>
+            <p className="text-[11px] text-muted-foreground font-bold opacity-70">{subValue}</p>
           </div>
         </CardContent>
       </Card>

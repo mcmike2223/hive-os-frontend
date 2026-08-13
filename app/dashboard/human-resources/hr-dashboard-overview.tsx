@@ -831,7 +831,7 @@ export function HrDashboardOverview() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.charts.recruitment_pipeline} margin={{ left: 4, right: 4 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" angle={-25} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" angle={-25} textAnchor="end" height={72} tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} />
               <RechartsTooltip contentStyle={tooltipStyle} />
               <Bar dataKey="value" name="Applicants" fill="#b45309" radius={[6, 6, 0, 0]} isAnimationActive={!reducedMotion} />
@@ -952,7 +952,7 @@ export function HrDashboardOverview() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.charts.contract_types} margin={{ left: 4, right: 4 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" angle={-20} textAnchor="end" height={60} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" angle={-20} textAnchor="end" height={60} tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} />
               <RechartsTooltip contentStyle={tooltipStyle} />
               <Bar dataKey="value" name="Employees" fill="#0369a1" radius={[6, 6, 0, 0]} isAnimationActive={!reducedMotion} />
