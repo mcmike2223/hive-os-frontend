@@ -26,27 +26,27 @@ type RealtimeSettingsPayload = {
   port: number;
   scheme: string;
   app_secret_set: boolean;
+  managed_by_environment: boolean;
+  source: "environment" | "database";
 };
 
 /**
- * Reverb credentials.
+ * Reverb credentials for the current deployment.
  *
- * The floor app holds an open websocket rather than using a push service, so
- * these are what every waiter phone and kitchen display connects with. Keeping
- * them here means rotating a leaked key is a form submission rather than a
- * redeploy of every node.
- *
- * The secret is never sent back by the API. The form reports whether one is
- * stored and treats an empty field as "leave it alone", so an operator can
- * change the host without re-entering a credential they were never shown.
+ * Production and local environments can have different public websocket
+ * endpoints. When a complete environment configuration is present, this view
+ * is read-only and operators are directed to update the deployment variables
+ * and redeploy. The database form remains available as a backwards-compatible
+ * fallback for installations that do not configure Reverb through the env.
  */
 export default function RealtimeSettings() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<RealtimeSettingsPayload>({
-    queryKey: ["settings", "realtime"],
-    queryFn: async () => (await api.get("/settings/realtime")).data?.data,
-  });
+  const { data, isLoading, isError, refetch } =
+    useQuery<RealtimeSettingsPayload>({
+      queryKey: ["settings", "realtime"],
+      queryFn: async () => (await api.get("/settings/realtime")).data?.data,
+    });
 
   const [form, setForm] = useState<RealtimeSettingsPayload | null>(null);
   const [secret, setSecret] = useState("");
@@ -75,54 +75,117 @@ export default function RealtimeSettings() {
     onSuccess: () => {
       toast.success("Realtime settings saved.");
       setSecret("");
-      void queryClient.invalidateQueries({ queryKey: ["settings", "realtime"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["settings", "realtime"],
+      });
     },
     onError: (error: any) => {
       const errors = error?.response?.data?.errors;
       toast.error(
         errors
           ? String(Object.values(errors)[0])
-          : error?.response?.data?.message || "Could not save realtime settings.",
+          : error?.response?.data?.message ||
+              "Could not save realtime settings.",
       );
     },
   });
 
-  if (isLoading || !form) {
+  if (isLoading) {
     return (
-      <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading realtime settings…
+      <div
+        className="flex items-center gap-2 p-6 text-sm text-muted-foreground"
+        role="status"
+      >
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading
+        realtime settings…
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        className="space-y-3 rounded-xl border border-border/60 p-4"
+        role="alert"
+      >
+        <div>
+          <p className="font-bold">Could not load realtime settings</p>
+          <p className="text-sm text-muted-foreground">
+            Check the API connection, then try again.
+          </p>
+        </div>
+        <Button type="button" variant="outline" onClick={() => void refetch()}>
+          Retry loading settings
+        </Button>
+      </div>
+    );
+  }
+
+  if (!form) {
+    return (
+      <p className="p-6 text-sm text-muted-foreground" role="status">
+        No realtime configuration is available for this deployment.
+      </p>
     );
   }
 
   const update = (patch: Partial<RealtimeSettingsPayload>) =>
     setForm((current) => (current ? { ...current, ...patch } : current));
 
+  const managedByEnvironment = form.managed_by_environment;
+
   return (
     <div className="space-y-6" data-testid="realtime-settings">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background/60">
-          <Radio className="h-5 w-5 text-indigo-500" />
+          <Radio className="h-5 w-5 text-indigo-500" aria-hidden="true" />
         </div>
         <div>
-          <h3 className="text-lg font-black tracking-tight">Realtime (Reverb)</h3>
+          <h3 className="text-lg font-black tracking-tight">
+            Realtime (Reverb)
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Kitchen displays and the floor app subscribe with these. They hold an open
-            connection instead of relying on a push service.
+            Kitchen displays and the floor app subscribe with these. They hold
+            an open connection instead of relying on a push service.
           </p>
         </div>
       </div>
 
+      {managedByEnvironment ? (
+        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/30 p-4">
+          <ShieldCheck
+            className="mt-0.5 h-5 w-5 shrink-0 text-indigo-500"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="font-bold">Managed by deployment environment</p>
+            <p className="text-sm text-muted-foreground">
+              These values come from this deployment&apos;s REVERB_ and
+              NEXT_PUBLIC_REVERB_ variables. Update those variables and redeploy
+              to change the connection.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between rounded-xl border border-border/50 p-4">
         <div>
-          <Label className="font-bold">Realtime enabled</Label>
-          <p className="text-xs text-muted-foreground">
+          <Label htmlFor="realtime_enabled" className="font-bold">
+            Realtime enabled
+          </Label>
+          <p
+            id="realtime-enabled-help"
+            className="text-xs text-muted-foreground"
+          >
             Turn off to stop clients attempting to connect.
           </p>
         </div>
         <Switch
+          id="realtime_enabled"
           checked={form.enabled}
           onCheckedChange={(enabled) => update({ enabled })}
+          disabled={managedByEnvironment}
+          aria-describedby="realtime-enabled-help"
           data-testid="realtime-enabled"
         />
       </div>
@@ -134,8 +197,13 @@ export default function RealtimeSettings() {
             id="reverb_app_id"
             value={form.app_id}
             onChange={(event) => update({ app_id: event.target.value })}
+            disabled={managedByEnvironment}
+            aria-describedby="reverb-app-id-help"
             data-testid="realtime-app-id"
           />
+          <p id="reverb-app-id-help" className="text-xs text-muted-foreground">
+            Server application identifier for this deployment.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -144,9 +212,11 @@ export default function RealtimeSettings() {
             id="reverb_app_key"
             value={form.app_key}
             onChange={(event) => update({ app_key: event.target.value })}
+            disabled={managedByEnvironment}
+            aria-describedby="reverb-app-key-help"
             data-testid="realtime-app-key"
           />
-          <p className="text-xs text-muted-foreground">
+          <p id="reverb-app-key-help" className="text-xs text-muted-foreground">
             Sent to clients. Safe to expose.
           </p>
         </div>
@@ -158,13 +228,20 @@ export default function RealtimeSettings() {
             type="password"
             value={secret}
             placeholder={
-              form.app_secret_set ? "A secret is stored — leave blank to keep it" : "Not set"
+              form.app_secret_set
+                ? "A secret is stored — leave blank to keep it"
+                : "Not set"
             }
             onChange={(event) => setSecret(event.target.value)}
+            disabled={managedByEnvironment}
+            aria-describedby="reverb-app-secret-help"
             data-testid="realtime-app-secret"
           />
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5" />
+          <p
+            id="reverb-app-secret-help"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
             Server-side only. Encrypted at rest and never returned by the API.
           </p>
         </div>
@@ -176,8 +253,13 @@ export default function RealtimeSettings() {
             value={form.host}
             placeholder="realtime.example.com"
             onChange={(event) => update({ host: event.target.value })}
+            disabled={managedByEnvironment}
+            aria-describedby="reverb-host-help"
             data-testid="realtime-host"
           />
+          <p id="reverb-host-help" className="text-xs text-muted-foreground">
+            Public hostname used by browser clients.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -188,13 +270,18 @@ export default function RealtimeSettings() {
               type="number"
               value={form.port}
               onChange={(event) => update({ port: Number(event.target.value) })}
+              disabled={managedByEnvironment}
               data-testid="realtime-port"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="reverb_scheme">Scheme</Label>
-            <Select value={form.scheme} onValueChange={(scheme) => update({ scheme })}>
+            <Select
+              value={form.scheme}
+              onValueChange={(scheme) => update({ scheme })}
+              disabled={managedByEnvironment}
+            >
               <SelectTrigger id="reverb_scheme" data-testid="realtime-scheme">
                 <SelectValue />
               </SelectTrigger>
@@ -208,12 +295,17 @@ export default function RealtimeSettings() {
       </div>
 
       <Button
+        type="button"
         onClick={() => save.mutate()}
-        disabled={save.isPending}
+        disabled={managedByEnvironment || save.isPending}
         data-testid="realtime-save"
       >
-        {save.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Save realtime settings
+        {save.isPending ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+        ) : null}
+        {managedByEnvironment
+          ? "Managed by environment"
+          : "Save realtime settings"}
       </Button>
     </div>
   );
