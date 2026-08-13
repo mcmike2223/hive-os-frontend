@@ -156,8 +156,6 @@ function SecureBlobAvatar({
     };
   }, [canFetch, lastSaved, previewUrl]);
 
-  const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "Operator")}&color=7F9CF5&background=EBF4FF`;
-
   if (isFetching && !blobUrl) {
     return (
       <div className={cn("bg-muted/50", className)}>
@@ -166,10 +164,33 @@ function SecureBlobAvatar({
     );
   }
 
+  if (!blobUrl) {
+    const name = user?.name || "Operator";
+    const initials = name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "OP";
+
+    return (
+      <div
+        role="img"
+        aria-label={`${name} profile picture`}
+        className={cn(
+          "flex items-center justify-center bg-primary text-3xl font-black tracking-widest text-primary-foreground",
+          className,
+        )}
+      >
+        <span aria-hidden="true">{initials}</span>
+      </div>
+    );
+  }
+
   return (
     <img
-      src={blobUrl || fallbackUrl}
-      alt={user?.name || "Avatar"}
+      src={blobUrl}
+      alt={`${user?.name || "Operator"} profile picture`}
       className={cn("object-cover bg-muted", className)}
     />
   );

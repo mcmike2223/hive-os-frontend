@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const isCi = Boolean(process.env.CI);
+const chromiumExecutablePath =
+  process.env.HIVE_E2E_CHROMIUM_EXECUTABLE_PATH?.trim() || undefined;
+const chromiumHostResolverRules =
+  process.env.HIVE_E2E_HOST_RESOLVER_RULES?.trim() || undefined;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -46,6 +50,12 @@ export default defineConfig({
       name: "chromium",
       use: {
         browserName: "chromium",
+        launchOptions: {
+          executablePath: chromiumExecutablePath,
+          args: chromiumHostResolverRules
+            ? [`--host-resolver-rules=${chromiumHostResolverRules}`]
+            : [],
+        },
       },
     },
   ],

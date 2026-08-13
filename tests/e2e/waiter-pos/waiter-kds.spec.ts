@@ -48,7 +48,9 @@ test.describe("waiter POS and KDS isolated browser acceptance", () => {
       ]);
 
       await expect(waiterPage.getByRole("heading", { name: "Restaurant Waiter POS" })).toBeVisible();
-      await expect(waiterPage.getByText("A-01 Assigned", { exact: true })).toBeVisible();
+      await expect(
+        waiterPage.getByRole("button", { name: /A-01 Assigned Acceptance/i }),
+      ).toBeVisible();
       await expect(waiterPage.getByText("A-02 Unassigned", { exact: true })).toHaveCount(0);
       await expect(waiterPage.getByText(/Live kitchen updates: connected/i)).toBeVisible();
       await expect(kitchenPage.getByRole("heading", { name: /Kitchen Display System/i })).toBeVisible();
