@@ -402,12 +402,19 @@ jobs:
 
           exit "${FAILED}"
 
+      # Kept only when something actually went wrong. These are traces, videos
+      # and screenshots: the name says failure evidence, but always() uploaded
+      # them for green runs too, and 21 passing runs reached 159MB and started
+      # failing other jobs with an artifact quota error. A green run's trace has
+      # never been read.
       - name: Upload browser failure evidence
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: waiter-pos-browser-artifacts
           if-no-files-found: ignore
+          # A fortnight is longer than anyone leaves a red build unexamined.
+          retention-days: 14
           path: |
             hive-os-frontend/playwright-report
             hive-os-frontend/.playwright/test-results
@@ -417,12 +424,16 @@ jobs:
         if: always()
         run: docker compose -f hive-os-infra/docker-compose.yml logs --no-color > hive-waiter-pos-compose.log
 
+      # Same reasoning. Container logs for a run that passed answer no question
+      # anyone is asking, and the step above still collects them so they are in
+      # the job log if needed.
       - name: Upload service diagnostics
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: waiter-pos-service-diagnostics
           if-no-files-found: ignore
+          retention-days: 14
           path: hive-waiter-pos-compose.log
 
       - name: Stop acceptance services without pruning volumes
