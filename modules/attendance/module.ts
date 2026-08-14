@@ -37,7 +37,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "attendance",
-      translationKey: "nav.attendance_user_linking",
+      translationKey: "nav.attendance_people",
       fallbackLabel: "People & Enrolment",
       href: "/dashboard/attendance/user-linking",
       icon: UserRoundCog,
@@ -50,7 +50,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "attendance",
-      translationKey: "nav.attendance_devices",
+      translationKey: "nav.attendance_devices_simple",
       fallbackLabel: "Devices",
       href: "/dashboard/attendance/devices",
       icon: Settings,
@@ -64,7 +64,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "attendance",
-      translationKey: "nav.attendance_device_onboarding",
+      translationKey: "nav.attendance_add_device",
       fallbackLabel: "Add a Device",
       href: "/dashboard/attendance/device-onboarding",
       icon: PlusCircle,
@@ -78,7 +78,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "attendance",
-      translationKey: "nav.attendance_reports",
+      translationKey: "nav.attendance_reports_simple",
       fallbackLabel: "Reports",
       href: "/dashboard/attendance/reports",
       icon: BarChart3,

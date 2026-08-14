@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "modules/finance/**/*.ts",
+    "modules/finance/**/*.tsx",
+    "app/dashboard/finance/**/*.ts",
+    "app/dashboard/finance/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}

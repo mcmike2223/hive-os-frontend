@@ -80,6 +80,8 @@ const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
 const selectClass =
   "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
+const tabTriggerClass =
+  "min-h-11 whitespace-normal px-3 text-left text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-700 data-[state=active]:bg-white data-[state=active]:text-slate-950 dark:text-slate-100 dark:focus-visible:ring-cyan-300 dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-white";
 const today = () => new Date().toISOString().slice(0, 10);
 const eventLabels: Record<AttendanceEventType, string> = {
   clock_in: "Clock in",
@@ -876,12 +878,12 @@ export function AttendanceWorkspace({
           <CardContent className="p-3 sm:p-4">
             <TabsList
               aria-label="Attendance workspace views"
-              className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-slate-400 bg-slate-100 p-1.5 sm:grid-cols-3 xl:grid-cols-6 dark:border-slate-500 dark:bg-slate-900"
+              className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-slate-500 bg-slate-100 p-1.5 sm:grid-cols-3 xl:grid-cols-6 dark:bg-slate-900"
             >
               {(canView || canPunch) && (
                 <TabsTrigger
                   value="today"
-                  className="min-h-11 whitespace-normal px-3 text-left"
+                  className={tabTriggerClass}
                 >
                   <CalendarDays aria-hidden="true" />
                   Today
@@ -890,7 +892,7 @@ export function AttendanceWorkspace({
               {canViewReconciliation && (
                 <TabsTrigger
                   value="issues"
-                  className="min-h-11 whitespace-normal px-3 text-left"
+                  className={tabTriggerClass}
                 >
                   <Activity aria-hidden="true" />
                   Fix issues
@@ -899,7 +901,7 @@ export function AttendanceWorkspace({
               {canViewReconciliation && (
                 <TabsTrigger
                   value="reconcile"
-                  className="min-h-11 whitespace-normal px-3 text-left"
+                  className={tabTriggerClass}
                 >
                   <ShieldCheck aria-hidden="true" />
                   Reconcile
@@ -908,7 +910,7 @@ export function AttendanceWorkspace({
               {canViewSchedules && (
                 <TabsTrigger
                   value="schedules"
-                  className="min-h-11 whitespace-normal px-3 text-left"
+                  className={tabTriggerClass}
                 >
                   <Clock3 aria-hidden="true" />
                   Schedules
@@ -917,7 +919,7 @@ export function AttendanceWorkspace({
               {(canView || canPunch) && (
                 <TabsTrigger
                   value="events"
-                  className="min-h-11 whitespace-normal px-3 text-left"
+                  className={tabTriggerClass}
                 >
                   <History aria-hidden="true" />
                   Event log
@@ -926,7 +928,7 @@ export function AttendanceWorkspace({
               {canViewCapture && (
                 <TabsTrigger
                   value="devices"
-                  className="min-h-11 whitespace-normal px-3 text-left"
+                  className={tabTriggerClass}
                 >
                   <Fingerprint aria-hidden="true" />
                   Devices

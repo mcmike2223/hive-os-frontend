@@ -30,6 +30,8 @@ import {
   UsersRound,
   Fingerprint,
   WalletCards,
+  BadgeDollarSign,
+  Factory,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -202,6 +204,8 @@ function SidebarInner({
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [isProductionOpen, setIsProductionOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const canAccessConverter =
@@ -236,6 +240,8 @@ function SidebarInner({
       setIsHumanResourcesOpen(true);
       setIsAttendanceOpen(true);
       setIsPayrollOpen(true);
+      setIsFinanceOpen(true);
+      setIsProductionOpen(true);
     };
 
     window.addEventListener(TOUR_EXPAND_NAV_EVENT, expandAll);
@@ -364,6 +370,12 @@ function SidebarInner({
   const payrollModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "payroll",
   );
+  const financeModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "finance",
+  );
+  const productionModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "production",
+  );
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard/inventory")) {
@@ -405,6 +417,14 @@ function SidebarInner({
     if (pathname.startsWith("/dashboard/payroll")) {
       setIsModulesOpen(true);
       setIsPayrollOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/finance")) {
+      setIsModulesOpen(true);
+      setIsFinanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/production")) {
+      setIsModulesOpen(true);
+      setIsProductionOpen(true);
     }
     if (
       pathname.startsWith("/dashboard/tools/converter") ||
@@ -712,7 +732,8 @@ function SidebarInner({
                      pathname.startsWith("/dashboard/b2b-marketplace") ||
                      pathname.startsWith("/dashboard/human-resources") ||
                      pathname.startsWith("/dashboard/attendance") ||
-                     pathname.startsWith("/dashboard/payroll"))
+                     pathname.startsWith("/dashboard/payroll") ||
+                     pathname.startsWith("/dashboard/finance"))
                       ? "hive-sidebar-nav-active font-extrabold"
                       : "hive-sidebar-section-idle"
                   )}
@@ -1019,6 +1040,22 @@ function SidebarInner({
                       icon: WalletCards,
                       openState: isPayrollOpen,
                       onToggle: () => setIsPayrollOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: financeModuleItems,
+                      label: t("nav.finance", "Financial Management"),
+                      icon: BadgeDollarSign,
+                      openState: isFinanceOpen,
+                      onToggle: () => setIsFinanceOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: productionModuleItems,
+                      label: t("nav.production", "Production Management"),
+                      icon: Factory,
+                      openState: isProductionOpen,
+                      onToggle: () => setIsProductionOpen((value) => !value),
                     })}
 
                     {projectManagementModuleItems.length > 0 && (

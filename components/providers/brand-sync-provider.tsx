@@ -58,8 +58,8 @@ export function BrandSyncProvider() {
       
       // Safely apply Document Title
       if (brandSettings?.app_title) {
-          // This ensures it overrides the default metadata title set in layout.tsx
-          document.title = formatDocumentTitle("Dashboard", brandSettings.app_title);
+          const routeTitle = document.title.split("|")[0]?.trim() || "Dashboard";
+          document.title = formatDocumentTitle(routeTitle, brandSettings.app_title);
       }
     }, [brandSettings]);
 

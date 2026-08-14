@@ -77,8 +77,41 @@ test("attendance management is discoverable and operational", async ({
     "true",
   );
 
+  const overviewNav = dashboardNavigation.getByRole("link", {
+    name: /^overview & today$/i,
+  });
+  await expect(overviewNav).toHaveCount(1);
+  await expect(
+    dashboardNavigation.getByRole("link", {
+      name: /^attendance management$/i,
+    }),
+  ).toHaveCount(0);
+  await overviewNav.click();
+  await page.waitForURL(/\/dashboard\/attendance$/, { timeout: 60_000 });
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: /^attendance management$/i,
+    }),
+  ).toBeVisible();
+
+  const attendanceViews = page.getByRole("tablist", {
+    name: /attendance workspace views/i,
+  });
+  const todayTab = attendanceViews.getByRole("tab", { name: /^today$/i });
+  const issuesTab = attendanceViews.getByRole("tab", {
+    name: /^fix issues$/i,
+  });
+  await expect(todayTab).toHaveAttribute("aria-selected", "true");
+  await todayTab.press("ArrowRight");
+  await expect(issuesTab).toBeFocused();
+  await expect(issuesTab).toHaveAttribute("aria-selected", "true");
+  await issuesTab.press("ArrowLeft");
+  await expect(todayTab).toBeFocused();
+  await expect(todayTab).toHaveAttribute("aria-selected", "true");
+
   const userLinkingNav = page.getByRole("link", {
-    name: /user linking & enrolment/i,
+    name: /people & enrolment/i,
   });
   await expect(userLinkingNav).toBeVisible({ timeout: 60_000 });
   await userLinkingNav.click();

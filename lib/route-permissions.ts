@@ -361,6 +361,10 @@ export function canAccessDashboardRoute(
     return hasSubscribedModule(access, "warehouse_management");
   }
 
+  if (matchesPrefix(path, "/dashboard/production")) {
+    return hasSubscribedModule(access, "production_management");
+  }
+
   if (matchesPrefix(path, "/dashboard/workflow")) {
     if (!hasSubscribedModule(access, "workflow_automation")) {
       return false;

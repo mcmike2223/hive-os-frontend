@@ -1,0 +1,12 @@
+.scope {
+  --ring: 160 84% 29%;
+}
+
+.scope :global([data-slot="input"]),
+.scope :global([data-slot="native-select"]) {
+  border-color: hsl(var(--foreground) / 0.55);
+}
+
+:global(.dark) .scope {
+  --ring: 160 84% 39%;
+}

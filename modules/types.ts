@@ -8,11 +8,13 @@ export type ModuleId =
   | "hospitality"
   | "inventory"
   | "warehouse"
+  | "production"
   | "workflow"
   | "projectmanagement"
   | "humanresources"
   | "attendance"
   | "payroll"
+  | "finance"
   | "lms"
   | "b2b-marketplace";
 export type DashboardNavPlacement = "primary" | "secondary";

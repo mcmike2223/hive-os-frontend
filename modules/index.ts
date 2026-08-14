@@ -5,11 +5,13 @@ import { tenancyModule } from "@/modules/tenancy/module";
 import { hospitalityModule } from "@/modules/hospitality/module";
 import { inventoryModule } from "@/modules/inventory/module";
 import { warehouseModule } from "@/modules/warehouse/module";
+import { productionModule } from "@/modules/production/module";
 import { workflowModule } from "@/modules/workflow/module";
 import { projectManagementModule } from "@/modules/projectmanagement/module";
 import { humanResourcesModule } from "@/modules/humanresources/module";
 import { attendanceModule } from "@/modules/attendance/module";
 import { payrollModule } from "@/modules/payroll/module";
+import { financeModule } from "@/modules/finance/module";
 import { lmsModule } from "@/modules/Lms/module";
 import { b2bMarketplaceModule } from "@/modules/b2b-marketplace/module";
 import type {
@@ -28,11 +30,13 @@ export const FEATURE_MODULES: FrontendModuleDefinition[] = [
   hospitalityModule,
   inventoryModule,
   warehouseModule,
+  productionModule,
   workflowModule,
   projectManagementModule,
   humanResourcesModule,
   attendanceModule,
   payrollModule,
+  financeModule,
   lmsModule,
   b2bMarketplaceModule,
 ];

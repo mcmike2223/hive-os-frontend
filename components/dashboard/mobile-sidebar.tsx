@@ -30,6 +30,8 @@ import {
   UsersRound,
   Fingerprint,
   WalletCards,
+  BadgeDollarSign,
+  Factory,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -204,6 +206,8 @@ export function MobileSidebar() {
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [isProductionOpen, setIsProductionOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
   const canAccessConverter =
@@ -392,6 +396,12 @@ export function MobileSidebar() {
   const payrollModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "payroll",
   );
+  const financeModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "finance",
+  );
+  const productionModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "production",
+  );
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard/inventory")) {
@@ -439,6 +449,14 @@ export function MobileSidebar() {
     if (pathname.startsWith("/dashboard/payroll")) {
       setIsModulesOpen(true);
       setIsPayrollOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/finance")) {
+      setIsModulesOpen(true);
+      setIsFinanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/production")) {
+      setIsModulesOpen(true);
+      setIsProductionOpen(true);
     }
 
     if (isAppPath(pathname)) {
@@ -884,6 +902,23 @@ export function MobileSidebar() {
                           icon: WalletCards,
                           openState: isPayrollOpen,
                           onToggle: () => setIsPayrollOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: financeModuleItems,
+                          label: t("nav.finance", "Financial Management"),
+                          icon: BadgeDollarSign,
+                          openState: isFinanceOpen,
+                          onToggle: () => setIsFinanceOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: productionModuleItems,
+                          label: t("nav.production", "Production Management"),
+                          icon: Factory,
+                          openState: isProductionOpen,
+                          onToggle: () =>
+                            setIsProductionOpen((value) => !value),
                         })}
 
                         {renderProjectManagementSection()}

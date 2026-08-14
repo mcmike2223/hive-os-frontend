@@ -1,0 +1,14 @@
+{
+  "checks": [
+    { "id": "finance-body-text-light", "foreground": "#09090b", "background": "#fdfdfc", "type": "text-normal", "state": "default", "notes": "Hive light foreground on background" },
+    { "id": "finance-muted-text-light", "foreground": "#71717a", "background": "#fdfdfc", "type": "text-normal", "state": "default", "notes": "Hive light muted foreground on background" },
+    { "id": "finance-primary-button", "foreground": "#18181b", "background": "#10b77f", "type": "text-normal", "state": "default", "notes": "Hive primary foreground on primary fill" },
+    { "id": "finance-control-border-light", "foreground": "#777777", "background": "#fdfdfc", "type": "ui", "state": "default", "notes": "Exact foreground at 55 percent composited over light background" },
+    { "id": "finance-focus-ring-light", "foreground": "#0c885f", "background": "#fdfdfc", "type": "ui", "state": "focus", "notes": "Finance-scoped readable primary ring" },
+    { "id": "finance-error-light", "foreground": "#ba1c1c", "background": "#fdfdfc", "type": "text-normal", "state": "error", "notes": "Hive destructive foreground on light background" },
+    { "id": "finance-body-text-dark", "foreground": "#fafafa", "background": "#050506", "type": "text-normal", "state": "default", "notes": "Hive dark foreground on background" },
+    { "id": "finance-muted-text-dark", "foreground": "#a1a1aa", "background": "#050506", "type": "text-normal", "state": "default", "notes": "Hive dark muted foreground on background" },
+    { "id": "finance-control-border-dark", "foreground": "#8c8c8c", "background": "#050506", "type": "ui", "state": "default", "notes": "Exact foreground at 55 percent composited over dark background" },
+    { "id": "finance-focus-ring-dark", "foreground": "#10b77f", "background": "#050506", "type": "ui", "state": "focus", "notes": "Hive primary ring on dark background" }
+  ]
+}
