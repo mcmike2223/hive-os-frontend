@@ -10,6 +10,8 @@ import {
   Hotel,
   LayoutTemplate,
   Loader2,
+  Maximize2,
+  Minimize2,
   RefreshCcw,
   Save,
   Sparkles,
@@ -21,6 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { TenantTemplateMarketplace } from "@/components/settings/tenant-template-marketplace";
 import { Button } from "@/components/ui/button";
 import { CodeEditor, type VirtualFile } from "@/components/ui/code-editor";
 import { Label } from "@/components/ui/label";
@@ -35,6 +38,7 @@ import {
   parseLandingTemplateJson,
   resolveBusinessTypeCatalog,
   resolveLandingTemplate,
+  LANDING_PREVIEW_MESSAGE,
   resolveTemplateVariant,
   stripTemplateCodeForTenantEditor,
   type TenantLandingPreviewBranding,
@@ -109,6 +113,9 @@ export function TenantLandingSettings() {
   const [selectedTemplateKey, setSelectedTemplateKey] = React.useState("signature");
   const [templateFiles, setTemplateFiles] = React.useState<VirtualFile[]>([]);
   const [showPreview, setShowPreview] = React.useState(true);
+  const [editorFullscreen, setEditorFullscreen] = React.useState(false);
+  const previewFrame = React.useRef<HTMLIFrameElement | null>(null);
+  const [frameReady, setFrameReady] = React.useState(false);
   const [previewMode, setPreviewMode] = React.useState<"system" | "light" | "dark">("system");
   const [jsonError, setJsonError] = React.useState<string | null>(null);
 
@@ -224,6 +231,34 @@ export function TenantLandingSettings() {
     );
   }, [activeBusinessType.default_template, activeTemplateVariant?.template, parsedTemplateState.template]);
 
+  // Drive the live preview iframe from the editor's JSON, debounced so typing
+  // does not re-render the whole landing page on every keystroke.
+  React.useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if ((event.data as { type?: string } | null)?.type === `${LANDING_PREVIEW_MESSAGE}:ready`) {
+        setFrameReady(true);
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  React.useEffect(() => {
+    if (!frameReady || jsonError) return;
+
+    const timer = setTimeout(() => {
+      previewFrame.current?.contentWindow?.postMessage(
+        { type: LANDING_PREVIEW_MESSAGE, body: previewTemplate },
+        window.location.origin,
+      );
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [frameReady, jsonError, previewTemplate]);
+
+  // Kept as the fallback the CodeEditor uses when previewNode is absent.
   const previewHtml = React.useMemo(() => {
     try {
       return buildTenantLandingPreviewHtml(
@@ -308,7 +343,26 @@ export function TenantLandingSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className={cn(
+        "space-y-6",
+        // Fullscreen lifts the whole editor out of the settings shell so the
+        // preview gets real estate — editing a landing page in a narrow tab
+        // pane was the main thing making this awkward to work in.
+        editorFullscreen &&
+          "fixed inset-0 z-50 overflow-y-auto bg-background p-6",
+      )}
+    >
+      {/* Library templates the tenant owns or can adopt, before the JSON editor. */}
+      {!editorFullscreen && (
+        <TenantTemplateMarketplace
+          onSelected={() => {
+            void queryClient.invalidateQueries({ queryKey: ["tenant-landing-page-settings"] });
+            void queryClient.invalidateQueries({ queryKey: ["tenantPublicLanding"] });
+          }}
+        />
+      )}
+
       <div className="overflow-hidden rounded-[2rem] border border-border/50 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.14),transparent_28%),linear-gradient(135deg,rgba(15,23,42,0.02),rgba(15,23,42,0.08))]">
         <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
@@ -320,6 +374,16 @@ export function TenantLandingSettings() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditorFullscreen((value) => !value)}
+              className="gap-2 rounded-xl border-border/60 bg-background/70"
+              title={editorFullscreen ? "Exit fullscreen editing" : "Edit fullscreen"}
+            >
+              {editorFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              {editorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            </Button>
             <Button onClick={handleSave} disabled={saveMutation.isPending} className="rounded-xl px-5 font-semibold">
               {saveMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -335,7 +399,7 @@ export function TenantLandingSettings() {
       <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
         <div className="space-y-4 rounded-[2rem] border border-border/50 bg-card/40 p-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
           <div>
-            <Label className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+            <Label className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
               Business Category
             </Label>
             <div className="mt-2">
@@ -358,7 +422,7 @@ export function TenantLandingSettings() {
           </div>
 
           <div className="border-t border-border/40 pt-4 space-y-4">
-            <Label className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+            <Label className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
               Template Variant
             </Label>
             <div className="space-y-2">
@@ -383,7 +447,7 @@ export function TenantLandingSettings() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-foreground truncate">{variant.label}</p>
-                      <p className="text-[10px] text-muted-foreground truncate leading-relaxed mt-0.5">{variant.description}</p>
+                      <p className="text-[11px] text-muted-foreground truncate leading-relaxed mt-0.5">{variant.description}</p>
                     </div>
                   </button>
                 );
@@ -396,7 +460,7 @@ export function TenantLandingSettings() {
           <div className="rounded-[2rem] border border-border/50 bg-card/40 p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-mono text-[10px] uppercase">
+                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-mono text-[11px] uppercase">
                   {selectedTemplateKey} Preset
                 </Badge>
                 <span className="text-xs text-muted-foreground">
@@ -437,7 +501,15 @@ export function TenantLandingSettings() {
             showPreview={showPreview}
             setShowPreview={setShowPreview}
             previewHtml={previewHtml}
-            className="min-h-[46rem]"
+            previewNode={
+              <iframe
+                ref={previewFrame}
+                title="Live landing preview"
+                src={`/landing-preview/tenant?type=${encodeURIComponent(selectedBusinessTypeKey)}&name=${encodeURIComponent(previewBranding?.app_title ?? "Preview")}`}
+                className="h-full w-full border-0"
+              />
+            }
+            className={cn(editorFullscreen ? "h-full" : "min-h-[46rem]")}
           />
         </div>
       </div>

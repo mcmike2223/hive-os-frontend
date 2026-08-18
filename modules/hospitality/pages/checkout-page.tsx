@@ -32,13 +32,32 @@ import InvoiceDialog from "@/modules/hospitality/components/invoice-dialog";
 import { DataTable } from "@/components/datatable/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function CheckoutPage() {
   const queryClient = useQueryClient();
+  const { hasAnyPermission } = usePermissions();
+  const canViewBilling = hasAnyPermission([
+    "view_hospitality_billing",
+    "manage_hospitality_billing",
+  ]);
+  const canRecordPayment = hasAnyPermission([
+    "create_hospitality_billing",
+    "manage_hospitality_billing",
+  ]);
+  const canCloseOrder = hasAnyPermission([
+    "close_hospitality_service_orders",
+    "manage_hospitality_service_orders",
+  ]);
+  const canExportOrders = hasAnyPermission([
+    "export_hospitality_reports",
+    "manage_hospitality_service_orders",
+  ]);
   const [selectedOrder, setSelectedOrder] = useState<HospitalityServiceOrder | null>(null);
   const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<HospitalityServiceOrder | null>(null);
+  const [splitRequestKey, setSplitRequestKey] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -127,6 +146,7 @@ export default function CheckoutPage() {
       toast.success("Bill split recorded");
       setIsSplitDialogOpen(false);
       setSplits([{ split_name: "Guest 1", amount: "", tip_amount: "0", payment_method: "cash" }]);
+      setSplitRequestKey(null);
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to record bill split");
@@ -158,12 +178,13 @@ export default function CheckoutPage() {
     if (!selectedOrder) return;
     splitBillMutation.mutate({
       orderId: selectedOrder.id,
-      payload: { splits }
+      payload: { splits, idempotency_key: splitRequestKey }
     });
   };
 
   const openSplitDialog = (order: HospitalityServiceOrder) => {
     setSelectedOrder(order);
+    setSplitRequestKey(crypto.randomUUID());
     setSplits([{ split_name: "Guest 1", amount: order.total_amount, tip_amount: "0", payment_method: "cash" }]);
     setIsSplitDialogOpen(true);
   };
@@ -234,17 +255,20 @@ export default function CheckoutPage() {
         const order = row.original;
         return (
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openInvoiceDialog(order)}
-              className="h-8 text-xs font-bold uppercase tracking-widest text-slate-300 border-slate-800 bg-slate-950 hover:bg-slate-900 hover:text-white"
-            >
-              <FileText className="mr-1 h-3.5 w-3.5" />
-              Invoice
-            </Button>
+            {canViewBilling && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openInvoiceDialog(order)}
+                className="h-8 text-xs font-bold uppercase tracking-widest text-slate-300 border-slate-800 bg-slate-950 hover:bg-slate-900 hover:text-white"
+              >
+                <FileText className="mr-1 h-3.5 w-3.5" />
+                Invoice
+              </Button>
+            )}
             {order.status !== "closed" && order.status !== "cancelled" && (
               <>
+                {canRecordPayment && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -254,16 +278,19 @@ export default function CheckoutPage() {
                   <SplitSquareHorizontal className="mr-1 h-3 w-3" />
                   Split / Pay
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => closeOrderMutation.mutate(order.id)}
-                  disabled={closeOrderMutation.isPending}
-                  className="h-8 text-xs font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-                >
-                  {closeOrderMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle2 className="mr-1 h-3 w-3" />}
-                  Close Order
-                </Button>
+                )}
+                {canCloseOrder && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => closeOrderMutation.mutate(order.id)}
+                    disabled={closeOrderMutation.isPending}
+                    className="h-8 text-xs font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                  >
+                    {closeOrderMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle2 className="mr-1 h-3 w-3" />}
+                    Close Order
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -308,6 +335,9 @@ export default function CheckoutPage() {
           onQueryChange={handleQueryChange}
           searchPlaceholder="Search Order # or Table..."
           exportEndpoint={exportUrl}
+          canCopy={canExportOrders}
+          canExport={canExportOrders}
+          canPrint={canExportOrders}
           resourceName="service orders"
           syncWithUrl={true}
         />
@@ -384,7 +414,7 @@ export default function CheckoutPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSplitDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmitSplit} disabled={splitBillMutation.isPending || Math.abs(remainingAmount) > 0.5}>
+            <Button onClick={handleSubmitSplit} disabled={splitBillMutation.isPending || Math.abs(remainingAmount) > 0.009}>
               {splitBillMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record Payments
             </Button>

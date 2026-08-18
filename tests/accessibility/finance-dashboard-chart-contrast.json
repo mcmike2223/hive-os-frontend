@@ -1,0 +1,12 @@
+{
+  "checks": [
+    { "id": "finance-chart-revenue-light", "foreground": "#059669", "background": "#ffffff", "type": "graphic", "state": "default", "notes": "Revenue, cash-in, and posted-event series on light cards" },
+    { "id": "finance-chart-blue-light", "foreground": "#0284c7", "background": "#ffffff", "type": "graphic", "state": "default", "notes": "Net result and receivables series on light cards" },
+    { "id": "finance-chart-expense-light", "foreground": "#d97706", "background": "#ffffff", "type": "graphic", "state": "default", "notes": "Expense, cash-out, and pending-event series on light cards" },
+    { "id": "finance-chart-payables-light", "foreground": "#8b5cf6", "background": "#ffffff", "type": "graphic", "state": "default", "notes": "Payables series on light cards" },
+    { "id": "finance-chart-revenue-dark", "foreground": "#059669", "background": "#09090b", "type": "graphic", "state": "default", "notes": "Revenue, cash-in, and posted-event series on dark cards" },
+    { "id": "finance-chart-blue-dark", "foreground": "#0284c7", "background": "#09090b", "type": "graphic", "state": "default", "notes": "Net result and receivables series on dark cards" },
+    { "id": "finance-chart-expense-dark", "foreground": "#d97706", "background": "#09090b", "type": "graphic", "state": "default", "notes": "Expense, cash-out, and pending-event series on dark cards" },
+    { "id": "finance-chart-payables-dark", "foreground": "#8b5cf6", "background": "#09090b", "type": "graphic", "state": "default", "notes": "Payables series on dark cards" }
+  ]
+}

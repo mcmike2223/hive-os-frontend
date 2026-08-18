@@ -87,7 +87,7 @@ export function EmailSettings() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_driver', 'Transport Driver')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_driver', 'Transport Driver')}</Label>
                         <Select value={formData.mail_driver} onValueChange={(v) => setFormData(p => ({...p, mail_driver: v}))}>
                             <SelectTrigger className="bg-muted/30 h-12 rounded-xl"><SelectValue /></SelectTrigger>
                             <SelectContent>
@@ -99,11 +99,11 @@ export function EmailSettings() {
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_host', 'Mail Host')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_host', 'Mail Host')}</Label>
                         <Input value={formData.mail_host} onChange={e => setFormData(p => ({...p, mail_host: e.target.value}))} className="bg-muted/30 h-12 rounded-xl font-mono" placeholder="smtp.mailtrap.io" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_port', 'Port')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_port', 'Port')}</Label>
                         <Input type="number" value={formData.mail_port} onChange={e => setFormData(p => ({...p, mail_port: parseInt(e.target.value)||587}))} className="bg-muted/30 h-12 rounded-xl font-mono" placeholder="587" />
                     </div>
                 </div>
@@ -119,16 +119,16 @@ export function EmailSettings() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="mail-username" className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_username', 'Username')}</Label>
+                        <Label htmlFor="mail-username" className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_username', 'Username')}</Label>
                         <Input id="mail-username" autoComplete="username" value={formData.mail_username} onChange={e => setFormData(p => ({...p, mail_username: e.target.value}))} className="bg-muted/30 h-12 rounded-xl font-mono" />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="mail-password" className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_password', 'Password')}</Label>
+                        <Label htmlFor="mail-password" className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_password', 'Password')}</Label>
                         <Input id="mail-password" type="password" autoComplete="new-password" value={formData.mail_password} onChange={e => setFormData(p => ({...p, mail_password: e.target.value}))} aria-describedby="mail-password-help" className="bg-muted/30 h-12 rounded-xl font-mono" />
                         <p id="mail-password-help" className="text-xs text-muted-foreground">{formData.mail_password_configured ? "A password is saved. Leave this blank to keep it." : "Enter the SMTP password for this workspace."}</p>
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_encryption', 'Encryption')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_encryption', 'Encryption')}</Label>
                         <Select value={formData.mail_encryption} onValueChange={(v) => setFormData(p => ({...p, mail_encryption: v}))}>
                             <SelectTrigger className="bg-muted/30 h-12 rounded-xl"><SelectValue /></SelectTrigger>
                             <SelectContent>
@@ -152,11 +152,11 @@ export function EmailSettings() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_from_address', 'From Address')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_from_address', 'From Address')}</Label>
                         <Input value={formData.mail_from_address} onChange={e => setFormData(p => ({...p, mail_from_address: e.target.value}))} className="bg-muted/30 h-12 rounded-xl" placeholder="noreply@hive-os.com" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_from_name', 'From Name')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_from_name', 'From Name')}</Label>
                         <Input value={formData.mail_from_name} onChange={e => setFormData(p => ({...p, mail_from_name: e.target.value}))} className="bg-muted/30 h-12 rounded-xl" placeholder="HIVE.OS Mailer" />
                     </div>
                 </div>
@@ -177,7 +177,7 @@ export function EmailSettings() {
                     <div className="space-y-6">
                         {/* Central user quota */}
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_storage_quota_central_users', 'Central User Mailbox Quota (MB)')}</Label>
+                            <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_storage_quota_central_users', 'Central User Mailbox Quota (MB)')}</Label>
                             <Input type="number" value={formData.mail_storage_quota_central_users} onChange={e => setFormData(p => ({...p, mail_storage_quota_central_users: parseInt(e.target.value)||0}))} className="bg-muted/30 h-12 rounded-xl" placeholder="1024" />
                             <p className="text-xs text-muted-foreground">Per-user limit for users on the central node.</p>
                         </div>
@@ -196,7 +196,7 @@ export function EmailSettings() {
                                     <div key={key} className={`p-4 rounded-2xl border border-border/40 ${bg} space-y-2`}>
                                         <div className="flex items-center justify-between">
                                             <Label className={`text-[11px] font-black uppercase tracking-wide ${color}`}>{plan}</Label>
-                                            <span className="text-[10px] text-muted-foreground/60">default: {def.toLocaleString()} MB</span>
+                                            <span className="text-[11px] text-muted-foreground/60">default: {def.toLocaleString()} MB</span>
                                         </div>
                                         <Input
                                             type="number"
@@ -212,7 +212,7 @@ value={(formData as Record<string, number | string | boolean>)[key] as number | 
                 ) : (
                     /* ── Tenant Admin View ── */
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">{t('settings.mail_storage_quota_tenant_users', 'Per-User Mailbox Quota (MB)')}</Label>
+                        <Label className="text-[11px] font-black uppercase text-muted-foreground">{t('settings.mail_storage_quota_tenant_users', 'Per-User Mailbox Quota (MB)')}</Label>
                         <Input type="number" value={formData.mail_storage_quota_tenant_users} onChange={e => setFormData(p => ({...p, mail_storage_quota_tenant_users: parseInt(e.target.value)||0}))} className="bg-muted/30 h-12 rounded-xl" placeholder="1024" />
 <p className="text-xs text-muted-foreground">
   Maximum mailbox size per user in your organization. Cannot exceed your plan&apos;s total org quota.

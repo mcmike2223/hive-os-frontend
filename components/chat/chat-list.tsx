@@ -209,7 +209,7 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
                       </p>
                       
                       {hasUnread && (
-                        <span className="h-5 min-w-[18px] px-1.5 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-black text-white">
+                        <span className="h-5 min-w-[18px] px-1.5 flex items-center justify-center rounded-full bg-orange-500 text-[11px] font-black text-white">
                           {conv.unread_count}
                         </span>
                       )}

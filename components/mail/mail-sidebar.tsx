@@ -130,14 +130,14 @@ export default function MailSidebar() {
       <div className="mt-auto pt-4 px-4 shrink-0 border-t border-muted/50">
         {/* Header */}
         <div className="px-1 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[10px] font-black text-emerald-500 tracking-wider">
+          <div className="flex items-center gap-2 text-[11px] font-black text-emerald-500 tracking-wider">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
             ACTIVE PERSONNEL
           </div>
-          <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-bold bg-emerald-500/10 text-emerald-600 rounded-full px-2 py-0.5">
             {onlineUsers.length} online
           </span>
         </div>
@@ -149,7 +149,7 @@ export default function MailSidebar() {
               <div className="relative shrink-0">
                 <Avatar className="h-7 w-7 ring-2 ring-emerald-500/40">
                   <AvatarImage src={user.avatar_url} />
-                  <AvatarFallback className="text-[10px] bg-emerald-100 text-emerald-700 font-bold">
+                  <AvatarFallback className="text-[11px] bg-emerald-100 text-emerald-700 font-bold">
                     {user.name?.charAt(0) || 'Y'}
                   </AvatarFallback>
                 </Avatar>
@@ -157,7 +157,7 @@ export default function MailSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-bold text-foreground truncate block">{user.name}</span>
-                <span className="text-[10px] text-emerald-500 font-semibold">You · Viewing now</span>
+                <span className="text-[11px] text-emerald-500 font-semibold">You · Viewing now</span>
               </div>
             </div>
           )}
@@ -169,13 +169,13 @@ export default function MailSidebar() {
                 <div className="relative shrink-0">
                   <Avatar className="h-7 w-7 border-2 border-transparent group-hover:border-emerald-500/30 transition-colors">
                     <AvatarImage src={u.avatar_url} />
-                    <AvatarFallback className="text-[10px] bg-emerald-100 text-emerald-700">{u.name?.charAt(0) || 'U'}</AvatarFallback>
+                    <AvatarFallback className="text-[11px] bg-emerald-100 text-emerald-700">{u.name?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                   <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-background shadow-sm" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate block">{u.name}</span>
-                  <span className="text-[10px] text-emerald-500/70">Viewing mailbox</span>
+                  <span className="text-[11px] text-emerald-500/70">Viewing mailbox</span>
                 </div>
               </div>
             ))
@@ -191,7 +191,7 @@ export default function MailSidebar() {
 
       {/* 💾 MAILBOX STORAGE QUOTA Tracker */}
       <div className="mt-4 pt-4 pb-2 px-4 shrink-0 border-t border-muted/50">
-        <div className="flex items-center justify-between text-[10px] font-black tracking-widest text-muted-foreground uppercase mb-3 px-1">
+        <div className="flex items-center justify-between text-[11px] font-black tracking-widest text-muted-foreground uppercase mb-3 px-1">
           <span className="flex items-center gap-1.5"><HardDrive className="h-3 w-3 text-primary/70" /> Storage</span>
           <span className="text-primary font-bold">{formatBytes(counts?.storage_used || 0)} <span className="text-muted-foreground/40 font-medium">/</span> {formatBytes(counts?.storage_limit || 0)}</span>
         </div>

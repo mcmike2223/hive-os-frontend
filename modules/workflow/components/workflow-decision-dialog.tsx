@@ -224,14 +224,14 @@ export function WorkflowDecisionDialog({
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1 py-2 pr-2">
             <div className="rounded-2xl border border-border/50 bg-muted/30 p-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workflow Subject</p>
+              <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Workflow Subject</p>
               <p className="mt-1 font-bold">{subjectName}</p>
               {subjectContext ? (
                 <p className="mt-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">{subjectContext}</p>
               ) : null}
               {gate.isProduct ? (
                 <div className="mt-3 rounded-xl border border-border/50 bg-background/70 p-3">
-                  <Badge variant="outline" className={`rounded-full px-2 py-0 text-[10px] ${gate.meta.className}`}>
+                  <Badge variant="outline" className={`rounded-full px-2 py-0 text-[11px] ${gate.meta.className}`}>
                     {gate.meta.label}
                   </Badge>
                   <p className="mt-2 text-xs text-muted-foreground">{gate.message}</p>
@@ -241,7 +241,7 @@ export function WorkflowDecisionDialog({
 
             {approval?.approvable && (
               <div className="rounded-2xl border border-border/50 bg-muted/30 p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Request Details</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Request Details</p>
                 <div className="mt-3 space-y-2">
                   {(() => {
                     const subject = approval.approvable as WorkflowDecisionSubject & Record<string, unknown>;
@@ -330,7 +330,7 @@ export function WorkflowDecisionDialog({
                     <FileUp className="h-4 w-4 text-primary" />
                     Attach files for this decision
                   </span>
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Max 5</span>
+                  <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Max 5</span>
                 </label>
                 <input
                   id="workflow-evidence-files"

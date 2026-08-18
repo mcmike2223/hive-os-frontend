@@ -114,7 +114,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             {settings?.maintenance_mode && isSuperAdmin && (
                 <div className="fixed top-0 inset-x-0 z-[100] flex flex-col items-center pointer-events-none">
                     <div className="h-1.5 w-full bg-destructive animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
-                    <div className="bg-destructive text-destructive-foreground text-[10px] font-black uppercase tracking-widest px-4 py-1 rounded-b-lg shadow-md flex items-center gap-2 pointer-events-auto">
+                    <div className="bg-destructive text-destructive-foreground text-[11px] font-black uppercase tracking-widest px-4 py-1 rounded-b-lg shadow-md flex items-center gap-2 pointer-events-auto">
                         <ShieldAlert className="h-3 w-3" />
                         Maintenance Mode Active: Bypassed via SuperAdmin Clearance
                     </div>

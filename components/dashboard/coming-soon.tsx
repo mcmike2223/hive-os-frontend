@@ -26,7 +26,7 @@ export function ComingSoon({
 
       {/* 🏗️ Content */}
       <div className="relative z-10 flex flex-col items-center text-center px-4">
-        <Badge variant="outline" className="mb-6 px-4 py-1.5 border-primary/30 bg-primary/10 text-primary font-mono text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
+        <Badge variant="outline" className="mb-6 px-4 py-1.5 border-primary/30 bg-primary/10 text-primary font-mono text-[11px] uppercase tracking-[0.2em] flex items-center gap-2">
           <Sparkles className="h-3 w-3" />
           In Development
         </Badge>
@@ -57,7 +57,7 @@ export function ComingSoon({
       
       {/* 🧑‍💻 Decorative code overlay */}
       <div className="absolute bottom-4 left-6 pointer-events-none opacity-20 hidden md:block">
-        <pre className="text-[10px] font-mono text-primary leading-tight">
+        <pre className="text-[11px] font-mono text-primary leading-tight">
           <code>
             {`> _INIT_DEPLOYMENT_SEQ...`}
             <br />

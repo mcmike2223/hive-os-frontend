@@ -184,13 +184,13 @@ export default function ComposeChatModal() {
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-lg sm:text-xl lg:text-2xl font-black tracking-tight">New Message</DialogTitle>
-              <p className="text-[10px] sm:text-xs font-bold text-muted-foreground/60 uppercase tracking-widest mt-0.5 sm:mt-1">Start a conversation</p>
+              <p className="text-[11px] sm:text-xs font-bold text-muted-foreground/60 uppercase tracking-widest mt-0.5 sm:mt-1">Start a conversation</p>
             </div>
             <div className="flex bg-muted/40 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl">
               <button 
                 onClick={() => setIsGroup(false)}
                 className={cn(
-                  "px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[10px] font-black uppercase tracking-widest transition-all",
+                  "px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-[11px] font-black uppercase tracking-widest transition-all",
                   !isGroup ? "bg-white dark:bg-slate-800 shadow-sm text-primary" : "text-muted-foreground/50"
                 )}
               >
@@ -199,7 +199,7 @@ export default function ComposeChatModal() {
               <button 
                 onClick={() => setIsGroup(true)}
                 className={cn(
-                  "px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[10px] font-black uppercase tracking-widest transition-all",
+                  "px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-[11px] font-black uppercase tracking-widest transition-all",
                   isGroup ? "bg-white dark:bg-slate-800 shadow-sm text-primary" : "text-muted-foreground/50"
                 )}
               >
@@ -228,7 +228,7 @@ export default function ComposeChatModal() {
                     onChange={(e) => setGroupTitle(e.target.value)}
                     className="bg-transparent border-none p-0 text-base sm:text-lg lg:text-xl font-black placeholder:text-muted-foreground/20 focus-visible:ring-0"
                   />
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-0.5 sm:mt-1">Group Name</p>
+                  <p className="text-[11px] font-black text-primary uppercase tracking-widest mt-0.5 sm:mt-1">Group Name</p>
                 </div>
               </div>
             </motion.div>
@@ -236,8 +236,8 @@ export default function ComposeChatModal() {
 
           <div className="space-y-2 sm:space-y-3">
              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Recipients</label>
-                <span className="text-[10px] font-black text-primary/60">{selectedUsers.length} Selected</span>
+                <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Recipients</label>
+                <span className="text-[11px] font-black text-primary/60">{selectedUsers.length} Selected</span>
              </div>
              
              <div className="relative group">
@@ -267,9 +267,9 @@ export default function ComposeChatModal() {
                       >
                          <Avatar className="h-5 w-5 sm:h-6 sm:w-6">
                            <AvatarImage src={user.avatar_url} />
-                           <AvatarFallback className="text-[8px] sm:text-[10px] font-bold">{user.name.charAt(0)}</AvatarFallback>
+                           <AvatarFallback className="text-[11px] sm:text-[11px] font-bold">{user.name.charAt(0)}</AvatarFallback>
                          </Avatar>
-                         <span className="text-[10px] sm:text-xs font-bold">{user.name.split(' ')[0]}</span>
+                         <span className="text-[11px] sm:text-xs font-bold">{user.name.split(' ')[0]}</span>
                          <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-muted-foreground group-hover:text-red-500" />
                       </motion.div>
                     ))}
@@ -311,7 +311,7 @@ export default function ComposeChatModal() {
                           </div>
                           <div className="text-left">
                             <div className="font-extrabold text-sm text-foreground">{user.name}</div>
-                            <div className="text-[10px] sm:text-xs font-bold text-muted-foreground/50">{user.email}</div>
+                            <div className="text-[11px] sm:text-xs font-bold text-muted-foreground/50">{user.email}</div>
                           </div>
                         </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-all hidden sm:block" />
@@ -325,7 +325,7 @@ export default function ComposeChatModal() {
                 ) : !search && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 sm:gap-4 opacity-10">
                       <span className="text-3xl sm:text-4xl">💬</span>
-                      <p className="font-black text-[10px] sm:text-xs uppercase tracking-widest">Search for contacts</p>
+                      <p className="font-black text-[11px] sm:text-xs uppercase tracking-widest">Search for contacts</p>
                    </div>
                 )}
              </div>
@@ -337,7 +337,7 @@ export default function ComposeChatModal() {
                animate={{ opacity: 1, y: 0 }}
                className="space-y-2 sm:space-y-3"
             >
-              <label className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Message</label>
+              <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Message</label>
               <textarea
                 value={initialMessage}
                 onChange={(e) => setInitialMessage(e.target.value)}

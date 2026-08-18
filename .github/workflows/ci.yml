@@ -3,8 +3,6 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore:
-      - main
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
@@ -20,7 +18,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -31,3 +29,413 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Build the production release with Webpack
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build:webpack:diagnose
+
+      - name: Upload Webpack build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webpack-build-diagnostics
+          if-no-files-found: ignore
+          path: .playwright/webpack-build-diagnostics.json
+
+  waiter-pos-e2e:
+    name: Waiter POS browser acceptance
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    env:
+      COMPOSE_PROJECT_NAME: hive-waiter-e2e
+      HIVE_E2E_COMPOSE_FILE: ${{ github.workspace }}/hive-os-infra/docker-compose.yml
+      HIVE_E2E_BACKEND_CONTAINER: hive-backend
+      HIVE_E2E_BACKEND_URL: http://localhost:8081
+      HIVE_E2E_REVERB_HOST: localhost
+      HIVE_E2E_REVERB_PORT: "9095"
+      HIVE_E2E_REVERB_SCHEME: http
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout frontend under its Compose sibling path
+        uses: actions/checkout@v4
+        with:
+          path: hive-os-frontend
+
+      # hive-os-backend is a private repository. The default GITHUB_TOKEN is
+      # scoped to this repository only, so it cannot read it and checkout fails
+      # with "repository not found". A repository admin must create a read-only
+      # PAT and store it as the HIVE_BACKEND_READ_PAT repository secret.
+      - name: Verify the private backend checkout secret is configured
+        env:
+          HIVE_BACKEND_READ_PAT: ${{ secrets.HIVE_BACKEND_READ_PAT }}
+        run: |
+          if [ -z "${HIVE_BACKEND_READ_PAT}" ]; then
+            echo "::error::HIVE_BACKEND_READ_PAT is not set. A repository admin must add a read-only PAT with access to mcmike2223/hive-os-backend under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "HIVE_BACKEND_READ_PAT is present."
+
+      - name: Checkout backend required by the acceptance fixture
+        uses: actions/checkout@v4
+        with:
+          repository: mcmike2223/hive-os-backend
+          ref: main
+          path: hive-os-backend
+          token: ${{ secrets.HIVE_BACKEND_READ_PAT }}
+
+      - name: Checkout local integration Compose definition
+        uses: actions/checkout@v4
+        with:
+          repository: mcmike2223/hive-os-infra
+          ref: main
+          path: hive-os-infra
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hive-os-frontend/package-lock.json
+
+      - name: Install frontend dependencies from the lockfile
+        working-directory: hive-os-frontend
+        run: npm ci
+
+      # Caches the browser download only. --with-deps still runs, because the
+      # apt packages it installs live outside this path.
+      - name: Cache the Playwright browser download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('hive-os-frontend/package-lock.json') }}
+
+      - name: Install Chromium for Playwright
+        working-directory: hive-os-frontend
+        run: npx playwright install --with-deps chromium
+
+      # backend, queue and reverb all mount the same hive-backend-storage
+      # volume. Bringing them up in one `up` creates them in parallel, and on a
+      # freshly created volume they race to mkdir the same logs/ subdirectory:
+      # one wins and the others die with "failed to mkdir ... file exists".
+      # This never reproduces locally because the volume already has the
+      # directory. Start the backend first so the volume is populated once, then
+      # the services that share it.
+      - name: Start the backing services
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          ${COMPOSE} up -d --build db redis seaweedfs seaweedfs-bootstrap
+
+      # vendor/ is gitignored and the backend source is bind-mounted from the
+      # checkout, so a fresh CI checkout has no dependencies. The container's
+      # entrypoint runs artisan, which means it crash-loops with
+      # "Restarting (255)" before anything can exec into it — dependencies have
+      # to exist before the backend starts, not after. `run --entrypoint`
+      # bypasses the failing entrypoint and uses the backend's own PHP version.
+      # Measured on run 31651059920: building this image took ~140s of the 147s
+      # that step spent, while the composer install itself took ~6s. The image
+      # is rebuilt from scratch every run because a fresh runner has no layer
+      # cache. Since the backend source is bind-mounted, the image only supplies
+      # the PHP runtime and its extensions, which is exactly what a layer cache
+      # is good at. queue and reverb declare the identical context and
+      # Dockerfile, so they are tagged from this one build instead of repeating
+      # it. Tags must match Compose's generated names, {project}-{service}, or
+      # Compose will not find them and will build again.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the backend image with a layer cache
+        uses: docker/build-push-action@v6
+        with:
+          context: hive-os-backend
+          file: hive-os-backend/Dockerfile
+          load: true
+          tags: |
+            hive-waiter-e2e-backend:latest
+            hive-waiter-e2e-queue:latest
+            hive-waiter-e2e-reverb:latest
+          cache-from: type=gha,scope=hive-backend
+          cache-to: type=gha,mode=max,scope=hive-backend
+
+      - name: Build the frontend image with a layer cache
+        uses: docker/build-push-action@v6
+        with:
+          context: hive-os-frontend
+          file: hive-os-frontend/Dockerfile
+          load: true
+          tags: hive-waiter-e2e-frontend:latest
+          cache-from: type=gha,scope=hive-frontend
+          cache-to: type=gha,mode=max,scope=hive-frontend
+
+      - name: Install backend Composer dependencies
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          ${COMPOSE} run --rm --no-deps --entrypoint composer backend \
+            install --no-interaction --prefer-dist --no-progress --no-ansi
+
+      # No --build: the images were built above with a cache. Compose still
+      # builds anything it cannot find, so a tag mismatch degrades to the old
+      # behaviour rather than failing.
+      - name: Start the application services
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          ${COMPOSE} up -d backend
+          ${COMPOSE} up -d queue reverb frontend
+
+      # "Started" only means the container was created, not that PHP inside it
+      # can answer. Migrations previously ran 0.3s after the backend started and
+      # died with exit 137.
+      - name: Wait for the backend to run artisan
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          for attempt in $(seq 1 30); do
+            if ${COMPOSE} exec -T backend php artisan --version >/dev/null 2>&1; then
+              echo "Backend accepted artisan after ${attempt} attempt(s)."
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::The backend container never became ready to run artisan."
+          ${COMPOSE} logs --no-color --tail 100 backend
+          exit 1
+
+      - name: Apply the reviewed central migrations
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan migrate --force
+
+      - name: Validate backend dependencies in the disposable service image
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend composer validate --no-check-publish
+
+      # Two problems here, both only visible on a cold runner. `curl --retry`
+      # does not retry a connection reset without --retry-all-errors, so the
+      # first refusal ended the step with exit 56. And the frontend was given
+      # ~10s: it is a Next.js dev server compiling from scratch, which takes far
+      # longer than that on a fresh machine. --silent keeps the backend's debug
+      # page out of the log.
+      - name: Wait for backend and frontend health
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors \
+            http://localhost:8081/up
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 60 --retry-delay 5 --retry-connrefused --retry-all-errors \
+            http://localhost:3001/health
+
+      - name: Run focused backend waiter regression suites
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan test Modules/Hospitality/tests/Feature/RestaurantWaiterPosApiTest.php Modules/Hospitality/tests/Feature/RestaurantWaiterPosPhase3WorkflowTest.php
+
+      - name: Run complete Hospitality regression suite
+        run: docker compose -f hive-os-infra/docker-compose.yml exec -T backend php artisan test Modules/Hospitality/tests
+
+      # Provision the fixture as its own step so teardown is a gated CI step
+      # rather than something that only happens if Playwright reaches its own
+      # global teardown. Passing HIVE_E2E_FIXTURE_MANIFEST makes global.setup.ts
+      # reuse this fixture instead of creating and removing a second one.
+      # No shared fixture is provisioned here on purpose.
+      #
+      # This step used to provision one tenant and export
+      # HIVE_E2E_FIXTURE_MANIFEST, which makes tests/e2e/waiter-pos/fixtures.ts
+      # short-circuit to that single externally managed fixture. Every journey
+      # then shared one tenant, so the per-journey isolation this suite depends
+      # on was never exercised in CI — the local suite was a stronger gate than
+      # the pipeline. Each journey now provisions and destroys its own tenant,
+      # the same way it does locally, and the residue check below proves it.
+
+      # Tee'd so the per-journey tenant identifiers can be asserted afterwards
+      # while the step still streams live and still fails on a non-zero exit.
+      - name: Run waiter, KDS, unauthorized, and realtime browser acceptance
+        working-directory: hive-os-frontend
+        run: |
+          set -o pipefail
+          npm run test:e2e:waiter-pos 2>&1 | tee playwright-output.log
+
+      # Proves the journeys really did use separate tenants. If the isolation
+      # regressed to a shared fixture these would collapse to one identifier,
+      # and the suite would silently stop testing what it claims to test. Only
+      # the generated ids are printed; the manifests hold the credentials and
+      # are never surfaced.
+      # The production-history journey pins a conclusion that only holds against
+      # a production build: Back/Forward leave the dashboard blank on the dev
+      # server, and do not on `next start`. Running it against the dev server
+      # would assert the opposite of what it exists to prove, so it needs its own
+      # production server on a separate port, beside the dev server the other
+      # journeys use. HIVE_E2E_FRONTEND_PORT redirects only the port, so each
+      # journey still resolves its own tenant host.
+      # The dev-server container writes into the bind-mounted checkout as root,
+      # so the runner cannot overwrite what it produced and `next build` dies
+      # with EACCES — first on .next/trace, then on next-env.d.ts. Clearing a
+      # single path is too narrow: reclaim ownership of everything the container
+      # touched. The dev-server journeys are finished by this point, and the
+      # production build should not inherit dev artifacts in any case.
+      - name: Stop the dev frontend and reclaim its build output
+        run: |
+          docker compose -f hive-os-infra/docker-compose.yml stop frontend
+          sudo chown -R "$(id -u):$(id -g)" hive-os-frontend
+          rm -rf hive-os-frontend/.next
+
+      # NEXT_PUBLIC_* values are baked in at build time, so the build needs the
+      # same configuration the dev container gets from Compose. Without it the
+      # bundle ships defaults, the dashboard never reaches the API, and the
+      # journey fails on its first page load having proven nothing about
+      # history navigation.
+      #
+      # INTERNAL_API_URL deliberately differs from the Compose value: the
+      # container reaches the backend as http://backend:8000 on the Docker
+      # network, but this server runs on the host, where that name does not
+      # resolve and the published port is 8081.
+      - name: Build the production frontend
+        working-directory: hive-os-frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8081/api/v1
+          INTERNAL_API_URL: http://localhost:8081/api/v1
+          NEXT_PUBLIC_REVERB_APP_KEY: uq8zbsjhgcajsmdiwhc8
+          NEXT_PUBLIC_REVERB_HOST: localhost
+          NEXT_PUBLIC_REVERB_PORT: "9095"
+          NEXT_PUBLIC_REVERB_SCHEME: http
+        run: npm run build
+
+      - name: Start the production frontend
+        working-directory: hive-os-frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8081/api/v1
+          INTERNAL_API_URL: http://localhost:8081/api/v1
+          NEXT_PUBLIC_REVERB_APP_KEY: uq8zbsjhgcajsmdiwhc8
+          NEXT_PUBLIC_REVERB_HOST: localhost
+          NEXT_PUBLIC_REVERB_PORT: "9095"
+          NEXT_PUBLIC_REVERB_SCHEME: http
+        run: |
+          nohup npx next start -p 3010 > next-start.log 2>&1 &
+          echo $! > next-start.pid
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 40 --retry-delay 3 --retry-connrefused --retry-all-errors \
+            http://localhost:3010/health
+          echo "Production server is serving on 3010."
+
+      - name: Run production history browser acceptance
+        working-directory: hive-os-frontend
+        env:
+          HIVE_E2E_PRODUCTION_HISTORY: "1"
+          HIVE_E2E_FRONTEND_PORT: "3010"
+        run: |
+          set -o pipefail
+          npx playwright test tests/e2e/waiter-pos/production-history.spec.ts 2>&1 \
+            | tee -a playwright-output.log
+
+      - name: Stop the production frontend
+        if: always()
+        working-directory: hive-os-frontend
+        run: |
+          # Print the server's own output before killing it: a journey failure
+          # here is usually the server refusing to render, and that reason only
+          # exists in this log.
+          if [ -f next-start.log ]; then
+            echo "::group::next start output"
+            tail -100 next-start.log
+            echo "::endgroup::"
+          fi
+          if [ -f next-start.pid ]; then
+            kill "$(cat next-start.pid)" 2>/dev/null || true
+            rm -f next-start.pid
+          fi
+
+      - name: Assert each journey provisioned its own tenant
+        if: always()
+        run: |
+          LOG=hive-os-frontend/playwright-output.log
+          if [ ! -f "${LOG}" ]; then
+            echo "::error::No browser output was captured, so isolation cannot be proven."
+            exit 1
+          fi
+
+          grep -h "\[waiter-pos fixture\]" "${LOG}" || true
+
+          TOTAL=$(grep -c "\[waiter-pos fixture\]" "${LOG}" || true)
+          UNIQUE=$(grep -h "\[waiter-pos fixture\]" "${LOG}" \
+            | sed 's/.*-> tenant //' | sort -u | wc -l | tr -d '[:space:]')
+
+          echo "journeys that provisioned: ${TOTAL} | distinct tenants: ${UNIQUE}"
+
+          if [ "${TOTAL}" = "0" ]; then
+            echo "::error::No journey provisioned a tenant. Either the suite did not run, or it fell back to a shared fixture."
+            exit 1
+          fi
+
+          if [ "${TOTAL}" != "${UNIQUE}" ]; then
+            echo "::error::${TOTAL} journeys shared ${UNIQUE} tenant(s). Per-journey isolation has regressed."
+            exit 1
+          fi
+
+          echo "Each journey used its own tenant."
+
+      # Cleanup must be provable, not assumed. Each journey removes its own
+      # tenant, so nothing here knows a single fixture id — instead assert that
+      # no acceptance tenant, domain, database or manifest survived at all. This
+      # is a read-only sweep: it fails the job on residue, it never deletes.
+      - name: Verify every acceptance fixture left nothing behind
+        if: always()
+        run: |
+          COMPOSE="docker compose -f hive-os-infra/docker-compose.yml"
+          FAILED=0
+
+          TENANTS=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
+            "SELECT count(*) FROM tenants WHERE id LIKE 'acceptance%'" | tr -d '[:space:]')
+          DOMAINS=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
+            "SELECT count(*) FROM domains WHERE domain LIKE 'acceptance%'" | tr -d '[:space:]')
+          DATABASES=$(${COMPOSE} exec -T db psql -U hive -d hive -tAc \
+            "SELECT count(*) FROM pg_database WHERE datname LIKE 'tenantacceptance%'" | tr -d '[:space:]')
+          MANIFESTS=$(${COMPOSE} exec -T backend sh -c \
+            'ls /tmp/hive-waiter-pos-acceptance/ 2>/dev/null | wc -l' | tr -d '[:space:]')
+
+          echo "tenant rows: ${TENANTS} | domain rows: ${DOMAINS} | databases: ${DATABASES} | manifests: ${MANIFESTS}"
+
+          [ "${TENANTS}" = "0" ] || { echo "::error::Acceptance tenant rows survived cleanup."; FAILED=1; }
+          [ "${DOMAINS}" = "0" ] || { echo "::error::Acceptance domain rows survived cleanup."; FAILED=1; }
+          [ "${DATABASES}" = "0" ] || { echo "::error::Acceptance tenant databases survived cleanup."; FAILED=1; }
+          [ "${MANIFESTS}" = "0" ] || { echo "::error::Credentials manifests survived cleanup."; FAILED=1; }
+
+          if [ "${FAILED}" != "0" ]; then
+            ${COMPOSE} exec -T db psql -U hive -d hive -c \
+              "SELECT datname FROM pg_database WHERE datname LIKE 'tenantacceptance%'"
+          fi
+
+          exit "${FAILED}"
+
+      # Kept only when something actually went wrong. These are traces, videos
+      # and screenshots: the name says failure evidence, but always() uploaded
+      # them for green runs too, and 21 passing runs reached 159MB and started
+      # failing other jobs with an artifact quota error. A green run's trace has
+      # never been read.
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waiter-pos-browser-artifacts
+          if-no-files-found: ignore
+          # A fortnight is longer than anyone leaves a red build unexamined.
+          retention-days: 14
+          path: |
+            hive-os-frontend/playwright-report
+            hive-os-frontend/.playwright/test-results
+            hive-os-frontend/.playwright/junit.xml
+
+      - name: Preserve service diagnostics
+        if: always()
+        run: docker compose -f hive-os-infra/docker-compose.yml logs --no-color > hive-waiter-pos-compose.log
+
+      # Same reasoning. Container logs for a run that passed answer no question
+      # anyone is asking, and the step above still collects them so they are in
+      # the job log if needed.
+      - name: Upload service diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waiter-pos-service-diagnostics
+          if-no-files-found: ignore
+          retention-days: 14
+          path: hive-waiter-pos-compose.log
+
+      - name: Stop acceptance services without pruning volumes
+        if: always()
+        run: docker compose -f hive-os-infra/docker-compose.yml down --remove-orphans

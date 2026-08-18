@@ -22,7 +22,7 @@ export default function InquiryBuilder() {
                 
                 {/* Smart Upload Area */}
                 <div className="border border-primary/20 bg-primary/5 rounded-xl p-6 text-center space-y-3 border-dashed relative overflow-hidden group cursor-pointer hover:bg-primary/10 transition-colors">
-                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide flex items-center gap-1">
+                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[11px] px-2 py-1 rounded-full font-bold uppercase tracking-wide flex items-center gap-1">
                         <BrainCircuit className="h-3 w-3" /> AI Powered OCR
                     </div>
                     <UploadCloud className="h-8 w-8 mx-auto text-primary" />

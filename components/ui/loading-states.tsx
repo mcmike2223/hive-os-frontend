@@ -35,7 +35,7 @@ export function FullScreenPlaceholder({
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary/80">
+            <p className="text-[11px] font-black uppercase tracking-[0.35em] text-primary/80">
               HIVE.OS
             </p>
             <h1 className="mt-2 text-2xl font-black tracking-tight text-foreground">
@@ -64,7 +64,7 @@ export function FullScreenPlaceholder({
           <div className="rounded-[1.5rem] border border-border/50 bg-background/60 p-5">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="h-4 w-4" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em]">
+              <p className="text-[11px] font-black uppercase tracking-[0.3em]">
                 Secure Boot
               </p>
             </div>
@@ -367,23 +367,23 @@ export function ProfileWorkspaceSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <div className="h-8 w-44 animate-pulse rounded-xl bg-muted" />
+        <Skeleton className="h-8 w-44 rounded-xl" />
       </div>
 
       <div className="rounded-[2rem] border border-border/50 bg-card/40 p-8">
         <div className="flex flex-col gap-6 lg:flex-row">
           <div className="w-full max-w-sm space-y-4">
-            <div className="h-40 w-full animate-pulse rounded-[1.75rem] bg-muted/60" />
-            <div className="h-11 w-full animate-pulse rounded-xl bg-muted" />
+            <Skeleton className="h-40 w-full rounded-[1.75rem]" />
+            <Skeleton className="h-11 w-full rounded-xl" />
           </div>
           <div className="flex-1 space-y-5">
-            <div className="h-10 w-56 animate-pulse rounded-xl bg-muted" />
+            <Skeleton className="h-10 w-56 rounded-xl" />
             <div className="grid gap-4 md:grid-cols-2">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="h-12 animate-pulse rounded-xl bg-muted/60" />
+                <Skeleton key={index} className="h-12 rounded-xl" />
               ))}
             </div>
-            <div className="h-12 w-40 animate-pulse rounded-xl bg-muted" />
+            <Skeleton className="h-12 w-40 rounded-xl" />
           </div>
         </div>
       </div>

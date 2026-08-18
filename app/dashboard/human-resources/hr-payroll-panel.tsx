@@ -104,34 +104,34 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
             <Wallet className="h-4 w-4 text-emerald-500" />
             Total Monthly Gross
           </div>
-          <p className="mt-2 text-2xl font-bold">
+          <p className="mt-2 text-2xl font-bold font-mono">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.gross_salary), 0).toLocaleString()} ETB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <Calculator className="h-4 w-4 text-amber-500" />
             Income Tax (Proc 979/2016)
           </div>
-          <p className="mt-2 text-2xl font-bold">
+          <p className="mt-2 text-2xl font-bold font-mono">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.income_tax), 0).toLocaleString()} ETB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <FileCheck className="h-4 w-4 text-blue-500" />
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <FileCheck className="h-4 w-4 text-primary" />
             Pension (Emp 7% + Org 11%)
           </div>
-          <p className="mt-2 text-2xl font-bold">
+          <p className="mt-2 text-2xl font-bold font-mono">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.employee_pension) + Number(p.employer_pension), 0).toLocaleString()} ETB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-300 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <DollarSign className="h-4 w-4 text-teal-500" />
+        <div className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <DollarSign className="h-4 w-4 text-emerald-600" />
             Total Net Payout
           </div>
-          <p className="mt-2 text-2xl font-bold text-teal-600">
+          <p className="mt-2 text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
             {payslips.reduce((acc: number, p: any) => acc + Number(p.net_salary), 0).toLocaleString()} ETB
           </p>
         </div>
@@ -205,7 +205,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                   <td className="p-3 font-bold text-teal-600">{Number(p.net_salary).toLocaleString()} ETB</td>
                   <td className="p-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
                         p.status === 'paid'
                           ? 'bg-emerald-100 text-emerald-800'
                           : p.status === 'approved'
@@ -221,7 +221,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedPayslip(p)}
-                      className="h-7 text-[10px]"
+                      className="h-7 text-[11px]"
                     >
                       <Printer className="mr-1 h-3 w-3" />
                       View Payslip
@@ -230,7 +230,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                       <Button
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: p.id, status: 'approved' })}
-                        className="h-7 text-[10px]"
+                        className="h-7 text-[11px]"
                       >
                         Approve
                       </Button>
@@ -239,7 +239,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                       <Button
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: p.id, status: 'paid' })}
-                        className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                        className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700"
                       >
                         Mark Paid
                       </Button>
@@ -355,7 +355,7 @@ export function HrPayrollPanel({ employees }: { employees: any[] }) {
                   <p className="font-bold border-b pb-1">Statutory Deductions (ETB)</p>
                   <div className="flex justify-between text-red-600"><span>Income Tax (Proc 979):</span> <span>-{Number(selectedPayslip.income_tax).toLocaleString()}</span></div>
                   <div className="flex justify-between text-blue-600"><span>Employee Pension (7%):</span> <span>-{Number(selectedPayslip.employee_pension).toLocaleString()}</span></div>
-                  <div className="flex justify-between text-slate-500 text-[10px]"><span>Employer Pension (11%):</span> <span>[{Number(selectedPayslip.employer_pension).toLocaleString()}]</span></div>
+                  <div className="flex justify-between text-slate-500 text-[11px]"><span>Employer Pension (11%):</span> <span>[{Number(selectedPayslip.employer_pension).toLocaleString()}]</span></div>
                   <div className="flex justify-between font-bold text-teal-600 border-t pt-1 text-sm"><span>Net Take-Home:</span> <span>{Number(selectedPayslip.net_salary).toLocaleString()} ETB</span></div>
                 </div>
               </div>

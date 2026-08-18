@@ -1,0 +1,91 @@
+{
+  "checks": [
+    {
+      "id": "users-total-label-light",
+      "foreground": "#92400e",
+      "background": "#fbf3e7",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Amber 800 label on primary at 10 percent over the light card"
+    },
+    {
+      "id": "users-total-label-dark",
+      "foreground": "#fcd34d",
+      "background": "#231e0a",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Amber 300 label on primary at 10 percent over the dark card"
+    },
+    {
+      "id": "users-total-value-light",
+      "foreground": "#09090b",
+      "background": "#fbf3e7",
+      "type": "text-large",
+      "state": "default"
+    },
+    {
+      "id": "users-total-value-dark",
+      "foreground": "#fafafa",
+      "background": "#231e0a",
+      "type": "text-large",
+      "state": "default"
+    },
+    {
+      "id": "employees-total-label-light",
+      "foreground": "#78350f",
+      "background": "#fffbeb",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "employees-total-detail-light",
+      "foreground": "#334155",
+      "background": "#fffbeb",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "employees-total-label-dark",
+      "foreground": "#fde68a",
+      "background": "#1c0f08",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Amber 200 on amber 950 at 30 percent over the dark card"
+    },
+    {
+      "id": "employees-total-detail-dark",
+      "foreground": "#e2e8f0",
+      "background": "#1c0f08",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "employee-count-icon-light",
+      "foreground": "#451a03",
+      "background": "#fde68a",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "employee-count-icon-dark",
+      "foreground": "#020617",
+      "background": "#fcd34d",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "table-id-light",
+      "foreground": "#09090b",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "table-id-dark",
+      "foreground": "#fafafa",
+      "background": "#0a0a0b",
+      "type": "text-normal",
+      "state": "default"
+    }
+  ]
+}

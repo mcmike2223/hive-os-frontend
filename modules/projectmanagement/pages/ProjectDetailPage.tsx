@@ -296,7 +296,7 @@ function ProjectOverview({
                 <p className="mb-3 text-sm font-semibold">{t("project_management.tech_stack", "Technology Stack")} :</p>
                 <div className="flex flex-wrap gap-2">
                   {project.tech_stack.map((tech) => (
-                    <Badge key={tech} variant="outline" className="text-[10px] font-bold px-1.5 py-0 border-primary/20 bg-primary/5 text-primary/70">
+                    <Badge key={tech} variant="outline" className="text-[11px] font-bold px-1.5 py-0 border-primary/20 bg-primary/5 text-primary/70">
                       {tech}
                     </Badge>
                   ))}
@@ -351,7 +351,7 @@ function ProjectOverview({
                     <div key={manager.id} className="flex items-center gap-2">
                       <Avatar className="h-6 w-6 bg-muted">
                         <AvatarImage src={manager.avatar_path || undefined} />
-                        <AvatarFallback className="text-[10px]">{initials(manager.name)}</AvatarFallback>
+                        <AvatarFallback className="text-[11px]">{initials(manager.name)}</AvatarFallback>
                       </Avatar>
                       <span className="text-sm font-bold truncate">{manager.name}</span>
                     </div>
@@ -360,7 +360,7 @@ function ProjectOverview({
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6 bg-muted">
                         <AvatarImage src={project.project_manager?.avatar_path || undefined} />
-                        <AvatarFallback className="text-[10px]">{initials(project.project_manager?.name || project.creator?.name)}</AvatarFallback>
+                        <AvatarFallback className="text-[11px]">{initials(project.project_manager?.name || project.creator?.name)}</AvatarFallback>
                       </Avatar>
                       <span className="text-sm font-bold truncate">{project.project_manager?.name || project.creator?.name || "Unassigned"}</span>
                     </div>
@@ -381,18 +381,18 @@ function ProjectOverview({
                   {(project.members || []).slice(0, 4).map((member) => (
                     <Avatar key={member.id} className="h-7 w-7 border-2 border-card bg-muted">
                       <AvatarImage src={member.user?.avatar_path || undefined} />
-                      <AvatarFallback className="text-[10px]">{initials(member.user?.name)}</AvatarFallback>
+                      <AvatarFallback className="text-[11px]">{initials(member.user?.name)}</AvatarFallback>
                     </Avatar>
                   ))}
                 </div>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t("project_management.status", "Status")}</p>
-                <Badge className={`${statusColors[project.status]} border-none capitalize text-[10px] h-5`}>{project.status.replace("_", " ")}</Badge>
+                <Badge className={`${statusColors[project.status]} border-none capitalize text-[11px] h-5`}>{project.status.replace("_", " ")}</Badge>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">{t("project_management.priority", "Priority")}</p>
-                <Badge className={`${priorityColors[project.priority]} border-none capitalize text-[10px] h-5`}>{project.priority}</Badge>
+                <Badge className={`${priorityColors[project.priority]} border-none capitalize text-[11px] h-5`}>{project.priority}</Badge>
               </div>
             </div>
 
@@ -475,7 +475,7 @@ function ProjectOverview({
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{file.name || t("project_management.project_document", "Project document")}</p>
-                      <p className="truncate text-[10px] text-muted-foreground uppercase tracking-widest">{file.path || t("project_management.attached_file", "Attached file")}</p>
+                      <p className="truncate text-[11px] text-muted-foreground uppercase tracking-widest">{file.path || t("project_management.attached_file", "Attached file")}</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -539,7 +539,7 @@ function ProjectOverview({
                     </Avatar>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate">{member.user?.name || t("project_management.unknown_user", "Unknown user")}</p>
-                      <Badge variant="secondary" className="mt-0.5 rounded-sm capitalize text-[10px] h-4">{member.role}</Badge>
+                      <Badge variant="secondary" className="mt-0.5 rounded-sm capitalize text-[11px] h-4">{member.role}</Badge>
                     </div>
                   </div>
                   <Button
@@ -564,7 +564,7 @@ function ProjectOverview({
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
                   <div className="flex items-center gap-2 mb-2">
                     <Coins className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("project_management.total_budget", "Total Budget")}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{t("project_management.total_budget", "Total Budget")}</span>
                   </div>
                   <p className="text-xl font-black text-primary">
                     {project.currency || "USD"} {project.budget?.toLocaleString() || "0"}
@@ -573,7 +573,7 @@ function ProjectOverview({
                 <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="h-4 w-4 text-amber-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("project_management.est_hours", "Est. Hours")}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{t("project_management.est_hours", "Est. Hours")}</span>
                   </div>
                   <p className="text-xl font-black text-amber-600">
                     {project.estimated_hours || "0"}h
@@ -587,7 +587,7 @@ function ProjectOverview({
                   <span className="text-foreground">24%</span>
                 </div>
                 <Progress value={24} className="h-2" />
-                <p className="text-[10px] text-muted-foreground italic text-right">* Calculated based on logged time vs. budget</p>
+                <p className="text-[11px] text-muted-foreground italic text-right">* Calculated based on logged time vs. budget</p>
               </div>
 
               <div className="pt-4 border-t border-border/50">
@@ -608,12 +608,12 @@ function ProjectOverview({
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={member.user?.avatar_path || undefined} />
-                          <AvatarFallback className="text-[10px]">{initials(member.user?.name)}</AvatarFallback>
+                          <AvatarFallback className="text-[11px]">{initials(member.user?.name)}</AvatarFallback>
                         </Avatar>
                         <span className="text-xs font-bold">{member.user?.name}</span>
                       </div>
                       <Badge variant="outline" className={cn(
-                        "text-[9px] font-black uppercase tracking-tighter",
+                        "text-[11px] font-black uppercase tracking-tighter",
                         i === 0 ? "text-emerald-600 bg-emerald-50 border-emerald-200" :
                         i === 1 ? "text-amber-600 bg-amber-50 border-amber-200" :
                         "text-sky-600 bg-sky-50 border-sky-200"
@@ -628,7 +628,7 @@ function ProjectOverview({
                   <div className="py-8 text-center text-xs text-muted-foreground italic">{t("project_management.no_team_members_assigned", "No team members assigned.")}</div>
                 )}
               </div>
-              <Button variant="ghost" size="sm" className="w-full h-8 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5 border border-dashed border-primary/20">
+              <Button variant="ghost" size="sm" className="w-full h-8 text-[11px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5 border border-dashed border-primary/20">
                 {t("project_management.view_full_workload_chart", "View Full Workload Chart")}
               </Button>
             </div>
@@ -972,7 +972,7 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
                   <TabsTrigger 
                     key={tab.id}
                     value={tab.id} 
-                    className="relative group gap-2.5 px-5 h-10 font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl transition-all duration-500 data-[state=active]:text-primary hover:text-primary/70 border border-transparent hover:bg-primary/5"
+                    className="relative group gap-2.5 px-5 h-10 font-black uppercase tracking-[0.2em] text-[11px] rounded-2xl transition-all duration-500 data-[state=active]:text-primary hover:text-primary/70 border border-transparent hover:bg-primary/5"
                   >
                     {view === tab.id && (
                       <motion.div
@@ -987,7 +987,7 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
                     )} />
                     <span className="relative z-10">{tab.label}</span>
                     {tab.badge && (
-                      <Badge variant="outline" className="relative z-10 text-[8px] font-black h-4 px-1.5 border-primary/30 text-primary bg-primary/10 animate-pulse">
+                      <Badge variant="outline" className="relative z-10 text-[11px] font-black h-4 px-1.5 border-primary/30 text-primary bg-primary/10 animate-pulse">
                         {tab.badge}
                       </Badge>
                     )}
@@ -997,12 +997,12 @@ export default function ProjectDetailPage({ id }: ProjectDetailPageProps) {
             </div>
           </div>
         </Tabs>
-        <div className="hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-6 border-l border-border/40 ml-2">
-          <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest gap-1.5 py-1 px-3 bg-background/50 backdrop-blur-md border-border/50">
+        <div className="hidden lg:flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 px-6 border-l border-border/40 ml-2">
+          <Badge variant="outline" className="text-[11px] font-bold uppercase tracking-widest gap-1.5 py-1 px-3 bg-background/50 backdrop-blur-md border-border/50">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             <span>{allTasks.length} {t("project_management.tasks_label", "TASKS")}</span>
           </Badge>
-          <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest gap-1.5 py-1 px-3 bg-background/50 backdrop-blur-md border-border/50">
+          <Badge variant="outline" className="text-[11px] font-bold uppercase tracking-widest gap-1.5 py-1 px-3 bg-background/50 backdrop-blur-md border-border/50">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
             <span>{definedProject.members?.length || 0} {t("project_management.members_label", "MEMBERS")}</span>
           </Badge>

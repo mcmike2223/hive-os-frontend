@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Script from "next/script";
 import { headers } from "next/headers";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 
 import Providers from "@/components/providers";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -16,19 +16,59 @@ import { fetchPublicBrandSettings, fetchSeoSettings } from "@/lib/seo";
 // 🚀 IMPORT OUR NEW GLOBAL SETTINGS PROVIDER
 import { SettingsProvider } from "@/components/providers/settings-provider";
 
-const inter = Inter({
-  subsets: ["latin"],
+// Self-hosted from app/fonts rather than next/font/google. The build machine's
+// route to fonts.gstatic.com takes 3-4s per file across ~20 files, so the fetch
+// intermittently timed out and next/font silently degraded every family to
+// local("Arial") metrics — shipping Arial with no error. Local files make the
+// build deterministic and offline-safe, and drop the render-blocking fetch.
+// Each file is the variable font covering the full weight range.
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter-latin.woff2", style: "normal" },
+    { path: "./fonts/inter-latin-ext.woff2", style: "normal" },
+  ],
+  weight: "100 900",
+  display: "swap",
   variable: "--font-inter",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
+const spaceGrotesk = localFont({
+  src: [
+    { path: "./fonts/space-grotesk-latin.woff2", style: "normal" },
+    { path: "./fonts/space-grotesk-latin-ext.woff2", style: "normal" },
+  ],
+  weight: "300 700",
+  display: "swap",
   variable: "--font-space",
+  fallback: ["ui-sans-serif", "sans-serif"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+// Editorial accent face — used for the single italic word in display headlines
+// (landing hero, auth headings). Not a variable font, so both cuts are listed
+// explicitly; `style` must be set per file or next/font maps italic to the
+// upright file and the browser synthesises a slant.
+const instrumentSerif = localFont({
+  src: [
+    { path: "./fonts/instrument-serif-latin.woff2", style: "normal", weight: "400" },
+    { path: "./fonts/instrument-serif-latin-ext.woff2", style: "normal", weight: "400" },
+    { path: "./fonts/instrument-serif-italic-latin.woff2", style: "italic", weight: "400" },
+    { path: "./fonts/instrument-serif-italic-latin-ext.woff2", style: "italic", weight: "400" },
+  ],
+  display: "swap",
+  variable: "--font-serif",
+  fallback: ["ui-serif", "Georgia", "serif"],
+});
+
+const jetbrainsMono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono-latin.woff2", style: "normal" },
+    { path: "./fonts/jetbrains-mono-latin-ext.woff2", style: "normal" },
+  ],
+  weight: "100 800",
+  display: "swap",
   variable: "--font-mono",
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
 });
 
 // Render metadata at request time so titles/description reflect the live central
@@ -104,11 +144,18 @@ export default async function RootLayout({
       }
     : null;
 
+  // Font variables live on <html> so they resolve at :root — `applyBrandRuntime`
+  // writes --brand-font-family there, and Tailwind's --font-* theme keys are
+  // emitted at :root too. On <body> they were out of scope for both.
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
+    >
       <body
         suppressHydrationWarning
-        className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground antialiased overflow-x-hidden`}
+        className="font-sans bg-background text-foreground antialiased overflow-x-hidden"
       >
       {orgJsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />

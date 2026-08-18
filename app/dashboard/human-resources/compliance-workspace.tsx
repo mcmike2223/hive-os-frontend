@@ -32,7 +32,7 @@ import {
 } from "@/modules/humanresources/api";
 
 const controlClass =
-  "min-h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "min-h-11 border-input bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary";
 
 const statusStyles: Record<
   CompliancePolicyVersion["status"],
@@ -41,22 +41,22 @@ const statusStyles: Record<
   draft: {
     label: "Draft",
     className:
-      "border-amber-700 bg-amber-50 text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100",
+      "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   },
   reviewed: {
     label: "Legally reviewed",
     className:
-      "border-blue-700 bg-blue-50 text-blue-950 dark:border-blue-300 dark:bg-blue-950 dark:text-blue-100",
+      "border-primary/20 bg-primary/10 text-primary",
   },
   active: {
     label: "Active",
     className:
-      "border-emerald-700 bg-emerald-50 text-emerald-950 dark:border-emerald-300 dark:bg-emerald-950 dark:text-emerald-100",
+      "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },
   retired: {
     label: "Retired",
     className:
-      "border-slate-600 bg-slate-100 text-slate-950 dark:border-slate-400 dark:bg-slate-900 dark:text-slate-100",
+      "border-muted-foreground/20 bg-muted text-muted-foreground",
   },
 };
 

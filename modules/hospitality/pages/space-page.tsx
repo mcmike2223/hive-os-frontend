@@ -107,7 +107,7 @@ export default function SpaceManagementPage() {
               ].map((s) => (
                 <div key={s.status} className="p-4 rounded-3xl bg-background/50 border border-border/40 text-center">
                   <div className={`mx-auto w-2 h-2 rounded-full ${s.color} mb-2 shadow-lg`} />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.label}</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">{s.label}</p>
                   <p className="text-2xl font-black mt-1">
                     {allLocations.filter((l: HospitalityLocation) => l.status === s.status).length}
                   </p>
@@ -134,9 +134,9 @@ export default function SpaceManagementPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-xl font-black tracking-tight">{selectedLocation.label}</h4>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{selectedLocation.table_type}</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{selectedLocation.table_type}</p>
                     </div>
-                    <Badge className="rounded-full px-4 py-1 font-black uppercase text-[10px]">
+                    <Badge className="rounded-full px-4 py-1 font-black uppercase text-[11px]">
                       {selectedLocation.status}
                     </Badge>
                   </div>
@@ -160,7 +160,7 @@ export default function SpaceManagementPage() {
                         key={status}
                         variant={selectedLocation.status === status ? "default" : "outline"}
                         size="sm"
-                        className="rounded-xl text-[10px] font-black uppercase tracking-widest"
+                        className="rounded-xl text-[11px] font-black uppercase tracking-widest"
                         onClick={() => {
                           statusMutation.mutate({ id: selectedLocation.id, status }, {
                             onSuccess: () => {

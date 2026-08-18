@@ -145,7 +145,7 @@ export default function SpaceManagement({ businessType, isWaiter = false }: Spac
         <Button
           variant={activeZoneId === null ? "default" : "outline"}
           className={cn(
-            "rounded-full px-8 h-11 font-black uppercase text-[10px] tracking-[0.2em] transition-all",
+            "rounded-full px-8 h-11 font-black uppercase text-[11px] tracking-[0.2em] transition-all",
             activeZoneId === null ? "shadow-xl shadow-primary/20 scale-105" : "border-border/60 hover:border-primary/40"
           )}
           onClick={() => setActiveZoneId(null)}
@@ -157,7 +157,7 @@ export default function SpaceManagement({ businessType, isWaiter = false }: Spac
             key={zone.id}
             variant={activeZoneId === zone.id ? "default" : "outline"}
             className={cn(
-              "rounded-full px-8 h-11 font-black uppercase text-[10px] tracking-[0.2em] transition-all",
+              "rounded-full px-8 h-11 font-black uppercase text-[11px] tracking-[0.2em] transition-all",
               activeZoneId === zone.id ? "shadow-xl shadow-primary/20 scale-105" : "border-border/60 hover:border-primary/40"
             )}
             onClick={() => setActiveZoneId(zone.id)}
@@ -223,19 +223,19 @@ export default function SpaceManagement({ businessType, isWaiter = false }: Spac
       <div className="flex flex-wrap items-center justify-center gap-10 rounded-[3rem] border border-white/5 bg-card/20 backdrop-blur-xl p-8 shadow-inner mt-12 mx-2">
         <div className="flex items-center gap-3 group cursor-help">
           <div className="h-4 w-4 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] group-hover:scale-125 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Available</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Available</span>
         </div>
         <div className="flex items-center gap-3 group cursor-help">
           <div className="h-4 w-4 rounded-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] group-hover:scale-125 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Reserved</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Reserved</span>
         </div>
         <div className="flex items-center gap-3 group cursor-help">
           <div className="h-4 w-4 rounded-full bg-destructive shadow-[0_0_15px_rgba(239,68,68,0.5)] group-hover:scale-125 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Occupied</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Occupied</span>
         </div>
         <div className="flex items-center gap-3 group cursor-help">
           <div className="h-4 w-4 rounded-full bg-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.5)] group-hover:scale-125 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Needs Cleaning</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70 group-hover:opacity-100 transition-opacity">Needs Cleaning</span>
         </div>
       </div>
     </div>

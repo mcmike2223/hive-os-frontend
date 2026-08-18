@@ -81,7 +81,7 @@ export function ProjectTrendChart({ projects }: ProjectTrendChartProps) {
                 dataKey="month" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fontWeight: 600, fill: "hsl(var(--foreground))", opacity: 0.8 }}
+                tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--foreground))", opacity: 0.8 }}
                 dy={10}
             />
             <YAxis hide />

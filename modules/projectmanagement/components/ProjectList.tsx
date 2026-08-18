@@ -108,7 +108,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-black tracking-tight truncate group-hover:text-primary transition-colors">{project.name}</h3>
                     {project.is_template && (
-                      <Badge className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border-violet-500/20 shrink-0">
+                      <Badge className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border-violet-500/20 shrink-0">
                         Template
                       </Badge>
                     )}
@@ -117,16 +117,16 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 </div>
                 
                 <div className="hidden md:flex flex-col items-start gap-1.5 px-4 border-l border-border/40">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/50">Status</span>
-                  <Badge className="text-[9px] uppercase font-black px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border-none">
+                  <span className="text-[11px] uppercase font-black tracking-widest text-muted-foreground/50">Status</span>
+                  <Badge className="text-[11px] uppercase font-black px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border-none">
                     {project.status.replace('_', ' ')}
                   </Badge>
                 </div>
 
                 <div className="hidden lg:flex flex-col items-start gap-1.5 w-48 px-4 border-l border-border/40">
                   <div className="flex justify-between w-full items-center">
-                    <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/50">Progress</span>
-                    <span className="text-[10px] font-black text-primary">{project.progress || 0}%</span>
+                    <span className="text-[11px] uppercase font-black tracking-widest text-muted-foreground/50">Progress</span>
+                    <span className="text-[11px] font-black text-primary">{project.progress || 0}%</span>
                   </div>
                   <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: `${project.progress || 0}%` }} />
@@ -134,7 +134,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 px-4 border-l border-border/40">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/50">Deadline</span>
+                  <span className="text-[11px] uppercase font-black tracking-widest text-muted-foreground/50">Deadline</span>
                   <span className="text-xs font-black tracking-tight">{project.end_date ? format(new Date(project.end_date), "MMM d, yyyy") : "No Date"}</span>
                 </div>
               </div>

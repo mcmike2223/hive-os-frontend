@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getBackendApiRoot, getBackendStorageUrl, getTenantHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
+import { getBackendApiRoot, getPublicServeUrl, getTenantHeaders, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { applyBrandRuntime } from "@/lib/brand-theme";
 import { formatDocumentTitle } from "@/lib/document-title";
 
@@ -34,7 +34,8 @@ export function PublicBrandSyncProvider() {
     applyBrandRuntime(brandSettings);
 
     if (brandSettings?.favicon) {
-      const favUrl = getBackendStorageUrl(brandSettings.favicon);
+      // Public pages have no token at all — must use the public-serve route.
+      const favUrl = getPublicServeUrl(brandSettings.favicon);
       if (favUrl) {
         let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
         if (!link) {

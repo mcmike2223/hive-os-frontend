@@ -30,11 +30,27 @@ import {
   UsersRound,
   Fingerprint,
   WalletCards,
+  BadgeDollarSign,
+  ChartNoAxesCombined,
+  HandCoins,
+  Factory,
+  Compass,
+  Sprout,
+  LifeBuoy,
+  ShieldCheck,
+  Telescope,
+  Truck,
+  Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useChatAccess } from "@/hooks/use-chat-access";
-import { DASHBOARD_NAV, DASHBOARD_SECONDARY, type NavItem } from "./nav";
+import {
+  DASHBOARD_MODULE_IDS,
+  DASHBOARD_NAV,
+  DASHBOARD_SECONDARY,
+  type NavItem,
+} from "./nav";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useTranslation } from "@/store/use-translation";
 import { useQuery } from "@tanstack/react-query";
@@ -51,6 +67,12 @@ import {
   isTenantSession,
 } from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
+import { TOUR_EXPAND_NAV_EVENT } from "@/lib/tour-events";
+
+type SidebarIcon = React.ComponentType<{
+  className?: string;
+  "aria-hidden"?: boolean;
+}>;
 
 // 🚀 SECURE BRAND LOGO
 const SecureSidebarLogo = ({
@@ -127,7 +149,7 @@ const SecureSidebarLogo = ({
           <div className="text-base font-black tracking-tighter font-space truncate max-w-[160px]" title={fallbackTitle || "HIVE.OS"}>
             {fallbackTitle || "HIVE.OS"}
           </div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">
             {t("nav.control_hub", "Control Hub")}
           </div>
         </div>
@@ -188,9 +210,23 @@ function SidebarInner({
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
+  const [isLandingTemplatesOpen, setIsLandingTemplatesOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
+  const [isProcurementOpen, setIsProcurementOpen] = useState(false);
+  const [isSupplyChainOpen, setIsSupplyChainOpen] = useState(false);
+  const [isSalesOpen, setIsSalesOpen] = useState(false);
+  const [isCrmOpen, setIsCrmOpen] = useState(false);
+  const [isFleetOpen, setIsFleetOpen] = useState(false);
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const [isInternalAuditOpen, setIsInternalAuditOpen] = useState(false);
+  const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+  const [isVantageOpen, setIsVantageOpen] = useState(false);
+  const [isAgricultureOpen, setIsAgricultureOpen] = useState(false);
+  const [isProductionOpen, setIsProductionOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const canAccessConverter =
@@ -205,6 +241,44 @@ function SidebarInner({
   useEffect(() => {
     setIsMounted(true);
     setIsTenantNode(isTenantSession());
+  }, []);
+
+  // The System Tour walks every sidebar entry, but children of a collapsed
+  // group are not in the DOM, so those steps were silently filtered out and the
+  // tour appeared to jump over whole sections. The topbar dispatches this event
+  // before building its step list; we expand everything so each target exists.
+  useEffect(() => {
+    const expandAll = () => {
+      setIsModulesOpen(true);
+      setIsAppsOpen(true);
+      setIsInventoryOpen(true);
+      setIsWarehouseOpen(true);
+      setIsHospitalityOpen(true);
+      setIsProjectManagementOpen(true);
+      setIsWorkflowOpen(true);
+      setIsLmsOpen(true);
+      setIsB2BMarketplaceOpen(true);
+      setIsLandingTemplatesOpen(true);
+      setIsHumanResourcesOpen(true);
+      setIsAttendanceOpen(true);
+      setIsPayrollOpen(true);
+      setIsFinanceOpen(true);
+      setIsPerformanceOpen(true);
+      setIsProcurementOpen(true);
+      setIsSupplyChainOpen(true);
+      setIsSalesOpen(true);
+      setIsCrmOpen(true);
+      setIsFleetOpen(true);
+      setIsServiceOpen(true);
+      setIsInternalAuditOpen(true);
+      setIsStrategyOpen(true);
+      setIsVantageOpen(true);
+      setIsAgricultureOpen(true);
+      setIsProductionOpen(true);
+    };
+
+    window.addEventListener(TOUR_EXPAND_NAV_EVENT, expandAll);
+    return () => window.removeEventListener(TOUR_EXPAND_NAV_EVENT, expandAll);
   }, []);
 
   const workspaceScope = getWorkspaceScopeKey();
@@ -267,82 +341,35 @@ function SidebarInner({
     );
   }, [hasAccess, searchQuery, t, isMounted]);
 
-  const filteredSecondary = useMemo(() => {
+  const accessibleSecondary = useMemo(() => {
     if (!isMounted) return [];
     return DASHBOARD_SECONDARY.filter(
       (item) =>
         hasAccess(item) &&
         t(item.translationKey, item.fallbackLabel)
           .toLowerCase()
-          .includes(searchQuery.toLowerCase()) &&
-        item.moduleId !== "projectmanagement" &&
-        item.moduleId !== "workflow" &&
-        item.moduleId !== "lms",
+          .includes(searchQuery.toLowerCase()),
     );
   }, [hasAccess, searchQuery, t, isMounted]);
 
-  const projectManagementFromSecondary = isMounted
-    ? DASHBOARD_SECONDARY.filter(
-        (item) =>
-          item.moduleId === "projectmanagement" &&
-          hasAccess(item) &&
-          t(item.translationKey, item.fallbackLabel)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      )
-    : [];
-  const workflowFromSecondary = isMounted
-    ? DASHBOARD_SECONDARY.filter(
-        (item) =>
-          item.moduleId === "workflow" &&
-          hasAccess(item) &&
-          t(item.translationKey, item.fallbackLabel)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      )
-    : [];
-  const lmsFromSecondary = isMounted
-    ? DASHBOARD_SECONDARY.filter(
-        (item) =>
-          item.moduleId === "lms" &&
-          hasAccess(item) &&
-          t(item.translationKey, item.fallbackLabel)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      )
-    : [];
+  const filteredSecondary = useMemo(
+    () =>
+      accessibleSecondary.filter(
+        (item) => !DASHBOARD_MODULE_IDS.has(item.moduleId),
+      ),
+    [accessibleSecondary],
+  );
 
   const moduleNavItems = [
-    ...filteredNav.filter(
-      (item) =>
-        item.moduleId === "inventory" ||
-        item.moduleId === "hospitality" ||
-        item.moduleId === "warehouse" ||
-        item.moduleId === "workflow" ||
-        item.moduleId === "projectmanagement" ||
-        item.moduleId === "lms" ||
-        item.moduleId === "humanresources" ||
-        item.moduleId === "attendance" ||
-        item.moduleId === "payroll" ||
-        item.moduleId === "b2b-marketplace",
+    ...filteredNav.filter((item) => DASHBOARD_MODULE_IDS.has(item.moduleId)),
+    ...accessibleSecondary.filter((item) =>
+      DASHBOARD_MODULE_IDS.has(item.moduleId),
     ),
-    ...projectManagementFromSecondary,
-    ...workflowFromSecondary,
-    ...lmsFromSecondary,
   ];
   const standardNavItems = filteredNav.filter(
     (item) =>
-      item.moduleId !== "inventory" &&
-      item.moduleId !== "hospitality" &&
-      item.moduleId !== "warehouse" &&
-      item.moduleId !== "workflow" &&
-      item.moduleId !== "projectmanagement" &&
-      item.moduleId !== "lms" &&
-      item.moduleId !== "humanresources" &&
-      item.moduleId !== "attendance" &&
-      item.moduleId !== "payroll" &&
-      item.moduleId !== "b2b-marketplace" &&
-      item.href !== "/dashboard/landing-templates",
+      !DASHBOARD_MODULE_IDS.has(item.moduleId) &&
+      item.href !== "/dashboard/landing-library",
   );
   const inventoryModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "inventory",
@@ -365,6 +392,9 @@ function SidebarInner({
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
   );
+  const landingTemplatesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "landing-templates",
+  );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
   );
@@ -373,6 +403,45 @@ function SidebarInner({
   );
   const payrollModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "payroll",
+  );
+  const financeModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "finance",
+  );
+  const performanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "performance",
+  );
+  const procurementModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "procurement",
+  );
+  const supplyChainModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "supplychain",
+  );
+  const salesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "sales",
+  );
+  const crmModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "crm",
+  );
+  const fleetModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "fleet",
+  );
+  const serviceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "service",
+  );
+  const internalAuditModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "internal-audit",
+  );
+  const strategyModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "strategy",
+  );
+  const vantageModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "vantage",
+  );
+  const agricultureModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "agriculture",
+  );
+  const productionModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "production",
   );
 
   useEffect(() => {
@@ -404,6 +473,10 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
+    if (pathname.startsWith("/dashboard/landing-pages")) {
+      setIsModulesOpen(true);
+      setIsLandingTemplatesOpen(true);
+    }
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
@@ -416,12 +489,64 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsPayrollOpen(true);
     }
+    if (pathname.startsWith("/dashboard/finance")) {
+      setIsModulesOpen(true);
+      setIsFinanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/performance")) {
+      setIsModulesOpen(true);
+      setIsPerformanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/procurement")) {
+      setIsModulesOpen(true);
+      setIsProcurementOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/supply-chain")) {
+      setIsModulesOpen(true);
+      setIsSupplyChainOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/sales")) {
+      setIsModulesOpen(true);
+      setIsSalesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/crm")) {
+      setIsModulesOpen(true);
+      setIsCrmOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/fleet")) {
+      setIsModulesOpen(true);
+      setIsFleetOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/service")) {
+      setIsModulesOpen(true);
+      setIsServiceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/internal-audit")) {
+      setIsModulesOpen(true);
+      setIsInternalAuditOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/strategy")) {
+      setIsModulesOpen(true);
+      setIsStrategyOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/vantage")) {
+      setIsModulesOpen(true);
+      setIsVantageOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/agriculture")) {
+      setIsModulesOpen(true);
+      setIsAgricultureOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/production")) {
+      setIsModulesOpen(true);
+      setIsProductionOpen(true);
+    }
     if (
       pathname.startsWith("/dashboard/tools/converter") ||
       pathname.startsWith("/dashboard/tools/converters") ||
       pathname.startsWith("/dashboard/mail") ||
       pathname.startsWith("/dashboard/chat") ||
-      pathname.startsWith("/dashboard/landing-templates")
+      pathname.startsWith("/dashboard/landing-library")
     ) {
       setIsAppsOpen(true);
     }
@@ -437,12 +562,118 @@ function SidebarInner({
     return () => clearTimeout(timer);
   }, [pathname]);
 
+  const renderModuleSection = ({
+    items,
+    label,
+    icon: Icon,
+    openState,
+    onToggle,
+  }: {
+    items: NavItem[];
+    label: string;
+    icon: SidebarIcon;
+    openState: boolean;
+    onToggle: () => void;
+  }) => {
+    if (items.length === 0) return null;
+
+    const moduleId = items[0].moduleId;
+    const sectionId = `desktop-module-${moduleId}`;
+    const isModuleActive = items.some((item) => {
+      const itemPath = item.href.split("?")[0];
+      return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+    });
+
+    return (
+      <div className="flex flex-col gap-1">
+        <h3>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={openState}
+            aria-controls={sectionId}
+            className={cn(
+              "group flex min-h-11 w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              isModuleActive
+                ? "border border-amber-700/40 bg-amber-500/15 font-extrabold text-amber-900 shadow-sm dark:border-amber-300/40 dark:text-amber-200"
+                : "hive-sidebar-subsection-idle",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <Icon aria-hidden={true} className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </span>
+            {openState ? (
+              <ChevronDown
+                aria-hidden={true}
+                className="h-4 w-4 shrink-0 opacity-50"
+              />
+            ) : (
+              <ChevronRight
+                aria-hidden={true}
+                className="h-4 w-4 shrink-0 opacity-50"
+              />
+            )}
+          </button>
+        </h3>
+
+        {openState && (
+          <div id={sectionId} className="flex flex-col gap-1 pl-4">
+            {items.map((item) => {
+              const itemPath = item.href.split("?")[0];
+              const hasMoreSpecificMatch = items.some((candidate) => {
+                const candidatePath = candidate.href.split("?")[0];
+                return (
+                  candidatePath !== itemPath &&
+                  candidatePath.startsWith(`${itemPath}/`) &&
+                  (pathname === candidatePath ||
+                    pathname.startsWith(`${candidatePath}/`))
+                );
+              });
+              const active =
+                pathname === itemPath ||
+                (!hasMoreSpecificMatch &&
+                  pathname.startsWith(`${itemPath}/`));
+              const ItemIcon = item.icon;
+              const itemLabel = t(item.translationKey, item.fallbackLabel);
+
+              return (
+                <Link
+                  key={item.href}
+                  id={item.tourId}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "group flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    active
+                      ? "hive-sidebar-nested-active"
+                      : "hive-sidebar-nested-idle",
+                  )}
+                >
+                  <ItemIcon
+                    aria-hidden={true}
+                    className="h-4 w-4 shrink-0"
+                  />
+                  <span className="truncate">{itemLabel}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const brand = useMemo(() => {
     const isDark = resolvedTheme === "dark";
+    // Fall back to the other variant rather than rendering nothing. Most tenants
+    // upload a single logo, and requiring both meant the brand disappeared
+    // entirely in whichever theme they had not filled in.
     const logoUrl = isDark
-      ? brandSettings?.logo_dark
-      : brandSettings?.logo_light;
-    const sidebarIconUrl = brandSettings?.sidebar_icon;
+      ? brandSettings?.logo_dark || brandSettings?.logo_light
+      : brandSettings?.logo_light || brandSettings?.logo_dark;
+    // Likewise, a collapsed sidebar with no dedicated icon falls back to the logo.
+    const sidebarIconUrl = brandSettings?.sidebar_icon || logoUrl;
     const displayLogo = collapsed ? sidebarIconUrl : logoUrl;
 
     return (
@@ -470,6 +701,8 @@ function SidebarInner({
             <Button
               variant="ghost"
               onClick={onToggle}
+              aria-label={t("global.collapse_sidebar", "Collapse sidebar")}
+              aria-expanded={true}
               className="h-9 w-9 rounded-xl p-0 text-muted-foreground shrink-0 border border-border/40 bg-background/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
             >
               <PanelLeftClose className="h-5 w-5" />
@@ -481,6 +714,8 @@ function SidebarInner({
             <Button
               variant="ghost"
               onClick={onToggle}
+              aria-label={t("global.expand_sidebar", "Expand sidebar")}
+              aria-expanded={false}
               className="h-10 w-10 rounded-2xl p-0 border border-border/40 bg-background/60 hover:bg-primary/10 hover:text-primary hover:border-primary/30 text-muted-foreground shadow-sm transition-all"
             >
               <PanelLeftOpen className="h-5 w-5" />
@@ -522,6 +757,7 @@ function SidebarInner({
       <nav
         ref={navRef}
         id="tour-sidebar-nav"
+        aria-label={t("nav.dashboard_nav", "Dashboard navigation")}
         className="mt-3 flex-1 space-y-1 overflow-y-auto min-h-0 py-1 pr-1 custom-scrollbar"
       >
         {searchQuery ? (
@@ -595,6 +831,7 @@ function SidebarInner({
             {moduleNavItems.length > 0 && !collapsed && (
               <div className="mt-2 flex flex-col gap-1">
                 <button
+                  type="button"
                   id="tour-nav-modules"
                   onClick={() => setIsModulesOpen(!isModulesOpen)}
                   aria-expanded={isModulesOpen}
@@ -608,7 +845,22 @@ function SidebarInner({
                      pathname.startsWith("/dashboard/workflow") ||
                      pathname.startsWith("/dashboard/learning-management") ||
                      pathname.startsWith("/dashboard/b2b-marketplace") ||
-                     pathname.startsWith("/dashboard/human-resources"))
+                     pathname.startsWith("/dashboard/human-resources") ||
+                     pathname.startsWith("/dashboard/attendance") ||
+                     pathname.startsWith("/dashboard/payroll") ||
+                     pathname.startsWith("/dashboard/finance") ||
+                     pathname.startsWith("/dashboard/performance") ||
+                     pathname.startsWith("/dashboard/procurement") ||
+                     pathname.startsWith("/dashboard/supply-chain") ||
+                     pathname.startsWith("/dashboard/sales") ||
+                     pathname.startsWith("/dashboard/crm") ||
+                     pathname.startsWith("/dashboard/fleet") ||
+                     pathname.startsWith("/dashboard/service") ||
+                     pathname.startsWith("/dashboard/internal-audit") ||
+                     pathname.startsWith("/dashboard/strategy") ||
+                     pathname.startsWith("/dashboard/vantage") ||
+                     pathname.startsWith("/dashboard/agriculture") ||
+                     pathname.startsWith("/dashboard/production"))
                       ? "hive-sidebar-nav-active font-extrabold"
                       : "hive-sidebar-section-idle"
                   )}
@@ -901,143 +1153,126 @@ function SidebarInner({
                       </div>
                     )}
 
-                    {attendanceModuleItems.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setIsAttendanceOpen(!isAttendanceOpen)}
-                          aria-expanded={isAttendanceOpen}
-                          aria-controls="desktop-attendance-links"
-                          className={cn(
-                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                            pathname.startsWith("/dashboard/attendance")
-                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
-                              : "hive-sidebar-subsection-idle"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Fingerprint
-                              className={cn(
-                                "h-4 w-4 shrink-0",
-                                pathname.startsWith("/dashboard/attendance") ? "text-primary font-bold" : ""
-                              )}
-                            />
-                            <span className="truncate">
-                              {t("nav.attendance", "Attendance Management")}
-                            </span>
-                          </div>
-                          {isAttendanceOpen ? (
-                            <ChevronDown className="h-4 w-4 opacity-50" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 opacity-50" />
-                          )}
-                        </button>
-                        {isAttendanceOpen && (
-                          <div
-                            id="desktop-attendance-links"
-                            className="flex flex-col gap-1 pl-4"
-                          >
-                            {attendanceModuleItems.map((item) => {
-                              const active =
-                                pathname === item.href ||
-                                pathname.startsWith(`${item.href}/`);
-                              const Icon = item.icon;
-                              const label = t(
-                                item.translationKey,
-                                item.fallbackLabel,
-                              );
+                    {renderModuleSection({
+                      items: attendanceModuleItems,
+                      label: t("nav.attendance", "Attendance Management"),
+                      icon: Fingerprint,
+                      openState: isAttendanceOpen,
+                      onToggle: () =>
+                        setIsAttendanceOpen((value) => !value),
+                    })}
 
-                              return (
-                                <Link
-                                  key={item.href}
-                                  id={item.tourId}
-                                  href={item.href}
-                                  aria-current={active ? "page" : undefined}
-                                  className={cn(
-                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
-                                    active
-                                      ? "hive-sidebar-nested-active"
-                                      : "hive-sidebar-nested-idle",
-                                  )}
-                                >
-                                  <Icon className="h-4 w-4 shrink-0" />
-                                  <span className="truncate">{label}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {renderModuleSection({
+                      items: payrollModuleItems,
+                      label: t("nav.payroll", "Payroll Management"),
+                      icon: WalletCards,
+                      openState: isPayrollOpen,
+                      onToggle: () => setIsPayrollOpen((value) => !value),
+                    })}
 
-                    {payrollModuleItems.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setIsPayrollOpen(!isPayrollOpen)}
-                          aria-expanded={isPayrollOpen}
-                          aria-controls="desktop-payroll-links"
-                          className={cn(
-                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                            pathname.startsWith("/dashboard/payroll")
-                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
-                              : "hive-sidebar-subsection-idle"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <WalletCards
-                              className={cn(
-                                "h-4 w-4 shrink-0",
-                                pathname.startsWith("/dashboard/payroll") ? "text-primary font-bold" : ""
-                              )}
-                            />
-                            <span className="truncate">
-                              {t("nav.payroll", "Payroll Management")}
-                            </span>
-                          </div>
-                          {isPayrollOpen ? (
-                            <ChevronDown className="h-4 w-4 opacity-50" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 opacity-50" />
-                          )}
-                        </button>
-                        {isPayrollOpen && (
-                          <div
-                            id="desktop-payroll-links"
-                            className="flex flex-col gap-1 pl-4"
-                          >
-                            {payrollModuleItems.map((item) => {
-                              const active =
-                                pathname === item.href ||
-                                pathname.startsWith(`${item.href}/`);
-                              const Icon = item.icon;
-                              const label = t(
-                                item.translationKey,
-                                item.fallbackLabel,
-                              );
+                    {renderModuleSection({
+                      items: financeModuleItems,
+                      label: t("nav.finance", "Financial Management"),
+                      icon: BadgeDollarSign,
+                      openState: isFinanceOpen,
+                      onToggle: () => setIsFinanceOpen((value) => !value),
+                    })}
 
-                              return (
-                                <Link
-                                  key={item.href}
-                                  id={item.tourId}
-                                  href={item.href}
-                                  aria-current={active ? "page" : undefined}
-                                  className={cn(
-                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
-                                    active
-                                      ? "hive-sidebar-nested-active"
-                                      : "hive-sidebar-nested-idle",
-                                  )}
-                                >
-                                  <Icon className="h-4 w-4 shrink-0" />
-                                  <span className="truncate">{label}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {renderModuleSection({
+                      items: procurementModuleItems,
+                      label: t("nav.procurement", "Procurement Management"),
+                      icon: HandCoins,
+                      openState: isProcurementOpen,
+                      onToggle: () => setIsProcurementOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: supplyChainModuleItems,
+                      label: t("nav.supply_chain", "Supply Chain Management"),
+                      icon: Truck,
+                      openState: isSupplyChainOpen,
+                      onToggle: () => setIsSupplyChainOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: salesModuleItems,
+                      label: t("nav.sales", "Sales Management"),
+                      icon: BadgeDollarSign,
+                      openState: isSalesOpen,
+                      onToggle: () => setIsSalesOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: crmModuleItems,
+                      label: t("nav.crm", "Customer Relationships"),
+                      icon: Handshake,
+                      openState: isCrmOpen,
+                      onToggle: () => setIsCrmOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: fleetModuleItems,
+                      label: t("nav.fleet", "Fleet Management"),
+                      icon: Truck,
+                      openState: isFleetOpen,
+                      onToggle: () => setIsFleetOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: serviceModuleItems,
+                      label: t("nav.service", "Service and Maintenance"),
+                      icon: LifeBuoy,
+                      openState: isServiceOpen,
+                      onToggle: () => setIsServiceOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: internalAuditModuleItems,
+                      label: t("nav.internal_audit", "Internal Audit"),
+                      icon: ShieldCheck,
+                      openState: isInternalAuditOpen,
+                      onToggle: () => setIsInternalAuditOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: strategyModuleItems,
+                      label: t("nav.strategy", "Strategic Planning"),
+                      icon: Compass,
+                      openState: isStrategyOpen,
+                      onToggle: () => setIsStrategyOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: vantageModuleItems,
+                      label: t("nav.vantage", "Vantage"),
+                      icon: Telescope,
+                      openState: isVantageOpen,
+                      onToggle: () => setIsVantageOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: agricultureModuleItems,
+                      label: t("nav.agriculture", "Agriculture"),
+                      icon: Sprout,
+                      openState: isAgricultureOpen,
+                      onToggle: () => setIsAgricultureOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: performanceModuleItems,
+                      label: t("nav.performance", "Performance Management"),
+                      icon: ChartNoAxesCombined,
+                      openState: isPerformanceOpen,
+                      onToggle: () => setIsPerformanceOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: productionModuleItems,
+                      label: t("nav.production", "Production Management"),
+                      icon: Factory,
+                      openState: isProductionOpen,
+                      onToggle: () => setIsProductionOpen((value) => !value),
+                    })}
 
                     {projectManagementModuleItems.length > 0 && (
                       <div className="flex flex-col gap-1">
@@ -1320,6 +1555,68 @@ function SidebarInner({
                         )}
                       </div>
                     )}
+
+                    {isTenantNode && landingTemplatesModuleItems.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setIsLandingTemplatesOpen(!isLandingTemplatesOpen)
+                          }
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/landing-pages")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <LayoutTemplate className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/landing-pages") ? "text-primary font-bold" : "")} />
+                            <span className="truncate">
+                              {t("nav.landing_templates", "Landing Templates")}
+                            </span>
+                          </div>
+                          {isLandingTemplatesOpen ? (
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 opacity-50" />
+                          )}
+                        </button>
+                        {isLandingTemplatesOpen && (
+                          <div className="flex flex-col gap-1 pl-4">
+                            {landingTemplatesModuleItems.map((item) => {
+                              const active =
+                                item.href === "/dashboard"
+                                  ? pathname === "/dashboard"
+                                  : pathname === item.href ||
+                                    pathname.startsWith(item.href + "/");
+                              const Icon = item.icon;
+                              const label = t(
+                                item.translationKey,
+                                item.fallbackLabel,
+                              );
+
+                              return (
+                                <Link
+                                  key={item.href}
+                                  id={item.tourId}
+                                  href={item.href}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
+                                    active
+                                      ? "hive-sidebar-nested-active"
+                                      : "hive-sidebar-nested-idle",
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1328,16 +1625,21 @@ function SidebarInner({
             {moduleNavItems.length > 0 && collapsed && (
               <div className="mt-1 flex flex-col gap-1">
                 <button
+                  type="button"
                   id="tour-nav-modules"
                   onClick={() => setIsModulesOpen(!isModulesOpen)}
                   title={t("nav.modules", "Modules")}
-                  className="group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent"
+                  aria-label={t("nav.modules", "Modules")}
+                  aria-expanded={isModulesOpen}
+                  aria-controls="desktop-collapsed-module-links"
+                  className="group flex min-h-11 items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <Boxes className="h-4 w-4 shrink-0" />
+                  <Boxes aria-hidden="true" className="h-4 w-4 shrink-0" />
                 </button>
 
-                {isModulesOpen &&
-                  moduleNavItems.map((item) => {
+                {isModulesOpen && (
+                  <div id="desktop-collapsed-module-links" className="contents">
+                    {moduleNavItems.map((item) => {
                     const active =
                       item.href === "/dashboard"
                         ? pathname === "/dashboard"
@@ -1352,22 +1654,27 @@ function SidebarInner({
                         id={item.tourId}
                         href={item.href}
                         title={label}
+                        aria-label={label}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200",
+                          "group flex min-h-11 items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           active
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-bold"
+                            ? "bg-primary text-neutral-950 shadow-lg shadow-primary/25 font-bold"
                             : "text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground border border-transparent",
                         )}
                       >
                         <Icon
+                          aria-hidden="true"
                           className={cn(
                             "h-4 w-4 shrink-0",
-                            active ? "text-primary-foreground" : "",
+                            active ? "text-neutral-950" : "",
                           )}
                         />
                       </Link>
                     );
-                  })}
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -1483,18 +1790,18 @@ function SidebarInner({
                   )}
                   {canAccessLandingTemplates && !isTenantNode && (
                     <Link
-                      href="/dashboard/landing-templates"
+                      href="/dashboard/landing-library"
                       id="tour-nav-landing-templates"
                       className={cn(
                         "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
-                        pathname.includes("/dashboard/landing-templates")
+                        pathname.includes("/dashboard/landing-library")
                           ? "hive-sidebar-nested-active"
                           : "hive-sidebar-nested-idle",
                       )}
                     >
                       <LayoutTemplate className="h-4 w-4 shrink-0" />
                       <span className="truncate">
-                        {t("nav.landing_templates", "Landing Templates")}
+                        {t("nav.landing_library", "Landing Library")}
                       </span>
                     </Link>
                   )}
@@ -1562,11 +1869,11 @@ function SidebarInner({
                   )}
                   {canAccessLandingTemplates && !isTenantNode && (
                     <Link
-                      href="/dashboard/landing-templates"
-                      title="Landing Templates"
+                      href="/dashboard/landing-library"
+                      title="Landing Library"
                       className={cn(
                         "group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 mt-1",
-                        pathname.includes("/dashboard/landing-templates")
+                        pathname.includes("/dashboard/landing-library")
                           ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25"
                           : "text-muted-foreground hover:bg-muted/80 hover:text-foreground font-semibold",
                       )}

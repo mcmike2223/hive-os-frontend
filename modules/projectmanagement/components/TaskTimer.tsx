@@ -124,7 +124,7 @@ export function TaskTimer({ task }: TaskTimerProps) {
       </div>
       
       {!!validActiveLog && !isActiveForThisTask && (
-        <div className="absolute -bottom-6 left-0 right-0 text-[9px] text-amber-600 font-bold uppercase text-center animate-bounce">
+        <div className="absolute -bottom-6 left-0 right-0 text-[11px] text-amber-600 font-bold uppercase text-center animate-bounce">
           Another timer is running
         </div>
       )}

@@ -6,7 +6,7 @@ export const tenancyModule: FrontendModuleDefinition = {
   name: "Tenancy",
   description: "Tenant provisioning, lifecycle management, and node operations.",
   backendModule: "Modules\\Tenancy",
-  routePrefixes: ["/dashboard/tenants", "/dashboard/landing-templates"],
+  routePrefixes: ["/dashboard/tenants", "/dashboard/landing-templates", "/dashboard/landing-library"],
   navItems: [
     {
       moduleId: "tenancy",
@@ -19,10 +19,12 @@ export const tenancyModule: FrontendModuleDefinition = {
       placement: "primary",
     },
     {
+      // Central admins land on the new master-template engine. The legacy
+      // /dashboard/landing-templates catalog editor is still reachable by URL.
       moduleId: "tenancy",
-      translationKey: "nav.landing_templates",
-      fallbackLabel: "Landing Templates",
-      href: "/dashboard/landing-templates",
+      translationKey: "nav.landing_library",
+      fallbackLabel: "Landing Library",
+      href: "/dashboard/landing-library",
       icon: LayoutTemplate,
       permissions: ["manage_tenants", "provision_tenants"],
       tourId: "tour-nav-landing-templates",

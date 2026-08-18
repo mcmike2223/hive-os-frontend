@@ -154,7 +154,7 @@ export default function ConvertersHubPage() {
             <div key={cat.title} className={cn("rounded-2xl bg-gradient-to-br p-4 border border-border/40", cat.gradient)}>
               <div className="text-2xl mb-1">{cat.icon}</div>
               <p className={cn("text-xs font-black tracking-tight", cat.color)}>{cat.title}</p>
-              <p className="text-[10px] text-muted-foreground">{cat.converters.length} tools</p>
+              <p className="text-[11px] text-muted-foreground">{cat.converters.length} tools</p>
             </div>
           ))}
         </div>
@@ -191,7 +191,7 @@ export default function ConvertersHubPage() {
                   <span className="truncate">{conv.label}</span>
                   <div className="flex items-center gap-1 shrink-0">
                     {conv.badge && (
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 rounded-full">
+                      <Badge variant="secondary" className="text-[11px] px-1.5 py-0 h-4 rounded-full">
                         {conv.badge}
                       </Badge>
                     )}

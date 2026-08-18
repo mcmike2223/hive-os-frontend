@@ -145,20 +145,8 @@ export default function AuditLogsPage() {
     }
   }, [canViewLogs, isLoaded, router]);
 
-  useEffect(() => {
-    if (accessStatus === "granted") {
-      const hasTouredAudit = localStorage.getItem("hive_tour_audit_completed");
-
-      if (!hasTouredAudit) {
-        const timer = setTimeout(() => {
-          triggerPageTour();
-          localStorage.setItem("hive_tour_audit_completed", "true");
-        }, 800);
-
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [accessStatus, startTour, t]);
+  // Opt-in only — see the "Page Tour" control. Auto-starting meant a first-time
+  // operator hit an unsolicited modal on each page in turn.
 
   if (accessStatus === "checking") {
     return <ModulePageSkeleton titleWidth="w-64" subtitleWidth="w-96" rows={7} cols={6} />;
@@ -207,9 +195,11 @@ export default function AuditLogsPage() {
 
       <div id="tour-audit-header" className="mt-2 flex flex-col items-start justify-between gap-4 rounded-[2rem] border border-border/50 bg-card/40 p-6 shadow-sm backdrop-blur-md sm:flex-row sm:items-center">
         <div>
-          <h2 className="font-space flex items-center gap-2 text-2xl font-black tracking-tight">
+          {/* The page title is the document's h1 — this was an h2, so the route
+              had no top-level heading for screen readers to announce. */}
+          <h1 className="font-space flex items-center gap-2 text-2xl font-black tracking-tight">
             <Activity className="h-6 w-6 text-primary" /> {t("audit.title", "System Audit Logs")}
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("audit.subtitle", "Cryptographically secure, immutable record of all network activity.")}
           </p>

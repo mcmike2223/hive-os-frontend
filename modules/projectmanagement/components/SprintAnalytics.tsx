@@ -88,7 +88,7 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
       {/* Velocity Chart */}
       <Card className="bg-card border-border/40 shadow-xl shadow-black/5 rounded-[2rem] overflow-hidden group">
         <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/20 border-b border-border/40">
-          <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Team Velocity</CardTitle>
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Team Velocity</CardTitle>
           <TrendingUp className="h-4 w-4 text-primary opacity-50" />
         </CardHeader>
         <CardContent className="pt-6">
@@ -106,12 +106,12 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
+                  tick={{ fontSize: 11, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
+                  tick={{ fontSize: 11, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
                 />
                 <RechartsTooltip 
                   cursor={{ fill: 'hsl(var(--primary)/0.05)' }}
@@ -133,11 +133,11 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-primary" />
-                <span className="text-[10px] font-black uppercase text-muted-foreground/60">Completed</span>
+                <span className="text-[11px] font-black uppercase text-muted-foreground/60">Completed</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-muted" />
-                <span className="text-[10px] font-black uppercase text-muted-foreground/60">Planned</span>
+                <span className="text-[11px] font-black uppercase text-muted-foreground/60">Planned</span>
               </div>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
       {/* Burndown Chart */}
       <Card className="bg-card border-border/40 shadow-xl shadow-black/5 rounded-[2rem] overflow-hidden group">
         <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/20 border-b border-border/40">
-          <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+          <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
             Sprint Burndown {activeSprint && `(${activeSprint.name})`}
           </CardTitle>
           <Activity className="h-4 w-4 text-emerald-500 opacity-50" />
@@ -168,12 +168,12 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
                     dataKey="day" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 9, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
+                    tick={{ fontSize: 11, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
+                    tick={{ fontSize: 11, fontWeight: 700, fill: 'hsl(var(--foreground))', opacity: 0.8 }} 
                   />
                   <RechartsTooltip 
                     contentStyle={{ 
@@ -206,7 +206,7 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
               <div className="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-border/40 rounded-2xl bg-muted/5">
                 <Target className="h-8 w-8 mb-2 opacity-20" />
                 <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">No Active Sprint</p>
-                <p className="text-[10px] text-muted-foreground/40 mt-1">Start a sprint to see burndown analytics here.</p>
+                <p className="text-[11px] text-muted-foreground/40 mt-1">Start a sprint to see burndown analytics here.</p>
               </div>
             )}
           </div>
@@ -214,11 +214,11 @@ export function SprintAnalytics({ project, tasks }: SprintAnalyticsProps) {
             <div className="mt-4 flex items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-1 rounded-full bg-primary" />
-                <span className="text-[10px] font-black uppercase text-muted-foreground/60">Remaining Points</span>
+                <span className="text-[11px] font-black uppercase text-muted-foreground/60">Remaining Points</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-[1px] border-b border-dashed border-muted-foreground" />
-                <span className="text-[10px] font-black uppercase text-muted-foreground/60">Ideal Burndown</span>
+                <span className="text-[11px] font-black uppercase text-muted-foreground/60">Ideal Burndown</span>
               </div>
             </div>
           )}

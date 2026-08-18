@@ -31,6 +31,12 @@ interface CodeEditorProps {
   showPreview?: boolean;
   setShowPreview?: (val: boolean) => void;
   previewHtml?: string;
+  /**
+   * Full-bleed preview to render instead of the A4 `previewHtml` frame. Use
+   * when the preview is a live page (e.g. an iframe of the real template
+   * route) rather than a document — the paper-sized container crops it.
+   */
+  previewNode?: React.ReactNode;
   className?: string;
   readOnly?: boolean;
 }
@@ -209,9 +215,10 @@ const createUniqueFilename = (filename: string, existingNames: string[]): string
 export function CodeEditor({ 
   files, 
   setFiles, 
-  showPreview = false, 
-  setShowPreview, 
-  previewHtml = "", 
+  showPreview = false,
+  setShowPreview,
+  previewHtml = "",
+  previewNode,
   className,
   readOnly = false
 }: CodeEditorProps) {
@@ -978,7 +985,7 @@ export function CodeEditor({
         {/* File Explorer Sidebar */}
         {showSidebar && (
           <div className="w-48 sm:w-60 bg-[#252526] border-r border-[#333] flex flex-col shrink-0">
-            <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b border-[#333]">
+            <div className="px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-gray-400 border-b border-[#333]">
               Explorer
             </div>
             <div className="flex-1 overflow-y-auto py-2">
@@ -1007,7 +1014,7 @@ export function CodeEditor({
             </div>
             {showSnippets && (
               <div className="border-t border-[#333] p-3 space-y-2">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
                   <Sparkles className="h-3.5 w-3.5" />
                   Snippets
                 </div>
@@ -1038,11 +1045,15 @@ export function CodeEditor({
         <div className="flex flex-1 w-full bg-[#1e1e1e] min-w-0 flex-col">
           <div className="relative flex-1 min-w-0">
             {showPreview ? (
-                <div className="absolute inset-0 bg-[#e0e0e0] flex justify-center overflow-auto p-4 sm:p-8">
-                    <div className="bg-white shadow-xl w-full max-w-[210mm] min-h-[297mm] mx-auto overflow-hidden relative">
-                      <iframe srcDoc={deferredPreviewHtml} className="w-full h-full border-none absolute inset-0" sandbox="allow-same-origin allow-scripts" />
-                    </div>
-                </div>
+                previewNode ? (
+                  <div className="absolute inset-0 overflow-hidden bg-white">{previewNode}</div>
+                ) : (
+                  <div className="absolute inset-0 bg-[#e0e0e0] flex justify-center overflow-auto p-4 sm:p-8">
+                      <div className="bg-white shadow-xl w-full max-w-[210mm] min-h-[297mm] mx-auto overflow-hidden relative">
+                        <iframe srcDoc={deferredPreviewHtml} className="w-full h-full border-none absolute inset-0" sandbox="allow-same-origin allow-scripts" />
+                      </div>
+                  </div>
+                )
             ) : (
               monacoError ? (
                 <div className="absolute inset-0 flex flex-col bg-[#111315]">
@@ -1089,7 +1100,7 @@ export function CodeEditor({
                       loading={
                           <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-[#1e1e1e]">
                               <Loader2 className="h-6 w-6 animate-spin mb-3 text-indigo-500" />
-                              <span className="text-[10px] uppercase tracking-widest font-bold">Mounting Engine...</span>
+                              <span className="text-[11px] uppercase tracking-widest font-bold">Mounting Engine...</span>
                           </div>
                       }
                   />
@@ -1101,7 +1112,7 @@ export function CodeEditor({
           {!showPreview && showDiagnostics && (
             <div className="border-t border-[#333] bg-[#151515] max-h-44 overflow-y-auto">
               <div className="flex items-center justify-between px-4 py-2 border-b border-[#333]">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Problems
                 </div>

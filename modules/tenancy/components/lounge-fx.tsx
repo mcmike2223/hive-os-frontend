@@ -168,7 +168,7 @@ export function ScrollCue({
       whileHover={{ scale: 1.08 }}
       className={`absolute ${className ?? "bottom-24"} left-1/2 z-30 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex cursor-pointer group/cue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF1A43] rounded-2xl p-2`}
     >
-      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 group-hover/cue:text-white/90 transition-colors">
+      <span className="text-[11px] font-black uppercase tracking-[0.4em] text-white/50 group-hover/cue:text-white/90 transition-colors">
         {label}
       </span>
       <div className="relative flex h-9 w-[22px] justify-center rounded-full border border-white/25 group-hover/cue:border-[#FF1A43]/70 group-hover/cue:shadow-[0_0_15px_rgba(255,26,67,0.4)] p-1 transition-all duration-300">

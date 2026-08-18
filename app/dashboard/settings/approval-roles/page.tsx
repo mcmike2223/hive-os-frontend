@@ -378,13 +378,13 @@ export default function ApprovalRolesPage() {
               {users.slice(0, 4).map((user) => (
                 <Avatar key={user.id} className="h-7 w-7 border-2 border-background shadow-sm">
                   <AvatarImage src={user.avatar_url} />
-                  <AvatarFallback className="bg-primary/10 text-[10px] font-bold">
+                  <AvatarFallback className="bg-primary/10 text-[11px] font-bold">
                     {user.name?.split(' ').map((n: string) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
               ))}
               {users.length > 4 && (
-                <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold border-2 border-background">
+                <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold border-2 border-background">
                   +{users.length - 4}
                 </div>
               )}

@@ -233,10 +233,10 @@ export default function DoorManagementPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <TabsList className="bg-card/50 backdrop-blur-md p-1 h-auto rounded-full w-full max-w-md grid grid-cols-2">
-          <TabsTrigger value="guestlist" className="rounded-full h-10 font-bold uppercase tracking-widest text-[10px]">
+          <TabsTrigger value="guestlist" className="rounded-full h-10 font-bold uppercase tracking-widest text-[11px]">
             Guest List
           </TabsTrigger>
-          <TabsTrigger value="waitlist" className="rounded-full h-10 font-bold uppercase tracking-widest text-[10px]">
+          <TabsTrigger value="waitlist" className="rounded-full h-10 font-bold uppercase tracking-widest text-[11px]">
             Waitlist
             {waitlist.filter((w: HospitalityWaitlistEntry) => w.status === "waiting").length > 0 && (
               <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
@@ -272,7 +272,7 @@ export default function DoorManagementPage() {
                       key={f}
                       variant={filter === f ? "default" : "ghost"}
                       onClick={() => setFilter(f)}
-                      className="justify-start rounded-xl font-bold uppercase text-[10px] tracking-widest h-10"
+                      className="justify-start rounded-xl font-bold uppercase text-[11px] tracking-widest h-10"
                     >
                       <Filter className="mr-2 h-3 w-3" />
                       {f}
@@ -319,18 +319,18 @@ export default function DoorManagementPage() {
                             <div>
                               <h4 className="text-xl font-black tracking-tight">{guest.guest_name}</h4>
                               {guest.promoter && (
-                                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1 flex items-center gap-1.5">
+                                <p className="text-[11px] font-bold text-primary uppercase tracking-widest mt-1 flex items-center gap-1.5">
                                   <UserCheck className="h-3 w-3" />
                                   Promoter: {guest.promoter.name}
                                 </p>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="rounded-full py-0.5 px-3 h-6 text-[10px] font-black uppercase border-border/60">
+                              <Badge variant="outline" className="rounded-full py-0.5 px-3 h-6 text-[11px] font-black uppercase border-border/60">
                                 {guest.expected_party_size} Guests
                               </Badge>
                               <Badge className={cn(
-                                "rounded-full py-0.5 px-3 h-6 text-[10px] font-black uppercase",
+                                "rounded-full py-0.5 px-3 h-6 text-[11px] font-black uppercase",
                                 guest.status === 'arrived' ? "bg-emerald-500" : "bg-amber-500"
                               )}>
                                 {guest.status}

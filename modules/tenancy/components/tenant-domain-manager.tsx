@@ -221,14 +221,14 @@ export function TenantDomainManager({ tenantId, onTenantUpdated }: Props) {
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-[1.25rem] border border-border/50 bg-background/70 p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Generated Subdomain Pattern</p>
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Generated Subdomain Pattern</p>
           <p className="mt-2 font-mono text-xs text-foreground">{GENERATED_WILDCARD_DOMAIN}</p>
           <p className="mt-2 text-xs text-muted-foreground">
             New tenant fallback addresses follow this wildcard automatically. If the platform root domain changes later, the next production redeploy will sync those generated fallback domains for you.
           </p>
         </div>
         <div className="rounded-[1.25rem] border border-border/50 bg-background/70 p-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Wildcard DNS Target</p>
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Wildcard DNS Target</p>
           <div className="mt-2 flex items-center gap-2 font-mono text-xs text-foreground">
             <Server className="h-3.5 w-3.5 text-primary" />
             <span>{PLATFORM_SERVER_IP || "Set SERVER_IP in production .env to surface the live VPS target here."}</span>
@@ -242,7 +242,7 @@ export function TenantDomainManager({ tenantId, onTenantUpdated }: Props) {
       <form onSubmit={handleCreate} className="rounded-[1.25rem] border border-border/50 bg-background/70 p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <div className="space-y-1.5">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Add Custom Domain</Label>
+            <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Add Custom Domain</Label>
             <Input
               value={newDomain}
               onChange={(event) => setNewDomain(event.target.value)}
@@ -298,19 +298,19 @@ export function TenantDomainManager({ tenantId, onTenantUpdated }: Props) {
                     )}
 
                     {domain.is_primary && (
-                      <Badge variant="outline" className="border-primary/30 bg-primary/5 text-[10px] uppercase text-primary">
+                      <Badge variant="outline" className="border-primary/30 bg-primary/5 text-[11px] uppercase text-primary">
                         <Star className="mr-1 h-3 w-3" /> Primary
                       </Badge>
                     )}
                     {domain.is_fallback && (
-                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[10px] uppercase text-emerald-600">
+                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[11px] uppercase text-emerald-600">
                         Fallback
                       </Badge>
                     )}
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-[10px] uppercase",
+                        "text-[11px] uppercase",
                         isVerified
                           ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                           : "border-amber-200 bg-amber-50 text-amber-700"
@@ -323,12 +323,12 @@ export function TenantDomainManager({ tenantId, onTenantUpdated }: Props) {
 
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">TXT Verification</p>
+                      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">TXT Verification</p>
                       <p className="mt-2 font-mono text-xs text-foreground">{domain.verification_record_name}</p>
                       <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{domain.verification_record_value || "Not required"}</p>
                     </div>
                     <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Routing Record</p>
+                      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Routing Record</p>
                       <p className="mt-2 font-mono text-xs text-foreground">{domain.routing_record_type}</p>
                       <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{domain.routing_target}</p>
                     </div>

@@ -40,12 +40,12 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({ tasks, onTaskC
       <Table>
         <TableHeader id="tour-pm-list-header" className="bg-muted/20 border-b border-border/40">
           <TableRow className="hover:bg-transparent border-none">
-            <TableHead className="w-[40%] font-black uppercase tracking-widest text-[10px] h-14 px-6">{t('project_management.task_identity', 'Task Identity')}</TableHead>
-            <TableHead className="font-black uppercase tracking-widest text-[10px] h-14 px-6">{t('project_management.status', 'Status')}</TableHead>
-            <TableHead className="font-black uppercase tracking-widest text-[10px] h-14 px-6">{t('project_management.priority', 'Priority')}</TableHead>
-            <TableHead className="font-black uppercase tracking-widest text-[10px] h-14 px-6">{t('project_management.assigned_team', 'Assigned Team')}</TableHead>
-            {isSoftwareDev && <TableHead className="font-black uppercase tracking-widest text-[10px] h-14 px-6 text-center">{t('project_management.score', 'Score')}</TableHead>}
-            <TableHead className="font-black uppercase tracking-widest text-[10px] h-14 px-6">{t('project_management.target_date', 'Target Date')}</TableHead>
+            <TableHead className="w-[40%] font-black uppercase tracking-widest text-[11px] h-14 px-6">{t('project_management.task_identity', 'Task Identity')}</TableHead>
+            <TableHead className="font-black uppercase tracking-widest text-[11px] h-14 px-6">{t('project_management.status', 'Status')}</TableHead>
+            <TableHead className="font-black uppercase tracking-widest text-[11px] h-14 px-6">{t('project_management.priority', 'Priority')}</TableHead>
+            <TableHead className="font-black uppercase tracking-widest text-[11px] h-14 px-6">{t('project_management.assigned_team', 'Assigned Team')}</TableHead>
+            {isSoftwareDev && <TableHead className="font-black uppercase tracking-widest text-[11px] h-14 px-6 text-center">{t('project_management.score', 'Score')}</TableHead>}
+            <TableHead className="font-black uppercase tracking-widest text-[11px] h-14 px-6">{t('project_management.target_date', 'Target Date')}</TableHead>
             <TableHead className="text-right h-14 px-6"></TableHead>
           </TableRow>
         </TableHeader>
@@ -83,12 +83,12 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({ tasks, onTaskC
                   </div>
                 </TableCell>
                 <TableCell className="px-6 py-4">
-                  <Badge variant="outline" className="font-bold text-[10px] uppercase tracking-widest bg-muted/50 border-border/40 text-muted-foreground">
+                  <Badge variant="outline" className="font-bold text-[11px] uppercase tracking-widest bg-muted/50 border-border/40 text-muted-foreground">
                     {task.column?.name || t('project_management.unknown', 'Unknown')}
                   </Badge>
                 </TableCell>
                 <TableCell className="px-6 py-4">
-                  <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-none", priorityColors[task.priority])}>
+                  <Badge className={cn("text-[11px] font-black uppercase tracking-widest px-2 py-0.5 border-none", priorityColors[task.priority])}>
                     {task.priority}
                   </Badge>
                 </TableCell>
@@ -99,7 +99,7 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({ tasks, onTaskC
                         {(task.assignees ?? []).slice(0, 3).map((user) => (
                           <Avatar key={user.id} className="h-7 w-7 border-2 border-card ring-1 ring-border/40">
                             <AvatarImage src={user.avatar_path || undefined} />
-                            <AvatarFallback className="text-[10px] font-bold">
+                            <AvatarFallback className="text-[11px] font-bold">
                               {user.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -108,17 +108,17 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({ tasks, onTaskC
                       {(task.assignees?.length ?? 0) === 1 ? (
                         <span className="text-xs font-bold truncate max-w-[100px] text-muted-foreground">{task.assignees![0].name}</span>
                       ) : (task.assignees?.length ?? 0) > 3 ? (
-                        <span className="text-[10px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-md border border-primary/10">+{(task.assignees?.length ?? 0) - 3}</span>
+                        <span className="text-[11px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-md border border-primary/10">+{(task.assignees?.length ?? 0) - 3}</span>
                       ) : null}
                     </div>
                   ) : (
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{t('project_management.open_task', 'Open')}</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40">{t('project_management.open_task', 'Open')}</span>
                   )}
                 </TableCell>
                 {isSoftwareDev && (
                   <TableCell className="text-center">
                     {task.story_points ? (
-                      <Badge variant="secondary" className="rounded-full h-5 px-2 text-[10px] font-bold">
+                      <Badge variant="secondary" className="rounded-full h-5 px-2 text-[11px] font-bold">
                         {task.story_points}
                       </Badge>
                     ) : (
@@ -129,7 +129,7 @@ export const ProjectListView: React.FC<ProjectListViewProps> = ({ tasks, onTaskC
                 <TableCell className="px-6 py-4">
                   <div className="flex items-center gap-2 text-muted-foreground font-bold">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span className="text-[10px] uppercase tracking-widest">
+                    <span className="text-[11px] uppercase tracking-widest">
                       {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : t('project_management.no_date', 'No date')}
                     </span>
                   </div>

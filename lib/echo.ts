@@ -65,10 +65,10 @@ export const initEcho = (token: string) => {
 
   window.Pusher = Pusher;
 
-  const reverbHost =
-    process.env.NEXT_PUBLIC_REVERB_HOST === 'localhost' || process.env.NEXT_PUBLIC_REVERB_HOST === 'reverb'
-      ? window.location.hostname
-      : process.env.NEXT_PUBLIC_REVERB_HOST || window.location.hostname;
+  // Keep an explicitly configured host intact. Tenant hosts such as
+  // `aquauno.localhost` are not necessarily where Reverb is published; in the
+  // Docker development stack it is deliberately exposed on localhost:9095.
+  const reverbHost = process.env.NEXT_PUBLIC_REVERB_HOST || window.location.hostname;
 
   const reverbPort = Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? 9000);
 

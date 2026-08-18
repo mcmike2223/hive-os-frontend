@@ -268,7 +268,7 @@ export default function ShelfBoxManagementPage() {
                     : 'bg-muted/10 border-dashed border-border/40 hover:border-primary/30 hover:bg-accent/30'}
                 `}
               >
-                <span className="absolute left-3 top-3 font-mono text-[10px] font-bold tracking-tighter text-muted-foreground opacity-40 group-hover:opacity-100">
+                <span className="absolute left-3 top-3 font-mono text-[11px] font-bold tracking-tighter text-muted-foreground opacity-40 group-hover:opacity-100">
                   R{r}C{c}
                 </span>
                 
@@ -278,7 +278,7 @@ export default function ShelfBoxManagementPage() {
                       {storableType === 'product' ? <Package className="h-5 w-5" /> : <Tag className="h-5 w-5" />}
                     </div>
                     <span className="text-xs font-bold tracking-tight truncate max-w-full px-1 text-foreground">{box.name}</span>
-                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{statusLabel}</span>
+                    <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{statusLabel}</span>
                   </>
                 ) : (
                   <Plus className="h-6 w-6 text-muted-foreground/20 transition-all group-hover:scale-110 group-hover:text-primary/40" />

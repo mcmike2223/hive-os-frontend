@@ -52,7 +52,7 @@ export function QuoteThreadDialog({ quote, onClose }: { quote: B2BQuote | null; 
             messages.map((m) => (
               <div key={m.id} className={cn("flex", m.is_me ? "justify-end" : "justify-start")}>
                 <div className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm", m.is_me ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                  {!m.is_me && <p className="text-[10px] font-bold opacity-70">{m.sender}</p>}
+                  {!m.is_me && <p className="text-[11px] font-bold opacity-70">{m.sender}</p>}
                   <p>{m.message}</p>
                 </div>
               </div>

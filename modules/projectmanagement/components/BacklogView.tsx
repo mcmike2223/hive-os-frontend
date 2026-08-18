@@ -102,11 +102,11 @@ export function BacklogView({ project, tasks, onTaskClick }: BacklogViewProps) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-black tracking-tight">{t("project_management.backlog_and_sprints", "Backlog & Sprints")}</h2>
-            <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] uppercase tracking-widest px-2">Software Dev</Badge>
+            <Badge variant="secondary" className="bg-primary/10 text-primary text-[11px] uppercase tracking-widest px-2">Software Dev</Badge>
           </div>
           <p className="text-xs text-muted-foreground font-medium mt-1">{t("project_management.manage_backlog_desc", "Manage your product backlog and plan upcoming iterative sprints.")}</p>
         </div>
-        <Button onClick={() => createSprintMutation.mutate()} className="gap-2 h-10 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+        <Button onClick={() => createSprintMutation.mutate()} className="gap-2 h-10 px-6 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20">
           <Plus className="h-4 w-4" />
           Create Sprint
         </Button>
@@ -142,12 +142,12 @@ export function BacklogView({ project, tasks, onTaskClick }: BacklogViewProps) {
                 {expandedSprints['backlog'] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </div>
               <h3 className="font-black uppercase tracking-widest text-sm">{t("project_management.product_backlog", "Product Backlog")}</h3>
-              <Badge variant="outline" className="ml-2 bg-background font-black text-[10px] rounded-lg">
+              <Badge variant="outline" className="ml-2 bg-background font-black text-[11px] rounded-lg">
                 {backlogTasks.length} {t("project_management.items", "ITEMS")}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-8 gap-2 font-bold text-[10px] uppercase tracking-widest hover:bg-background shadow-sm border border-transparent hover:border-border/40">
+              <Button variant="ghost" size="sm" className="h-8 gap-2 font-bold text-[11px] uppercase tracking-widest hover:bg-background shadow-sm border border-transparent hover:border-border/40">
                 <Plus className="h-3.5 w-3.5" />
                 Quick Add
               </Button>
@@ -209,7 +209,7 @@ function SprintSection({ sprint, expanded, onToggle, onTaskClick, onStart, onCom
             <div className="flex items-center gap-3">
               <h3 className="font-bold">{sprint.name}</h3>
               <Badge className={cn(
-                "text-[10px] h-5",
+                "text-[11px] h-5",
                 sprint.status === 'active' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
                 sprint.status === 'completed' ? "bg-violet-500/10 text-violet-600 border-violet-500/20" :
                 "bg-slate-500/10 text-slate-600 border-slate-500/20"
@@ -217,7 +217,7 @@ function SprintSection({ sprint, expanded, onToggle, onTaskClick, onStart, onCom
                 {sprint.status.toUpperCase()}
               </Badge>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               {format(new Date(sprint.start_date), "MMM d")} - {format(new Date(sprint.end_date), "MMM d, yyyy")}
             </p>
           </div>
@@ -225,7 +225,7 @@ function SprintSection({ sprint, expanded, onToggle, onTaskClick, onStart, onCom
 
         <div className="flex items-center gap-6 mr-4">
           <div className="hidden md:flex flex-col gap-1 w-32">
-            <div className="flex items-center justify-between text-[10px] font-bold">
+            <div className="flex items-center justify-between text-[11px] font-bold">
               <span>{Math.round(progress)}%</span>
               <span className="text-muted-foreground">{completedCount}/{sprintTasks.length}</span>
             </div>
@@ -315,7 +315,7 @@ function TaskItem({ task, onClick, sprints, onMove }: {
       </div>
       
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-1.5 h-4 border-none", priorityColors[task.priority || 'medium'])}>
+        <Badge variant="outline" className={cn("text-[11px] font-black uppercase px-1.5 h-4 border-none", priorityColors[task.priority || 'medium'])}>
           {task.priority?.charAt(0)}
         </Badge>
         <span className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{task.title}</span>
@@ -324,12 +324,12 @@ function TaskItem({ task, onClick, sprints, onMove }: {
       <div className="flex items-center gap-4 shrink-0">
         <div className="flex items-center gap-1.5">
           {task.story_points && (
-            <Badge variant="secondary" className="rounded-full h-5 px-2 text-[10px] font-bold">
+            <Badge variant="secondary" className="rounded-full h-5 px-2 text-[11px] font-bold">
               {task.story_points}
             </Badge>
           )}
           {task.due_date && (
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
               <Calendar className="h-3 w-3" />
               {format(new Date(task.due_date), "MMM d")}
             </div>
@@ -340,13 +340,13 @@ function TaskItem({ task, onClick, sprints, onMove }: {
           {(task.assignees || []).slice(0, 3).map((user) => (
             <Avatar key={user.id} className="h-6 w-6 border-2 border-background ring-offset-background">
               <AvatarImage src={user.avatar_path || undefined} />
-              <AvatarFallback className="text-[8px]">{user.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-[11px]">{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
           ))}
         </div>
         
         <Badge className={cn(
-          "text-[10px] h-5 capitalize border-none",
+          "text-[11px] h-5 capitalize border-none",
           task.column?.is_done ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"
         )}>
           {task.column?.name ? t(`project_management.column_${task.column.name.toLowerCase().replace(/\s+/g, '_')}`, task.column.name) : t('project_management.backlog', 'Backlog')}

@@ -256,7 +256,7 @@ export default function InventoryDashboardPage() {
             {/* Center Text inside Doughnut */}
             <div className="absolute flex flex-col items-center justify-center">
               <span className="text-2xl font-black">{data.totals.products}</span>
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total items</span>
+              <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">Total items</span>
             </div>
           </div>
           <div className="flex justify-center gap-6 text-xs mt-2">
@@ -348,7 +348,7 @@ export default function InventoryDashboardPage() {
                     return null;
                   }}
                 />
-                <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="Quantity" name="Current Stock" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="ReorderPoint" name="Reorder Alert Point" fill="#f59e0b" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -380,11 +380,11 @@ export default function InventoryDashboardPage() {
                   <div className="space-y-1">
                     <p className="font-bold group-hover:text-primary transition-colors">{product.name}</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
+                      <span className="text-[11px] font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
                         {product.sku}
                       </span>
                       {product.category && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[11px] text-muted-foreground">
                           {product.category.name}
                         </span>
                       )}
@@ -395,7 +395,7 @@ export default function InventoryDashboardPage() {
                       <p className="font-mono font-bold text-xs">
                         {t("inventory.common.qty", "Qty")} {Number(product.quantity)}
                       </p>
-                      <Badge variant="outline" className="text-[9px] font-bold px-1.5 py-0 mt-1 uppercase">
+                      <Badge variant="outline" className="text-[11px] font-bold px-1.5 py-0 mt-1 uppercase">
                         {product.status}
                       </Badge>
                     </div>
@@ -435,7 +435,7 @@ function MetricCard({
     >
       <div className={cn("absolute inset-0 bg-gradient-to-br opacity-20 pointer-events-none", gradient)} />
       <div className="flex items-center justify-between relative z-10">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
           {label}
         </span>
         <div className="rounded-xl bg-background/50 p-2 shadow-sm border border-border/20 group-hover:scale-110 transition-transform">
@@ -446,7 +446,7 @@ function MetricCard({
         <p className={cn("text-3xl font-black tracking-tight", highlight && "text-amber-600 dark:text-amber-400")}>
           {value}
         </p>
-        <p className="text-[10px] text-muted-foreground mt-1">{description}</p>
+        <p className="text-[11px] text-muted-foreground mt-1">{description}</p>
       </div>
     </div>
   );

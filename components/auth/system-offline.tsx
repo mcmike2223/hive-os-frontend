@@ -48,14 +48,14 @@ export function SystemOffline({ supportEmail, onLogout }: SystemOfflineProps) {
             Sever Connection
           </Button>
           
-          <p className="mt-8 text-[10px] text-muted-foreground/50 uppercase tracking-widest">
+          <p className="mt-8 text-[11px] text-muted-foreground/50 uppercase tracking-widest">
             Emergency Override: <a href={`mailto:${supportEmail}`} className="text-primary/70 hover:text-primary transition-colors">{supportEmail}</a>
           </p>
         </div>
       </div>
 
       {/* Footer System Telemetry */}
-      <div className="absolute bottom-6 font-mono text-[9px] text-muted-foreground/30 uppercase tracking-[0.5em] select-none w-full text-center pointer-events-none">
+      <div className="absolute bottom-6 font-mono text-[11px] text-muted-foreground/30 uppercase tracking-[0.5em] select-none w-full text-center pointer-events-none">
         HIVE.OS // PROTOCOL_LOCKDOWN // EST_RESTORE: PENDING
       </div>
     </div>

@@ -194,7 +194,7 @@ export default function InvoiceDialog({ order, isOpen, onOpenChange }: InvoiceDi
               {/* Table */}
               <table className="w-full text-xs text-left border-collapse mt-4">
                 <thead>
-                  <tr className="border-b-2 border-slate-900 text-[10px] font-black uppercase text-slate-600">
+                  <tr className="border-b-2 border-slate-900 text-[11px] font-black uppercase text-slate-600">
                     <th className="py-1.5 w-8">No.<br/>ተ.ቁ</th>
                     <th className="py-1.5">Description<br/>ዝርዝር</th>
                     <th className="py-1.5 text-center w-12">Unit<br/>መለኪያ</th>
@@ -227,13 +227,13 @@ export default function InvoiceDialog({ order, isOpen, onOpenChange }: InvoiceDi
                 </div>
 
                 <div className="text-xs pt-1 border-t border-dashed border-slate-300">
-                  <span className="text-slate-500 block text-[10px] font-bold uppercase">Amount in Words / የገንዘብ ልክ በፊደል:</span>
+                  <span className="text-slate-500 block text-[11px] font-bold uppercase">Amount in Words / የገንዘብ ልክ በፊደል:</span>
                   <span className="font-bold text-slate-900 italic">{totalInWords}</span>
                 </div>
               </div>
 
               {/* Footer / Signature */}
-              <div className="mt-8 pt-4 border-t border-slate-300 grid grid-cols-2 text-[10px] font-bold">
+              <div className="mt-8 pt-4 border-t border-slate-300 grid grid-cols-2 text-[11px] font-bold">
                 <div>
                   <span className="text-slate-500">Served By / አስተናጋጅ:</span>
                   <p className="text-slate-900 font-bold mt-1">{order.served_by?.name || "Waiter"}</p>
@@ -244,7 +244,7 @@ export default function InvoiceDialog({ order, isOpen, onOpenChange }: InvoiceDi
                 </div>
               </div>
 
-              <div className="text-center text-[9px] text-slate-400 mt-8 font-sans">
+              <div className="text-center text-[11px] text-slate-400 mt-8 font-sans">
                 Thank you for visiting Savory Lounge!
               </div>
             </div>

@@ -826,9 +826,11 @@ export function AttendanceReportingWorkspace() {
                             <span className="font-semibold">
                               {row.employee_name ?? "Unknown employee"}
                             </span>
-                            <span className="block font-mono text-xs text-slate-600 dark:text-slate-300">
-                              {row.employee_number ?? "No employee number"}
-                            </span>
+                            {row.employee_number && (
+                              <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30 mt-1">
+                                {row.employee_number}
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell>{row.organization_unit ?? "—"}</TableCell>
                           <TableCell>{label(row.status)}</TableCell>

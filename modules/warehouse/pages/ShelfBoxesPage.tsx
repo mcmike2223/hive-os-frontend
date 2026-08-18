@@ -738,7 +738,7 @@ export function ShelfBoxesPage() {
                   }
                 `}
               >
-                <span className="absolute left-3 top-3 font-mono text-[10px] font-bold tracking-tighter text-muted-foreground opacity-40 group-hover:opacity-100">
+                <span className="absolute left-3 top-3 font-mono text-[11px] font-bold tracking-tighter text-muted-foreground opacity-40 group-hover:opacity-100">
                   R{r}C{c}
                 </span>
 
@@ -757,10 +757,10 @@ export function ShelfBoxesPage() {
                       {storableId ? (
                         <div className="text-center">
                           <div className="truncate">{productName}</div>
-                          <div className="text-[9px] font-mono text-muted-foreground">
+                          <div className="text-[11px] font-mono text-muted-foreground">
                             {productSku}
                           </div>
-                          <div className="text-[9px] font-mono text-orange-600">
+                          <div className="text-[11px] font-mono text-orange-600">
                             Qty:{" "}
                             {String(
                               readPayloadValue(box, "quantity_stored", 0) ?? 0,
@@ -771,7 +771,7 @@ export function ShelfBoxesPage() {
                         box.name
                       )}
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                    <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                       {statusLabel}
                     </span>
                   </>

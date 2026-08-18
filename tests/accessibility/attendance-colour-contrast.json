@@ -1,0 +1,180 @@
+{
+  "checks": [
+    {
+      "id": "header-title-light",
+      "foreground": "#020617",
+      "background": "#eff6ff",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 950 title on blue 50 attendance header"
+    },
+    {
+      "id": "header-breadcrumb-light",
+      "foreground": "#1e40af",
+      "background": "#eff6ff",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Blue 800 breadcrumb on blue 50"
+    },
+    {
+      "id": "header-border-light",
+      "foreground": "#1d4ed8",
+      "background": "#eff6ff",
+      "type": "ui",
+      "state": "default",
+      "notes": "Blue 700 header boundary on blue 50"
+    },
+    {
+      "id": "header-title-dark",
+      "foreground": "#f8fafc",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 50 title on slate 950"
+    },
+    {
+      "id": "header-breadcrumb-dark",
+      "foreground": "#a5f3fc",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Cyan 200 breadcrumb on slate 950"
+    },
+    {
+      "id": "header-border-dark",
+      "foreground": "#67e8f9",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default",
+      "notes": "Cyan 300 header boundary on slate 950"
+    },
+    {
+      "id": "secondary-text-light",
+      "foreground": "#334155",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 700 supporting text on white"
+    },
+    {
+      "id": "secondary-text-dark",
+      "foreground": "#e2e8f0",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 200 supporting text on slate 950"
+    },
+    {
+      "id": "control-border-light",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "default",
+      "notes": "Slate 500 form border on white"
+    },
+    {
+      "id": "control-border-dark",
+      "foreground": "#94a3b8",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default",
+      "notes": "Slate 400 form border on slate 950"
+    },
+    {
+      "id": "workspace-tab-text-light",
+      "foreground": "#1e293b",
+      "background": "#f1f5f9",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 800 tab label and icon on slate 100"
+    },
+    {
+      "id": "workspace-tab-text-dark",
+      "foreground": "#f1f5f9",
+      "background": "#0f172a",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 100 tab label and icon on slate 900"
+    },
+    {
+      "id": "workspace-tab-border-light",
+      "foreground": "#64748b",
+      "background": "#f1f5f9",
+      "type": "ui",
+      "state": "default",
+      "notes": "Slate 500 tab-list border on slate 100"
+    },
+    {
+      "id": "workspace-tab-border-dark",
+      "foreground": "#64748b",
+      "background": "#0f172a",
+      "type": "ui",
+      "state": "default",
+      "notes": "Slate 500 tab-list border on slate 900"
+    },
+    {
+      "id": "workspace-tab-active-light",
+      "foreground": "#020617",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "selected",
+      "notes": "Slate 950 selected tab label on white"
+    },
+    {
+      "id": "workspace-tab-active-dark",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "selected",
+      "notes": "White selected tab label on slate 950"
+    },
+    {
+      "id": "workspace-tab-focus-light",
+      "foreground": "#1d4ed8",
+      "background": "#f1f5f9",
+      "type": "ui",
+      "state": "focus",
+      "notes": "Blue 700 focus ring on slate 100"
+    },
+    {
+      "id": "workspace-tab-focus-dark",
+      "foreground": "#67e8f9",
+      "background": "#0f172a",
+      "type": "ui",
+      "state": "focus",
+      "notes": "Cyan 300 focus ring on slate 900"
+    },
+    {
+      "id": "error-panel-light",
+      "foreground": "#450a0a",
+      "background": "#fef2f2",
+      "type": "text-normal",
+      "state": "error",
+      "notes": "Red 950 text on red 50"
+    },
+    {
+      "id": "error-panel-dark",
+      "foreground": "#fee2e2",
+      "background": "#450a0a",
+      "type": "text-normal",
+      "state": "error",
+      "notes": "Red 100 text on red 950"
+    },
+    {
+      "id": "unlink-action-light",
+      "foreground": "#b91c1c",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Red 700 unlink action on white"
+    },
+    {
+      "id": "unlink-action-dark",
+      "foreground": "#fca5a5",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Red 300 unlink action on slate 950"
+    }
+  ]
+}

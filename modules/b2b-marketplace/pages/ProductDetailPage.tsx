@@ -213,7 +213,7 @@ export default function ProductDetailPage({ id }: { id?: string }) {
               </div>
 
               <div className="mt-6 rounded-2xl border border-border/60 bg-card/60 p-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">FOB Price</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">FOB Price</p>
                 <p className="text-4xl font-black text-primary leading-none mt-1">{product.price}</p>
                 <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                   <div>

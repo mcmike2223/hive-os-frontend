@@ -11,7 +11,7 @@ const getApiRoot = (): string => {
   const configured =
     process.env.INTERNAL_API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8085/api/v1";
+    "http://localhost:8081/api/v1";
 
   const normalized = trimTrailingSlashes(configured);
 
@@ -30,11 +30,25 @@ const getApiOrigin = (): string => {
   }
 };
 
+const allowedDevOrigins = Array.from(
+  new Set(
+    [
+      "localhost",
+      "127.0.0.1",
+      "test.test",
+      ...(process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",") ?? []),
+    ]
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ),
+);
+
 const nextConfig: NextConfig = {
   output: "standalone",
   typescript: {
     ignoreBuildErrors: skipBuildTypecheck,
   },
+  allowedDevOrigins,
 
   async rewrites() {
     const apiRoot = getApiRoot();

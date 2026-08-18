@@ -91,7 +91,7 @@ export function MarketplacePreloader({ brandName }: { brandName?: string }) {
         </div>
 
         {/* pulsing trust chips */}
-        <div className="mt-6 flex items-center gap-4 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+        <div className="mt-6 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-widest text-white/40">
           {["Verified suppliers", "Secure escrow", "Global trade"].map((t, i) => (
             <motion.span
               key={t}

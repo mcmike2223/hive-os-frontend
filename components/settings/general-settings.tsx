@@ -123,22 +123,22 @@ export function GeneralSettings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-border/50">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1 flex items-center gap-2"><Mail className="h-3 w-3"/> {t('settings.system_email_name', 'System Sender Name')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1 flex items-center gap-2"><Mail className="h-3 w-3"/> {t('settings.system_email_name', 'System Sender Name')}</Label>
                         <Input value={formData.system_email_name} onChange={(e) => setFormData(prev => ({...prev, system_email_name: e.target.value}))} placeholder="HIVE.OS Support" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.system_email_address', 'System Sender Address')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.system_email_address', 'System Sender Address')}</Label>
                         <Input type="email" value={formData.system_email_address} onChange={(e) => setFormData(prev => ({...prev, system_email_address: e.target.value}))} placeholder="noreply@domain.com" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary" />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.support_email', 'Public Support Email')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.support_email', 'Public Support Email')}</Label>
                         <Input type="email" value={formData.support_email} onChange={(e) => setFormData(prev => ({...prev, support_email: e.target.value}))} placeholder="support@domain.com" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.support_phone', 'Public Support Phone')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1">{t('settings.support_phone', 'Public Support Phone')}</Label>
                         <Input type="tel" value={formData.support_phone} onChange={(e) => setFormData(prev => ({...prev, support_phone: e.target.value}))} placeholder="+1 (555) 000-0000" className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-mono" />
                     </div>
                 </div>
@@ -156,7 +156,7 @@ export function GeneralSettings() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 bg-muted/20 border border-border/50 rounded-2xl divide-y lg:divide-y-0 lg:divide-x divide-border/50 shadow-inner overflow-hidden mt-4">
                     <div className="p-3 py-2 flex flex-col gap-1 hover:bg-muted/30 transition-colors">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.timezone', 'System Timezone')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.timezone', 'System Timezone')}</Label>
                         <Select value={formData.default_timezone} onValueChange={(val) => setFormData(prev => ({...prev, default_timezone: val}))}>
                             <SelectTrigger className="border-none bg-transparent shadow-none h-9 focus:ring-0 focus:ring-offset-0 text-sm font-mono w-full"><SelectValue placeholder="Select timezone" /></SelectTrigger>
                             <SelectContent className="rounded-xl border-border/50">
@@ -169,7 +169,7 @@ export function GeneralSettings() {
                     </div>
 
                     <div className="p-3 py-2 flex flex-col gap-1 hover:bg-muted/30 transition-colors">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.currency', 'Default Currency')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.currency', 'Default Currency')}</Label>
                         <Select value={formData.default_currency} onValueChange={(val) => setFormData(prev => ({...prev, default_currency: val}))}>
                             <SelectTrigger className="border-none bg-transparent shadow-none h-9 focus:ring-0 focus:ring-offset-0 text-sm font-mono w-full"><SelectValue placeholder="Select currency" /></SelectTrigger>
                             <SelectContent className="rounded-xl border-border/50">
@@ -181,7 +181,7 @@ export function GeneralSettings() {
                     </div>
 
                     <div className="p-3 py-2 flex flex-col gap-1 hover:bg-muted/30 transition-colors">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.date_format', 'Date Format')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.date_format', 'Date Format')}</Label>
                         <Select value={formData.date_format} onValueChange={(val) => setFormData(prev => ({...prev, date_format: val}))}>
                             <SelectTrigger className="border-none bg-transparent shadow-none h-9 focus:ring-0 focus:ring-offset-0 text-sm font-mono w-full"><SelectValue placeholder="Select format" /></SelectTrigger>
                             <SelectContent className="rounded-xl border-border/50 font-mono">
@@ -193,7 +193,7 @@ export function GeneralSettings() {
                     </div>
 
                     <div className="p-3 py-2 flex flex-col gap-1 hover:bg-muted/30 transition-colors">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.time_format', 'Time Format')}</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground px-2 pt-1">{t('settings.time_format', 'Time Format')}</Label>
                         <Select value={formData.time_format} onValueChange={(val) => setFormData(prev => ({...prev, time_format: val}))}>
                             <SelectTrigger className="border-none bg-transparent shadow-none h-9 focus:ring-0 focus:ring-offset-0 text-sm font-mono w-full"><SelectValue placeholder="Select time format" /></SelectTrigger>
                             <SelectContent className="rounded-xl border-border/50 font-mono">
@@ -220,7 +220,7 @@ export function GeneralSettings() {
                         <div className="h-10 w-10 bg-background rounded-lg flex items-center justify-center shrink-0 border border-border/50"><UserPlus className={cn("h-5 w-5 transition-colors", formData.enable_registration ? "text-purple-500" : "text-muted-foreground")} /></div>
                         <div className="flex-1 space-y-0.5">
                             <Label className="text-sm font-bold cursor-pointer block">{t('settings.enable_registration', 'Allow Public Registration')}</Label>
-                            <p className="text-[10px] text-muted-foreground leading-tight">{t('settings.registration_desc', 'If enabled, users can create their own accounts from the login page.')}</p>
+                            <p className="text-[11px] text-muted-foreground leading-tight">{t('settings.registration_desc', 'If enabled, users can create their own accounts from the login page.')}</p>
                         </div>
                         <Switch checked={formData.enable_registration} className="data-[state=checked]:bg-purple-500 pointer-events-none" />
                     </div>
@@ -229,7 +229,7 @@ export function GeneralSettings() {
                         <div className="h-10 w-10 bg-background rounded-lg flex items-center justify-center shrink-0 border border-border/50"><ShieldCheck className={cn("h-5 w-5 transition-colors", formData.require_2fa ? "text-amber-500" : "text-muted-foreground")} /></div>
                         <div className="flex-1 space-y-0.5">
                             <Label className="text-sm font-bold cursor-pointer block">{t('settings.require_2fa', 'Enforce Global 2FA')}</Label>
-                            <p className="text-[10px] text-muted-foreground leading-tight">{t('settings.require_2fa_desc', 'Force all operators to configure Two-Factor Authentication.')}</p>
+                            <p className="text-[11px] text-muted-foreground leading-tight">{t('settings.require_2fa_desc', 'Force all operators to configure Two-Factor Authentication.')}</p>
                         </div>
                         <Switch checked={formData.require_2fa} className="data-[state=checked]:bg-amber-500 pointer-events-none" />
                     </div>
@@ -254,7 +254,7 @@ export function GeneralSettings() {
                                     {formData.maintenance_mode && <AlertTriangle className="h-3 w-3 text-destructive animate-pulse" />}
                                     {t('settings.maintenance_mode', 'Maintenance Mode')}
                                 </Label>
-                                <p className="text-[10px] text-muted-foreground">{t('settings.maintenance_desc', 'Lock out non-admin operators')}</p>
+                                <p className="text-[11px] text-muted-foreground">{t('settings.maintenance_desc', 'Lock out non-admin operators')}</p>
                             </div>
                             <Switch checked={formData.maintenance_mode} className="data-[state=checked]:bg-destructive pointer-events-none" />
                         </div>
@@ -263,7 +263,7 @@ export function GeneralSettings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1 flex items-center gap-2">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1 flex items-center gap-2">
                             <HardDrive className="h-3 w-3" /> {t('settings.max_upload', 'Max Upload Size')}
                         </Label>
                         <div className="flex items-center gap-2">
@@ -278,21 +278,21 @@ export function GeneralSettings() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <p className="text-[10px] text-muted-foreground pl-1">{t('settings.max_upload_hint', 'Hard limit for file manager uploads.')}</p>
+                        <p className="text-[11px] text-muted-foreground pl-1">{t('settings.max_upload_hint', 'Hard limit for file manager uploads.')}</p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1 flex items-center gap-2">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground pl-1 flex items-center gap-2">
                             <Clock className="h-3 w-3" /> {t('settings.session_timeout', 'Session Timeout (Minutes)')}
                         </Label>
                         <Input type="number" min="1" max="1440" value={formData.session_timeout_minutes} onChange={(e) => setFormData(prev => ({...prev, session_timeout_minutes: parseInt(e.target.value) || 120}))} className="bg-muted/30 h-12 rounded-xl focus-visible:ring-primary font-mono" />
-                        <p className="text-[10px] text-muted-foreground pl-1">{t('settings.session_timeout_hint', 'Auto-logout idle operators for security.')}</p>
+                        <p className="text-[11px] text-muted-foreground pl-1">{t('settings.session_timeout_hint', 'Auto-logout idle operators for security.')}</p>
                     </div>
 
                     {/* 🚀 CONDITIONAL: LIVE STATUS TICKER INPUT (Only shows when Maintenance Mode is ON) */}
                     {isTenantNode === false && formData.maintenance_mode && (
                         <div className="space-y-2 md:col-span-2 mt-4 pt-6 border-t border-border/50 animate-in fade-in slide-in-from-top-4 duration-500">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-destructive pl-1 flex items-center gap-2">
+                            <Label className="text-[11px] font-black uppercase tracking-widest text-destructive pl-1 flex items-center gap-2">
                                 <Activity className="h-3 w-3 animate-pulse" /> {t('settings.maintenance_message', 'Live Status Ticker Message')}
                             </Label>
                             <Input 
@@ -301,7 +301,7 @@ export function GeneralSettings() {
                                 placeholder="E.g. Database migration in progress... 45% complete." 
                                 className="bg-destructive/5 h-12 rounded-xl border-destructive/30 focus-visible:ring-destructive font-mono text-xs placeholder:text-destructive/40 text-destructive" 
                             />
-                            <p className="text-[10px] text-muted-foreground pl-1 text-destructive/70">This message broadcasts live across the system to all locked-out users.</p>
+                            <p className="text-[11px] text-muted-foreground pl-1 text-destructive/70">This message broadcasts live across the system to all locked-out users.</p>
                         </div>
                     )}
                 </div>

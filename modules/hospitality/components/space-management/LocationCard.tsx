@@ -63,7 +63,7 @@ export default function LocationCard({ location, businessType, onStatusChange }:
           </div>
           <div>
             <h3 className="text-lg font-black tracking-tight">{location.label}</h3>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
               {locationLabel} • Capacity: {location.capacity}
             </p>
           </div>
@@ -98,7 +98,7 @@ export default function LocationCard({ location, businessType, onStatusChange }:
           <div className="flex items-center justify-between rounded-xl bg-primary/5 p-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Min. Spend</span>
+              <span className="text-[11px] font-black uppercase tracking-wider">Min. Spend</span>
             </div>
             <span className="text-sm font-black text-primary">ETB {location.min_spend}</span>
           </div>
@@ -106,14 +106,14 @@ export default function LocationCard({ location, businessType, onStatusChange }:
 
         <div className="flex items-center justify-between gap-2">
           <Badge className={cn(
-            "rounded-full border-none px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg",
+            "rounded-full border-none px-3 py-0.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg",
             statusColors[location.status]
           )}>
             {statusLabels[location.status]}
           </Badge>
 
           {location.assigned_staff_id && (
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
               <User className="h-3 w-3" />
               <span>{location.staff?.name || "Assigned"}</span>
             </div>

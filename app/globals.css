@@ -23,13 +23,14 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
+  /* Container radius language, largest to smallest:
+       shell 2.5rem · panel 2rem · card 1rem (rounded-2xl) · control 0.75rem (--radius)
+     --radius drives the shadcn primitives (buttons, inputs, selects). At 0.5rem
+     they sat at 4-8px, visibly squarer than the 12-16px cards they live inside;
+     0.75rem pulls them into the same scale. */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-
-  --font-sans: var(--font-inter);
-  --font-space: var(--font-space);
-  --font-mono: var(--font-mono);
 
   --animate-float: floatDeck 8s ease-in-out infinite;
   --animate-scan: scanNode 3s infinite linear;
@@ -40,6 +41,20 @@
   --animate-breathe: breathe 3s ease-in-out infinite;
 }
 
+/* Fonts are `inline` so the utilities substitute the value at the element rather
+   than resolving once at :root. That lets --brand-font-family (written at runtime
+   by applyBrandRuntime from the tenant's "Interface Font" setting) take effect,
+   and keeps a real fallback stack when a next/font variable is unavailable. */
+@theme inline {
+  --font-sans: var(--brand-font-family, var(--font-inter)), ui-sans-serif, system-ui, sans-serif;
+  --font-space: var(--font-space), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Editorial accent, deliberately NOT routed through --brand-font-family: it is
+     applied to one word in a headline, never to body copy, so a tenant's
+     interface font must not override it. */
+  --font-serif: var(--font-serif), ui-serif, Georgia, serif;
+}
+
 @layer base {
   :root {
     --background: 40 20% 99%;
@@ -48,20 +63,55 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 35 90% 45%;
-    --primary-foreground: 0 0% 98%;
+    /* Emerald #10B981 — the same default applyBrandRuntime writes at runtime.
+       These used to be amber, so the palette in source never matched the screen
+       and stray amber leaked through wherever a component read the token early. */
+    --primary: 160 84% 39%;
+    --primary-foreground: 240 5.9% 10%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 35 90% 45%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84.2% 60.2%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 240 5.9% 10%;
+    /* Was 0 84.2% 60.2% — 3.70:1 as text on the light surface, under the 4.5:1
+       floor wherever it is used for a label rather than a filled button. */
+    --destructive: 0 74% 42%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 35 90% 45%;
-    --radius: 0.5rem;
+    --ring: 160 84% 39%;
+    --radius: 0.75rem;
+
+    /* Text-safe brand colour. --primary is tuned as a fill; as text on the light
+       surface the default emerald scores 2.55:1. applyBrandRuntime overwrites
+       both variants per tenant brand colour; these are the unbranded defaults. */
+    --primary-readable-light: 160 84% 29%;
+    --primary-readable-dark: 160 84% 39%;
+    --primary-readable: var(--primary-readable-light);
+
+    /* Categorical chart series. Fixed order, assigned by entity — never cycled and
+       never derived from --primary, which is tenant-configurable and previously
+       collided with the hardcoded emerald on an adjacent series. Validated for both
+       surfaces: OKLCH lightness band, chroma floor, CVD separation, contrast >= 3:1. */
+    --chart-1: #059669;
+    --chart-2: #0284c7;
+    --chart-3: #d97706;
+    --chart-4: #8b5cf6;
+
+    /* Reserved severity ramp for ordered risk bands and state fills. Kept
+       separate from the categorical slots on purpose: a colour that means
+       "bad" must never also mean "series 4". Always shipped with the written
+       state beside it, never as colour alone. */
+    --sc-critical: #e11d48;
+    --sc-warning: #ea580c;
+    --sc-caution: #a16207;
+    --sc-good: #15803d;
+
+    /* Terminal / raw-payload surface. Deliberately near-black in both themes so
+       monospace dumps read as machine output rather than page content. */
+    --terminal-surface: 0 0% 5%;
+    --terminal-foreground: 141 79% 55%;
   }
 
   .dark {
@@ -71,19 +121,29 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 45 100% 50%;
+    --primary: 160 84% 39%;
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 45 100% 50%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 240 5.9% 10%;
+    /* Was 0 62.8% 30.6% — too dark to read on the near-black surface. The
+       "Disconnect Node" action measured 2.03:1 against it. */
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 45 100% 50%;
+    --ring: 160 84% 39%;
+    --primary-readable: var(--primary-readable-dark);
+
+    /* Dark mode is stepped, not flipped: the same severity meanings re-picked
+       against the near-black surface so each still clears contrast there. */
+    --sc-critical: #fb7185;
+    --sc-warning: #fb923c;
+    --sc-caution: #fbbf24;
+    --sc-good: #4ade80;
   }
 
   * {
@@ -92,14 +152,40 @@
 
   html {
     scroll-behavior: smooth;
+    /* Brand "Interface Scale". Everything sized in rem tracks this, so one
+       setting resizes the whole console. Defaults to 1 when unbranded. */
+    font-size: calc(100% * var(--brand-font-scale, 1));
   }
 
+  /* font-family comes from the `font-sans` utility on <body>, which already
+     resolves --brand-font-family. Declaring it here too would be a dead rule
+     (utilities outrank the base layer) and a second source of truth. */
   body {
     @apply bg-background text-foreground;
-    font-family: var(--brand-font-family, var(--font-inter), sans-serif);
     font-feature-settings: "rlig" 1, "calt" 1;
     cursor: var(--cursor-default, auto);
+    font-weight: var(--brand-font-weight, 400);
+    font-style: var(--brand-font-style, normal);
+    color: hsl(var(--brand-font-color, var(--foreground)));
   }
+
+}
+
+/* Brand "Label Casing" drives the uppercase micro-labels the console is built
+   from. Scoped to those labels rather than applied globally so it can never
+   recase body copy, table data, or user-entered content.
+   Deliberately unlayered: Tailwind's own `.uppercase` lives in @layer utilities,
+   which outranks @layer base, so this rule has to sit outside the cascade layers
+   to take effect. */
+.uppercase {
+  text-transform: var(--brand-text-transform, uppercase);
+}
+
+/* Brand colour as *text* uses the surface-corrected variant, while bg-primary /
+   border-primary keep the true brand colour. Unlayered for the same reason as
+   .uppercase above: Tailwind's own .text-primary lives in @layer utilities. */
+.text-primary {
+  color: hsl(var(--primary-readable));
 }
 
 a,
@@ -264,12 +350,163 @@ textarea,
   }
 }
 
+@keyframes bloom-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.12);
+  }
+}
+
+/* Hero aurora. Three blobs on co-prime durations so the composite never
+   visibly loops — a single shared duration reads as a repeating GIF. */
+@keyframes aurora-a {
+  0%, 100% { transform: translate3d(-8%, -4%, 0) scale(1); }
+  50%      { transform: translate3d(10%, 6%, 0) scale(1.18); }
+}
+
+@keyframes aurora-b {
+  0%, 100% { transform: translate3d(6%, 8%, 0) scale(1.12); }
+  50%      { transform: translate3d(-9%, -6%, 0) scale(0.92); }
+}
+
+@keyframes aurora-c {
+  0%, 100% { transform: translate3d(0, 6%, 0) scale(0.95); }
+  50%      { transform: translate3d(7%, -8%, 0) scale(1.22); }
+}
+
+/* Slow vertical crawl for the hero's grid underlay. */
+@keyframes grid-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 0 -50px; }
+}
+
+/* Scroll cue: the dot falls down the barrel and fades. */
+@keyframes scroll-cue {
+  0%       { transform: translateY(0); opacity: 0; }
+  20%      { opacity: 1; }
+  80%      { opacity: 1; }
+  100%     { transform: translateY(14px); opacity: 0; }
+}
+
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
 .tech-grid {
   background-size: 50px 50px;
   background-image:
     linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
     linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px);
   mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+}
+
+/* =========================
+   LIQUID GLASS
+   Frosted surface with a vertical specular rim. Built from --foreground rather
+   than literal white so the same class reads correctly on the light theme, where
+   a white rim over a white page is invisible.
+   ========================= */
+.liquid-glass {
+  position: relative;
+  border: none;
+  background: hsl(var(--foreground) / 0.02);
+  box-shadow: inset 0 1px 1px hsl(var(--foreground) / 0.1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--foreground) / 0.45) 0%,
+    hsl(var(--foreground) / 0.15) 20%,
+    hsl(var(--foreground) / 0) 40%,
+    hsl(var(--foreground) / 0) 60%,
+    hsl(var(--foreground) / 0.15) 80%,
+    hsl(var(--foreground) / 0.45) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Opt-in clipping. The rim above is `inset: 0` with an inherited radius, so it
+   never needs `overflow: hidden` — and putting it on the base class silently
+   clipped the landing navbar's mega-menu panels, which are absolutely
+   positioned children of a .liquid-glass nav. Only surfaces with genuinely
+   overflowing children should take this. */
+.liquid-glass-clip {
+  overflow: hidden;
+}
+
+/* Safari < 15.4 and Firefox with backdrop-filter disabled fall back to an opaque
+   card, otherwise the pill renders as unreadable text on the raw page. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass {
+    background: hsl(var(--card) / 0.85);
+  }
+}
+
+/* Cursor-tracked spotlight for bento tiles. --mx/--my are written by the
+   component's pointermove handler; the 50% defaults keep it centred before any
+   pointer has touched the tile (and on touch devices, which never fire move). */
+.spotlight-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  background: radial-gradient(
+    340px circle at var(--mx, 50%) var(--my, 50%),
+    hsl(var(--primary) / 0.14),
+    transparent 65%
+  );
+}
+
+.spotlight-tile:hover::after {
+  opacity: 1;
+}
+
+.blink-caret {
+  animation: caret-blink 1.1s step-end infinite;
+}
+
+/* Global motion kill-switch. Framer Motion components read useReducedMotion()
+   and drop their variants, but this also neutralises the CSS keyframe animations
+   (scan beam, float, marquee, bloom) that predate the motion system. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .vignette {
@@ -356,6 +593,9 @@ textarea,
   box-shadow: 0 8px 16px -2px hsl(var(--primary) / 0.3) !important;
   transform: translateY(-0.5px);
 }
+.hive-sidebar-nav-active svg {
+  color: hsl(var(--primary-foreground)) !important;
+}
 .hive-sidebar-nav-active:hover {
   background-color: hsl(var(--primary) / 0.95) !important;
   box-shadow: 0 10px 20px -2px hsl(var(--primary) / 0.35) !important;
@@ -372,13 +612,18 @@ textarea,
   color: hsl(var(--foreground)) !important;
 }
 
-/* Nested Nav Items - Active State */
+/* Nested Nav Items - Active State.
+   Was hardcoded amber (#78350f / #fde68a) from when --primary was amber; against
+   the emerald tint it read as a colour clash and ignored the tenant brand colour. */
 .hive-sidebar-nested-active {
   background-color: hsl(var(--primary) / 0.15) !important;
-  color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary) / 0.85) !important;
   font-weight: 700 !important;
   border-left: 2px solid hsl(var(--primary)) !important;
   padding-left: calc(0.625rem - 2px) !important; /* adjust for border to prevent layout shift */
+}
+.dark .hive-sidebar-nested-active {
+  color: hsl(var(--primary)) !important;
 }
 
 /* Nested Nav Items - Idle State */

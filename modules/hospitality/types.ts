@@ -62,11 +62,19 @@ export type HospitalityReservation = {
 
 export type HospitalityServiceOrderItem = {
   id: number;
+  menu_item_id?: number | null;
   inventory_item_id?: number | null;
   item_name: string;
   quantity: string;
   unit_price: string;
   total_price: string;
+  pricing_snapshot?: Record<string, unknown> | null;
+  currency?: string | null;
+  seat_number?: number | null;
+  course_number?: number | null;
+  preparation_status?: string | null;
+  station_id?: number | null;
+  notes?: string | null;
   is_comp?: boolean;
   comp_reason?: string | null;
   stock_deducted?: boolean;
@@ -103,6 +111,39 @@ export type HospitalityMenuCategory = {
   icon?: string | null;
   sort_order?: number | null;
   is_active?: boolean;
+  items?: HospitalityMenuItem[];
+};
+
+export type HospitalityModifierOption = {
+  id: number;
+  modifier_group_id: number;
+  name: string;
+  price_adjustment?: string | number | null;
+  cost_adjustment?: string | number | null;
+  is_available?: boolean;
+  sort_order?: number | null;
+};
+
+export type HospitalityModifierGroup = {
+  id: number;
+  name: string;
+  description?: string | null;
+  min_selections?: number | null;
+  max_selections?: number | null;
+  is_required?: boolean;
+  is_active?: boolean;
+  options?: HospitalityModifierOption[];
+};
+
+export type HospitalityMenuItemVariant = {
+  id: number;
+  menu_item_id: number;
+  name: string;
+  sku?: string | null;
+  price: string | number;
+  cost_price?: string | number | null;
+  is_available?: boolean;
+  sort_order?: number | null;
 };
 
 export type HospitalityMenuItem = {
@@ -122,6 +163,9 @@ export type HospitalityMenuItem = {
   model_3d_url?: string | null;
   sort_order?: number | null;
   category?: HospitalityMenuCategory | null;
+  variants?: HospitalityMenuItemVariant[];
+  modifier_groups?: HospitalityModifierGroup[];
+  modifierGroups?: HospitalityModifierGroup[];
 };
 
 export type HospitalityEvent = {
@@ -289,4 +333,80 @@ export type HospitalityPromoterCommission = {
     id: number;
     name: string;
   } | null;
+};
+
+export type HospitalityRoomType = {
+  id: number;
+  code: string;
+  name: string;
+  max_adults: number;
+  max_children: number;
+  base_rate: string;
+  amenities?: string[] | null;
+  is_active: boolean;
+  description?: string | null;
+  rooms_count?: number;
+};
+
+export type HospitalityRoom = {
+  id: number;
+  room_type_id: number;
+  room_number: string;
+  floor?: string | null;
+  status: "available" | "reserved" | "occupied" | "dirty" | "cleaning" | "inspected" | "maintenance" | "out_of_service";
+  is_active: boolean;
+  notes?: string | null;
+  room_type: HospitalityRoomType;
+  stays?: HospitalityStay[];
+};
+
+export type HospitalityFolioEntry = {
+  id: number;
+  stay_id: number;
+  entry_type: "charge" | "payment" | "refund" | "adjustment";
+  category: string;
+  description: string;
+  amount: string;
+  payment_method?: string | null;
+  reference?: string | null;
+  business_date: string;
+};
+
+export type HospitalityStay = {
+  id: number;
+  room_id: number;
+  confirmation_code: string;
+  guest_name: string;
+  guest_phone?: string | null;
+  guest_email?: string | null;
+  arrival_date: string;
+  departure_date: string;
+  status: "tentative" | "confirmed" | "checked_in" | "checked_out" | "cancelled" | "no_show";
+  adults: number;
+  children: number;
+  nightly_rate: string;
+  tax_rate: string;
+  deposit_amount: string;
+  checked_in_at?: string | null;
+  checked_out_at?: string | null;
+  special_requests?: string | null;
+  room: HospitalityRoom;
+  folio_entries?: HospitalityFolioEntry[];
+  folio_balance?: number;
+  nights?: number;
+};
+
+export type HospitalityHousekeepingTask = {
+  id: number;
+  room_id: number;
+  stay_id?: number | null;
+  task_type: "checkout_clean" | "stayover_clean" | "inspection" | "maintenance" | "deep_clean";
+  priority: "low" | "normal" | "high" | "urgent";
+  status: "open" | "assigned" | "in_progress" | "completed" | "verified" | "cancelled";
+  assigned_to_id?: number | null;
+  due_at?: string | null;
+  notes?: string | null;
+  room: HospitalityRoom;
+  stay?: Pick<HospitalityStay, "id" | "guest_name" | "arrival_date" | "departure_date"> | null;
+  assigned_to?: HospitalityStaff | null;
 };

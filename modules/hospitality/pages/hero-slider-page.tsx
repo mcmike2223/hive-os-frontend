@@ -205,7 +205,7 @@ function SlideCard({
         {/* Badge + title overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-3">
           {slide.badge && (
-            <span className="inline-block text-[9px] font-black uppercase tracking-widest text-[#FF1A43] bg-[#FF1A43]/15 border border-[#FF1A43]/30 px-2 py-0.5 rounded-full mb-1">
+            <span className="inline-block text-[11px] font-black uppercase tracking-widest text-[#FF1A43] bg-[#FF1A43]/15 border border-[#FF1A43]/30 px-2 py-0.5 rounded-full mb-1">
               {slide.badge}
             </span>
           )}
@@ -228,7 +228,7 @@ function SlideCard({
             variant="outline"
             size="sm"
             onClick={onEdit}
-            className="flex-1 h-8 text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 rounded-lg"
+            className="flex-1 h-8 text-[11px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 rounded-lg"
           >
             <Pencil className="mr-1 h-3 w-3" />
             Edit
@@ -237,7 +237,7 @@ function SlideCard({
             variant="outline"
             size="sm"
             onClick={onDelete}
-            className="h-8 w-8 p-0 text-[10px] font-black text-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100 dark:text-rose-400 dark:border-rose-800 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 rounded-lg"
+            className="h-8 w-8 p-0 text-[11px] font-black text-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100 dark:text-rose-400 dark:border-rose-800 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 rounded-lg"
             title="Remove slide"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -274,7 +274,7 @@ function SliderPreview({ slides, active }: { slides: TenantLandingHeroSlide[]; a
 
       <div className="absolute bottom-0 left-0 right-0 p-5">
         {slide.badge && (
-          <span className="inline-block text-[9px] font-black uppercase tracking-widest text-[#FF1A43] bg-[#FF1A43]/15 border border-[#FF1A43]/30 px-2.5 py-1 rounded-full mb-2">
+          <span className="inline-block text-[11px] font-black uppercase tracking-widest text-[#FF1A43] bg-[#FF1A43]/15 border border-[#FF1A43]/30 px-2.5 py-1 rounded-full mb-2">
             {slide.badge}
           </span>
         )}
@@ -1114,7 +1114,7 @@ export default function HeroSliderPage() {
                   </div>
                 </div>
                 <SliderPreview slides={slides} active={previewIndex} />
-                <p className="text-[10px] text-muted-foreground/60 text-center">
+                <p className="text-[11px] text-muted-foreground/60 text-center">
                   Auto-cycles every 3.5 s · {slides.length} slide{slides.length !== 1 ? "s" : ""} total
                 </p>
               </div>
@@ -1300,7 +1300,7 @@ export default function HeroSliderPage() {
                 )}
               </div>
               {highlights[0]?.image && (
-                <p className="text-[10px] text-muted-foreground truncate">{highlights[0].image}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{highlights[0].image}</p>
               )}
             </div>
           </div>
@@ -1516,7 +1516,7 @@ export default function HeroSliderPage() {
                         ) : (
                           <div className="flex flex-col items-center justify-center h-full gap-2 text-white/30">
                             <ImageIcon className="h-8 w-8" />
-                            <span className="text-[10px] font-medium">No image</span>
+                            <span className="text-[11px] font-medium">No image</span>
                           </div>
                         )}
 
@@ -1525,7 +1525,7 @@ export default function HeroSliderPage() {
 
                         {/* 3D badge */}
                         {item.model_3d_url && (
-                          <div className="absolute top-2 right-2 group-hover:right-10 transition-all duration-200 flex items-center gap-1 bg-[#7B16D9]/80 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border border-[#7B16D9] z-10">
+                          <div className="absolute top-2 right-2 group-hover:right-10 transition-all duration-200 flex items-center gap-1 bg-[#7B16D9]/80 backdrop-blur-sm text-white text-[11px] font-black uppercase tracking-wider px-2 py-1 rounded-full border border-[#7B16D9] z-10">
                             <Box className="h-2.5 w-2.5" />
                             3D
                           </div>
@@ -1534,7 +1534,7 @@ export default function HeroSliderPage() {
                         {/* Item info overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-3">
                           {item.category?.name && (
-                            <span className="inline-block text-[9px] font-black uppercase tracking-widest text-[#FF1A43] bg-[#FF1A43]/15 border border-[#FF1A43]/30 px-2 py-0.5 rounded-full mb-1">
+                            <span className="inline-block text-[11px] font-black uppercase tracking-widest text-[#FF1A43] bg-[#FF1A43]/15 border border-[#FF1A43]/30 px-2 py-0.5 rounded-full mb-1">
                               {item.category.name}
                             </span>
                           )}
@@ -1546,7 +1546,7 @@ export default function HeroSliderPage() {
                       <div className="p-4 space-y-3">
                         {/* Image uploader row */}
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                             <ImageIcon className="h-3 w-3" /> Image
                           </Label>
                           <div className="flex gap-1.5">
@@ -1555,7 +1555,7 @@ export default function HeroSliderPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => setMediaPickerTarget(`menu_item_image_${item.id}`)}
-                              className="flex-1 h-8 text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 rounded-lg"
+                              className="flex-1 h-8 text-[11px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 rounded-lg"
                             >
                               <ImageIcon className="mr-1 h-3 w-3" />
                               {item.image_url ? "Replace" : "Upload"}
@@ -1577,7 +1577,7 @@ export default function HeroSliderPage() {
 
                         {/* 3D model uploader row */}
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                             <Box className="h-3 w-3" /> 3D Model
                           </Label>
                           <div className="flex gap-1.5">
@@ -1586,7 +1586,7 @@ export default function HeroSliderPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => setMediaPickerTarget(`menu_item_model_${item.id}`)}
-                              className="flex-1 h-8 text-[10px] font-black uppercase tracking-widest border-[#7B16D9]/30 text-[#7B16D9] bg-[#7B16D9]/5 hover:bg-[#7B16D9]/15 rounded-lg"
+                              className="flex-1 h-8 text-[11px] font-black uppercase tracking-widest border-[#7B16D9]/30 text-[#7B16D9] bg-[#7B16D9]/5 hover:bg-[#7B16D9]/15 rounded-lg"
                             >
                               <Box className="mr-1 h-3 w-3" />
                               {item.model_3d_url ? "Replace" : "Upload"}
@@ -1725,7 +1725,7 @@ export default function HeroSliderPage() {
                     <div className="text-2xl font-black bg-gradient-to-r from-[#FF1A43] via-[#D31A9B] to-[#7B16D9] bg-clip-text text-transparent">
                       {stats[idx]?.value || "—"}
                     </div>
-                    <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
+                    <p className="mt-1 text-[11px] font-black uppercase tracking-[0.2em] text-white/50">
                       {stats[idx]?.label || "Label"}
                     </p>
                   </div>
@@ -1761,7 +1761,7 @@ export default function HeroSliderPage() {
                   }}
                   maxLength={60}
                 />
-                <p className="text-[10px] text-muted-foreground">The gradient heading of the section.</p>
+                <p className="text-[11px] text-muted-foreground">The gradient heading of the section.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="services-section-eyebrow" className="text-xs font-black uppercase tracking-wide text-muted-foreground">
@@ -1777,7 +1777,7 @@ export default function HeroSliderPage() {
                   }}
                   maxLength={20}
                 />
-                <p className="text-[10px] text-muted-foreground">The huge outlined word behind the title — keep it to one short word.</p>
+                <p className="text-[11px] text-muted-foreground">The huge outlined word behind the title — keep it to one short word.</p>
               </div>
             </div>
 
@@ -1820,7 +1820,7 @@ export default function HeroSliderPage() {
                         className="w-full h-full flex flex-col items-center justify-center gap-2 text-white/30 hover:text-white/60 transition-colors"
                       >
                         <ImageIcon className="h-7 w-7" />
-                        <span className="text-[10px] font-medium">Choose image</span>
+                        <span className="text-[11px] font-medium">Choose image</span>
                       </button>
                     )}
                   </div>
@@ -1863,7 +1863,7 @@ export default function HeroSliderPage() {
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               Tip: titles containing <strong>&ldquo;Private&rdquo;</strong> or <strong>&ldquo;VIP&rdquo;</strong> automatically preselect the matching booking type when guests click Inquire Now.
             </p>
           </div>
@@ -2088,14 +2088,14 @@ export default function HeroSliderPage() {
                 {(gallery.images ?? []).map((img, idx) => (
                   <div key={`${img}-${idx}`} className="group relative h-40 rounded-xl overflow-hidden border bg-gradient-to-br from-[#120820] to-[#1a0a30]">
                     <SecureAssetImage src={img} alt={`Gallery photo ${idx + 1}`} className="w-full h-full object-cover object-center" />
-                    <div className="absolute top-2 left-2 h-6 w-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white font-black text-[10px] border border-white/20">
+                    <div className="absolute top-2 left-2 h-6 w-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white font-black text-[11px] border border-white/20">
                       {idx + 1}
                     </div>
                     <div className="absolute inset-0 bg-black/45 flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         type="button" variant="secondary" size="sm"
                         onClick={() => setMediaPickerTarget(`gallery_image_${idx}`)}
-                        className="rounded-full text-[10px] h-7 px-3 shadow-lg"
+                        className="rounded-full text-[11px] h-7 px-3 shadow-lg"
                       >
                         Replace
                       </Button>
@@ -2105,7 +2105,7 @@ export default function HeroSliderPage() {
                           setGallery((prev) => ({ ...prev, images: (prev.images ?? []).filter((_, i) => i !== idx) }));
                           setIsDirty(true);
                         }}
-                        className="rounded-full text-[10px] h-7 px-3 shadow-lg"
+                        className="rounded-full text-[11px] h-7 px-3 shadow-lg"
                       >
                         Remove
                       </Button>
@@ -2324,7 +2324,7 @@ export default function HeroSliderPage() {
                 value={locationInfo.map_url || ""}
                 onChange={(e) => { setLocationInfo((p) => ({ ...p, map_url: e.target.value })); setIsDirty(true); }}
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 If empty, the map auto-centers on the address above. To pin an exact spot: Google Maps → Share → Embed a map → copy the <strong>src</strong> URL from the iframe.
               </p>
             </div>
@@ -2426,7 +2426,7 @@ export default function HeroSliderPage() {
                 )}
               </div>
               {formData.image && (
-                <p className="text-[10px] text-muted-foreground truncate">{formData.image}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{formData.image}</p>
               )}
             </div>
 
@@ -2442,7 +2442,7 @@ export default function HeroSliderPage() {
                 onChange={(e) => setFormData((p) => ({ ...p, badge: e.target.value }))}
                 maxLength={60}
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Appears as a small highlight label above the title. Keep it short.
               </p>
             </div>
@@ -2475,7 +2475,7 @@ export default function HeroSliderPage() {
                 rows={3}
                 maxLength={200}
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Short description shown below the title. 20 words max recommended.
               </p>
             </div>

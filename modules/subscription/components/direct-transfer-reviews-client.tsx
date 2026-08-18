@@ -277,10 +277,10 @@ export function DirectTransferReviewsClient() {
           <div className="space-y-1">
             <div className="font-bold text-foreground">{row.original.tenant_name || row.original.tenant_id || "Pending workspace"}</div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest">
+              <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[11px] uppercase tracking-widest">
                 {String(row.original.scope).replaceAll("_", " ")}
               </Badge>
-              <Badge className={cn("border-none text-[10px] uppercase tracking-widest", reviewBadge(row.original.manual_review_status))}>
+              <Badge className={cn("border-none text-[11px] uppercase tracking-widest", reviewBadge(row.original.manual_review_status))}>
                 {reviewLabel(row.original)}
               </Badge>
             </div>
@@ -502,7 +502,7 @@ export function DirectTransferReviewsClient() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                   {dialogState.action === "approve" ? "Internal Note" : "Email Message To Tenant"}
                 </Label>
                 <Textarea

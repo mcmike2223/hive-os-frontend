@@ -84,7 +84,7 @@ export function ResourceHeatmap({ project, tasks }: ResourceHeatmapProps) {
               <th className="p-3 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground border-b min-w-[200px]">{t('project_management.team_member', 'Team Member')}</th>
               {days.map(day => (
                 <th key={day.toISOString()} className="p-3 text-center border-b min-w-[40px]">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase">{t(`project_management.${format(day, "EEE").toLowerCase()}`, format(day, "EEE"))}</p>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase">{t(`project_management.${format(day, "EEE").toLowerCase()}`, format(day, "EEE"))}</p>
                   <p className={cn(
                     "text-xs font-bold mt-1",
                     isSameDay(day, new Date()) && "text-primary"
@@ -108,7 +108,7 @@ export function ResourceHeatmap({ project, tasks }: ResourceHeatmapProps) {
                     </Avatar>
                     <div>
                       <p className="text-sm font-bold truncate max-w-[120px]">{member.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[120px] font-medium">{t('project_management.developer', 'Developer')}</p>
+                      <p className="text-[11px] text-muted-foreground truncate max-w-[120px] font-medium">{t('project_management.developer', 'Developer')}</p>
                     </div>
                   </div>
                 </td>
@@ -120,7 +120,7 @@ export function ResourceHeatmap({ project, tasks }: ResourceHeatmapProps) {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className={cn(
-                              "h-10 rounded-lg flex items-center justify-center text-[10px] font-black transition-all duration-300 hover:scale-110 cursor-help shadow-sm",
+                              "h-10 rounded-lg flex items-center justify-center text-[11px] font-black transition-all duration-300 hover:scale-110 cursor-help shadow-sm",
                               getIntensityClass(count)
                             )}>
                               {count > 0 && count}
@@ -128,7 +128,7 @@ export function ResourceHeatmap({ project, tasks }: ResourceHeatmapProps) {
                           </TooltipTrigger>
                           <TooltipContent className="bg-popover text-popover-foreground border-border">
                             <p className="font-bold text-xs">{count} {t('project_management.active_tasks', 'active tasks')}</p>
-                            <p className="text-[10px] text-muted-foreground">{format(day, "PPP")}</p>
+                            <p className="text-[11px] text-muted-foreground">{format(day, "PPP")}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

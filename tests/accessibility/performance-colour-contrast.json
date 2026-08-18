@@ -1,0 +1,24 @@
+{
+  "checks": [
+    { "id": "light-body-text", "foreground": "hsl(240, 10%, 3.9%)", "background": "hsl(40, 20%, 99%)", "type": "text-normal" },
+    { "id": "light-card-text", "foreground": "hsl(240, 10%, 3.9%)", "background": "hsl(0, 0%, 100%)", "type": "text-normal" },
+    { "id": "light-muted-text", "foreground": "hsl(240, 3.8%, 46.1%)", "background": "hsl(0, 0%, 100%)", "type": "text-normal" },
+    { "id": "light-primary-button", "foreground": "hsl(240, 5.9%, 10%)", "background": "hsl(160, 84%, 39%)", "type": "text-normal" },
+    { "id": "light-header-eyebrow", "foreground": "hsl(240, 10%, 3.9%)", "background": "hsl(0, 0%, 100%)", "type": "text-normal" },
+    { "id": "light-destructive-text", "foreground": "hsl(0, 74%, 42%)", "background": "hsl(0, 0%, 100%)", "type": "text-normal" },
+    { "id": "dark-body-text", "foreground": "hsl(0, 0%, 98%)", "background": "hsl(240, 10%, 2%)", "type": "text-normal" },
+    { "id": "dark-card-text", "foreground": "hsl(0, 0%, 98%)", "background": "hsl(240, 10%, 3.9%)", "type": "text-normal" },
+    { "id": "dark-muted-text", "foreground": "hsl(240, 5%, 64.9%)", "background": "hsl(240, 10%, 3.9%)", "type": "text-normal" },
+    { "id": "dark-primary-button", "foreground": "hsl(240, 5.9%, 10%)", "background": "hsl(160, 84%, 39%)", "type": "text-normal" },
+    { "id": "dark-header-eyebrow", "foreground": "hsl(0, 0%, 98%)", "background": "hsl(240, 10%, 3.9%)", "type": "text-normal" },
+    { "id": "dark-destructive-text", "foreground": "hsl(0, 72%, 55%)", "background": "hsl(240, 10%, 3.9%)", "type": "text-normal" },
+    { "id": "chart-1-light", "foreground": "#059669", "background": "#ffffff", "type": "graphic" },
+    { "id": "chart-2-light", "foreground": "#0284c7", "background": "#ffffff", "type": "graphic" },
+    { "id": "chart-3-light", "foreground": "#d97706", "background": "#ffffff", "type": "graphic" },
+    { "id": "chart-4-light", "foreground": "#8b5cf6", "background": "#ffffff", "type": "graphic" },
+    { "id": "chart-1-dark", "foreground": "#059669", "background": "hsl(240, 10%, 3.9%)", "type": "graphic" },
+    { "id": "chart-2-dark", "foreground": "#0284c7", "background": "hsl(240, 10%, 3.9%)", "type": "graphic" },
+    { "id": "chart-3-dark", "foreground": "#d97706", "background": "hsl(240, 10%, 3.9%)", "type": "graphic" },
+    { "id": "chart-4-dark", "foreground": "#8b5cf6", "background": "hsl(240, 10%, 3.9%)", "type": "graphic" }
+  ]
+}

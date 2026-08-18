@@ -31,6 +31,8 @@ import {
   getWorkspaceScopeKey,
 } from "@/lib/runtime-context";
 import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
+import { prepareNavForTour } from "@/lib/tour-events";
+import { buildSidebarTourSteps } from "@/lib/tour-steps";
 import { usePermissions } from "@/hooks/use-permissions";
 import { PROFILE_ROUTE_PERMISSIONS } from "@/lib/route-permissions";
 import { useAvatarUrl } from "@/hooks/use-avatar-url";
@@ -146,7 +148,12 @@ export function DashboardTopbar() {
     }
   };
 
-  const triggerMasterTour = () => {
+  const triggerMasterTour = async () => {
+    // Expand every collapsible sidebar group first. Their children are not
+    // rendered while collapsed, so the filter below used to drop those steps and
+    // the tour visibly jumped over whole sections.
+    await prepareNavForTour();
+
     const possibleSteps = [
       // Sidebar Navigation
       {
@@ -167,138 +174,10 @@ export function DashboardTopbar() {
         ),
         placement: "right" as const,
       },
-      {
-        target: "#tour-nav-overview",
-        title: t("nav.dashboard", "Dashboard"),
-        content: t(
-          "tour.overview_desc",
-          "View real-time telemetry, revenue, and active staff metrics.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-audit",
-        title: t("nav.audit_logs", "WORM Audit Ledger"),
-        content: t(
-          "tour.audit_desc",
-          "Every system action is cryptographically sealed here.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-security",
-        title: t("nav.security", "Identity & Access"),
-        content: t(
-          "tour.security_desc",
-          "Manage operator clearances, roles, and granular security.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-tenants",
-        title: t("nav.tenants", "Node Management"),
-        content: t(
-          "tour.tenants_desc",
-          "Provision, monitor, and configure active tenant databases.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-landing-templates",
-        title: t("nav.landing_templates", "Landing Templates"),
-        content: t(
-          "tour.landing_templates_desc",
-          "Configure global landing templates and themes for tenants.",
-        ),
-        placement: "right" as const,
-      },
-
-      // Modules Group
-      {
-        target: "#tour-nav-modules",
-        title: t("tour.modules_group_title", "Feature Modules"),
-        content: t(
-          "tour.modules_group_desc",
-          "Explore core operational modules like Inventory Logistics and Service Operations.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-inventory",
-        title: t("nav.inventory", "Supply Chain Matrix"),
-        content: t(
-          "tour.inventory_desc",
-          "Manage assets, products, and warehouse logistics with tenant-aware precision.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-hospitality",
-        title: t("nav.hospitality", "Service Operations"),
-        content: t(
-          "tour.hospitality_desc",
-          "Real-time table management, reservations, and service orders for lounges.",
-        ),
-        placement: "right" as const,
-      },
-
-      // Apps & Tools Group
-      {
-        target: "#tour-nav-apps",
-        title: t("tour.apps_group_title", "Apps & Tools"),
-        content: t(
-          "tour.apps_group_desc",
-          "Access utility applications like Document Processing and internal Secure Comms.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-converter",
-        title: t("tour.converter_title", "Asset Processing"),
-        content: t(
-          "tour.converter_desc",
-          "Convert and digitize documents into high-fidelity PDF formats.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-mail",
-        title: t("tour.mail_title", "Secure Comms"),
-        content: t(
-          "tour.mail_desc",
-          "Internal encrypted messaging between system operators.",
-        ),
-        placement: "right" as const,
-      },
-
-      // Secondary Navigation
-      {
-        target: "#tour-nav-storage",
-        title: t("nav.storage", "Storage Infrastructure"),
-        content: t(
-          "tour.storage_desc",
-          "Monitor tenant-aware file systems and volume capacities.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-settings",
-        title: t("nav.settings", "Global Preferences"),
-        content: t(
-          "tour.settings_desc",
-          "Configure deep system parameters and UI themes.",
-        ),
-        placement: "right" as const,
-      },
-      {
-        target: "#tour-nav-api-docs",
-        title: t("nav.api_docs", "API Docs"),
-        content: t(
-          "tour.api_docs_desc",
-          "Explore the live API schema to integrate external applications.",
-        ),
-        placement: "right" as const,
-      },
+      // Sidebar navigation is generated from the rendered DOM so every module,
+      // sub-module and nested tab is visited in visual order — and so a tenant
+      // node tours exactly the modules it subscribes to. See lib/tour-steps.ts.
+      ...buildSidebarTourSteps(t),
 
       // Topbar Actions
       {
@@ -338,11 +217,38 @@ export function DashboardTopbar() {
         placement: "bottom" as const,
       },
       {
+        target: "#tour-topbar-help",
+        title: t("tour.topbar_help_title", "Guided Tours"),
+        content: t(
+          "tour.topbar_help_desc",
+          "Replay this walkthrough at any time. Individual pages offer their own focused tour from the same control.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-chat",
+        title: t("tour.topbar_chat_title", "Team Messaging"),
+        content: t(
+          "tour.topbar_chat_desc",
+          "Direct and group conversations with other operators, with unread counts surfaced on the icon.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
         target: "#tour-topbar-notifications",
         title: t("tour.topbar_notifications_title", "System Alerts"),
         content: t(
           "tour.topbar_notifications_desc",
           "View real-time security alerts and task notifications.",
+        ),
+        placement: "bottom" as const,
+      },
+      {
+        target: "#tour-topbar-mail",
+        title: t("tour.topbar_mail_title", "Internal Mailbox"),
+        content: t(
+          "tour.topbar_mail_desc",
+          "Encrypted internal mail between operators on this node.",
         ),
         placement: "bottom" as const,
       },
@@ -395,9 +301,18 @@ export function DashboardTopbar() {
       },
     ];
 
-    const activeSteps = possibleSteps.filter((step) =>
-      document.querySelector(step.target),
-    );
+    // Sidebar steps arrive as live elements (nested rows carry no id), the
+    // curated ones as selectors — resolve whichever form each step uses and drop
+    // anything not currently on screen.
+    const activeSteps = possibleSteps.filter((step) => {
+      const { target } = step;
+
+      if (typeof target === "string") {
+        return Boolean(document.querySelector(target));
+      }
+
+      return target instanceof HTMLElement && target.isConnected;
+    });
 
     startTour(activeSteps.map((step) => ({ ...step, disableBeacon: true })));
   };
@@ -446,6 +361,11 @@ export function DashboardTopbar() {
                 <Button
                   id="tour-topbar-fullscreen"
                   variant="ghost"
+                  aria-label={
+                    isFullscreen
+                      ? t("global.exit_fullscreen", "Exit full screen")
+                      : t("global.enter_fullscreen", "Enter full screen")
+                  }
                   className="h-10 w-10 rounded-xl p-0 shrink-0 text-muted-foreground hover:text-foreground hidden sm:flex items-center justify-center transform active:scale-95 transition-transform"
                   onClick={toggleFullscreen}
                 >
@@ -457,10 +377,17 @@ export function DashboardTopbar() {
                 </Button>
               </div>
 
+              {/* Wrappers carry the tour anchors: the icons themselves are shared
+                  components, and the tour previously had no target for chat or
+                  mail so it jumped straight past them. */}
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <ChatNotificationIcon />
+                <span id="tour-topbar-chat" className="flex">
+                  <ChatNotificationIcon />
+                </span>
                 <TopbarNotificationsIcon activeUser={activeUser} />
-                <TopbarMailIcon activeUser={activeUser} />
+                <span id="tour-topbar-mail" className="flex">
+                  <TopbarMailIcon activeUser={activeUser} />
+                </span>
               </div>
 
               <DropdownMenu>
@@ -481,7 +408,7 @@ export function DashboardTopbar() {
                       <div className="text-xs font-bold leading-4 truncate max-w-[100px] lg:max-w-[150px]">
                         {activeUser?.name || "Operator"}
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-mono leading-4 truncate max-w-[100px] lg:max-w-[150px]">
+                      <div className="text-[11px] text-muted-foreground font-mono leading-4 truncate max-w-[100px] lg:max-w-[150px]">
                         {activeUser?.email || "sys@hive.os"}
                       </div>
                     </div>

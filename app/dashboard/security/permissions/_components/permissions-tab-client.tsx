@@ -130,7 +130,7 @@ export function PermissionsTabClient({ tenantId }: { tenantId: string | null }) 
       cell: ({ row }) => {
         const isTenant = row.original.guard_name === 'tenant';
         return (
-          <Badge variant={isTenant ? "outline" : "secondary"} className={cn("font-mono text-[10px] uppercase tracking-widest", isTenant ? "text-indigo-600 border-indigo-200 bg-indigo-50/50" : "text-amber-600 bg-amber-50/50")}>
+          <Badge variant={isTenant ? "outline" : "secondary"} className={cn("font-mono text-[11px] uppercase tracking-widest", isTenant ? "text-indigo-600 border-indigo-200 bg-indigo-50/50" : "text-amber-600 bg-amber-50/50")}>
             <Shield className="h-3 w-3 mr-1" />
             {isTenant ? t('permissions.tenant_node', "Tenant Node") : t('permissions.central', "Central Command")}
           </Badge>

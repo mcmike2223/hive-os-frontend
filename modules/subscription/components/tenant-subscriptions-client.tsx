@@ -147,13 +147,13 @@ function PlanCard({
     )}>
       {/* Popular / Highlight badge */}
       {meta.highlight && (
-        <div className={cn("absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider", meta.color, `bg-gradient-to-br ${meta.bg} border border-current/20`)}>
+        <div className={cn("absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider", meta.color, `bg-gradient-to-br ${meta.bg} border border-current/20`)}>
           {meta.highlight}
         </div>
       )}
 
       {isCurrent && (
-        <div className="absolute top-4 left-4 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-green-600 bg-green-500/10 border border-green-500/20 px-2.5 py-0.5 rounded-full">
+        <div className="absolute top-4 left-4 flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-green-600 bg-green-500/10 border border-green-500/20 px-2.5 py-0.5 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           Current Plan
         </div>
@@ -166,7 +166,7 @@ function PlanCard({
       <h3 className={cn("mt-3 text-xl font-black uppercase tracking-tight", meta.color)}>{meta.label}</h3>
       <p className="text-xs text-muted-foreground mt-0.5">{meta.tagline}</p>
       <p className="mt-3 text-2xl font-black tracking-tight text-foreground">{formatMoney(planPrice)}</p>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">per month from included modules</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">per month from included modules</p>
 
       <div className="mt-4 space-y-2">
         <div className="flex items-center gap-2 text-xs text-foreground/80">
@@ -186,12 +186,12 @@ function PlanCard({
       {previewModules.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-1.5">
           {previewModules.map((module) => (
-            <Badge key={`${planKey}-${module.slug}`} variant="secondary" className="rounded-full text-[10px]">
+            <Badge key={`${planKey}-${module.slug}`} variant="secondary" className="rounded-full text-[11px]">
               {module.name}
             </Badge>
           ))}
           {includedModules.length > previewModules.length ? (
-            <Badge variant="outline" className="rounded-full text-[10px]">
+            <Badge variant="outline" className="rounded-full text-[11px]">
               +{includedModules.length - previewModules.length} more
             </Badge>
           ) : null}
@@ -200,10 +200,10 @@ function PlanCard({
 
       {previewAddons.length > 0 ? (
         <div className="mt-3 rounded-xl border border-dashed border-border/60 bg-background/40 p-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Available Add-ons</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Available Add-ons</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {previewAddons.map((module) => (
-              <Badge key={`${planKey}-addon-${module.slug}`} variant="outline" className="rounded-full text-[10px]">
+              <Badge key={`${planKey}-addon-${module.slug}`} variant="outline" className="rounded-full text-[11px]">
                 {module.name}
               </Badge>
             ))}
@@ -235,7 +235,7 @@ function StorageQuotaPanel({ storageMb, usedBytes = 0 }: { storageMb: number; us
           <HardDrive className={cn("h-[18px] w-[18px]", isCritical ? "text-rose-500" : isWarning ? "text-amber-500" : "text-primary")} />
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mailbox Storage</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Mailbox Storage</p>
           <p className="text-lg font-black text-foreground">{formatBytes(storageMb)} <span className="text-muted-foreground font-medium text-sm">total</span></p>
         </div>
       </div>
@@ -293,13 +293,13 @@ function FeatureAccessMatrix({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
             {matrix?.subscribed_module_count ?? 0} subscribed
           </Badge>
-          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
             {matrix?.unsubscribed_module_count ?? 0} available
           </Badge>
-          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
             {matrix?.feature_count ?? 0} features
           </Badge>
         </div>
@@ -310,7 +310,7 @@ function FeatureAccessMatrix({
           <div key={category} className="space-y-3">
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-border/60" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">{category}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">{category}</p>
               <div className="h-px flex-1 bg-border/60" />
             </div>
 
@@ -339,7 +339,7 @@ function FeatureAccessMatrix({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "rounded-full px-2.5 py-0.5 text-[9px] uppercase tracking-widest",
+                              "rounded-full px-2.5 py-0.5 text-[11px] uppercase tracking-widest",
                               isActive
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                 : isPending
@@ -350,12 +350,12 @@ function FeatureAccessMatrix({
                             {isActive ? "Subscribed" : isPending ? "Payment Pending" : "Not Subscribed"}
                           </Badge>
                           {module.included_in_plan ? (
-                            <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[9px] uppercase tracking-widest text-sky-700">
+                            <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-sky-700">
                               Plan Included
                             </Badge>
                           ) : null}
                           {module.is_addon ? (
-                            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[9px] uppercase tracking-widest text-amber-700">
+                            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-amber-700">
                               Add-on
                             </Badge>
                           ) : null}
@@ -387,18 +387,18 @@ function FeatureAccessMatrix({
                           <div key={`${module.slug}-${submodule.slug}`} className="rounded-xl border border-border/60 bg-background/70 p-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <p className="text-sm font-bold text-foreground">{submodule.name}</p>
-                              <Badge variant="secondary" className="rounded-full text-[10px]">
+                              <Badge variant="secondary" className="rounded-full text-[11px]">
                                 {submodule.feature_count} feature{submodule.feature_count === 1 ? "" : "s"}
                               </Badge>
                             </div>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {submodule.features.slice(0, 8).map((feature) => (
-                                <Badge key={feature.slug} variant="outline" className="max-w-full rounded-full px-2.5 py-1 text-[10px]">
+                                <Badge key={feature.slug} variant="outline" className="max-w-full rounded-full px-2.5 py-1 text-[11px]">
                                   <span className="truncate">{feature.name}</span>
                                 </Badge>
                               ))}
                               {submodule.features.length > 8 ? (
-                                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[10px]">
+                                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px]">
                                   +{submodule.features.length - 8} more
                                 </Badge>
                               ) : null}
@@ -692,14 +692,14 @@ export function TenantSubscriptionsClient() {
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border", planMeta.color, `bg-gradient-to-br ${planMeta.bg} border-current/20`)}>
+                <span className={cn("text-[11px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border", planMeta.color, `bg-gradient-to-br ${planMeta.bg} border-current/20`)}>
                   Active Plan
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/70 bg-background/50 border border-border/60 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/70 bg-background/50 border border-border/60 px-2 py-0.5 rounded-full">
                   {formatSubscriptionStatus(subscription?.status)}
                 </span>
                 {planMeta.highlight && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
                     ✦ {planMeta.highlight}
                   </span>
                 )}
@@ -720,7 +720,7 @@ export function TenantSubscriptionsClient() {
                 <div className="flex justify-center mb-1">
                   <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
                 <p className="text-sm font-black text-foreground">{value}</p>
               </div>
             ))}
@@ -739,7 +739,7 @@ export function TenantSubscriptionsClient() {
           <div key={label} className="rounded-[1.75rem] border border-border/50 bg-card/40 backdrop-blur-md p-5 shadow-sm hover:shadow-md hover:bg-card/60 transition-all">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
                 <h3 className="mt-2 text-2xl font-black tracking-tight text-foreground">{value}</h3>
               </div>
               <div className={cn("rounded-2xl p-3", iconBg)}>
@@ -760,7 +760,7 @@ export function TenantSubscriptionsClient() {
       )}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Subscription Window</p>
+            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Subscription Window</p>
             <p className="text-lg font-black text-foreground">
               {subscription?.expires_at ? `Expires ${new Date(subscription.expires_at).toLocaleDateString()}` : "Expiry pending"}
             </p>
@@ -819,7 +819,7 @@ export function TenantSubscriptionsClient() {
       <div className="grid gap-4 md:grid-cols-3">
         <StorageQuotaPanel storageMb={planMeta.storageMb} />
         <div className="md:col-span-2 rounded-[1.75rem] border border-border/50 bg-card/40 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Storage by Plan</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">Storage by Plan</p>
           <div className="space-y-3">
             {PLAN_ORDER.map(pk => {
               const pm = PLAN_META[pk];
@@ -850,7 +850,7 @@ export function TenantSubscriptionsClient() {
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">Resume gateway links or monitor manual transfer submissions that are still awaiting confirmation.</p>
             </div>
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
               {paymentProvider?.label ?? "Payment"}
             </Badge>
           </div>
@@ -868,7 +868,7 @@ export function TenantSubscriptionsClient() {
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">{order.created_at ? `Created ${new Date(order.created_at).toLocaleString()}` : "Created recently"}</p>
                   </div>
-                  <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest shrink-0">
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest shrink-0">
                     {String(order.status).replaceAll("_", " ")}
                   </Badge>
                 </div>
@@ -920,7 +920,7 @@ export function TenantSubscriptionsClient() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest shrink-0">
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest shrink-0">
               {subscriptions?.updated_at ? `Updated ${new Date(subscriptions.updated_at).toLocaleDateString()}` : "Using plan defaults"}
             </Badge>
             {canManage && (
@@ -960,7 +960,7 @@ export function TenantSubscriptionsClient() {
             <h3 className="text-lg font-black tracking-tight text-foreground">Active Subscription Summary</h3>
             <p className="mt-1 text-sm text-muted-foreground">Everything your tenant can access right now across the workspace.</p>
           </div>
-          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest">
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-widest">
             {activeModuleCount} modules
           </Badge>
         </div>

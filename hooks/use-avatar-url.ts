@@ -8,10 +8,6 @@ import {
   getWorkspaceScopeKey,
 } from "@/lib/runtime-context";
 
-function getFallback(name?: string) {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name ?? "Operator")}&color=7F9CF5&background=EBF4FF`;
-}
-
 export function useAvatarUrl(
   user: { avatar_path?: string | null; name?: string } | null,
   refreshTrigger: number | string = 0,
@@ -25,7 +21,7 @@ export function useAvatarUrl(
 
     const load = async () => {
       if (!user?.avatar_path || !getAccessToken()) {
-        if (active) setAvatarSrc(getFallback(user?.name));
+        if (active) setAvatarSrc("");
         return;
       }
 
@@ -47,7 +43,7 @@ export function useAvatarUrl(
         objectUrl = URL.createObjectURL(blob);
         if (active) setAvatarSrc(objectUrl);
       } catch {
-        if (active) setAvatarSrc(getFallback(user?.name));
+        if (active) setAvatarSrc("");
       }
     };
 

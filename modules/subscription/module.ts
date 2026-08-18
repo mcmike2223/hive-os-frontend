@@ -15,6 +15,7 @@ export const subscriptionModule: FrontendModuleDefinition = {
       href: "/dashboard/subscriptions",
       icon: Layers,
       permissions: ["view_module_subscriptions", "manage_module_subscriptions"],
+      tourId: "tour-nav-subscriptions",
       placement: "primary",
     },
   ],

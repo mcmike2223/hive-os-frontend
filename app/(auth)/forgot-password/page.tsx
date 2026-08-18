@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
 
         <div className="w-full max-w-sm mx-auto space-y-8 mt-12 lg:mt-0">
           <div className="space-y-3">
-            <Badge variant="outline" className="font-mono text-[10px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">
+            <Badge variant="outline" className="font-mono text-[11px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">
               {t("auth.forgot.badge", "RECOVERY PROTOCOL")}
             </Badge>
             <h1 className="text-4xl font-space font-black tracking-tighter sm:text-5xl">
@@ -135,7 +135,7 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-2">
-                <Label htmlFor="email" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground ml-1">
+                <Label htmlFor="email" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground ml-1">
                   {t("auth.login.system_identifier", "System Identifier")}
                 </Label>
                 <div className="relative group">
@@ -164,7 +164,7 @@ export default function ForgotPasswordPage() {
                 )}
               </Button>
 
-              <Button asChild variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+              <Button asChild variant="ghost" className="w-full font-mono text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
                 <Link href="/sign-in">
                   <ArrowLeft className="mr-2 h-3.5 w-3.5" />
                   {t("auth.forgot.back_to_sign_in", "Back to Sign In")}
@@ -177,7 +177,7 @@ export default function ForgotPasswordPage() {
 
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-muted/5 border-l border-border overflow-hidden">
         <div className="tech-grid absolute inset-0 z-0 opacity-30" />
-        <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-muted-foreground uppercase tracking-[0.3em] opacity-60">
+        <div className="relative z-10 flex items-center justify-between font-mono text-[11px] text-muted-foreground uppercase tracking-[0.3em] opacity-60">
           <div className="flex items-center gap-2"><Activity className="h-3 w-3" /> System Heartbeat: Optimal</div>
           <div>Uptime: 242:12:04</div>
         </div>
@@ -194,7 +194,7 @@ export default function ForgotPasswordPage() {
               <h3 className="font-space font-bold text-xl tracking-tight mb-2 uppercase">
                 {isTenant ? "Tenant Recovery Channel" : "Master Recovery Channel"}
               </h3>
-              <div className="flex items-center gap-4 text-muted-foreground font-mono text-[10px] uppercase tracking-widest mb-6">
+              <div className="flex items-center gap-4 text-muted-foreground font-mono text-[11px] uppercase tracking-widest mb-6">
                 <span className="flex items-center gap-1.5"><Cpu className="h-3 w-3" /> ARMv8</span>
                 <div className="w-1 h-1 bg-border rounded-full" />
                 <span className="flex items-center gap-1.5"><Terminal className="h-3 w-3" /> TLS 1.3</span>

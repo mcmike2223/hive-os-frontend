@@ -429,7 +429,7 @@ export default function ReservationsPage() {
       cell: ({ row }) => {
         const res = row.original;
         return (
-          <Badge variant="outline" className={cn("capitalize font-black border text-[10px] tracking-wider rounded-full py-0.5", statusColors[res.status])}>
+          <Badge variant="outline" className={cn("capitalize font-black border text-[11px] tracking-wider rounded-full py-0.5", statusColors[res.status])}>
             {res.status}
           </Badge>
         );
@@ -450,7 +450,7 @@ export default function ReservationsPage() {
                 size="sm"
                 onClick={() => updateStatusMutation.mutate({ id: res.id, status: "confirmed" })}
                 disabled={updateStatusMutation.isPending}
-                className="h-8 text-[10px] font-black uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg"
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg"
               >
                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                 Confirm
@@ -462,7 +462,7 @@ export default function ReservationsPage() {
                 size="sm"
                 onClick={() => updateStatusMutation.mutate({ id: res.id, status: "completed" })}
                 disabled={updateStatusMutation.isPending}
-                className="h-8 text-[10px] font-black uppercase tracking-widest text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg"
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg"
               >
                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                 Seat Guest
@@ -474,7 +474,7 @@ export default function ReservationsPage() {
                 size="sm"
                 onClick={() => updateStatusMutation.mutate({ id: res.id, status: "cancelled" })}
                 disabled={updateStatusMutation.isPending}
-                className="h-8 text-[10px] font-black uppercase tracking-widest text-rose-600 border-rose-200 bg-rose-50 hover:bg-rose-100 rounded-lg"
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-rose-600 border-rose-200 bg-rose-50 hover:bg-rose-100 rounded-lg"
               >
                 <XCircle className="mr-1 h-3.5 w-3.5" />
                 Cancel
@@ -679,7 +679,7 @@ export default function ReservationsPage() {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  <p className="text-[10px] text-muted-foreground mt-1">Linking a CRM profile automatically sets the name and phone.</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Linking a CRM profile automatically sets the name and phone.</p>
                 </div>
                 
                 {/* We still keep these inputs but make them readonly if a profile is linked, or keep them editable? 

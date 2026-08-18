@@ -520,7 +520,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-semibold truncate pr-2">{file.name}</p>
-          <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline flex items-center gap-0.5 font-bold uppercase tracking-wider">
+          <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary hover:underline flex items-center gap-0.5 font-bold uppercase tracking-wider">
             <ExternalLink className="h-2.5 w-2.5" /> Download
           </a>
         </div>
@@ -581,7 +581,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                 element?.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-xl');
                 setTimeout(() => element?.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-xl'), 2000);
               }}
-              className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline mb-1 transition-all"
+              className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:underline mb-1 transition-all"
             >
               <Reply className="h-2.5 w-2.5 rotate-180" /> JUMP TO PARENT
             </button>
@@ -589,7 +589,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm">{comment.user?.name}</span>
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{formatCommentDate(comment.created_at)}</span>
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{formatCommentDate(comment.created_at)}</span>
             </div>
             
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -659,10 +659,10 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                   autoFocus
                 />
                 <div className="flex items-center gap-2">
-                  <Button size="sm" className="h-8 px-3 text-[10px] uppercase tracking-wider font-bold" onClick={() => updateComment.mutate({ id: comment.id, content: `<p>${editContent}</p>` })} disabled={updateComment.isPending || !editContent.trim()}>
+                  <Button size="sm" className="h-8 px-3 text-[11px] uppercase tracking-wider font-bold" onClick={() => updateComment.mutate({ id: comment.id, content: `<p>${editContent}</p>` })} disabled={updateComment.isPending || !editContent.trim()}>
                     {updateComment.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <CheckCircle2 className="h-3 w-3 mr-2" />} Save Changes
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 px-3 text-[10px] uppercase tracking-wider font-bold" onClick={() => { setEditingCommentId(null); setEditContent(""); }}>
+                  <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] uppercase tracking-wider font-bold" onClick={() => { setEditingCommentId(null); setEditContent(""); }}>
                     Cancel
                   </Button>
                 </div>
@@ -718,7 +718,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
           </div>
           <div>
             <h3 className="font-bold tracking-tight">{t("project_management.project_discussion", "Project Discussion")}</h3>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{t("project_management.team_collaboration", "Team Collaboration")}</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold">{t("project_management.team_collaboration", "Team Collaboration")}</p>
           </div>
         </div>
 
@@ -742,7 +742,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Delete for me</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">All</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">All</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2 py-2.5" 
@@ -750,7 +750,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Delete for everyone</span>
-                  <span className="ml-auto text-[10px] bg-destructive/10 px-1.5 py-0.5 rounded">Admin / Yours</span>
+                  <span className="ml-auto text-[11px] bg-destructive/10 px-1.5 py-0.5 rounded">Admin / Yours</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -760,7 +760,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
             variant="ghost" 
             size="sm" 
             className={cn(
-              "h-9 px-4 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest gap-2",
+              "h-9 px-4 rounded-xl transition-all font-bold text-[11px] uppercase tracking-widest gap-2",
               isSelectMode ? "bg-primary text-primary-foreground hover:bg-primary/90" : "hover:bg-primary/10 hover:text-primary"
             )}
             onClick={() => {
@@ -776,7 +776,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary/5 transition-all gap-2"
+              className="h-9 px-4 rounded-xl font-bold text-[11px] uppercase tracking-widest border-primary/20 hover:bg-primary/5 transition-all gap-2"
               onClick={() => {
                 if (selectedIds.size === visibleCommentIds.length) {
                   setSelectedIds(new Set());
@@ -827,7 +827,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
           <div className="py-6 space-y-4 flex flex-col justify-end min-h-full">
             {hasNextPage && (
               <div className="flex justify-center pb-4">
-                <Button variant="outline" size="sm" onClick={() => { setIsFetchingPrevious(true); fetchNextPage(); }} disabled={isFetchingNextPage} className="rounded-full gap-2 text-[10px] uppercase tracking-wider font-bold h-8 px-4 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all shadow-sm">
+                <Button variant="outline" size="sm" onClick={() => { setIsFetchingPrevious(true); fetchNextPage(); }} disabled={isFetchingNextPage} className="rounded-full gap-2 text-[11px] uppercase tracking-wider font-bold h-8 px-4 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all shadow-sm">
                   {isFetchingNextPage ? <Loader2 className="h-3 w-3 animate-spin" /> : <History className="h-3 w-3" />} Load Previous Messages
                 </Button>
               </div>
@@ -844,7 +844,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                   return (
                     <motion.div key={`date-${item.date}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-4 py-4">
                       <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/50">{label}</span>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/50">{label}</span>
                       <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
                     </motion.div>
                   );
@@ -858,11 +858,11 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                 <div className="flex -space-x-2">
                   {Object.keys(typingUsers).slice(0, 3).map(userId => (
                     <div key={userId} className="h-6 w-6 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center">
-                      <span className="text-[8px] font-bold text-primary">{typingUsers[userId].name.charAt(0)}</span>
+                      <span className="text-[11px] font-bold text-primary">{typingUsers[userId].name.charAt(0)}</span>
                     </div>
                   ))}
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium italic">
+                <span className="text-[11px] text-muted-foreground font-medium italic">
                   {Object.values(typingUsers).length === 1 ? `${Object.values(typingUsers)[0].name} is typing...` : `${Object.values(typingUsers).length} people are typing...`}
                 </span>
               </motion.div>
@@ -875,7 +875,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
         <AnimatePresence>
           {showScrollButton && (
             <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-              <Button variant="secondary" size="sm" className="rounded-full shadow-lg border border-border/40 bg-background/80 backdrop-blur-md gap-2 font-bold text-[10px] uppercase tracking-wider" onClick={() => scrollToBottom()}>
+              <Button variant="secondary" size="sm" className="rounded-full shadow-lg border border-border/40 bg-background/80 backdrop-blur-md gap-2 font-bold text-[11px] uppercase tracking-wider" onClick={() => scrollToBottom()}>
                 New Messages <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               </Button>
             </motion.div>
@@ -943,7 +943,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
             </AlertDialogHeader>
           </div>
           <AlertDialogFooter className="p-6 bg-muted/20 flex sm:justify-center gap-3">
-            <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 px-6">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[11px] h-10 px-6">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
                 if (deleteConfirm.ids.length > 1 || (deleteConfirm.ids.length === 1 && deleteConfirm.type === 'me')) {
@@ -952,7 +952,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                   deleteComment.mutate({ id: deleteConfirm.ids[0], type: deleteConfirm.type });
                 }
               }}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl font-bold uppercase tracking-widest text-[10px] h-10 px-6 shadow-lg shadow-destructive/20"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl font-bold uppercase tracking-widest text-[11px] h-10 px-6 shadow-lg shadow-destructive/20"
             >
               Continue
             </AlertDialogAction>

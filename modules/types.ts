@@ -8,13 +8,27 @@ export type ModuleId =
   | "hospitality"
   | "inventory"
   | "warehouse"
+  | "production"
   | "workflow"
   | "projectmanagement"
   | "humanresources"
   | "attendance"
   | "payroll"
+  | "finance"
+  | "performance"
+  | "procurement"
+  | "supplychain"
+  | "sales"
+  | "crm"
+  | "fleet"
+  | "service"
+  | "internal-audit"
+  | "strategy"
+  | "vantage"
+  | "agriculture"
   | "lms"
-  | "b2b-marketplace";
+  | "b2b-marketplace"
+  | "landing-templates";
 export type DashboardNavPlacement = "primary" | "secondary";
 
 export interface ModuleNavItem {

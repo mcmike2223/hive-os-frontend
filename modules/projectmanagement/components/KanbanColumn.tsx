@@ -37,7 +37,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, tasks, onAdd
           <h3 className="font-semibold text-sm">
             {t(`project_management.column_${column.name.toLowerCase().replace(/\s+/g, '_')}`, column.name)}
           </h3>
-          <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+          <span className="text-[11px] font-bold bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
             {tasks.length}
           </span>
         </div>

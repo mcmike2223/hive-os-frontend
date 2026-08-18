@@ -89,7 +89,7 @@ export function HrAppraisalPanel({ employees }: { employees: any[] }) {
           appraisals.map((a: any) => (
             <div key={a.id} className="rounded-xl border bg-white p-5 shadow-sm dark:bg-slate-900 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800 uppercase">
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800 uppercase">
                   {a.appraisal_type.replaceAll('_', ' ')}
                 </span>
                 <span className="flex items-center text-amber-500 font-bold text-sm">

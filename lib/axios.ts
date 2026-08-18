@@ -19,8 +19,15 @@ const normalizeApiRoot = (value: string) => {
     return `${trimmed}/api/v1`;
 };
 
+const getFallbackApiUrl = () => {
+    if (typeof window !== 'undefined' && window.location.port === '3001') {
+        return 'http://localhost:8081';
+    }
+    return 'http://localhost:8081';
+};
+
 const axios = Axios.create({
-    baseURL: normalizeApiRoot(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8085'),
+    baseURL: normalizeApiRoot(process.env.NEXT_PUBLIC_API_URL || getFallbackApiUrl()),
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json',

@@ -1,0 +1,68 @@
+{
+  "checks": [
+    {
+      "id": "sidebar-active-text-light",
+      "foreground": "#18181b",
+      "background": "#d97706",
+      "type": "text-normal",
+      "state": "active",
+      "notes": "Active top-level sidebar label and icon"
+    },
+    {
+      "id": "sidebar-active-text-dark",
+      "foreground": "#18181b",
+      "background": "#ffd500",
+      "type": "text-normal",
+      "state": "active",
+      "notes": "Active top-level sidebar label and icon"
+    },
+    {
+      "id": "module-header-active-light",
+      "foreground": "#78350f",
+      "background": "#fdecdd",
+      "type": "text-normal",
+      "state": "active",
+      "notes": "Amber 900 text on amber 500 at 15 percent over the light card"
+    },
+    {
+      "id": "module-header-active-dark",
+      "foreground": "#fde68a",
+      "background": "#2e2111",
+      "type": "text-normal",
+      "state": "active",
+      "notes": "Amber 200 text on amber 500 at 15 percent over the dark card"
+    },
+    {
+      "id": "sidebar-idle-text-light",
+      "foreground": "#71717a",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Muted sidebar label on the light card"
+    },
+    {
+      "id": "sidebar-idle-text-dark",
+      "foreground": "#a1a1aa",
+      "background": "#0a0a0b",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Muted sidebar label on the dark card"
+    },
+    {
+      "id": "sidebar-focus-ring-light",
+      "foreground": "#d97706",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "focus",
+      "notes": "Module toggle focus ring on the light card"
+    },
+    {
+      "id": "sidebar-focus-ring-dark",
+      "foreground": "#ffd500",
+      "background": "#0a0a0b",
+      "type": "ui",
+      "state": "focus",
+      "notes": "Module toggle focus ring on the dark card"
+    }
+  ]
+}

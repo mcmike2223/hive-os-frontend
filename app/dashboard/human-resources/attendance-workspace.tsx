@@ -16,13 +16,14 @@ import {
   Radio,
   RefreshCw,
   ShieldCheck,
+  UserCheck,
   UserRoundCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { AttendanceCorrections } from "@/app/dashboard/human-resources/attendance-corrections";
-import { AttendanceCaptureWorkspace } from "@/app/dashboard/human-resources/attendance-capture-workspace";
+import { AttendanceDeviceSummary } from "@/modules/attendance/components/attendance-device-summary";
 import { AttendanceReconciliation } from "@/app/dashboard/human-resources/attendance-reconciliation";
 import { ScheduleWorkspace } from "@/app/dashboard/human-resources/schedule-workspace";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
 import { initEcho } from "@/lib/echo";
@@ -62,13 +69,19 @@ import {
   AttendanceSummary,
   Employee,
   Paginated,
+  hrFetch,
 } from "@/modules/humanresources/api";
-import { attendanceFetch } from "@/modules/attendance/api";
+import {
+  attendanceFetch,
+  formatEmployeeNumber,
+} from "@/modules/attendance/api";
 
 const controlClass =
   "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
 const selectClass =
   "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
+const tabTriggerClass =
+  "min-h-11 whitespace-normal px-3 text-left text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-700 data-[state=active]:bg-white data-[state=active]:text-slate-950 dark:text-slate-100 dark:focus-visible:ring-cyan-300 dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-white";
 const today = () => new Date().toISOString().slice(0, 10);
 const eventLabels: Record<AttendanceEventType, string> = {
   clock_in: "Clock in",
@@ -81,6 +94,14 @@ const stateLabels: Record<AttendanceSelfServiceStatus["state"], string> = {
   on_duty: "On duty",
   on_break: "On break",
 };
+
+type AttendanceView =
+  | "today"
+  | "issues"
+  | "reconcile"
+  | "schedules"
+  | "events"
+  | "devices";
 
 type EchoPrivateChannel = {
   listen: (
@@ -191,24 +212,24 @@ function ManualAttendanceDialog({
       }
 
       const key = idempotencyKey("manual-attendance");
-      return attendanceFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
-        "/attendance/manual-events",
-        {
-          method: "POST",
-          headers: { "Idempotency-Key": key },
-          body: JSON.stringify({
-            employee_id: Number(form.employee_id),
-            event_type: form.event_type,
-            occurred_at: occurredAt.toISOString(),
-            source_timezone:
-              Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-            idempotency_key: key,
-            metadata: form.reason.trim()
-              ? { reason: form.reason.trim() }
-              : undefined,
-          }),
-        },
-      );
+      return attendanceFetch<{
+        data: AttendanceEvent;
+        meta: { duplicate: boolean };
+      }>("/attendance/manual-events", {
+        method: "POST",
+        headers: { "Idempotency-Key": key },
+        body: JSON.stringify({
+          employee_id: Number(form.employee_id),
+          event_type: form.event_type,
+          occurred_at: occurredAt.toISOString(),
+          source_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          idempotency_key: key,
+          metadata: form.reason.trim()
+            ? { reason: form.reason.trim() }
+            : undefined,
+        }),
+      });
     },
     onSuccess: (response) => {
       toast.success(
@@ -272,7 +293,8 @@ function ManualAttendanceDialog({
                 <option value="">Select an employee</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={employee.id}>
-                    {employee.primary_name} · {employee.employee_number}
+                    {employee.primary_name} ·{" "}
+                    {formatEmployeeNumber(employee.employee_number)}
                   </option>
                 ))}
               </select>
@@ -472,6 +494,7 @@ export function AttendanceWorkspace({
     "request_shift_swap",
   ]);
   const [date, setDate] = useState(today());
+  const [activeView, setActiveView] = useState<AttendanceView>("today");
   const [manualOpen, setManualOpen] = useState(false);
   const [eventEmployeeId, setEventEmployeeId] = useState("");
   const [realtimeConnected, setRealtimeConnected] = useState(false);
@@ -482,7 +505,9 @@ export function AttendanceWorkspace({
   const summary = useQuery({
     queryKey: ["hr-attendance", scope, "summary", date],
     queryFn: () =>
-      attendanceFetch<{ data: AttendanceSummary }>(`/attendance/summary?date=${date}`),
+      attendanceFetch<{ data: AttendanceSummary }>(
+        `/attendance/summary?date=${date}`,
+      ),
     enabled: isLoaded && canView,
     refetchInterval: realtimeConnected ? 60_000 : 15_000,
   });
@@ -554,7 +579,8 @@ export function AttendanceWorkspace({
   });
   const employees = useQuery({
     queryKey: ["hr-attendance", scope, "employees"],
-    queryFn: () => attendanceFetch<Paginated<Employee>>("/employees?per_page=100"),
+    queryFn: () =>
+      attendanceFetch<Paginated<Employee>>("/employees?per_page=100"),
     enabled: isLoaded && (canManage || canReconcile || canViewCapture),
   });
 
@@ -605,20 +631,20 @@ export function AttendanceWorkspace({
   const punch = useMutation({
     mutationFn: (eventType: AttendanceEventType) => {
       const key = idempotencyKey("self-attendance");
-      return attendanceFetch<{ data: AttendanceEvent; meta: { duplicate: boolean } }>(
-        "/attendance/self-service/events",
-        {
-          method: "POST",
-          headers: { "Idempotency-Key": key },
-          body: JSON.stringify({
-            event_type: eventType,
-            occurred_at: new Date().toISOString(),
-            source_timezone:
-              Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-            idempotency_key: key,
-          }),
-        },
-      );
+      return attendanceFetch<{
+        data: AttendanceEvent;
+        meta: { duplicate: boolean };
+      }>("/attendance/self-service/events", {
+        method: "POST",
+        headers: { "Idempotency-Key": key },
+        body: JSON.stringify({
+          event_type: eventType,
+          occurred_at: new Date().toISOString(),
+          source_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          idempotency_key: key,
+        }),
+      });
     },
     onSuccess: (response, eventType) => {
       toast.success(
@@ -629,10 +655,63 @@ export function AttendanceWorkspace({
       void queryClient.invalidateQueries({
         queryKey: ["hr-attendance", scope],
       });
+      void selfStatus.refetch();
     },
     onError: (failure) =>
       toast.error(
         errorMessage(failure, "The attendance event could not be recorded."),
+      ),
+  });
+
+  const punchMutation = useMutation({
+    mutationFn: (payload: { event_type: AttendanceEventType }) =>
+      attendanceFetch<{ event: AttendanceEvent }>("/attendance/punch", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      toast.success("Attendance event recorded.");
+      void queryClient.invalidateQueries({
+        queryKey: ["hr-attendance", scope],
+      });
+      void selfStatus.refetch();
+    },
+    onError: (failure) =>
+      toast.error(
+        errorMessage(failure, "The attendance event could not be recorded."),
+      ),
+  });
+
+  const linkAccountMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        return await attendanceFetch<{ data: unknown; message: string }>(
+          "/attendance/self-service/link-account",
+          { method: "POST" },
+        );
+      } catch {
+        return await hrFetch<{ data: unknown; message: string }>(
+          "/employees/self-link",
+          { method: "POST" },
+        );
+      }
+    },
+    onSuccess: (response) => {
+      toast.success(
+        response.message ||
+          "User account linked to employee record successfully!",
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ["hr-attendance", scope],
+      });
+      void selfStatus.refetch();
+    },
+    onError: (failure) =>
+      toast.error(
+        errorMessage(
+          failure,
+          "Could not link account. Ask HR to link it in Employee Management.",
+        ),
       ),
   });
 
@@ -671,6 +750,16 @@ export function AttendanceWorkspace({
     { label: "Exceptions", value: metrics.exceptions, icon: Activity },
     { label: "Unrecorded", value: metrics.absent, icon: ShieldCheck },
   ];
+  const availableViews: AttendanceView[] = [
+    ...(canView || canPunch ? (["today"] as const) : []),
+    ...(canViewReconciliation ? (["issues", "reconcile"] as const) : []),
+    ...(canViewSchedules ? (["schedules"] as const) : []),
+    ...(canView || canPunch ? (["events"] as const) : []),
+    ...(canViewCapture ? (["devices"] as const) : []),
+  ];
+  const resolvedView = availableViews.includes(activeView)
+    ? activeView
+    : (availableViews[0] ?? "today");
 
   if (
     isLoaded &&
@@ -719,8 +808,9 @@ export function AttendanceWorkspace({
               Attendance, from punch to proof
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700 dark:text-slate-200">
-              Record the workday, see the normalized event trail, and review the
-              resulting daily record without switching pages.
+              Start with Today, then open one focused task at a time. The work
+              date stays consistent across records, issues, reconciliation, and
+              the event log.
             </p>
           </div>
 
@@ -779,7 +869,81 @@ export function AttendanceWorkspace({
         </div>
       </header>
 
-      {canPunch && (
+      <Tabs
+        value={resolvedView}
+        onValueChange={(value) => setActiveView(value as AttendanceView)}
+        className="gap-5"
+      >
+        <Card className="border-slate-500 dark:border-slate-400">
+          <CardContent className="p-3 sm:p-4">
+            <TabsList
+              aria-label="Attendance workspace views"
+              className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-slate-500 bg-slate-100 p-1.5 sm:grid-cols-3 xl:grid-cols-6 dark:bg-slate-900"
+            >
+              {(canView || canPunch) && (
+                <TabsTrigger
+                  value="today"
+                  className={tabTriggerClass}
+                >
+                  <CalendarDays aria-hidden="true" />
+                  Today
+                </TabsTrigger>
+              )}
+              {canViewReconciliation && (
+                <TabsTrigger
+                  value="issues"
+                  className={tabTriggerClass}
+                >
+                  <Activity aria-hidden="true" />
+                  Fix issues
+                </TabsTrigger>
+              )}
+              {canViewReconciliation && (
+                <TabsTrigger
+                  value="reconcile"
+                  className={tabTriggerClass}
+                >
+                  <ShieldCheck aria-hidden="true" />
+                  Reconcile
+                </TabsTrigger>
+              )}
+              {canViewSchedules && (
+                <TabsTrigger
+                  value="schedules"
+                  className={tabTriggerClass}
+                >
+                  <Clock3 aria-hidden="true" />
+                  Schedules
+                </TabsTrigger>
+              )}
+              {(canView || canPunch) && (
+                <TabsTrigger
+                  value="events"
+                  className={tabTriggerClass}
+                >
+                  <History aria-hidden="true" />
+                  Event log
+                </TabsTrigger>
+              )}
+              {canViewCapture && (
+                <TabsTrigger
+                  value="devices"
+                  className={tabTriggerClass}
+                >
+                  <Fingerprint aria-hidden="true" />
+                  Devices
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <p className="mt-3 px-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+              Choose one work area. Use the Attendance Management sidebar for
+              people, device setup, device administration, and reports.
+            </p>
+          </CardContent>
+        </Card>
+
+        <TabsContent value="today" className="space-y-5">
+          {canPunch && (
         <Card className="border-slate-500 dark:border-slate-400">
           <CardContent className="p-5">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)]">
@@ -812,11 +976,28 @@ export function AttendanceWorkspace({
                 </div>
 
                 {selfStatus.isError ? (
-                  <div className="mt-5 rounded-xl border border-amber-700 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100">
-                    {errorMessage(
-                      selfStatus.error,
-                      "Your user account is not linked to an employee record. Ask HR to link it before using self-service attendance.",
-                    )}
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-700 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100">
+                    <div>
+                      <p className="font-bold">Unlinked User Account</p>
+                      <p className="mt-0.5 text-xs text-amber-900 dark:text-amber-200">
+                        {errorMessage(
+                          selfStatus.error,
+                          "Your user account is not linked to an employee record. Ask HR to link it before using self-service attendance.",
+                        )}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => linkAccountMutation.mutate()}
+                      disabled={linkAccountMutation.isPending}
+                      className="bg-amber-900 font-bold text-white hover:bg-amber-950 dark:bg-amber-200 dark:text-slate-950"
+                    >
+                      <UserRoundCheck className="mr-1.5 h-4 w-4" />
+                      {linkAccountMutation.isPending
+                        ? "Linking…"
+                        : "Link My Account Now"}
+                    </Button>
                   </div>
                 ) : (
                   <div className="mt-5 flex flex-wrap gap-2">
@@ -875,9 +1056,9 @@ export function AttendanceWorkspace({
             </div>
           </CardContent>
         </Card>
-      )}
+          )}
 
-      {canView && (
+          {canView && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {metricCards.map(({ label, value, icon: Icon }) => (
             <Card
@@ -899,9 +1080,9 @@ export function AttendanceWorkspace({
             </Card>
           ))}
         </div>
-      )}
+          )}
 
-      <Card className="border-slate-500 dark:border-slate-400">
+          <Card className="border-slate-500 dark:border-slate-400">
         <CardContent className="p-0">
           <div className="border-b border-slate-500 p-5 dark:border-slate-400">
             <h3 className="text-xl font-black">Daily attendance records</h3>
@@ -930,10 +1111,14 @@ export function AttendanceWorkspace({
                   recordRows.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-semibold">
-                        {record.employee?.primary_name ?? "My attendance"}
+                        <div>
+                          {record.employee?.primary_name ?? "My attendance"}
+                        </div>
                         {record.employee?.employee_number && (
-                          <span className="block text-xs text-slate-600 dark:text-slate-300">
-                            {record.employee.employee_number}
+                          <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30 mt-1">
+                            {formatEmployeeNumber(
+                              record.employee.employee_number,
+                            )}
                           </span>
                         )}
                       </TableCell>
@@ -968,25 +1153,40 @@ export function AttendanceWorkspace({
             </Table>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      <AttendanceCorrections date={date} />
+        {canViewReconciliation && (
+          <TabsContent value="issues">
+            <AttendanceCorrections date={date} />
+          </TabsContent>
+        )}
 
-      {canViewReconciliation && (
-        <AttendanceReconciliation
-          date={date}
-          employees={employees.data?.data ?? []}
-          canReconcile={canReconcile}
-        />
-      )}
+        {canViewReconciliation && (
+          <TabsContent value="reconcile">
+            <AttendanceReconciliation
+              date={date}
+              employees={employees.data?.data ?? []}
+              canReconcile={canReconcile}
+            />
+          </TabsContent>
+        )}
 
-      {canViewCapture && (
-        <AttendanceCaptureWorkspace employees={employees.data?.data ?? []} />
-      )}
+        {canViewCapture && (
+          <TabsContent value="devices">
+            <AttendanceDeviceSummary />
+          </TabsContent>
+        )}
 
-      <ScheduleWorkspace />
+        {canViewSchedules && (
+          <TabsContent value="schedules">
+            <ScheduleWorkspace />
+          </TabsContent>
+        )}
 
-      <Card className="border-slate-500 dark:border-slate-400">
+        {(canView || canPunch) && (
+          <TabsContent value="events">
+            <Card className="border-slate-500 dark:border-slate-400">
         <CardContent className="p-0">
           <div className="grid gap-4 border-b border-slate-500 p-5 md:grid-cols-[1fr_minmax(14rem,20rem)] md:items-end dark:border-slate-400">
             <div>
@@ -1010,7 +1210,8 @@ export function AttendanceWorkspace({
                   <option value="">All visible employees</option>
                   {employees.data?.data.map((employee) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.primary_name} · {employee.employee_number}
+                      {employee.primary_name} ·{" "}
+                      {formatEmployeeNumber(employee.employee_number)}
                     </option>
                   ))}
                 </select>
@@ -1040,10 +1241,22 @@ export function AttendanceWorkspace({
                         {event.event_uuid.slice(0, 8)}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        {event.employee?.primary_name ?? "My attendance"}
-                        <span className="block text-xs font-normal text-slate-600 dark:text-slate-300">
-                          {event.external_employee_identifier ?? "Linked user"}
-                        </span>
+                        <div>
+                          {event.employee?.primary_name ?? "My attendance"}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {event.employee?.employee_number && (
+                            <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30">
+                              {formatEmployeeNumber(
+                                event.employee.employee_number,
+                              )}
+                            </span>
+                          )}
+                          <span className="text-xs font-normal text-slate-600 dark:text-slate-300">
+                            {event.external_employee_identifier ??
+                              "Linked user"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="font-semibold">
                         {eventLabels[event.event_type]}
@@ -1088,7 +1301,10 @@ export function AttendanceWorkspace({
             </Table>
           </div>
         </CardContent>
-      </Card>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
 
       <ManualAttendanceDialog
         open={manualOpen}

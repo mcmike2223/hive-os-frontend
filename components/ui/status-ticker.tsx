@@ -21,7 +21,7 @@ export function StatusTicker() {
   return (
     <div className="w-full bg-destructive/10 border-b border-destructive/20 h-10 overflow-hidden whitespace-nowrap flex items-center relative group">
       {/* Fixed Label on the Left */}
-      <div className="flex items-center gap-2 px-6 bg-background h-full z-20 border-r border-destructive/20 text-destructive font-mono text-[10px] font-black uppercase tracking-[0.2em] shadow-[10px_0_20px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center gap-2 px-6 bg-background h-full z-20 border-r border-destructive/20 text-destructive font-mono text-[11px] font-black uppercase tracking-[0.2em] shadow-[10px_0_20px_rgba(0,0,0,0.5)]">
         <Activity className="h-3 w-3 animate-pulse" /> 
         System_Log:
       </div>

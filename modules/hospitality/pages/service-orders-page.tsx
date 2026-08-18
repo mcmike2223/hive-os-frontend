@@ -45,11 +45,13 @@ import {
 import type { HospitalityServiceOrder, HospitalityLocation, HospitalityReservation, HospitalityMenuItem, HospitalityServiceOrderItem } from "@/modules/hospitality/types";
 import { cn } from "@/lib/utils";
 import InvoiceDialog from "@/modules/hospitality/components/invoice-dialog";
+import OrderCoursingPanel from "@/modules/hospitality/components/order-coursing-panel";
 import { DataTable } from "@/components/datatable/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/modules/shared/api/http";
 import { Checkbox } from "@/components/ui/checkbox";
 import { notifyBulkDeleteOutcomes, notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type PendingOrderItem = {
   menu_item_id: string;
@@ -63,6 +65,29 @@ type PendingOrderItem = {
 
 export default function ServiceOrdersPage() {
   const queryClient = useQueryClient();
+  const { hasAnyPermission, hasPermission } = usePermissions();
+  const canCreateOrders = hasAnyPermission([
+    "create_hospitality_service_orders",
+    "manage_hospitality_service_orders",
+  ]);
+  const canEditOrders = hasAnyPermission([
+    "edit_hospitality_service_orders",
+    "manage_hospitality_service_orders",
+  ]);
+  const canDeleteOrders = hasPermission("manage_hospitality_service_orders");
+  const canViewBilling = hasAnyPermission([
+    "view_hospitality_billing",
+    "manage_hospitality_billing",
+  ]);
+  const canProcessPayments = hasAnyPermission([
+    "create_hospitality_billing",
+    "manage_hospitality_billing",
+  ]);
+  const canExportOrders = hasAnyPermission([
+    "export_hospitality_reports",
+    "manage_hospitality_service_orders",
+  ]);
+  const canAddComps = hasPermission("comp_hospitality_service_orders");
   
   // DataTable State
   const [page, setPage] = useState(1);
@@ -129,6 +154,24 @@ export default function ServiceOrdersPage() {
     },
     placeholderData: (prev) => prev,
   });
+
+  // selectedOrder is a snapshot taken when the row was clicked, so coursing and
+  // transfers would keep rendering stale seats and held badges after they
+  // succeed. Read the live row back out of the refreshed list instead, falling
+  // back to the snapshot while a refetch is in flight.
+  const liveSelectedOrder = useMemo(() => {
+    if (!selectedOrder) return null;
+
+    return (
+      (ordersData?.rows as HospitalityServiceOrder[] | undefined)?.find(
+        (row) => row.id === selectedOrder.id,
+      ) ?? selectedOrder
+    );
+  }, [ordersData, selectedOrder]);
+
+  const refreshSelectedOrder = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["hospitality", "service-orders"] });
+  }, [queryClient]);
 
   // Fetch tables
   const { data: tables = [] } = useQuery<HospitalityLocation[]>({
@@ -258,6 +301,7 @@ export default function ServiceOrdersPage() {
       notes: createForm.notes || null,
       status: createForm.status,
       items: pendingItems.map(item => ({
+        menu_item_id: Number(item.menu_item_id),
         inventory_item_id: item.inventory_item_id,
         item_name: item.item_name,
         quantity: item.quantity,
@@ -440,7 +484,7 @@ export default function ServiceOrdersPage() {
       cell: ({ row }) => {
         const order = row.original;
         return (
-          <Badge variant="outline" className={cn("capitalize font-black border text-[10px] tracking-wider rounded-full py-0.5", statusColors[order.status])}>
+          <Badge variant="outline" className={cn("capitalize font-black border text-[11px] tracking-wider rounded-full py-0.5", statusColors[order.status])}>
             {order.status}
           </Badge>
         );
@@ -455,29 +499,33 @@ export default function ServiceOrdersPage() {
         const order = row.original;
         return (
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openInvoiceDialog(order)}
-              className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-300 border-slate-800 bg-slate-950 hover:bg-slate-900 hover:text-white"
-            >
-              <FileText className="mr-1 h-3.5 w-3.5" />
-              Invoice
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openDetailDialog(order)}
-              className="h-8 text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
-            >
-              <Pencil className="mr-1 h-3.5 w-3.5" />
-              Manage / Details
-            </Button>
+            {canViewBilling && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openInvoiceDialog(order)}
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-slate-300 border-slate-800 bg-slate-950 hover:bg-slate-900 hover:text-white"
+              >
+                <FileText className="mr-1 h-3.5 w-3.5" />
+                Invoice
+              </Button>
+            )}
+            {canEditOrders && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openDetailDialog(order)}
+                className="h-8 text-[11px] font-black uppercase tracking-widest text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+              >
+                <Pencil className="mr-1 h-3.5 w-3.5" />
+                Manage / Details
+              </Button>
+            )}
           </div>
         );
       }
     }
-  ], [statusColors]);
+  ], [canEditOrders, canViewBilling, statusColors]);
 
   return (
     <div className="space-y-8 p-6 pb-20">
@@ -498,6 +546,7 @@ export default function ServiceOrdersPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {canCreateOrders && (
           <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
             if (!open) resetCreateForm();
             setIsCreateDialogOpen(open);
@@ -590,6 +639,7 @@ export default function ServiceOrdersPage() {
                         />
                       </div>
 
+                      {canAddComps && (
                       <div className="flex items-center gap-2 h-10 px-1">
                         <Checkbox 
                           id="item_is_comp"
@@ -598,6 +648,7 @@ export default function ServiceOrdersPage() {
                         />
                         <Label htmlFor="item_is_comp" className="text-xs font-bold cursor-pointer">Complimentary</Label>
                       </div>
+                      )}
 
                       {itemIsComp && (
                         <div className="w-[150px] space-y-2">
@@ -648,7 +699,7 @@ export default function ServiceOrdersPage() {
                                 <TableCell className="font-semibold">
                                   {item.item_name}
                                   {item.is_comp && (
-                                    <Badge variant="outline" className="ml-2 text-[10px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
+                                    <Badge variant="outline" className="ml-2 text-[11px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
                                       COMP ({item.comp_reason})
                                     </Badge>
                                   )}
@@ -701,6 +752,7 @@ export default function ServiceOrdersPage() {
               </form>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </div>
 
@@ -736,12 +788,15 @@ export default function ServiceOrdersPage() {
           onQueryChange={handleQueryChange}
           onRefresh={handleRefresh}
           onResetFilters={resetFilters}
-          onDeleteRows={handleDeleteRows}
+          onDeleteRows={canDeleteOrders ? handleDeleteRows : undefined}
           searchPlaceholder="Search service orders by number or notes..."
-          enableRowSelection={true}
+          enableRowSelection={canDeleteOrders}
           selectedRowIds={selectedRowIds}
           onSelectionChange={(payload) => setSelectedRowIds(payload.selectedRowIds as Record<string, boolean>)}
           exportEndpoint={exportUrl}
+          canCopy={canExportOrders}
+          canExport={canExportOrders}
+          canPrint={canExportOrders}
           resourceName="service orders"
           syncWithUrl={true}
         />
@@ -789,7 +844,7 @@ export default function ServiceOrdersPage() {
                             <TableCell className="font-semibold">
                               {item.item_name}
                               {item.is_comp && (
-                                <Badge variant="outline" className="ml-2 text-[10px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
+                                <Badge variant="outline" className="ml-2 text-[11px] text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest font-black py-0">
                                   COMP ({item.comp_reason})
                                 </Badge>
                               )}
@@ -803,6 +858,11 @@ export default function ServiceOrdersPage() {
                     </Table>
                   </div>
                 </div>
+
+                <OrderCoursingPanel
+                  order={liveSelectedOrder ?? selectedOrder}
+                  onChanged={refreshSelectedOrder}
+                />
 
                 {/* Status Transitions */}
                 <div className="space-y-2">
@@ -836,7 +896,7 @@ export default function ServiceOrdersPage() {
                   />
                 </div>
 
-                {selectedOrder.status !== "closed" && selectedOrder.status !== "cancelled" && (
+                {selectedOrder.status !== "closed" && selectedOrder.status !== "cancelled" && canProcessPayments && (
                   <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between text-xs font-bold text-indigo-700">
                     <span className="flex items-center gap-1.5">
                       <Banknote className="h-4 w-4" />
@@ -853,7 +913,7 @@ export default function ServiceOrdersPage() {
               </div>
             )}
             <DialogFooter className="pt-4 border-t flex justify-between sm:justify-between items-center w-full">
-              {selectedOrder && (
+              {selectedOrder && canViewBilling && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -869,7 +929,7 @@ export default function ServiceOrdersPage() {
               )}
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsDetailDialogOpen(false)}>Close</Button>
-                {selectedOrder?.status !== "closed" && selectedOrder?.status !== "cancelled" && (
+                {selectedOrder?.status !== "closed" && selectedOrder?.status !== "cancelled" && canEditOrders && (
                   <Button type="submit" disabled={updateMutation.isPending}>
                     {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Status

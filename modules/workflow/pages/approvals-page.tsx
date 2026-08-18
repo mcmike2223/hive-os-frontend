@@ -133,9 +133,9 @@ export default function ApprovalsPage() {
             <div className="flex flex-col">
               <span className="font-black tracking-tight">{displayName}</span>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">{contextLabel}</span>
+                <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">{contextLabel}</span>
                 {qaGate.isProduct ? (
-                  <Badge variant="outline" className={`rounded-full px-2 py-0 text-[10px] ${qaGate.meta.className}`}>
+                  <Badge variant="outline" className={`rounded-full px-2 py-0 text-[11px] ${qaGate.meta.className}`}>
                     {qaGate.meta.label}
                   </Badge>
                 ) : null}
@@ -180,7 +180,7 @@ export default function ApprovalsPage() {
       accessorKey: "sequence",
       header: "Step",
       cell: ({ row }: { row: DataTableRow<WorkflowApprovalRow> }) => (
-        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-[10px] font-black">
+        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-[11px] font-black">
           {row.original.sequence}
         </div>
       ),
@@ -195,7 +195,7 @@ export default function ApprovalsPage() {
         if (activeTab === "requested" && role) {
           return (
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+              <div className="h-6 w-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-[11px] font-bold text-indigo-600">
                 <ShieldCheck className="h-3 w-3" />
               </div>
               <span className="text-xs font-medium">{role.name} (Role)</span>
@@ -205,7 +205,7 @@ export default function ApprovalsPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary">
               {user?.name?.charAt(0) || "U"}
             </div>
             <span className="text-xs font-medium">{user?.name || "Unknown"}</span>
@@ -254,7 +254,7 @@ export default function ApprovalsPage() {
               ) : null}
             </div>
             {qaGate.isProduct && !showApprove ? (
-              <span className="max-w-[220px] text-[10px] font-medium leading-snug text-muted-foreground">
+              <span className="max-w-[220px] text-[11px] font-medium leading-snug text-muted-foreground">
                 {qaGate.message}
               </span>
             ) : null}

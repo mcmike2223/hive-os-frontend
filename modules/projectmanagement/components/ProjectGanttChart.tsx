@@ -408,7 +408,7 @@ export const ProjectGanttChart: React.FC<ProjectGanttChartProps> = ({ project, t
                   })}
                   <div className="absolute bottom-0 left-0 grid h-8" style={{ width: chartWidth, gridTemplateColumns: `repeat(${days.length}, ${zoomConfig[zoom].dayWidth}px)` }}>
                     {days.map((day) => (
-                      <div key={day.toISOString()} className="border-l px-1 text-[10px] text-muted-foreground">
+                      <div key={day.toISOString()} className="border-l px-1 text-[11px] text-muted-foreground">
                         {format(day, "d")}
                       </div>
                     ))}
@@ -451,7 +451,7 @@ export const ProjectGanttChart: React.FC<ProjectGanttChartProps> = ({ project, t
               >
                 <div className="relative" style={{ width: chartWidth }}>
                   <div className="absolute bottom-0 top-[-9999px] w-px bg-rose-500" style={{ left: todayLeft }} />
-                  <div className="absolute -top-6 rounded-sm bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white" style={{ left: Math.max(0, todayLeft - 18) }}>
+                  <div className="absolute -top-6 rounded-sm bg-rose-500 px-2 py-0.5 text-[11px] font-bold text-white" style={{ left: Math.max(0, todayLeft - 18) }}>
                     {t('project_management.today', 'Today')}
                   </div>
                 </div>
@@ -535,12 +535,12 @@ function TimelineRow({
             {(task.assignees ?? []).slice(0, 2).map((user) => (
               <Avatar key={user.id} className="h-8 w-8 bg-muted border-2 border-card">
                 <AvatarImage src={user.avatar_path || undefined} />
-                <AvatarFallback className="text-[10px]">{initials(user.name)}</AvatarFallback>
+                <AvatarFallback className="text-[11px]">{initials(user.name)}</AvatarFallback>
               </Avatar>
             ))}
             {(task.assignees?.length ?? 0) === 0 && (
               <Avatar className="h-8 w-8 bg-muted">
-                <AvatarFallback className="text-[10px]">?</AvatarFallback>
+                <AvatarFallback className="text-[11px]">?</AvatarFallback>
               </Avatar>
             )}
           </div>
@@ -579,13 +579,13 @@ function TimelineRow({
             <span className="truncate text-xs font-semibold text-white">
               {task.title}
             </span>
-            <span className="ml-auto shrink-0 pl-2 text-[10px] font-bold text-white/90">
+            <span className="ml-auto shrink-0 pl-2 text-[11px] font-bold text-white/90">
               {task.inferred_end ? format(task.inferred_end, "MMM d") : ""}
             </span>
           </div>
         )}
         {task.isOverdue && task.inferred_end && (
-          <div className="absolute top-2 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700" style={{ left: Math.min(chartWidth - 72, left + width + 8) }}>
+          <div className="absolute top-2 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700" style={{ left: Math.min(chartWidth - 72, left + width + 8) }}>
             {t('project_management.late', 'Late')}
           </div>
         )}

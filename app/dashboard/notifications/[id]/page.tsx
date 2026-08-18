@@ -212,7 +212,7 @@ export default function NotificationDetailPage() {
                     key={`${row.label}-${row.value}`}
                     className="rounded-xl border border-border/40 bg-background/40 px-4 py-3"
                   >
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                       {row.label}
                     </div>
                     <div className="mt-1 text-sm font-semibold break-all">{row.value}</div>

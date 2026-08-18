@@ -107,6 +107,14 @@ export default function TwoFactorClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Invalid authentication code.");
 
+      if (data.__offlineQueued) {
+        throw new Error("Unable to connect to the authentication server. Please confirm the Hive backend is running and try again.");
+      }
+
+      if (!data?.data?.token) {
+        throw new Error(data.message || "Unable to connect to the authentication server. Please confirm the Hive backend is running and try again.");
+      }
+
       sessionStorage.removeItem("hive_pending_email");
       sessionStorage.removeItem("hive_2fa_token");
       sessionStorage.removeItem("hive_2fa_setup_qr");
@@ -170,7 +178,7 @@ export default function TwoFactorClient() {
 
         <div className="w-full max-w-sm mx-auto space-y-8 mt-12 lg:mt-0">
           <div className="space-y-3">
-            <Badge variant="outline" className="font-mono text-[10px] tracking-widest border-amber-500/30 text-amber-500 bg-amber-500/5 px-3">
+            <Badge variant="outline" className="font-mono text-[11px] tracking-widest border-amber-500/30 text-amber-500 bg-amber-500/5 px-3">
               {setupQr ? "SYSTEM ENFORCED PROTOCOL" : "SECURITY CLEARANCE REQUIRED"}
             </Badge>
             <h1 className="text-4xl font-space font-black tracking-tighter sm:text-5xl">Verify <span className="text-primary">Identity</span></h1>
@@ -187,7 +195,7 @@ export default function TwoFactorClient() {
                   <div className="bg-white p-3 rounded-xl shadow-md border border-gray-100 mb-4">
                       <QRCodeSVG value={setupQr} size={130} level="M" includeMargin={false} />
                   </div>
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Manual Secret Key</Label>
+                  <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">Manual Secret Key</Label>
                   <span className="text-xs font-mono bg-background px-3 py-1.5 rounded-md tracking-wider border border-border/50 shadow-sm text-foreground">
                       {setupSecret}
                   </span>
@@ -197,9 +205,9 @@ export default function TwoFactorClient() {
           <form onSubmit={handleVerify} className="space-y-6">
             <div className="space-y-3">
               <div className="grid gap-2 text-center relative">
-                <Label htmlFor="code" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Authentication Protocol</Label>
+                <Label htmlFor="code" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Authentication Protocol</Label>
                 <Input id="code" type="text" maxLength={6} required autoFocus autoComplete="one-time-code" value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, "")); if (error) setError(""); }} placeholder="000 000" disabled={loading} className={cn("h-16 text-3xl tracking-[0.5em] text-center bg-muted/30 border-border focus:ring-2 transition-all font-mono shadow-inner rounded-2xl", validationStatus === "error" ? "border-destructive focus:ring-destructive/50 text-destructive" : "focus:ring-primary/50")} />
-                <div className={cn("flex items-center justify-center gap-1.5 mt-2 font-mono text-[10px] uppercase tracking-widest transition-colors duration-300", validationStatus === "neutral" && "text-muted-foreground", validationStatus === "warning" && "text-amber-500", validationStatus === "success" && "text-emerald-500", validationStatus === "error" && "text-destructive")}><ValidationIcon className="h-3.5 w-3.5" />{validationMessage}</div>
+                <div className={cn("flex items-center justify-center gap-1.5 mt-2 font-mono text-[11px] uppercase tracking-widest transition-colors duration-300", validationStatus === "neutral" && "text-muted-foreground", validationStatus === "warning" && "text-amber-500", validationStatus === "success" && "text-emerald-500", validationStatus === "error" && "text-destructive")}><ValidationIcon className="h-3.5 w-3.5" />{validationMessage}</div>
               </div>
             </div>
             <Button type="submit" disabled={loading || code.length !== 6} className="w-full bg-primary text-primary-foreground font-space font-bold uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100 transition-all h-14 group rounded-xl">
@@ -211,7 +219,7 @@ export default function TwoFactorClient() {
 
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-muted/5 border-l border-border overflow-hidden">
         <div className="tech-grid absolute inset-0 z-0 opacity-30" />
-        <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-muted-foreground uppercase tracking-[0.3em] opacity-60"><div className="flex items-center gap-2"><Activity className="h-3 w-3" /> System Heartbeat: Optimal</div><div>Uptime: 242:12:04</div></div>
+        <div className="relative z-10 flex items-center justify-between font-mono text-[11px] text-muted-foreground uppercase tracking-[0.3em] opacity-60"><div className="flex items-center gap-2"><Activity className="h-3 w-3" /> System Heartbeat: Optimal</div><div>Uptime: 242:12:04</div></div>
         <div className="relative z-10 m-auto w-full max-w-sm">
            <div className="absolute inset-[-40px] bg-amber-500/10 blur-[100px] rounded-full animate-pulse" />
            <div className="relative bg-card/40 backdrop-blur-xl border border-amber-500/20 p-1 rounded-3xl shadow-2xl overflow-hidden group">
@@ -223,7 +231,7 @@ export default function TwoFactorClient() {
                    </div>
                 </div>
                 <h3 className="font-space font-bold text-xl tracking-tight mb-2 uppercase">{isTenant ? "Tenant Node Gateway" : "Master Cluster Gateway"}</h3>
-                <div className="flex items-center justify-center gap-2 text-amber-500/70 font-mono text-[10px] uppercase tracking-widest mb-6 border border-amber-500/20 bg-amber-500/5 px-3 py-1 rounded-full"><Terminal className="h-3 w-3" /> {setupQr ? "Enforcing Protocol" : "Awaiting Input"}</div>
+                <div className="flex items-center justify-center gap-2 text-amber-500/70 font-mono text-[11px] uppercase tracking-widest mb-6 border border-amber-500/20 bg-amber-500/5 px-3 py-1 rounded-full"><Terminal className="h-3 w-3" /> {setupQr ? "Enforcing Protocol" : "Awaiting Input"}</div>
               </div>
            </div>
         </div>

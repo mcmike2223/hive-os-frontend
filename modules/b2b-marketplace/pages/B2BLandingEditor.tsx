@@ -640,7 +640,7 @@ function ImagePick({ label, url, onPick, onClear }: { label: string; url?: strin
         ) : (
           <button type="button" onClick={onPick} className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-muted-foreground/50 hover:text-primary transition-colors">
             <ImageIcon className="h-6 w-6" />
-            <span className="text-[10px] font-medium">Choose image</span>
+            <span className="text-[11px] font-medium">Choose image</span>
           </button>
         )}
       </div>

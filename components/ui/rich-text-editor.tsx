@@ -522,7 +522,7 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
       )}
     >
       {isDocumentSurface ? (
-        <span className="px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+        <span className="px-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
           Font
         </span>
       ) : null}
@@ -551,7 +551,7 @@ const MenuBar = ({ editor, onOpenMediaPicker, onOpenSignaturePad, isFullscreen, 
       </Select>
 
       {isDocumentSurface ? (
-        <span className="px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+        <span className="px-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
           Size
         </span>
       ) : null}

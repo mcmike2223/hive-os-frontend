@@ -156,7 +156,7 @@ export default function StockMovementsPage() {
         accessorKey: "type",
         header: t("inventory.common.type", "Type"),
         cell: ({ row }) => (
-          <Badge variant="outline" className="uppercase text-[10px] tracking-widest font-black">
+          <Badge variant="outline" className="uppercase text-[11px] tracking-widest font-black">
             {row.original.type}
           </Badge>
         ),

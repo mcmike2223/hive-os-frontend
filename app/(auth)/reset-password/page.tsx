@@ -141,7 +141,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
   return (
     <div className="w-full max-w-sm mx-auto space-y-8 mt-12 lg:mt-0">
       <div className="space-y-3">
-        <Badge variant="outline" className="font-mono text-[10px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">SECURITY PROTOCOL INITIATED</Badge>
+        <Badge variant="outline" className="font-mono text-[11px] tracking-widest border-primary/30 text-primary bg-primary/5 px-3">SECURITY PROTOCOL INITIATED</Badge>
         <h1 className="text-4xl font-space font-black tracking-tighter sm:text-5xl">Initialize <span className="text-primary">Access</span></h1>
         <p className="text-muted-foreground font-inter text-sm max-w-[300px]">Establish your permanent encryption key to secure your node identity.</p>
       </div>
@@ -157,7 +157,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
           <Button asChild className="w-full h-14 font-space font-bold uppercase tracking-widest shadow-xl shadow-primary/20">
             <Link href="/forgot-password">Request Recovery Link</Link>
           </Button>
-          <Button asChild variant="ghost" className="w-full font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+          <Button asChild variant="ghost" className="w-full font-mono text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
             <Link href="/sign-in">Back to Sign In</Link>
           </Button>
         </div>
@@ -174,7 +174,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
         <div className="bg-muted/30 border border-border rounded-xl p-3 flex items-center gap-3">
           <div className="bg-primary/10 p-2 rounded-lg"><KeyRound className="h-4 w-4 text-primary" /></div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Target Identity</span>
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest">Target Identity</span>
             <span className="text-sm font-semibold text-foreground truncate">{email}</span>
           </div>
         </div>
@@ -183,7 +183,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
       <form onSubmit={handleReset} className="space-y-6">
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="password" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground ml-1">New Secure Key</Label>
+            <Label htmlFor="password" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground ml-1">New Secure Key</Label>
             <div className="relative group">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
@@ -199,7 +199,7 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
 
           {policy ? (
             <div className="bg-background/50 rounded-xl border border-border/50 p-4 space-y-2 animate-in fade-in duration-500">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex justify-between">
+              <div className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex justify-between">
                 <span>Encryption Requirements</span><span className="text-primary/70">SYNCED</span>
               </div>
               <ul className="space-y-2.5">
@@ -212,13 +212,13 @@ function ResetPasswordForm({ isTenant }: { isTenant: boolean }) {
               </ul>
             </div>
           ) : (
-             <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground uppercase p-2">
+             <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground uppercase p-2">
                 <Loader2 className="h-3 w-3 animate-spin" /> Fetching Network Security Policy...
              </div>
           )}
           
           <div className="grid gap-2 pt-2">
-            <Label htmlFor="password_confirmation" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground ml-1 flex justify-between">
+            <Label htmlFor="password_confirmation" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground ml-1 flex justify-between">
               <span>Verify Secure Key</span>
               {passwordConfirmation.length > 0 && <span className={keysMatch ? "text-emerald-500" : "text-destructive"}>{keysMatch ? "[ MATCH ]" : "[ MISMATCH ]"}</span>}
             </Label>
@@ -275,7 +275,7 @@ export default function ResetPasswordPage() {
 
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-muted/5 border-l border-border overflow-hidden">
         <div className="tech-grid absolute inset-0 z-0 opacity-30" />
-        <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-muted-foreground uppercase tracking-[0.3em] opacity-60"><div className="flex items-center gap-2"><Activity className="h-3 w-3" /> System Heartbeat: Optimal</div><div>Uptime: 242:12:04</div></div>
+        <div className="relative z-10 flex items-center justify-between font-mono text-[11px] text-muted-foreground uppercase tracking-[0.3em] opacity-60"><div className="flex items-center gap-2"><Activity className="h-3 w-3" /> System Heartbeat: Optimal</div><div>Uptime: 242:12:04</div></div>
         <div className="relative z-10 m-auto w-full max-w-sm">
            <div className="absolute inset-[-40px] bg-primary/10 blur-[100px] rounded-full animate-pulse" />
            <div className="relative bg-card/40 backdrop-blur-xl border border-primary/20 p-1 rounded-3xl shadow-2xl overflow-hidden group">
@@ -286,17 +286,17 @@ export default function ResetPasswordPage() {
                    <div className="absolute -top-2 -right-2"><div className="w-4 h-4 bg-green-500 rounded-full border-4 border-background animate-pulse" /></div>
                 </div>
                 <h3 className="font-space font-bold text-xl tracking-tight mb-2 uppercase">{isTenant ? "Tenant Node Key Exchange" : "Master Key Exchange"}</h3>
-                <div className="flex items-center gap-4 text-muted-foreground font-mono text-[10px] uppercase tracking-widest mb-6">
+                <div className="flex items-center gap-4 text-muted-foreground font-mono text-[11px] uppercase tracking-widest mb-6">
                   <span className="flex items-center gap-1.5"><Cpu className="h-3 w-3" /> ARMv8</span><div className="w-1 h-1 bg-border rounded-full" /><span className="flex items-center gap-1.5"><Terminal className="h-3 w-3" /> TLS 1.3</span>
                 </div>
                 <div className="w-full bg-muted/30 rounded-xl p-4 border border-border/50 space-y-2">
                    <div className="h-1.5 w-full bg-primary/10 rounded-full overflow-hidden relative"><div className="absolute inset-y-0 left-0 bg-primary w-[30%] shadow-[0_0_10px_hsl(var(--primary))] animate-[pulse_2s_ease-in-out_infinite]" /></div>
-                   <div className="flex justify-between font-mono text-[9px] uppercase tracking-tighter opacity-50"><span>Encryption Status</span><span className="text-primary">Awaiting Input...</span></div>
+                   <div className="flex justify-between font-mono text-[11px] uppercase tracking-tighter opacity-50"><span>Encryption Status</span><span className="text-primary">Awaiting Input...</span></div>
                 </div>
               </div>
            </div>
         </div>
-        <div className="relative z-10 space-y-2 font-mono text-[10px] text-muted-foreground select-none">
+        <div className="relative z-10 space-y-2 font-mono text-[11px] text-muted-foreground select-none">
           <div className="flex justify-between group cursor-default"><span className="group-hover:text-primary transition-colors">/root/system/handshake_v3.sh</span><span className="text-green-500/50">[EXECUTED]</span></div>
           <div className="flex justify-between group cursor-default"><span className="group-hover:text-primary transition-colors">/root/network/mtls_check.cert</span><span className="text-green-500/50">[VALIDATED]</span></div>
           <div className="flex justify-between group cursor-default"><span className="group-hover:text-primary transition-colors">/root/auth/key_generation</span><span className="text-yellow-500/50 animate-pulse">[PENDING]</span></div>

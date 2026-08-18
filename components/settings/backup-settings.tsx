@@ -221,7 +221,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
           </div>
 
           <div className="rounded-2xl border border-indigo-500/10 bg-indigo-500/5 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-500">Current Schedule</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-indigo-500">Current Schedule</p>
             <p className="mt-2 text-lg font-bold text-foreground">{scheduleSummary}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Automatic runs always execute a full system snapshot with the database and file archive together.
@@ -230,7 +230,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
 
           <div className="mt-6 space-y-5 border-t border-border/50 pt-6">
             <div className="space-y-2">
-              <Label className="pl-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Frequency</Label>
+              <Label className="pl-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Frequency</Label>
               <Select
                 value={formData.backup_frequency}
                 onValueChange={(value) =>
@@ -255,7 +255,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
                   formData.backup_frequency === "daily" ? "opacity-40" : "opacity-100"
                 )}
               >
-                <Label className="flex items-center gap-1.5 pl-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <Label className="flex items-center gap-1.5 pl-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                   <Calendar className="h-3 w-3" />
                   {formData.backup_frequency === "weekly" ? "Day Of Week" : "Day Of Month"}
                 </Label>
@@ -295,7 +295,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5 pl-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <Label className="flex items-center gap-1.5 pl-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   Time (24h)
                 </Label>
@@ -373,7 +373,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
         <div className="overflow-hidden rounded-xl border border-border/50 bg-background/50">
           <div className="overflow-x-auto">
             <table className="w-full whitespace-nowrap text-left text-sm">
-              <thead className="bg-muted/30 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <thead className="bg-muted/30 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 <tr>
                   <th className="px-6 py-4">Snapshot</th>
                   <th className="px-6 py-4">Payload</th>
@@ -415,7 +415,7 @@ export function BackupSettings({ isCentralNode }: BackupSettingsProps) {
                       <td className="px-6 py-4">
                         <span
                           className={cn(
-                            "rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-widest",
+                            "rounded-md px-2 py-1 text-[11px] font-black uppercase tracking-widest",
                             file.trigger === "auto" ? "bg-indigo-500/10 text-indigo-500" : "bg-muted text-muted-foreground"
                           )}
                         >

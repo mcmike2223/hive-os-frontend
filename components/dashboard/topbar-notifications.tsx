@@ -332,7 +332,7 @@ export function TopbarNotificationsIcon({
           <Bell className="h-5 w-5" />
           {badgeCount !== null ? (
             <span
-              className={`absolute -top-1 -right-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm transition-colors ${
+              className={`absolute -top-1 -right-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[11px] font-black text-white shadow-sm transition-colors ${
                 badgeCount > 0 ? "bg-destructive" : "bg-muted-foreground"
               }`}
             >
@@ -404,7 +404,7 @@ export function TopbarNotificationsIcon({
                         <span className="text-[13px] leading-tight font-bold text-foreground">
                           {notification.title}
                         </span>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
                           {notification.created_at
                             ? formatDistanceToNow(
                                 new Date(notification.created_at),

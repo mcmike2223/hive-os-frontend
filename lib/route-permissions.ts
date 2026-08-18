@@ -182,6 +182,174 @@ export const PAYROLL_ROUTE_PERMISSIONS = [
   "view_payroll_attendance",
   "manage_payroll_attendance",
 ] as const;
+export const PERFORMANCE_ROUTE_PERMISSIONS = [
+  "view_own_performance",
+  "view_team_performance",
+  "view_all_performance",
+  "manage_own_goals",
+  "manage_team_goals",
+  "submit_self_reviews",
+  "acknowledge_performance_reviews",
+  "conduct_performance_reviews",
+  "calibrate_performance",
+  "request_performance_feedback",
+  "provide_performance_feedback",
+  "manage_performance_checkins",
+  "manage_improvement_plans",
+  "view_performance_reports",
+  "export_performance_reports",
+  "manage_performance_cycles",
+  "manage_competencies",
+  "manage_performance",
+] as const;
+export const PROCUREMENT_ROUTE_PERMISSIONS = [
+  "view_procurement",
+  "manage_procurement",
+  "create_procurement_requisitions",
+  "approve_procurement_requisitions",
+  "manage_procurement_sourcing",
+  "evaluate_procurement_bids",
+  "manage_procurement_suppliers",
+  "create_procurement_orders",
+  "approve_procurement_orders",
+  "receive_procurement_goods",
+  "inspect_procurement_goods",
+  "manage_supplier_invoices",
+  "approve_supplier_invoices",
+  "override_procurement_controls",
+  "manage_procurement_agreements",
+  "view_procurement_reports",
+  "export_procurement_reports",
+  "manage_procurement_settings",
+] as const;
+export const FLEET_ROUTE_PERMISSIONS = [
+  "view_fleet",
+  "manage_fleet",
+  "manage_fleet_vehicles",
+  "manage_fleet_drivers",
+  "assign_fleet_vehicles",
+  "manage_fleet_trips",
+  "record_fleet_fuel",
+  "manage_fleet_maintenance",
+  "manage_fleet_documents",
+  "view_fleet_reports",
+] as const;
+
+export const SERVICE_ROUTE_PERMISSIONS = [
+  "view_service",
+  "manage_service",
+  "manage_service_requests",
+  "manage_service_contracts",
+  "manage_service_assets",
+  "manage_service_technicians",
+  "manage_service_work_orders",
+  "manage_service_plans",
+  "complete_service_work",
+  "close_service_requests",
+  "view_service_reports",
+  "export_service_reports",
+] as const;
+
+export const INTERNAL_AUDIT_ROUTE_PERMISSIONS = [
+  "view_internal_audit",
+  "manage_internal_audit",
+  "manage_audit_universe",
+  "manage_audit_engagements",
+  "manage_audit_procedures",
+  "manage_audit_findings",
+  "manage_audit_actions",
+  "manage_audit_risks",
+  "verify_audit_actions",
+  "view_internal_audit_reports",
+  "export_internal_audit_reports",
+] as const;
+
+export const STRATEGY_ROUTE_PERMISSIONS = [
+  "view_strategy",
+  "manage_strategy",
+  "manage_strategy_plans",
+  "manage_strategy_objectives",
+  "manage_strategy_kpis",
+  "manage_strategy_initiatives",
+  "manage_strategy_reviews",
+  "record_strategy_readings",
+  "view_strategy_reports",
+  "export_strategy_reports",
+] as const;
+
+export const VANTAGE_ROUTE_PERMISSIONS = [
+  "view_vantage",
+  "manage_vantage",
+  "manage_vantage_dashboards",
+  "manage_vantage_metrics",
+  "manage_vantage_alerts",
+  "export_vantage_reports",
+] as const;
+
+export const AGRICULTURE_ROUTE_PERMISSIONS = [
+  "view_agriculture",
+  "manage_agriculture",
+  "manage_farm_setup",
+  "manage_plantings",
+  "record_field_activities",
+  "record_harvests",
+  "manage_livestock",
+  "view_agriculture_reports",
+  "export_agriculture_reports",
+] as const;
+
+export const CRM_ROUTE_PERMISSIONS = [
+  "view_crm",
+  "manage_crm",
+  "manage_crm_leads",
+  "manage_crm_accounts",
+  "manage_crm_contacts",
+  "manage_crm_opportunities",
+  "manage_crm_pipelines",
+  "manage_crm_campaigns",
+  "log_crm_activities",
+  "reopen_crm_opportunities",
+  "convert_crm_to_sales",
+  "view_crm_reports",
+] as const;
+
+export const SALES_ROUTE_PERMISSIONS = [
+  "view_sales",
+  "manage_sales",
+  "manage_sales_customers",
+  "manage_sales_pricing",
+  "manage_sales_quotations",
+  "manage_sales_orders",
+  "approve_sales_orders",
+  "record_sales_deliveries",
+  "invoice_sales_orders",
+  "manage_sales_targets",
+  "manage_sales_commissions",
+  "approve_sales_commissions",
+  "view_sales_reports",
+] as const;
+
+export const SUPPLY_CHAIN_ROUTE_PERMISSIONS = [
+  "view_supply_chain",
+  "manage_supply_chain",
+  "view_demand_planning",
+  "manage_demand_planning",
+  "view_replenishment",
+  "run_replenishment",
+  "view_shipments",
+  "manage_shipments",
+  "record_deliveries",
+  "view_stock_transfers",
+  "manage_stock_transfers",
+  "view_customer_returns",
+  "manage_customer_returns",
+  "inspect_customer_returns",
+  "view_landed_costs",
+  "manage_landed_costs",
+  "view_delivery_routes",
+  "manage_delivery_routes",
+  "view_supply_chain_reports",
+] as const;
 export const LEARNING_MANAGEMENT_ROUTE_PERMISSIONS = [
   "view_learning_management",
   "manage_learning_management",
@@ -269,6 +437,20 @@ export function canAccessDashboardRoute(
     );
   }
 
+  // Central master-template engine (admin library + import/version admin).
+  if (matchesPrefix(path, "/dashboard/landing-library")) {
+    return (
+      !isTenantSession() &&
+      access.hasAnyPermission([...LANDING_TEMPLATES_ROUTE_PERMISSIONS])
+    );
+  }
+
+  // Tenant-facing template marketplace: every dashboard user gets it (the
+  // page itself shows the tenant-workspace-only screen for central admins).
+  if (matchesPrefix(path, "/dashboard/landing-pages")) {
+    return true;
+  }
+
   if (matchesPrefix(path, "/dashboard/subscriptions")) {
     return isTenantSession()
       ? access.hasAnyPermission([...SUBSCRIPTIONS_ROUTE_PERMISSIONS])
@@ -353,12 +535,23 @@ export function canAccessDashboardRoute(
     );
   }
 
+  if (matchesPrefix(path, "/dashboard/inventory/procurement")) {
+    return (
+      hasSubscribedModule(access, "procurement_management") &&
+      access.hasAnyPermission([...PROCUREMENT_ROUTE_PERMISSIONS])
+    );
+  }
+
   if (matchesPrefix(path, "/dashboard/inventory")) {
     return hasSubscribedModule(access, "inventory_control");
   }
 
   if (matchesPrefix(path, "/dashboard/warehouse")) {
     return hasSubscribedModule(access, "warehouse_management");
+  }
+
+  if (matchesPrefix(path, "/dashboard/production")) {
+    return hasSubscribedModule(access, "production_management");
   }
 
   if (matchesPrefix(path, "/dashboard/workflow")) {
@@ -413,6 +606,15 @@ export function canAccessDashboardRoute(
   }
 
   if (matchesPrefix(path, "/dashboard/attendance")) {
+    if (matchesPrefix(path, "/dashboard/attendance/user-linking")) {
+      return (
+        hasSubscribedModule(access, [
+          "attendance_management",
+          "human_resources",
+        ]) && access.hasAnyPermission(["manage_attendance", "manage_employees"])
+      );
+    }
+
     if (matchesPrefix(path, "/dashboard/attendance/reports")) {
       return (
         hasSubscribedModule(access, [
@@ -456,6 +658,86 @@ export function canAccessDashboardRoute(
     return (
       hasSubscribedModule(access, ["payroll_management", "human_resources"]) &&
       access.hasAnyPermission([...PAYROLL_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/procurement")) {
+    return (
+      hasSubscribedModule(access, "procurement_management") &&
+      access.hasAnyPermission([...PROCUREMENT_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/supply-chain")) {
+    return (
+      hasSubscribedModule(access, "supply_chain_management") &&
+      access.hasAnyPermission([...SUPPLY_CHAIN_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/sales")) {
+    return (
+      hasSubscribedModule(access, "sales_management") &&
+      access.hasAnyPermission([...SALES_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/crm")) {
+    return (
+      hasSubscribedModule(access, "crm") &&
+      access.hasAnyPermission([...CRM_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/fleet")) {
+    return (
+      hasSubscribedModule(access, "fleet_management") &&
+      access.hasAnyPermission([...FLEET_ROUTE_PERMISSIONS])
+    );
+  }
+
+  // Ahead of the audit-log rule below only for clarity — the two prefixes are
+  // distinct (`internal-audit` vs `audit-logs`), which is the point of the
+  // naming: they are different features and must not share a gate.
+  if (matchesPrefix(path, "/dashboard/agriculture")) {
+    return (
+      hasSubscribedModule(access, "agriculture") &&
+      access.hasAnyPermission([...AGRICULTURE_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/vantage")) {
+    return (
+      hasSubscribedModule(access, "vantage_bi") &&
+      access.hasAnyPermission([...VANTAGE_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/strategy")) {
+    return (
+      hasSubscribedModule(access, "strategic_planning") &&
+      access.hasAnyPermission([...STRATEGY_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/internal-audit")) {
+    return (
+      hasSubscribedModule(access, "internal_audit") &&
+      access.hasAnyPermission([...INTERNAL_AUDIT_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/service")) {
+    return (
+      hasSubscribedModule(access, "service_management") &&
+      access.hasAnyPermission([...SERVICE_ROUTE_PERMISSIONS])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/performance")) {
+    return (
+      hasSubscribedModule(access, "performance_management") &&
+      access.hasAnyPermission([...PERFORMANCE_ROUTE_PERMISSIONS])
     );
   }
 

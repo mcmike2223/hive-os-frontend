@@ -65,7 +65,7 @@ export default function ChatSidebar() {
             >
               <item.icon className="h-5 w-5" />
               {badge > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[11px] font-black text-white">
                   {badge > 9 ? '9+' : badge}
                 </span>
               )}

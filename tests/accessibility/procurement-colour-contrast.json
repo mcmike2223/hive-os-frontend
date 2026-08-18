@@ -1,0 +1,124 @@
+{
+  "checks": [
+    {
+      "id": "header-title-light",
+      "foreground": "#173d32",
+      "background": "#f8f1df",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Procurement page heading"
+    },
+    {
+      "id": "header-body-light",
+      "foreground": "#3d5d53",
+      "background": "#f8f1df",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Procurement page description"
+    },
+    {
+      "id": "header-eyebrow-light",
+      "foreground": "#7b4d06",
+      "background": "#f8f1df",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Field-to-ledger label"
+    },
+    {
+      "id": "header-title-dark",
+      "foreground": "#f7f0db",
+      "background": "#142c26",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Dark mode procurement heading"
+    },
+    {
+      "id": "header-body-dark",
+      "foreground": "#c7d9d2",
+      "background": "#142c26",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Dark mode procurement description"
+    },
+    {
+      "id": "header-eyebrow-dark",
+      "foreground": "#f0c77b",
+      "background": "#142c26",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Dark mode field-to-ledger label"
+    },
+    {
+      "id": "active-navigation-light",
+      "foreground": "#ffffff",
+      "background": "#1d5b49",
+      "type": "text-normal",
+      "state": "active",
+      "notes": "Active procurement navigation"
+    },
+    {
+      "id": "active-navigation-dark",
+      "foreground": "#172e27",
+      "background": "#d9a441",
+      "type": "text-normal",
+      "state": "active",
+      "notes": "Dark mode active navigation"
+    },
+    {
+      "id": "primary-button",
+      "foreground": "#ffffff",
+      "background": "#1d5b49",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Primary create and save buttons"
+    },
+    {
+      "id": "metric-value",
+      "foreground": "#1d5b49",
+      "background": "#ffffff",
+      "type": "text-large",
+      "state": "default",
+      "notes": "Dashboard metric values"
+    },
+    {
+      "id": "input-border",
+      "foreground": "#6b7280",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "default",
+      "notes": "Text field, textarea, select, and checkbox boundary"
+    },
+    {
+      "id": "focus-ring",
+      "foreground": "#1d5b49",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "focus",
+      "notes": "Keyboard focus indicator"
+    },
+    {
+      "id": "chart-green",
+      "foreground": "#1d5b49",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "default",
+      "notes": "Ordered spend series"
+    },
+    {
+      "id": "chart-amber",
+      "foreground": "#9c6514",
+      "background": "#ffffff",
+      "type": "ui",
+      "state": "default",
+      "notes": "Invoiced spend series"
+    },
+    {
+      "id": "warning-badge",
+      "foreground": "#78350f",
+      "background": "#fffbeb",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Pending status badges"
+    }
+  ]
+}

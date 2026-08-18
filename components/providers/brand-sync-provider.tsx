@@ -3,7 +3,7 @@
 
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, getWorkspaceScopeKey } from "@/lib/runtime-context";
+import { getAccessToken, getAuthHeaders, getBackendApiRoot, getPublicServeUrl, getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { applyBrandRuntime } from "@/lib/brand-theme";
 import { handleAuthFailureResponse } from "@/lib/auth-sync";
 import { formatDocumentTitle } from "@/lib/document-title";
@@ -42,7 +42,9 @@ export function BrandSyncProvider() {
 
       // Safely apply Favicon
       if (brandSettings?.favicon) {
-        const favUrl = getBackendStorageUrl(brandSettings.favicon);
+        // The browser fetches <link rel="icon"> without our Authorization
+        // header, so the favicon has to come from the public-serve route.
+        const favUrl = getPublicServeUrl(brandSettings.favicon);
         if (favUrl) {
             let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
             if (!link) {
@@ -56,8 +58,8 @@ export function BrandSyncProvider() {
       
       // Safely apply Document Title
       if (brandSettings?.app_title) {
-          // This ensures it overrides the default metadata title set in layout.tsx
-          document.title = formatDocumentTitle("Dashboard", brandSettings.app_title);
+          const routeTitle = document.title.split("|")[0]?.trim() || "Dashboard";
+          document.title = formatDocumentTitle(routeTitle, brandSettings.app_title);
       }
     }, [brandSettings]);
 

@@ -13,16 +13,13 @@ api.interceptors.request.use((config) => {
     const token = getAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
-    // Use relative URLs for public routes (CORS-free via Next.js rewrites)
-    // For tenant routes, let the runtime-context handle the baseURL
     const backendUrl = getBackendApiRoot();
 
-    // Public routes like /api/v1/public/* should use relative URLs
-    if (backendUrl && config.url && !config.url.startsWith('/api/v1/public') && !config.url.startsWith('/api/v1')) {
-      config.baseURL = backendUrl;
-    } else if (config.url && config.url.startsWith('/api/v1')) {
-      config.baseURL = undefined;
+    if (config.url && config.url.startsWith('/api/v1')) {
+      config.url = config.url.replace(/^\/api\/v1/, '');
     }
+
+    config.baseURL = backendUrl;
 
     Object.assign(config.headers, getTenantHeaders());
   }
@@ -41,6 +38,26 @@ api.interceptors.response.use(
       const isUnauthorized = status === 401;
       const isEjected = status === 403 && msg.includes("CRITICAL:");
       const isTelemetryRequest = requestUrl.includes("/logs/client-action");
+
+      // The backend blocks every route until a first-login password is
+      // replaced. It cannot redirect, being an API, so it answers with this
+      // code and the routing happens here. Handled before the sign-out paths
+      // below: the session is valid, it is just not allowed anywhere yet.
+      if (status === 403 && code === "PASSWORD_CHANGE_REQUIRED") {
+        const onChangePassword = window.location.pathname.includes("/change-password");
+
+        if (!onChangePassword) {
+          // Remembered so the form can return the user where they were going,
+          // rather than dumping everyone on the dashboard root.
+          sessionStorage.setItem(
+            "hive_password_change_intended",
+            window.location.pathname + window.location.search,
+          );
+          window.location.href = "/change-password";
+        }
+
+        return Promise.reject(error);
+      }
 
       if ((isUnauthorized && !isTelemetryRequest) || isEjected) {
         const ejectReason = code === "TENANT_CONTEXT_INVALID"

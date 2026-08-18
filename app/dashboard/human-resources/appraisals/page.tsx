@@ -1,5 +1,5 @@
-import { HumanResourcesClient } from "../client";
+import { redirect } from "next/navigation";
 
 export default function AppraisalsPage() {
-  return <HumanResourcesClient defaultTab="appraisals" />;
+  redirect("/dashboard/performance/reviews");
 }

@@ -1,5 +1,6 @@
 "use client";
 
+// Hive Multi-Tenant SaaS ERP - Human Resources Client Shell
 import { HrDashboardOverview } from "./hr-dashboard-overview";
 import { ComplianceWorkspace } from "./compliance-workspace";
 
@@ -7,22 +8,36 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
+  AlertCircle,
+  AlertTriangle,
+  Award,
   BookOpen,
+  Briefcase,
   BriefcaseBusiness,
   Building2,
   CalendarClock,
   CalendarDays,
+  CheckCircle2,
   CirclePlus,
+  Clock,
+  FileText,
   FileWarning,
   Fingerprint,
   GitPullRequestArrow,
+  Home,
+  Laptop,
   Network,
-  ShieldCheck,
+  Receipt,
   Settings2,
+  ShieldCheck,
+  UserCheck,
+  UserPlus,
   UserRoundCheck,
   UsersRound,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -69,13 +84,11 @@ import {
   HrFormsPanel,
   EmployeeTransfersPanel,
 } from "./hr-extended-panels";
-import { EmployeeProfileWorkspace } from "./hr-profile-panel";
-import { Wallet, UserCheck, Award, Laptop, Receipt } from "lucide-react";
 
 const controlClass =
-  "h-11 border-slate-500 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "h-11 border-input bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary";
 const selectClass =
-  "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-slate-700 dark:border-slate-400 dark:focus-visible:ring-amber-300";
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 type EmployeeForm = {
   user_id: string;
@@ -306,16 +319,17 @@ function FormField({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const style =
-    status === "active"
-      ? "border-emerald-700 bg-emerald-50 text-emerald-800 dark:border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200"
-      : status === "probation"
-        ? "border-amber-700 bg-amber-50 text-amber-900 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100"
-        : "border-slate-500 bg-slate-100 text-slate-800 dark:border-slate-400 dark:bg-slate-900 dark:text-slate-200";
+  const isPositive = status === "active" || status === "approved" || status === "present";
+  const isWarning = status === "probation" || status === "pending" || status === "draft" || status === "on_leave";
+  const style = isPositive
+    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+    : isWarning
+      ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+      : "border-muted-foreground/20 bg-muted text-muted-foreground";
   return (
     <span
       className={cn(
-        "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold capitalize",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize transition-colors",
         style,
       )}
     >
@@ -475,7 +489,6 @@ function EmployeeDialog({
       );
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employees-table", scope] });
       queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
       queryClient.invalidateQueries({ queryKey: ["hr-positions"] });
       queryClient.invalidateQueries({
@@ -1502,6 +1515,667 @@ export function HumanResourcesClient({
     (tab === "settings" && canViewHrSettings)
       ? tab
       : "dashboard";
+  const submoduleConfigs: Record<
+    string,
+    {
+      title: string;
+      highlight: string;
+      description: string;
+      badge: string;
+      primaryAction?: {
+        label: string;
+        icon: React.ComponentType<{ className?: string }>;
+        onClick: () => void;
+      };
+      cards: Array<{
+        label: string;
+        value: string | number;
+        note: string;
+        icon: React.ComponentType<{ className?: string }>;
+      }>;
+    }
+  > = useMemo(() => {
+    const totalStaff = metrics?.total ?? 0;
+    const activeStaff = metrics?.active ?? 0;
+    const onProbation = metrics?.on_probation ?? 0;
+    const termsMissing = metrics?.written_terms_missing ?? 0;
+    const contractsExpiring = metrics?.contracts_expiring_soon ?? 0;
+    const openPositions = metrics?.open_positions ?? 0;
+    const unassignedStaff = metrics?.unassigned_employees ?? 0;
+    const assignedStaff = metrics?.assigned_employees ?? activeStaff;
+
+    const unitList = units.data?.data ?? [];
+    const positionList = positions.data?.data ?? [];
+    const totalUnits = unitList.length;
+    const activeUnits = unitList.filter((u: any) => u.is_active !== false).length;
+    const topLevelUnits = unitList.filter((u: any) => !u.parent_id).length;
+
+    const totalPositions = positionList.length;
+    const authorizedSeats = positionList.reduce(
+      (acc: number, p: any) => acc + (Number(p.authorized_headcount) || 0),
+      0,
+    );
+    const occupiedSeats = positionList.reduce(
+      (acc: number, p: any) => acc + (Number(p.occupied_headcount) || 0),
+      0,
+    );
+    const vacantSeats = openPositions || Math.max(0, authorizedSeats - occupiedSeats);
+
+    return {
+      dashboard: {
+        title: "Human",
+        highlight: "Resources Overview",
+        description:
+          "Central workforce management dashboard monitoring employee distribution, open positions, compliance checkpoints, and department structures.",
+        badge: "Workforce Overview",
+        primaryAction: canManageEmployees
+          ? {
+              label: "Add Employee",
+              icon: CirclePlus,
+              onClick: () => {
+                setEditingEmployee(null);
+                setEmployeeOpen(true);
+              },
+            }
+          : undefined,
+        cards: [
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: `${totalStaff} total employee records`,
+            icon: UserRoundCheck,
+          },
+          {
+            label: "Open Positions",
+            value: openPositions,
+            note: "Authorized seats available",
+            icon: BriefcaseBusiness,
+          },
+          {
+            label: "Terms Missing",
+            value: termsMissing,
+            note: "Past statutory 15-day checkpoint",
+            icon: FileWarning,
+          },
+          {
+            label: "Contracts Ending",
+            value: contractsExpiring,
+            note: "Within the next 30 days",
+            icon: CalendarClock,
+          },
+        ],
+      },
+      employees: {
+        title: "Employee",
+        highlight: "Directory",
+        description:
+          "Manage employee master files, employment status, contract terms, probation checkpoints, and workforce assignments.",
+        badge: "Employee Management",
+        primaryAction: canManageEmployees
+          ? {
+              label: "Add Employee",
+              icon: CirclePlus,
+              onClick: () => {
+                setEditingEmployee(null);
+                setEmployeeOpen(true);
+              },
+            }
+          : undefined,
+        cards: [
+          {
+            label: "Total Employees",
+            value: totalStaff,
+            note: "Registered workforce records",
+            icon: UsersRound,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Currently active contracts",
+            icon: UserRoundCheck,
+          },
+          {
+            label: "Staff on Probation",
+            value: onProbation,
+            note: "60-day probation monitoring",
+            icon: Clock,
+          },
+          {
+            label: "Unassigned Staff",
+            value: unassignedStaff,
+            note: "Awaiting unit placement",
+            icon: AlertTriangle,
+          },
+        ],
+      },
+      organization: {
+        title: "Organization",
+        highlight: "Structure & Units",
+        description:
+          "Structure reporting hierarchies, divisions, departments, cost centers, and operational branch locations.",
+        badge: "Department Management",
+        primaryAction: canManageOrganization
+          ? {
+              label: "Add Organization Unit",
+              icon: Building2,
+              onClick: () => setUnitOpen(true),
+            }
+          : undefined,
+        cards: [
+          {
+            label: "Total Departments & Units",
+            value: totalUnits,
+            note: "Configured operational units",
+            icon: Building2,
+          },
+          {
+            label: "Active Units",
+            value: activeUnits,
+            note: "Operational cost centers",
+            icon: CheckCircle2,
+          },
+          {
+            label: "Top-Level Divisions",
+            value: topLevelUnits,
+            note: "Directorates & divisions",
+            icon: Network,
+          },
+          {
+            label: "Assigned Workforce",
+            value: assignedStaff,
+            note: "Employees placed in units",
+            icon: UserCheck,
+          },
+        ],
+      },
+      positions: {
+        title: "Position",
+        highlight: "Control & Seats",
+        description:
+          "Monitor authorized job positions, occupied headcount, job grades, and seat vacancies across departments.",
+        badge: "Position Control",
+        primaryAction: canManagePositions
+          ? {
+              label: "Add Job Position",
+              icon: BriefcaseBusiness,
+              onClick: () => setPositionOpen(true),
+            }
+          : undefined,
+        cards: [
+          {
+            label: "Total Job Positions",
+            value: totalPositions,
+            note: "Defined position titles",
+            icon: BriefcaseBusiness,
+          },
+          {
+            label: "Authorized Headcount",
+            value: authorizedSeats,
+            note: "Total budget approved seats",
+            icon: ShieldCheck,
+          },
+          {
+            label: "Occupied Seats",
+            value: occupiedSeats,
+            note: "Positions with active staff",
+            icon: UserCheck,
+          },
+          {
+            label: "Vacant Positions",
+            value: vacantSeats,
+            note: "Seats open for recruitment",
+            icon: AlertCircle,
+          },
+        ],
+      },
+      transfers: {
+        title: "Employee",
+        highlight: "Transfers & Movements",
+        description:
+          "Track internal department reassignments, promotions, location transfers, and position updates.",
+        badge: "Workforce Mobility",
+        cards: [
+          {
+            label: "Total Org Units",
+            value: totalUnits,
+            note: "Available transfer destinations",
+            icon: Building2,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Eligible for internal transfer",
+            icon: UsersRound,
+          },
+          {
+            label: "Unassigned Employees",
+            value: unassignedStaff,
+            note: "Requiring unit assignment",
+            icon: AlertTriangle,
+          },
+          {
+            label: "Configured Positions",
+            value: totalPositions,
+            note: "Positions available for move",
+            icon: BriefcaseBusiness,
+          },
+        ],
+      },
+      relations: {
+        title: "Employee",
+        highlight: "Relations & Grievances",
+        description:
+          "Record workplace grievances, disciplinary proceedings, employee inquiries, and formal dispute resolutions.",
+        badge: "Employee Relations",
+        cards: [
+          {
+            label: "Total Active Staff",
+            value: totalStaff,
+            note: "Employees in scope",
+            icon: UsersRound,
+          },
+          {
+            label: "Staff on Probation",
+            value: onProbation,
+            note: "Review checkpoints pending",
+            icon: Clock,
+          },
+          {
+            label: "Terms Checkpoints",
+            value: termsMissing,
+            note: "Written terms pending",
+            icon: FileWarning,
+          },
+          {
+            label: "Contracts Ending",
+            value: contractsExpiring,
+            note: "Renewal checkpoints near",
+            icon: CalendarClock,
+          },
+        ],
+      },
+      forms: {
+        title: "HR Forms &",
+        highlight: "Document Generator",
+        description:
+          "Generate official employment letters, service certificates, contract addendums, and sealed documents.",
+        badge: "Document Center",
+        cards: [
+          {
+            label: "Reference Catalogs",
+            value: HR_FORM_CATALOGS.length,
+            note: "Standard legal reference catalogs",
+            icon: FileText,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Employees for document generation",
+            icon: UserCheck,
+          },
+          {
+            label: "Organization Units",
+            value: totalUnits,
+            note: "Departments for letterheads",
+            icon: Building2,
+          },
+          {
+            label: "Job Positions",
+            value: totalPositions,
+            note: "Positions for contract templates",
+            icon: BriefcaseBusiness,
+          },
+        ],
+      },
+      profile: {
+        title: "Employee Profile",
+        highlight: "360",
+        description:
+          "Comprehensive 360-degree view covering personal details, job assignments, contract history, and documents.",
+        badge: "Profile Workspace",
+        cards: [
+          {
+            label: "Total Master Records",
+            value: totalStaff,
+            note: "Registered workforce profiles",
+            icon: UsersRound,
+          },
+          {
+            label: "Active Staff",
+            value: activeStaff,
+            note: "Active employee profiles",
+            icon: UserRoundCheck,
+          },
+          {
+            label: "Organization Units",
+            value: totalUnits,
+            note: "Units mapped in profile",
+            icon: Building2,
+          },
+          {
+            label: "Job Positions",
+            value: totalPositions,
+            note: "Positions mapped in profile",
+            icon: BriefcaseBusiness,
+          },
+        ],
+      },
+      organigram: {
+        title: "Organigram",
+        highlight: "Visual Tree",
+        description:
+          "Interactive organizational tree mapping unit relationships, cost centers, and unit head assignments.",
+        badge: "Hierarchy Structure",
+        primaryAction: canManageOrganization
+          ? {
+              label: "Add Organization Unit",
+              icon: Building2,
+              onClick: () => setUnitOpen(true),
+            }
+          : undefined,
+        cards: [
+          {
+            label: "Total Hierarchy Units",
+            value: totalUnits,
+            note: "Mapped organizational nodes",
+            icon: Network,
+          },
+          {
+            label: "Top Level Divisions",
+            value: topLevelUnits,
+            note: "Root directorates & divisions",
+            icon: Building2,
+          },
+          {
+            label: "Authorized Positions",
+            value: totalPositions,
+            note: "Positions in tree structure",
+            icon: BriefcaseBusiness,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Employees assigned in tree",
+            icon: UsersRound,
+          },
+        ],
+      },
+      compliance: {
+        title: "Labour Law",
+        highlight: "Compliance Audit",
+        description:
+          "Audit statutory labor requirements, 15-day written terms checkpoints, probation rules, and policy readiness.",
+        badge: "Labour Compliance",
+        cards: [
+          {
+            label: "Terms Missing",
+            value: termsMissing,
+            note: "Past statutory 15-day deadline",
+            icon: FileWarning,
+          },
+          {
+            label: "Contracts Expiring",
+            value: contractsExpiring,
+            note: "Renewal required within 30d",
+            icon: CalendarClock,
+          },
+          {
+            label: "Probation Checkpoints",
+            value: onProbation,
+            note: "Under 60-day probation monitoring",
+            icon: Clock,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Staff under compliance audit",
+            icon: ShieldCheck,
+          },
+        ],
+      },
+      policies: {
+        title: "Company HR",
+        highlight: "Policies & Handbooks",
+        description:
+          "Publish employee handbooks, codes of conduct, safety policies, and statutory compliance guidelines.",
+        badge: "Policy Governance",
+        cards: [
+          {
+            label: "Standard Policies",
+            value: 6,
+            note: "Active statutory policy modules",
+            icon: BookOpen,
+          },
+          {
+            label: "Staff Covered",
+            value: activeStaff,
+            note: "Employees under policy governance",
+            icon: UsersRound,
+          },
+          {
+            label: "Org Units Covered",
+            value: totalUnits,
+            note: "Departments applying policies",
+            icon: Building2,
+          },
+          {
+            label: "Compliance Status",
+            value: "100%",
+            note: "All policies current",
+            icon: ShieldCheck,
+          },
+        ],
+      },
+      leave: {
+        title: "Leave & Absence",
+        highlight: "Management",
+        description:
+          "Process leave requests, manage annual leave plans, track balances, and monitor team absence calendars.",
+        badge: "Time Off & Leave",
+        cards: [
+          {
+            label: "Pending Leave Requests",
+            value: metrics?.pending_leave_requests ?? 0,
+            note: "Awaiting manager approval",
+            icon: CalendarDays,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Eligible for leave request",
+            icon: UserRoundCheck,
+          },
+          {
+            label: "Staff on Probation",
+            value: onProbation,
+            note: "Probation leave rules apply",
+            icon: Clock,
+          },
+          {
+            label: "Contracts Ending Soon",
+            value: contractsExpiring,
+            note: "Leave settlement checkpoints",
+            icon: CalendarClock,
+          },
+        ],
+      },
+      recruitment: {
+        title: "Recruitment &",
+        highlight: "Applicant Tracking (ATS)",
+        description:
+          "Publish job vacancies, track candidate evaluation stages, and promote hired applicants into employee records.",
+        badge: "Talent Acquisition",
+        cards: [
+          {
+            label: "Open Job Vacancies",
+            value: openPositions,
+            note: "Positions open for recruitment",
+            icon: BriefcaseBusiness,
+          },
+          {
+            label: "Authorized Seats",
+            value: authorizedSeats,
+            note: "Approved position budget",
+            icon: ShieldCheck,
+          },
+          {
+            label: "Vacant Headcount",
+            value: vacantSeats,
+            note: "Unfilled authorized seats",
+            icon: UserPlus,
+          },
+          {
+            label: "Configured Positions",
+            value: totalPositions,
+            note: "Positions in master catalog",
+            icon: Briefcase,
+          },
+        ],
+      },
+      appraisals: {
+        title: "Performance Appraisals",
+        highlight: "& OKRs",
+        description:
+          "Conduct 360-degree feedback reviews, track probation evaluations, and score annual performance goals.",
+        badge: "Performance & OKRs",
+        cards: [
+          {
+            label: "Total Employees",
+            value: totalStaff,
+            note: "Eligible for evaluation",
+            icon: UsersRound,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Active performance reviews",
+            icon: UserRoundCheck,
+          },
+          {
+            label: "Probation Evaluated",
+            value: onProbation,
+            note: "60-day probation assessments",
+            icon: Clock,
+          },
+          {
+            label: "Open Vacancies",
+            value: openPositions,
+            note: "Positions requiring staffing",
+            icon: BriefcaseBusiness,
+          },
+        ],
+      },
+      assets: {
+        title: "Equipment & Asset",
+        highlight: "Custody",
+        description:
+          "Track company equipment (Laptops, Vehicles, Mobile Devices, Fuel Cards, Badges) assigned to custodians.",
+        badge: "Asset Custody",
+        cards: [
+          {
+            label: "Total Custodians",
+            value: totalStaff,
+            note: "Eligible employee custodians",
+            icon: Laptop,
+          },
+          {
+            label: "Assigned Staff",
+            value: assignedStaff,
+            note: "Employees holding equipment",
+            icon: UserCheck,
+          },
+          {
+            label: "Organization Units",
+            value: totalUnits,
+            note: "Units holding assets",
+            icon: Building2,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Staff with asset accountability",
+            icon: UsersRound,
+          },
+        ],
+      },
+      expenses: {
+        title: "Expense Claims",
+        highlight: "& Reimbursements",
+        description:
+          "Submit and approve expense reports for business travel, per diem, medical, and supplies reimbursement.",
+        badge: "Expense Claims",
+        cards: [
+          {
+            label: "Eligible Claimants",
+            value: totalStaff,
+            note: "Registered workforce staff",
+            icon: Receipt,
+          },
+          {
+            label: "Active Workforce",
+            value: activeStaff,
+            note: "Staff eligible for per diem",
+            icon: UserRoundCheck,
+          },
+          {
+            label: "Cost Centers",
+            value: unitList.filter((u: any) => u.cost_center_code).length || totalUnits,
+            note: "Active cost allocation centers",
+            icon: Building2,
+          },
+          {
+            label: "Org Units",
+            value: totalUnits,
+            note: "Departments processing claims",
+            icon: Network,
+          },
+        ],
+      },
+      settings: {
+        title: "HR Reference",
+        highlight: "Settings",
+        description:
+          "Configure reference catalogs, employment regimes, contract types, job grades, and organization unit types.",
+        badge: "Reference Settings",
+        cards: [
+          {
+            label: "Reference Catalogs",
+            value: HR_FORM_CATALOGS.length,
+            note: "Active master catalogs",
+            icon: Settings2,
+          },
+          {
+            label: "Org Unit Types",
+            value: 8,
+            note: "Configured unit types",
+            icon: Building2,
+          },
+          {
+            label: "Contract Types",
+            value: 5,
+            note: "Configured contract types",
+            icon: FileText,
+          },
+          {
+            label: "Employee Statuses",
+            value: 6,
+            note: "Configured status options",
+            icon: UserCheck,
+          },
+        ],
+      },
+    };
+  }, [
+    metrics,
+    units.data?.data,
+    positions.data?.data,
+    canManageEmployees,
+    canManageOrganization,
+    canManagePositions,
+  ]);
+
+  const activeConfig = submoduleConfigs[selectedTab] || submoduleConfigs.dashboard;
+
   if (
     isLoaded &&
     !hasAnyPermission([
@@ -1526,96 +2200,98 @@ export function HumanResourcesClient({
         </p>
       </section>
     );
+
   return (
     <section
       aria-labelledby="hr-page-title"
       className="space-y-6 p-4 sm:p-6 lg:p-8"
     >
-      <header className="overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 text-white shadow-xl">
-        <div className="grid gap-6 p-6 lg:grid-cols-[1fr_auto] lg:items-end lg:p-8">
+      <div className="flex w-full justify-between items-center">
+        <Breadcrumbs
+          items={[
+            { label: "Hive.OS", href: "/dashboard", icon: <Home className="h-4 w-4" /> },
+            { label: "Human Resources", href: "/dashboard/human-resources" },
+            ...(selectedTab !== "dashboard"
+              ? [{ label: selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1).replaceAll("_", " ") }]
+              : [])
+          ]}
+        />
+      </div>
+
+      <header className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-300">
-              Workforce record
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-primary" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {activeConfig.badge}
+              </p>
+            </div>
             <h1
               id="hr-page-title"
-              className="mt-3 text-3xl font-black tracking-tight sm:text-4xl"
+              className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
             >
-              Human Resources
+              {activeConfig.title} <span className="text-primary">{activeConfig.highlight}</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">
-              Design the organization, assign accountable positions, and
-              maintain employment records with visible legal checkpoints.
+            <p className="mt-1 text-sm text-muted-foreground">
+              {activeConfig.description}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/dashboard/workflow?module=human_resources"
-              className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-400 px-4 py-2 text-sm font-bold text-white outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-            >
-              <GitPullRequestArrow aria-hidden="true" className="h-4 w-4" />
-              HR approval workflows
-            </Link>
-            {canManageOrganization && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button asChild variant="outline" size="sm" className="h-10 font-semibold">
+              <Link href="/dashboard/workflow?module=human_resources">
+                <GitPullRequestArrow aria-hidden="true" className="mr-2 h-4 w-4 text-primary" />
+                HR Workflows
+              </Link>
+            </Button>
+            {activeConfig.primaryAction && (
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setUnitOpen(true)}
-                className="h-11 border-slate-400 bg-transparent text-white hover:bg-slate-800 hover:text-white focus-visible:ring-white"
+                size="sm"
+                onClick={activeConfig.primaryAction.onClick}
+                className="h-10 font-semibold"
               >
-                <Building2 aria-hidden="true" />
-                Add unit
-              </Button>
-            )}
-            {canManageEmployees && (
-              <Button
-                type="button"
-                onClick={() => {
-                  setEditingEmployee(null);
-                  setEmployeeOpen(true);
-                }}
-                className="h-11 bg-amber-300 font-bold text-slate-950 hover:bg-amber-200 focus-visible:ring-white"
-              >
-                <CirclePlus aria-hidden="true" />
-                Add employee
+                <activeConfig.primaryAction.icon aria-hidden="true" className="mr-2 h-4 w-4" />
+                {activeConfig.primaryAction.label}
               </Button>
             )}
           </div>
         </div>
-        {canViewEmployees && (
-          <div className="grid border-t border-slate-700 sm:grid-cols-2 xl:grid-cols-4">
-            {cards.map(({ label, value, note, icon: Icon }) => (
-              <div
-                key={label}
-                className="border-b border-slate-700 p-5 last:border-b-0 sm:border-r xl:border-b-0"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                  <Icon aria-hidden="true" className="h-4 w-4 text-amber-300" />
-                  {label}
-                </div>
-                <p className="mt-2 text-3xl font-black tabular-nums">{value}</p>
-                <p className="mt-1 text-xs text-slate-300">{note}</p>
+
+        {/* 🚀 Submodule-specific KPI cards containing real live metrics */}
+        <div className="mt-6 grid gap-4 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-4">
+          {activeConfig.cards.map(({ label, value, note, icon: Icon }) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-all hover:border-primary/40 hover:bg-muted/50"
+            >
+              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                <span>{label}</span>
+                <Icon aria-hidden="true" className="h-4 w-4 text-primary" />
               </div>
-            ))}
-          </div>
-        )}
+              <p className="mt-2 text-2xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{note}</p>
+            </div>
+          ))}
+        </div>
       </header>
+
       <Tabs
         value={selectedTab}
         onValueChange={handleTabChange}
         className="space-y-4"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-            <span className="text-sm font-bold uppercase tracking-wider text-slate-500">
+            <span className="h-2.5 w-2.5 rounded-full bg-primary"></span>
+            <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
               Active Section:{" "}
               <span className="text-foreground capitalize font-extrabold">
                 {selectedTab.replaceAll("_", " ")}
               </span>
             </span>
           </div>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
             Navigate between HR sections directly via the Sidebar
           </span>
         </div>
@@ -1625,6 +2301,8 @@ export function HumanResourcesClient({
         <TabsContent value="employees">
           <EmployeeDirectoryDataTable
             canManage={canManageEmployees}
+            totalEmployees={metrics?.total ?? 0}
+            totalEmployeesLoading={summary.isLoading}
             statusOptions={codeOptions(
               referenceOptions.data?.["employee-statuses"],
               "employee-statuses",

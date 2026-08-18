@@ -138,7 +138,7 @@ export function HrAssetsPanel({ employees }: { employees: any[] }) {
                         variant="outline"
                         onClick={() => updateStatusMutation.mutate({ id: a.id, status: 'returned' })}
                         disabled={updatingAssetId !== null}
-                        className="h-7 text-[10px]"
+                        className="h-7 text-[11px]"
                       >
                         {updatingAssetId === a.id ? (
                           <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Returning...</>

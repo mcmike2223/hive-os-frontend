@@ -65,6 +65,7 @@ import {
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTranslation } from "@/store/use-translation";
+import { CustomLandingFrame, useCustomLandingHtml } from "./custom-landing-frame";
 import { motion, AnimatePresence, useInView, useMotionValue, animate } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -453,7 +454,7 @@ function PillBadge({
     violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
   }[tone];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest backdrop-blur", toneClass)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest backdrop-blur", toneClass)}>
       <Icon className="h-3 w-3" />
       {children}
     </span>
@@ -494,7 +495,7 @@ function ProductCard({
           {product.badges.map((b) => (
             <span
               key={b}
-              className="inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur-md border border-border/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-foreground shadow"
+              className="inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur-md border border-border/60 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-foreground shadow"
             >
               {b === "Trending" && <Flame className="h-3 w-3 text-orange-500" />}
               {b === "Top Rated" && <Star className="h-3 w-3 text-amber-500 fill-current" />}
@@ -530,7 +531,7 @@ function ProductCard({
             onClick={() => onContact(product)}
             className="mt-2 flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors text-left"
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary/20 to-primary/5 text-[10px] font-black text-primary">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-black text-primary">
               {product.supplierLogo}
             </span>
             <span className="font-semibold truncate">{product.supplier}</span>
@@ -543,7 +544,7 @@ function ProductCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-1">
             <MapPin className="h-3 w-3" /> {product.location}
           </span>
@@ -554,7 +555,7 @@ function ProductCard({
 
         <div className="mt-auto border-t border-border/50 pt-4 flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">FOB Price</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">FOB Price</p>
             <p className="text-2xl font-black text-primary leading-none mt-1">{product.price}</p>
             <p className="text-[11px] text-muted-foreground mt-1">
               MOQ: <span className="font-bold text-foreground">{product.moq}</span>
@@ -694,7 +695,7 @@ function ContactSupplierDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
             Trade-Assured Inquiry
           </div>
@@ -734,7 +735,7 @@ function ContactSupplierDialog({
               />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold line-clamp-1">{product.name}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   {product.supplier} · MOQ {product.moq}
                 </p>
               </div>
@@ -742,7 +743,7 @@ function ContactSupplierDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Name *</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Name *</label>
                 <Input
                   required
                   value={form.name}
@@ -752,7 +753,7 @@ function ContactSupplierDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Company</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Company</label>
                 <Input
                   value={form.company}
                   onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
@@ -762,7 +763,7 @@ function ContactSupplierDialog({
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Business Email *</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Business Email *</label>
               <Input
                 type="email"
                 required
@@ -773,7 +774,7 @@ function ContactSupplierDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Message *</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Message *</label>
               <Textarea
                 required
                 rows={4}
@@ -862,7 +863,7 @@ function RfqDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-primary">
             <FileText className="h-3.5 w-3.5" />
             Post a Request for Quote
           </div>
@@ -905,7 +906,7 @@ function RfqDialog({
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">What do you need? *</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">What do you need? *</label>
               <Input
                 required
                 value={form.title}
@@ -917,7 +918,7 @@ function RfqDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category *</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Category *</label>
                 <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
                   <SelectTrigger className="h-11 rounded-xl bg-muted/30">
                     <SelectValue />
@@ -932,7 +933,7 @@ function RfqDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quantity *</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Quantity *</label>
                 <Input
                   required
                   value={form.quantity}
@@ -945,7 +946,7 @@ function RfqDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Price</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Target Price</label>
                 <Input
                   value={form.targetPrice}
                   onChange={(e) => setForm((f) => ({ ...f, targetPrice: e.target.value }))}
@@ -954,7 +955,7 @@ function RfqDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ship To</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Ship To</label>
                 <Input
                   value={form.destination}
                   onChange={(e) => setForm((f) => ({ ...f, destination: e.target.value }))}
@@ -965,7 +966,7 @@ function RfqDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Specifications</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Specifications</label>
               <Textarea
                 rows={4}
                 value={form.details}
@@ -977,7 +978,7 @@ function RfqDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Your Name *</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Your Name *</label>
                 <Input
                   required
                   value={form.name}
@@ -987,7 +988,7 @@ function RfqDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Email *</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Email *</label>
                 <Input
                   required
                   type="email"
@@ -1082,7 +1083,7 @@ function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPo
             </div>
             <div className="leading-tight">
               <p className="text-sm font-black tracking-tight">{brandName}</p>
-              <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Marketplace</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Marketplace</p>
             </div>
           </Link>
 
@@ -1126,7 +1127,7 @@ function TopNav({ onPostRfq, onOpenCart, brandName = "B2B Marketplace" }: { onPo
             >
               <ShoppingCart className="h-4 w-4" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-black text-primary-foreground">
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-black text-primary-foreground">
                   {cartCount}
                 </span>
               )}
@@ -1208,6 +1209,7 @@ export default function B2BLandingTemplate({
   // ── Resolve content from the tenant landing template; fall back to built-in defaults ──
   const b2b = template?.b2b ?? {};
   const brandName = brandSettings?.app_title?.trim() || tenantName?.trim() || "B2B Marketplace";
+  const customLandingHtml = useCustomLandingHtml(template, brandName, "B2B", true, brandSettings);
   const pubImg = (u?: string) => {
     if (!u) return "";
     // Private media serve URL → public-serve so it loads without a login, on any device.
@@ -1429,6 +1431,17 @@ export default function B2BLandingTemplate({
     }
   };
 
+  // Templates that carry their own page code render it instead of this design.
+  if (customLandingHtml && template) {
+    return (
+      <CustomLandingFrame
+        html={customLandingHtml}
+        title={`${brandName} landing page`}
+        mode={template.rendering.mode}
+      />
+    );
+  }
+
   return (
     <div className="relative min-h-screen w-full text-foreground overflow-x-hidden">
       {/* 🌌 Living WebGL trade-network backdrop (whole page) */}
@@ -1508,7 +1521,7 @@ export default function B2BLandingTemplate({
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-                <span className="text-[10px] font-bold uppercase tracking-widest mr-1">Trending:</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest mr-1">Trending:</span>
                 {hero.trending.map((t) => (
                   <button
                     key={t}
@@ -1558,7 +1571,7 @@ export default function B2BLandingTemplate({
                 >
                   <Icon className="h-5 w-5 text-primary mb-3 group-hover:scale-110 transition-transform" />
                   <p className="text-3xl font-black tracking-tight"><AnimatedStatValue value={s.value} /></p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
                     {s.label}
                   </p>
                 </div>
@@ -1573,7 +1586,7 @@ export default function B2BLandingTemplate({
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div>
-              <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 text-[10px]">
+              <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 text-[11px]">
                 Top Sourcing Categories
               </Badge>
               <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -1615,10 +1628,10 @@ export default function B2BLandingTemplate({
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute inset-0 p-6 flex flex-col justify-end text-white">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold backdrop-blur">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[11px] font-bold backdrop-blur">
                       <TrendingUp className="h-3 w-3" /> {c.growth}
                     </span>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-white/70">
                       {c.suppliers} suppliers
                     </span>
                   </div>
@@ -1644,7 +1657,7 @@ export default function B2BLandingTemplate({
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div>
-              <Badge className="mb-3 bg-orange-500/10 text-orange-500 border-orange-500/20 text-[10px]">
+              <Badge className="mb-3 bg-orange-500/10 text-orange-500 border-orange-500/20 text-[11px]">
                 <Flame className="h-3 w-3 mr-1" /> Trending Wholesale
               </Badge>
               <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -1717,7 +1730,7 @@ export default function B2BLandingTemplate({
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div>
-              <Badge className="mb-3 bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px]">
+              <Badge className="mb-3 bg-blue-500/10 text-blue-500 border-blue-500/20 text-[11px]">
                 <Users className="h-3 w-3 mr-1" /> Top-Rated Suppliers
               </Badge>
               <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -1747,7 +1760,7 @@ export default function B2BLandingTemplate({
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10" />
         <div className="mx-auto max-w-6xl">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="mb-3 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px]">
+            <Badge className="mb-3 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[11px]">
               <ShieldCheck className="h-3 w-3 mr-1" /> Protected End-to-End
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -1819,7 +1832,7 @@ export default function B2BLandingTemplate({
       <section className="py-24 px-4 sm:px-6 bg-muted/10 border-y border-border/60 backdrop-blur-[2px]">
         <div className="mx-auto max-w-6xl">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 text-[10px]">
+            <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 text-[11px]">
               <QuoteIcon className="h-3 w-3 mr-1" /> Stories from our buyers
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -1853,7 +1866,7 @@ export default function B2BLandingTemplate({
                   </div>
                   <span className="text-xl">{tm.flag}</span>
                 </figcaption>
-                <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
+                <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground">{tm.amount}</span>
                   <Stars rating={5} />
                 </div>
@@ -1867,7 +1880,7 @@ export default function B2BLandingTemplate({
       <section className="py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <Badge className="mb-3 bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px]">
+            <Badge className="mb-3 bg-amber-500/10 text-amber-500 border-amber-500/20 text-[11px]">
               <Sparkles className="h-3 w-3 mr-1" /> Why {brandName}
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -1913,7 +1926,7 @@ export default function B2BLandingTemplate({
       <section id="faq" className="py-24 px-4 sm:px-6 bg-muted/10 border-y border-border/60 backdrop-blur-[2px]">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-12">
-            <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 text-[10px]">
+            <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 text-[11px]">
               <HelpCircle className="h-3 w-3 mr-1" /> Frequently asked
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
@@ -2029,11 +2042,11 @@ export default function B2BLandingTemplate({
                 <div>
                   <p className="text-sm font-black tracking-tight">{brandName}</p>
                   {brandSettings?.abbreviation && (
-                    <p className="text-[9px] text-primary uppercase tracking-widest font-mono font-bold">
+                    <p className="text-[11px] text-primary uppercase tracking-widest font-mono font-bold">
                       {brandSettings.abbreviation}
                     </p>
                   )}
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Marketplace</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Marketplace</p>
                 </div>
               </Link>
               <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
@@ -2044,13 +2057,13 @@ export default function B2BLandingTemplate({
                   {brandSettings?.address && <p className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary shrink-0" /> {brandSettings.address}</p>}
                   {brandSettings?.email && <p className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-primary shrink-0" /> {brandSettings.email}</p>}
                   {brandSettings?.phone_number && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-primary shrink-0" /> {brandSettings.phone_number}</p>}
-                  {brandSettings?.tin_number && <p className="font-mono text-[10px]">TIN: {brandSettings.tin_number}</p>}
+                  {brandSettings?.tin_number && <p className="font-mono text-[11px]">TIN: {brandSettings.tin_number}</p>}
                 </div>
               )}
             </div>
 
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground mb-4">Marketplace</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-foreground mb-4">Marketplace</h4>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 <li><a href="#categories" className="hover:text-primary transition-colors">Categories</a></li>
                 <li><a href="#products" className="hover:text-primary transition-colors">Trending Products</a></li>
@@ -2059,7 +2072,7 @@ export default function B2BLandingTemplate({
               </ul>
             </div>
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground mb-4">Trust</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-foreground mb-4">Trust</h4>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 <li><a href="#escrow" className="hover:text-primary transition-colors">How Escrow Works</a></li>
                 <li><a href="#escrow" className="hover:text-primary transition-colors">Trade Assurance</a></li>
@@ -2068,7 +2081,7 @@ export default function B2BLandingTemplate({
               </ul>
             </div>
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground mb-4">Company</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-foreground mb-4">Company</h4>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 <li><Link href="/marketplace/register" className="hover:text-primary transition-colors">Create Account</Link></li>
                 <li><Link href="/sign-in" className="hover:text-primary transition-colors">Sign In</Link></li>

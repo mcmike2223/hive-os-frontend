@@ -203,12 +203,12 @@ export default function ApprovalRolesPage() {
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {role.users?.slice(0, 5).map((user) => (
-                      <Badge key={user.id} variant="secondary" className="text-[10px]">
+                      <Badge key={user.id} variant="secondary" className="text-[11px]">
                         {user.name}
                       </Badge>
                     ))}
                     {(role.users && role.users.length > 5) && (
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-[11px]">
                         +{role.users.length - 5} more
                       </Badge>
                     )}

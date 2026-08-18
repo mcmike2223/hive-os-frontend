@@ -492,33 +492,33 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 <TabsList className="bg-transparent h-14 w-full justify-start gap-8 p-0 overflow-x-auto no-scrollbar">
                   <TabsTrigger 
                     value="general" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[10px] font-black uppercase tracking-[0.15em] transition-all"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all"
                   >
                     <Info className="h-4 w-4" /> {t('project_management.general', 'General')}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="team" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[10px] font-black uppercase tracking-[0.15em] transition-all"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all"
                   >
                     <UsersGroup className="h-4 w-4" /> {t('project_management.team', 'Team')}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="financials" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[10px] font-black uppercase tracking-[0.15em] transition-all"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all"
                   >
                     <Wallet className="h-4 w-4" /> {t('project_management.financials', 'Financials')}
                   </TabsTrigger>
                   {isSoftwareDev && (
                     <TabsTrigger 
                       value="engineering" 
-                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[10px] font-black uppercase tracking-[0.15em] transition-all"
+                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all"
                     >
                       <CpuIcon className="h-4 w-4" /> {t('project_management.engineering', 'Engineering')}
                     </TabsTrigger>
                   )}
                   <TabsTrigger 
                     value="attachments" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[10px] font-black uppercase tracking-[0.15em] transition-all"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14 px-1 gap-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all"
                   >
                     <Paperclip className="h-4 w-4" /> {t('project_management.assets', 'Assets')}
                   </TabsTrigger>
@@ -532,7 +532,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     <div className="bg-primary/[0.03] border border-primary/10 rounded-3xl p-6 space-y-4">
                       <div className="flex items-center gap-2">
                         <Settings className="h-3.5 w-3.5 text-primary" />
-                        <Label className="text-primary font-black text-[9px] uppercase tracking-[0.2em]">{t('project_management.blueprint_selection', 'Blueprint Selection')}</Label>
+                        <Label className="text-primary font-black text-[11px] uppercase tracking-[0.2em]">{t('project_management.blueprint_selection', 'Blueprint Selection')}</Label>
                       </div>
                       <Select 
                         value={selectedTemplateId || "none"}
@@ -584,7 +584,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <Label htmlFor="name" className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.name && "text-destructive")}>
+                      <Label htmlFor="name" className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.name && "text-destructive")}>
                         {t('project_management.project_identity', 'Project Identity')} <span className="text-destructive">*</span>
                       </Label>
                       <div className="relative group">
@@ -600,11 +600,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           className={cn("pl-11 h-14 bg-muted/10 border-border/40 rounded-2xl focus:ring-primary/20 transition-all font-bold text-sm", errors.name && "border-destructive focus-ring-destructive/20")}
                         />
                       </div>
-                      {errors.name && <p className="text-[10px] font-bold text-destructive px-1">{errors.name}</p>}
+                      {errors.name && <p className="text-[11px] font-bold text-destructive px-1">{errors.name}</p>}
                     </div>
 
                     <div className="space-y-3">
-                      <Label htmlFor="client" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.stakeholder_client', 'Stakeholder / Client')}</Label>
+                      <Label htmlFor="client" className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.stakeholder_client', 'Stakeholder / Client')}</Label>
                       <div className="relative group">
                         <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                         <Input
@@ -619,7 +619,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.strategic_intent', 'Strategic Intent (Description)')}</Label>
+                    <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.strategic_intent', 'Strategic Intent (Description)')}</Label>
                     <RichTextEditor 
                       ref={editorRef}
                       value={description} 
@@ -631,7 +631,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <Label className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.status && "text-destructive")}>
+                      <Label className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.status && "text-destructive")}>
                         {t('project_management.lifecycle_status', 'Lifecycle Status')} <span className="text-destructive">*</span>
                       </Label>
                       <Select 
@@ -655,7 +655,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     </div>
 
                     <div className="space-y-3">
-                      <Label className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.priority && "text-destructive")}>
+                      <Label className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.priority && "text-destructive")}>
                         {t('project_management.priority_vector', 'Priority Vector')} <span className="text-destructive">*</span>
                       </Label>
                       <Select 
@@ -690,19 +690,19 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       </div>
                       <div className="grid gap-1 leading-tight">
                         <Label htmlFor="is_template" className="text-xs font-black uppercase tracking-widest text-foreground/80">{t('project_management.save_as_blueprint', 'Save as Blueprint')}</Label>
-                        <p className="text-[10px] text-muted-foreground/60 font-bold">{t('project_management.save_as_blueprint_desc', 'Encapsulate this configuration as a reusable template.')}</p>
+                        <p className="text-[11px] text-muted-foreground/60 font-bold">{t('project_management.save_as_blueprint_desc', 'Encapsulate this configuration as a reusable template.')}</p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      <Label htmlFor="tags" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
+                      <Label htmlFor="tags" className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
                         <TagIcon className="h-3.5 w-3.5" /> {t('project_management.project_taxonomies', 'Project Taxonomies (Tags)')}
                       </Label>
                       <div className="flex flex-wrap gap-2 p-3 bg-muted/10 border border-border/40 rounded-2xl min-h-[56px] items-center">
                         {tags.map((tag) => (
                           <Badge 
                             key={tag} 
-                            className="bg-primary/5 text-primary border-primary/10 rounded-xl px-3 py-1 text-[10px] font-black uppercase tracking-widest gap-2"
+                            className="bg-primary/5 text-primary border-primary/10 rounded-xl px-3 py-1 text-[11px] font-black uppercase tracking-widest gap-2"
                           >
                             {tag}
                             <button 
@@ -739,7 +739,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <Label className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.start_date && "text-destructive")}>
+                      <Label className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.start_date && "text-destructive")}>
                         {t('project_management.commencement_date', 'Commencement Date')} <span className="text-destructive">*</span>
                       </Label>
                       <Popover>
@@ -772,7 +772,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     </div>
 
                     <div className="space-y-3">
-                      <Label className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.end_date && "text-destructive")}>
+                      <Label className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.end_date && "text-destructive")}>
                         {t('project_management.conclusion_target', 'Conclusion Target')} <span className="text-destructive">*</span>
                       </Label>
                       <Popover>
@@ -806,7 +806,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
                     <div className="space-y-6">
                       <div className="space-y-3">
-                        <Label className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.project_manager_ids && "text-destructive")}>
+                        <Label className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.project_manager_ids && "text-destructive")}>
                           {t('project_management.project_leadership', 'Project Leadership (Managers)')} <span className="text-destructive">*</span>
                         </Label>
                         <Combobox
@@ -843,11 +843,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                             </ComboboxList>
                           </ComboboxContent>
                         </Combobox>
-                        {errors.project_manager_ids && <p className="text-[10px] font-bold text-destructive px-1">{errors.project_manager_ids}</p>}
+                        {errors.project_manager_ids && <p className="text-[11px] font-bold text-destructive px-1">{errors.project_manager_ids}</p>}
                       </div>
 
                       <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                           {t('project_management.operational_team', 'Operational Team (Members)')}
                         </Label>
                         <Combobox
@@ -889,7 +889,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 <TabsContent value="financials" className="mt-0 space-y-8 animate-in fade-in slide-in-from-bottom-3 duration-500">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <Label htmlFor="budget" className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.budget && "text-destructive")}>
+                      <Label htmlFor="budget" className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.budget && "text-destructive")}>
                         {t('project_management.project_capital_allocation', 'Project Capital Allocation')} <span className="text-destructive">*</span>
                       </Label>
                       <div className="relative group">
@@ -909,7 +909,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     </div>
 
                     <div className="space-y-3">
-                      <Label htmlFor="currency" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                      <Label htmlFor="currency" className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                         {t('project_management.operational_currency', 'Operational Currency')}
                       </Label>
                       <Select value={currency} onValueChange={setCurrency}>
@@ -928,7 +928,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                     <div className="space-y-3">
-                      <Label htmlFor="hourlyRate" className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.hourly_rate && "text-destructive")}>
+                      <Label htmlFor="hourlyRate" className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.hourly_rate && "text-destructive")}>
                         {t('project_management.resource_hourly_rate', 'Resource Hourly Rate')}
                       </Label>
                       <div className="relative group">
@@ -948,7 +948,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     </div>
 
                     <div className="space-y-3">
-                      <Label htmlFor="estimatedHours" className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.estimated_hours && "text-destructive")}>
+                      <Label htmlFor="estimatedHours" className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.estimated_hours && "text-destructive")}>
                         {t('project_management.projected_labor_hours', 'Projected Labor Hours')}
                       </Label>
                       <div className="relative group">
@@ -977,13 +977,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       </div>
                       <div>
                         <h4 className="text-xs font-black uppercase tracking-widest text-foreground/80">{t('project_management.revenue_intelligence', 'Revenue Intelligence')}</h4>
-                        <p className="text-[10px] text-muted-foreground/60 font-bold">{t('project_management.revenue_intelligence_desc', 'Define the projected financial outcome for ROI analysis')}</p>
+                        <p className="text-[11px] text-muted-foreground/60 font-bold">{t('project_management.revenue_intelligence_desc', 'Define the projected financial outcome for ROI analysis')}</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-3">
-                        <Label htmlFor="estimatedRevenue" className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.estimated_revenue && "text-destructive")}>
+                        <Label htmlFor="estimatedRevenue" className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70", errors.estimated_revenue && "text-destructive")}>
                           {t('project_management.target_project_revenue', 'Target Project Revenue')}
                         </Label>
                         <div className="relative group">
@@ -1000,7 +1000,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                             className={cn("pl-11 h-14 rounded-2xl bg-muted/10 border-border/40 font-bold text-sm transition-all focus:bg-background", errors.estimated_revenue && "border-destructive focus-visible:ring-destructive")}
                           />
                         </div>
-                        <p className="text-[9px] text-muted-foreground/50 font-bold px-1 uppercase tracking-tight italic">{t('project_management.used_for_roi', 'Used for ROI and Profitability Margin calculations.')}</p>
+                        <p className="text-[11px] text-muted-foreground/50 font-bold px-1 uppercase tracking-tight italic">{t('project_management.used_for_roi', 'Used for ROI and Profitability Margin calculations.')}</p>
                       </div>
                     </div>
                   </div>
@@ -1016,12 +1016,12 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                             </div>
                             <div>
                               <h4 className="text-xs font-black uppercase tracking-widest text-foreground/80">{t('project_management.source_control', 'Source Control')}</h4>
-                              <p className="text-[10px] text-muted-foreground/60 font-bold">{t('project_management.source_control_desc', 'Connect your development repository')}</p>
+                              <p className="text-[11px] text-muted-foreground/60 font-bold">{t('project_management.source_control_desc', 'Connect your development repository')}</p>
                             </div>
                           </div>
 
                           <div className="space-y-3">
-                            <Label htmlFor="repo_url" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.repository_url', 'Repository URL')}</Label>
+                            <Label htmlFor="repo_url" className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.repository_url', 'Repository URL')}</Label>
                             <div className="relative group">
                               <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                               <Input 
@@ -1042,7 +1042,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                             </div>
                             <div>
                               <h4 className="text-xs font-black uppercase tracking-widest text-foreground/80">{t('project_management.technology_stack', 'Technology Stack')}</h4>
-                              <p className="text-[10px] text-muted-foreground/60 font-bold">{t('project_management.technology_stack_desc', 'Define the core technical parameters')}</p>
+                              <p className="text-[11px] text-muted-foreground/60 font-bold">{t('project_management.technology_stack_desc', 'Define the core technical parameters')}</p>
                             </div>
                           </div>
 
@@ -1055,7 +1055,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                                     variant="secondary" 
                                     className="pl-3 pr-1.5 py-1.5 gap-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors rounded-xl border"
                                   >
-                                    <span className="text-[10px] font-black tracking-wider uppercase">{tech}</span>
+                                    <span className="text-[11px] font-black tracking-wider uppercase">{tech}</span>
                                     <button 
                                       type="button"
                                       onClick={() => setTechStack(prev => prev.filter(t => t !== tech))}
@@ -1067,7 +1067,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                                 ))
                               ) : (
                                 <div className="flex items-center justify-center w-full">
-                                  <span className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-widest italic">{t('project_management.no_technologies', 'No technologies defined yet')}</span>
+                                  <span className="text-[11px] text-muted-foreground/40 font-bold uppercase tracking-widest italic">{t('project_management.no_technologies', 'No technologies defined yet')}</span>
                                 </div>
                               )}
                             </div>
@@ -1099,8 +1099,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.project_documentation', 'Project Documentation')}</Label>
-                        <p className="text-[10px] text-muted-foreground/50 font-medium">{t('project_management.project_documentation_desc', 'Attach specifications, contracts, and briefs')}</p>
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{t('project_management.project_documentation', 'Project Documentation')}</Label>
+                        <p className="text-[11px] text-muted-foreground/50 font-medium">{t('project_management.project_documentation_desc', 'Attach specifications, contracts, and briefs')}</p>
                       </div>
                       <Button 
                         type="button" 
@@ -1124,7 +1124,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                               </div>
                               <div className="min-w-0 space-y-0.5">
                                 <p className="text-xs font-bold truncate">{file.name}</p>
-                                <p className="text-[9px] text-muted-foreground/60 truncate font-black uppercase tracking-widest">{file.path}</p>
+                                <p className="text-[11px] text-muted-foreground/60 truncate font-black uppercase tracking-widest">{file.path}</p>
                               </div>
                             </div>
                             <Button 
@@ -1145,7 +1145,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                           <UploadIcon className="h-6 w-6" />
                         </div>
                         <p className="text-xs font-black uppercase tracking-widest mb-1">{t('project_management.no_assets_deployed', 'No Assets Deployed')}</p>
-                        <p className="text-[10px] font-medium">{t('project_management.sync_project_files', 'Click to synchronize project files')}</p>
+                        <p className="text-[11px] font-medium">{t('project_management.sync_project_files', 'Click to synchronize project files')}</p>
                       </div>
                     )}
                   </div>

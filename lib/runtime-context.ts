@@ -138,6 +138,14 @@ export const getTenantId = (): string | null => {
   }
 
   const host = window.location.hostname.toLowerCase();
+  const mappedTenant = process.env.NEXT_PUBLIC_TENANT_HOST_MAP?.split(",")
+    .map((entry) => entry.trim().split(":", 2))
+    .find(([mappedHost]) => normalizeHost(mappedHost) === host)?.[1]
+    ?.trim();
+
+  if (mappedTenant) {
+    return mappedTenant;
+  }
 
   // 1. Handle localhost subdomains
   if (host.endsWith(".localhost")) {
@@ -258,16 +266,21 @@ export const getBackendOrigin = (): string => {
   }
 
   if (typeof window === "undefined") {
-    return "http://localhost:8085";
+    return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
   }
 
   const host = window.location.hostname;
   const protocol = window.location.protocol;
+  const defaultPort = "8081";
 
-  return `${protocol}//${host}`;
+  return `${protocol}//${host}:${defaultPort}`;
 };
 
 export const getBackendApiRoot = (): string => {
+  // Tenant requests use the Next.js same-origin rewrite. This keeps the
+  // browser on its tenant host, lets Docker resolve the private backend name,
+  // and avoids requiring every generated or custom tenant host to expose the
+  // backend port directly.
   if (shouldUseSameOriginTenantBackend()) {
     return `${window.location.origin.replace(/\/+$/, "")}/api/v1`;
   }

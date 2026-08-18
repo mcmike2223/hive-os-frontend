@@ -32,6 +32,7 @@ import {
   Reveal,
   CountUp,
 } from "./lounge-fx";
+import { CustomLandingFrame, useCustomLandingHtml } from "./custom-landing-frame";
 
 type BrandSettings = {
   app_title?: string | null;
@@ -442,6 +443,13 @@ export function RestaurantLandingTemplate({
 
   const isDark = mounted ? resolvedTheme === "dark" : true;
   const brandName = brandSettings?.app_title || tenantName || "Savory Lounge";
+  const customLandingHtml = useCustomLandingHtml(
+    template,
+    brandName,
+    "Restaurant",
+    isDark,
+    brandSettings,
+  );
   
   // Resolve Logo
   const rawLogoUrl = isDark
@@ -660,6 +668,17 @@ export function RestaurantLandingTemplate({
     },
   ];
 
+  // Templates that carry their own page code render it instead of this design.
+  if (customLandingHtml) {
+    return (
+      <CustomLandingFrame
+        html={customLandingHtml}
+        title={`${brandName} landing page`}
+        mode={template.rendering.mode}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
       {/* Premium ambient FX layer */}
@@ -732,7 +751,7 @@ export function RestaurantLandingTemplate({
             {/* Controls */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <span
-                className="hidden xl:inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300 whitespace-nowrap mr-1"
+                className="hidden xl:inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300 whitespace-nowrap mr-1"
                 title={t("landing.nav.open_tonight", "Open Tonight")}
               >
                 <span className="relative flex h-2 w-2">
@@ -918,7 +937,7 @@ export function RestaurantLandingTemplate({
               aria-label="Previous Slide"
             >
               <Wine className="h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] mt-1 text-amber-400/60 group-hover:text-amber-300">Prev</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] mt-1 text-amber-400/60 group-hover:text-amber-300">Prev</span>
             </button>
 
             {/* Next Button - Premium Coaster & Martini Glass Styled */}
@@ -928,7 +947,7 @@ export function RestaurantLandingTemplate({
               aria-label="Next Slide"
             >
               <Martini className="h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] mt-1 text-amber-400/60 group-hover:text-amber-300">Next</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] mt-1 text-amber-400/60 group-hover:text-amber-300">Next</span>
             </button>
 
             {/* Slide Dots Indicator */}
@@ -1219,7 +1238,7 @@ export function RestaurantLandingTemplate({
                           {dish.model3d && (
                             <span 
                               title="3D interactive model available" 
-                              className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#7B16D9]/10 text-[#7B16D9] dark:text-purple-400 border border-[#7B16D9]/20 dark:border-purple-500/20 rounded-full flex items-center gap-1 shadow-[0_0_10px_rgba(123,22,217,0.15)]"
+                              className="px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider bg-[#7B16D9]/10 text-[#7B16D9] dark:text-purple-400 border border-[#7B16D9]/20 dark:border-purple-500/20 rounded-full flex items-center gap-1 shadow-[0_0_10px_rgba(123,22,217,0.15)]"
                             >
                               <Box className="w-3.5 h-3.5" />
                               3D
@@ -1228,7 +1247,7 @@ export function RestaurantLandingTemplate({
                           {dish.image && dish.image !== "/landing/dish.png" && (
                             <span 
                               title="Photo available" 
-                              className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#FF1A43]/10 text-[#FF1A43] border border-[#FF1A43]/20 rounded-full flex items-center gap-1 shadow-[0_0_10px_rgba(255,26,67,0.15)]"
+                              className="px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider bg-[#FF1A43]/10 text-[#FF1A43] border border-[#FF1A43]/20 rounded-full flex items-center gap-1 shadow-[0_0_10px_rgba(255,26,67,0.15)]"
                             >
                               <ImageIcon className="w-3.5 h-3.5" />
                               Image

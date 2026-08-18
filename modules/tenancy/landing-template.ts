@@ -1300,6 +1300,25 @@ const resolvePreviewFontFamily = (fontFamily?: string | null): string => {
   }
 };
 
+const menuTilesHtml = (resolved: TenantLandingTemplate): string => {
+  const images = [
+    ...(resolved.services ?? []).map((item) => item.image).filter((image): image is string => !!image),
+    ...resolved.highlights.map((item) => item.image).filter((image): image is string => !!image),
+  ];
+
+  const tiles: string[] = [];
+  for (let i = 0; i < 3; i += 1) {
+    const image = images[i];
+    tiles.push(
+      image
+        ? `<div class="menu-tile"><img src="${escapeHtml(image)}" alt="" loading="lazy" /></div>`
+        : `<div class="menu-tile menu-tile-empty"><span>${escapeHtml(resolved.menus?.eyebrow ?? "Menu")}</span></div>`,
+    );
+  }
+
+  return tiles.join("");
+};
+
 export const buildTenantLandingPreviewHtml = (
   template: TenantLandingTemplate,
   brandName: string,
@@ -1356,6 +1375,7 @@ export const buildTenantLandingPreviewHtml = (
   const highlightsHtml = resolved.highlights
     .map((item) => `
       <article class="card">
+        ${item.image ? `<div class="card-img"><img src="${escapeHtml(item.image)}" alt="" loading="lazy" /></div>` : ""}
         <span class="eyebrow">${escapeHtml(item.kicker)}</span>
         <h3>${escapeHtml(item.title)}</h3>
         <p>${escapeHtml(item.description)}</p>
@@ -1380,6 +1400,72 @@ export const buildTenantLandingPreviewHtml = (
       </blockquote>
     `)
     .join("");
+
+  const heroSlides = Array.isArray(resolved.hero?.slides) && resolved.hero.slides.length > 0
+    ? resolved.hero.slides.filter((slide) => slide.image || slide.title)
+    : [];
+
+  const slidesJson = escapeScriptJson(heroSlides);
+
+  const menusHtml = resolved.menus
+    ? (() => {
+        const menusEyebrow = resolved.menus?.eyebrow ?? "Menus";
+        const menusTitle = resolved.menus?.title ?? "Explore Our Menus in 3D";
+        const menusDescEyebrow = resolved.menus?.description_eyebrow ?? "Interactive Experience";
+        const menusDescription = resolved.menus?.description ?? "";
+        return `
+        <section class="section" id="menu">
+          <div class="menu-panel">
+            <div class="section-head">
+              <span class="eyebrow">${escapeHtml(menusEyebrow)}</span>
+              <h2>${escapeHtml(menusTitle)}</h2>
+            </div>
+            <p class="section-copy menu-desc"><strong>${escapeHtml(menusDescEyebrow)}</strong> — ${escapeHtml(menusDescription)}</p>
+            <div class="menu-tiles">${menuTilesHtml(resolved)}</div>
+          </div>
+        </section>
+      `;
+      })()
+    : "";
+
+  const servicesHtml = resolved.services && resolved.services.length > 0
+    ? `
+        <section class="section" id="services">
+          <div class="section-head">
+            <span class="eyebrow">${escapeHtml(resolved.services_section?.eyebrow ?? "Services")}</span>
+            <h2>${escapeHtml(resolved.services_section?.title ?? "Exclusive Services")}</h2>
+          </div>
+          <div class="grid-3">
+            ${resolved.services.map((item) => `
+              <article class="card service-card">
+                ${item.image ? `<div class="card-img"><img src="${escapeHtml(item.image)}" alt="" loading="lazy" /></div>` : ""}
+                <h3>${escapeHtml(item.title)}</h3>
+                <p>${escapeHtml(item.description)}</p>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `
+    : "";
+
+  const faqsHtml = resolved.faqs && resolved.faqs.length > 0
+    ? `
+        <section class="section" id="faq">
+          <div class="section-head">
+            <span class="eyebrow">FAQ</span>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            ${resolved.faqs.map((item) => `
+              <details class="faq"${heroSlides.length > 0 ? "" : " open"}>
+                <summary>${escapeHtml(item.question)}</summary>
+                <p>${escapeHtml(item.answer)}</p>
+              </details>
+            `).join("")}
+          </div>
+        </section>
+      `
+    : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -1488,7 +1574,7 @@ export const buildTenantLandingPreviewHtml = (
       }
       .stats {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 12px;
         margin-top: 28px;
       }
@@ -1586,6 +1672,191 @@ export const buildTenantLandingPreviewHtml = (
         font-size: 12px;
         color: var(--muted);
       }
+      .hero.has-slides {
+        padding: 0;
+        background: none;
+      }
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .hero-bg-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.78) 0%, rgba(2, 6, 23, 0.62) 55%, rgba(2, 6, 23, 0.8) 100%);
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 2;
+        padding: 34px;
+      }
+      .hero.has-slides .brand-name,
+      .hero.has-slides h1,
+      .hero.has-slides .lede,
+      .hero.has-slides .slide-title,
+      .hero.has-slides .slide-badge {
+        color: #f8fafc;
+      }
+      .hero.has-slides .section-copy,
+      .hero.has-slides .slide-subtitle {
+        color: rgba(226, 232, 240, 0.82);
+      }
+      .hero.has-slides .btn-secondary {
+        background: rgba(2, 6, 23, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #f8fafc;
+      }
+      .slide-caption {
+        margin-top: 26px;
+        max-width: 640px;
+      }
+      .slide-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 7px 12px;
+      }
+      .hero.has-slides .slide-badge {
+        color: var(--accent);
+      }
+      .slide-title {
+        margin: 12px 0 6px;
+        font-size: 22px;
+        letter-spacing: -0.03em;
+        color: var(--strong-text);
+      }
+      .slide-subtitle {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--muted);
+      }
+      .dots {
+        display: flex;
+        gap: 8px;
+        margin-top: 24px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.35);
+        transition: width 0.25s ease, background 0.25s ease;
+        cursor: default;
+      }
+      .dot.active {
+        width: 26px;
+        background: var(--accent);
+      }
+      .card-img {
+        margin: -20px -20px 16px;
+        border-radius: 21px 21px 0 0;
+        overflow: hidden;
+      }
+      .card-img img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        display: block;
+      }
+      .service-card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      .menu-panel {
+        position: relative;
+        border-radius: 26px;
+        padding: 26px;
+        background: linear-gradient(145deg, var(--panel), ${isDark ? "rgba(10, 18, 32, 0.5)" : "rgba(255, 255, 255, 0.6)"});
+        border: 1px solid var(--shell-border);
+        overflow: hidden;
+      }
+      .menu-desc {
+        margin-top: 6px;
+      }
+      .menu-tiles {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+      .menu-tile {
+        position: relative;
+        height: 130px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid var(--shell-border);
+      }
+      .menu-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .menu-tile-empty {
+        background: linear-gradient(145deg, ${toRgba(accent, 0.22)}, ${toRgba(accent, 0.05)});
+        display: flex;
+        align-items: flex-end;
+      }
+      .menu-tile-empty span {
+        padding: 10px 12px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .faq-list {
+        display: grid;
+        gap: 10px;
+      }
+      .faq {
+        border-radius: 18px;
+        border: 1px solid var(--shell-border);
+        background: var(--panel);
+        padding: 2px 20px;
+      }
+      .faq summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 0;
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--strong-text);
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary::after {
+        content: "+";
+        color: var(--accent);
+        font-weight: 900;
+        font-size: 18px;
+        line-height: 1;
+      }
+      .faq[open] summary::after {
+        content: "\\2013";
+      }
+      .faq p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        line-height: 1.65;
+        font-size: 14px;
+      }
       @media (max-width: 960px) {
         .grid-3, .stats {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1607,24 +1878,38 @@ export const buildTenantLandingPreviewHtml = (
   <body>
     <div class="page">
       <div class="shell">
-        <section class="hero">
-          <div class="brand">
-            <div>
-              <div class="brand-name">${escapeHtml(previewBrandName)}</div>
-              <div class="section-copy">${escapeHtml(businessLine)}</div>
+        <section class="hero${heroSlides.length > 0 ? " has-slides" : ""}">
+          ${heroSlides.length > 0 ? `
+            <img id="hero-bg" class="hero-bg" src="${escapeHtml(heroSlides[0].image)}" alt="" />
+            <div class="hero-bg-overlay"></div>` : ""}
+          <div class="hero-inner">
+            <div class="brand">
+              <div>
+                <div class="brand-name">${escapeHtml(previewBrandName)}</div>
+                <div class="section-copy">${escapeHtml(businessLine)}</div>
+              </div>
+              <span class="pill">${escapeHtml(resolved.hero.eyebrow)}</span>
             </div>
-            <span class="pill">${escapeHtml(resolved.hero.eyebrow)}</span>
+            ${resolved.hero.announcement ? `<div class="pill">${escapeHtml(resolved.hero.announcement)}</div>` : ""}
+            <h1>${escapeHtml(resolved.hero.title)}</h1>
+            <p class="lede">${escapeHtml(resolved.hero.description)}</p>
+            <div class="actions">
+              <a class="btn-primary" href="${sanitizeHref(resolved.hero.primary_href)}">${escapeHtml(resolved.hero.primary_label)}</a>
+              <a class="btn-secondary" href="${sanitizeHref(resolved.hero.secondary_href)}">${escapeHtml(resolved.hero.secondary_label)}</a>
+            </div>
+            ${heroSlides.length > 0 ? `
+              <div class="slide-caption">
+                <span id="slide-badge" class="slide-badge">${escapeHtml(heroSlides[0].badge)}</span>
+                <h2 id="slide-title" class="slide-title">${escapeHtml(heroSlides[0].title)}</h2>
+                <p id="slide-subtitle" class="slide-subtitle">${escapeHtml(heroSlides[0].subtitle)}</p>
+              </div>
+              <div class="dots">
+                ${heroSlides.map((_, index) => `<span class="dot${index === 0 ? " active" : ""}"></span>`).join("")}
+              </div>` : ""}
           </div>
-          ${resolved.hero.announcement ? `<div class="pill">${escapeHtml(resolved.hero.announcement)}</div>` : ""}
-          <h1>${escapeHtml(resolved.hero.title)}</h1>
-          <p class="lede">${escapeHtml(resolved.hero.description)}</p>
-          <div class="actions">
-            <a class="btn-primary" href="${sanitizeHref(resolved.hero.primary_href)}">${escapeHtml(resolved.hero.primary_label)}</a>
-            <a class="btn-secondary" href="${sanitizeHref(resolved.hero.secondary_href)}">${escapeHtml(resolved.hero.secondary_label)}</a>
-          </div>
-          <div class="stats">${statsHtml}</div>
         </section>
         <div class="content">
+          <div class="stats">${statsHtml}</div>
           <section class="section">
             <div class="grid-3">${highlightsHtml}</div>
           </section>
@@ -1639,6 +1924,9 @@ export const buildTenantLandingPreviewHtml = (
           <section class="section">
             <div class="grid-3">${testimonialsHtml}</div>
           </section>
+          ${menusHtml}
+          ${servicesHtml}
+          ${faqsHtml}
           <section class="cta">
             <div>
               <span class="eyebrow">Final call to action</span>
@@ -1657,6 +1945,36 @@ export const buildTenantLandingPreviewHtml = (
         </div>
       </div>
     </div>
+    ${heroSlides.length > 1 ? `
+    <script>
+      (function () {
+        var slides = ${slidesJson};
+        if (!slides || slides.length < 2) return;
+        var idx = 0;
+        var bg = document.getElementById("hero-bg");
+        var badge = document.getElementById("slide-badge");
+        var title = document.getElementById("slide-title");
+        var subtitle = document.getElementById("slide-subtitle");
+        var dots = Array.prototype.slice.call(document.querySelectorAll(".dot"));
+        function show(next) {
+          idx = next % slides.length;
+          var slide = slides[idx];
+          if (bg && slide.image) bg.src = slide.image;
+          if (badge) badge.textContent = slide.badge || "";
+          if (title) title.textContent = slide.title || "";
+          if (subtitle) subtitle.textContent = slide.subtitle || "";
+          dots.forEach(function (dot, i) { dot.classList.toggle("active", i === idx); });
+        }
+        setInterval(function () { show(idx + 1); }, 6000);
+      })();
+    </script>` : ""}
   </body>
 </html>`;
 };
+
+/**
+ * postMessage type the Landing Library's Edit dialog uses to drive the
+ * /landing-preview iframe from unsaved JSON. Lives here so the app route and
+ * the dialog share it without either importing across that boundary.
+ */
+export const LANDING_PREVIEW_MESSAGE = "hive:landing-preview";

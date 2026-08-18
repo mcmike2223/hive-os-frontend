@@ -888,7 +888,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
           <div className="flex flex-col items-center md:items-end text-center md:text-right gap-1">
             {initialIsTenant && (
-              <p className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-wider text-[10px]">
+              <p className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-wider text-[11px]">
                 POWERED BY HIVE ERP
               </p>
             )}

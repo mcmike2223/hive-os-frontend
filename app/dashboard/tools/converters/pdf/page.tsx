@@ -302,7 +302,7 @@ export default function PdfConverterPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {cfg.badge && (
-              <Badge className="bg-card/60 border-border/40 text-foreground text-[10px] px-3 py-1 rounded-full font-mono tracking-widest">
+              <Badge className="bg-card/60 border-border/40 text-foreground text-[11px] px-3 py-1 rounded-full font-mono tracking-widest">
                 {cfg.badge}
               </Badge>
             )}
@@ -316,7 +316,7 @@ export default function PdfConverterPage() {
 
           {/* Mode Selector */}
           <div className="rounded-[1.5rem] border border-border/50 bg-card/40 backdrop-blur-md p-5">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 block">
+            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-3 block">
               Conversion Type
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -374,7 +374,7 @@ export default function PdfConverterPage() {
                   <File className="h-5 w-5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold truncate">{f.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{formatBytes(f.size)}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatBytes(f.size)}</p>
                   </div>
                   <button onClick={() => { setFiles((prev) => prev.filter((_, idx) => idx !== i)); setOutputs([]); }} className="text-muted-foreground hover:text-destructive transition-colors">
                     <X className="h-4 w-4" />
@@ -409,12 +409,12 @@ export default function PdfConverterPage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold truncate">{item.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{formatBytes(item.size)}</p>
+                      <p className="text-[11px] text-muted-foreground">{formatBytes(item.size)}</p>
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 rounded-full text-[10px] px-3 border-emerald-500/30 text-emerald-600"
+                      className="h-7 rounded-full text-[11px] px-3 border-emerald-500/30 text-emerald-600"
                       onClick={() => { const a = document.createElement("a"); a.href = item.url; a.download = item.name; a.click(); }}
                     >
                       <Download className="h-3 w-3 mr-1" /> Save
@@ -433,36 +433,36 @@ export default function PdfConverterPage() {
             {cfg.engine === "client" ? (
               <div className="space-y-3">
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-sky-500/5 border border-sky-500/20">
-                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center shrink-0 text-[10px] font-black">1</div>
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center shrink-0 text-[11px] font-black">1</div>
                   <p className="text-xs text-muted-foreground">Your PDF is parsed locally in the browser using PDF.js — <strong>no upload required</strong>.</p>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/40">
-                  <div className="h-6 w-6 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 text-[10px] font-black">2</div>
+                  <div className="h-6 w-6 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 text-[11px] font-black">2</div>
                   <p className="text-xs text-muted-foreground">Each page is rendered onto a Canvas element and exported as a high-resolution image.</p>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                  <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 text-[10px] font-black">3</div>
+                  <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 text-[11px] font-black">3</div>
                   <p className="text-xs text-muted-foreground">Download individual pages or all at once.</p>
                 </div>
-                <Badge className="w-full justify-center bg-sky-500/10 text-sky-500 border-sky-500/20 rounded-xl py-2 font-mono text-[10px] tracking-widest">
+                <Badge className="w-full justify-center bg-sky-500/10 text-sky-500 border-sky-500/20 rounded-xl py-2 font-mono text-[11px] tracking-widest">
                   🔒 100% Private · Client-Side
                 </Badge>
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
-                  <div className="h-6 w-6 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0 text-[10px] font-black">1</div>
+                  <div className="h-6 w-6 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0 text-[11px] font-black">1</div>
                   <p className="text-xs text-muted-foreground">Your file is securely sent to the Gotenberg engine (LibreOffice / Chromium).</p>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/40">
-                  <div className="h-6 w-6 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 text-[10px] font-black">2</div>
+                  <div className="h-6 w-6 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 text-[11px] font-black">2</div>
                   <p className="text-xs text-muted-foreground">Converted server-side with full fidelity using industry-standard open-source tools.</p>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                  <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 text-[10px] font-black">3</div>
+                  <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 text-[11px] font-black">3</div>
                   <p className="text-xs text-muted-foreground">Result is streamed directly to your browser for download.</p>
                 </div>
-                <Badge className="w-full justify-center bg-indigo-500/10 text-indigo-500 border-indigo-500/20 rounded-xl py-2 font-mono text-[10px] tracking-widest">
+                <Badge className="w-full justify-center bg-indigo-500/10 text-indigo-500 border-indigo-500/20 rounded-xl py-2 font-mono text-[11px] tracking-widest">
                   ⚡ Powered by Gotenberg
                 </Badge>
               </div>

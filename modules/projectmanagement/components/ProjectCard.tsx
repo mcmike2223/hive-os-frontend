@@ -170,7 +170,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                       {project.name}
                     </h3>
                     {project.is_template && (
-                      <Badge className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border-violet-500/20 shrink-0">
+                      <Badge className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border-violet-500/20 shrink-0">
                         Template
                       </Badge>
                     )}
@@ -178,7 +178,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                 </Link>
                 <div className="flex items-center gap-2 mt-1.5">
                   <div className={cn(
-                    "flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border",
+                    "flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border",
                     isOverdue ? "bg-rose-500/10 text-rose-500 border-rose-500/20" : 
                     isAtRisk ? "bg-orange-500/10 text-orange-500 border-orange-500/20" : 
                     "bg-primary/5 text-muted-foreground border-border/40"
@@ -236,12 +236,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             {project.tech_stack && project.tech_stack.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {project.tech_stack.slice(0, 3).map((tech, i) => (
-                  <Badge key={i} variant="outline" className="text-[9px] font-bold px-1.5 py-0 border-primary/20 bg-primary/5 text-primary/70">
+                  <Badge key={i} variant="outline" className="text-[11px] font-bold px-1.5 py-0 border-primary/20 bg-primary/5 text-primary/70">
                     {tech}
                   </Badge>
                 ))}
                 {project.tech_stack.length > 3 && (
-                  <span className="text-[9px] font-bold text-muted-foreground/50 ml-1">
+                  <span className="text-[11px] font-bold text-muted-foreground/50 ml-1">
                     +{project.tech_stack.length - 3} {t('project_management.more', 'more')}
                   </span>
                 )}
@@ -252,20 +252,20 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           {/* Core Metrics */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-muted/10 rounded-2xl p-3 border border-white/5 group-hover:bg-muted/20 transition-colors">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 block mb-1">{t('project_management.velocity', 'Velocity')}</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 block mb-1">{t('project_management.velocity', 'Velocity')}</span>
               <div className="flex items-end gap-1.5">
                 <span className="text-lg font-black leading-none">{completedTasks}</span>
-                <span className="text-[10px] text-muted-foreground/50 font-bold mb-0.5">/ {totalTasks} {t('project_management.units', 'units')}</span>
+                <span className="text-[11px] text-muted-foreground/50 font-bold mb-0.5">/ {totalTasks} {t('project_management.units', 'units')}</span>
               </div>
             </div>
             <div className="bg-muted/10 rounded-2xl p-3 border border-white/5 group-hover:bg-muted/20 transition-colors flex flex-col justify-between">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 block mb-1">
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 block mb-1">
                 {project.repository_url ? t('project_management.engineering', "Engineering") : t('project_management.priority_level', "Priority")}
               </span>
               {project.repository_url ? (
                 <div className="flex items-center gap-2 text-primary">
                   <Github className="h-4 w-4" />
-                  <span className="text-[10px] font-black uppercase truncate max-w-[80px]">{t('project_management.active_repo', 'Active Repo')}</span>
+                  <span className="text-[11px] font-black uppercase truncate max-w-[80px]">{t('project_management.active_repo', 'Active Repo')}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -285,11 +285,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                 {visibleMembers.map((member) => (
                   <Avatar key={member.id} className="h-8 w-8 border-2 border-card ring-1 ring-white/10 hover:scale-110 transition-transform cursor-pointer">
                     <AvatarImage src={member.user?.avatar_path || undefined} />
-                    <AvatarFallback className="text-[9px] font-bold">{initials(member.user?.name)}</AvatarFallback>
+                    <AvatarFallback className="text-[11px] font-bold">{initials(member.user?.name)}</AvatarFallback>
                   </Avatar>
                 ))}
                 {extraMembers > 0 && (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-muted/80 backdrop-blur-md text-[10px] font-black text-muted-foreground/80 ring-1 ring-white/10">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-muted/80 backdrop-blur-md text-[11px] font-black text-muted-foreground/80 ring-1 ring-white/10">
                     +{extraMembers}
                   </div>
                 )}
@@ -303,7 +303,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{t('project_management.completion', 'Completion')}</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{t('project_management.completion', 'Completion')}</span>
                 <span className={cn("text-sm font-black italic", status.color)}>{progress}%</span>
               </div>
               <div className="relative h-2 w-full bg-muted/20 rounded-full overflow-hidden p-0.5 border border-white/5">

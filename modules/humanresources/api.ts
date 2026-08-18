@@ -4,9 +4,12 @@ export type HrSummary = {
   total: number;
   active: number;
   on_probation: number;
+  assigned_employees: number;
+  unassigned_employees: number;
   contracts_expiring_soon: number;
   written_terms_missing: number;
   open_positions: number;
+  pending_leave_requests: number;
 };
 
 export type ComplianceValidationFinding = {

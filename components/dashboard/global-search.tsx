@@ -143,7 +143,9 @@ export function GlobalSearch() {
   };
 
   return (
-    <div id="tour-topbar-search" ref={containerRef} className="relative ml-2 w-full max-w-[340px]">
+    // The tour anchor lives on the topbar wrapper that owns the responsive
+    // visibility; duplicating the id here made document.querySelector ambiguous.
+    <div ref={containerRef} className="relative ml-2 w-full max-w-[340px]">
       <div className="relative group">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
@@ -162,7 +164,7 @@ export function GlobalSearch() {
         {isLoading ? (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
         ) : (
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-6 select-none items-center gap-1 rounded-[6px] border border-border/60 bg-muted/50 px-2 font-mono text-[10px] font-bold opacity-100 sm:flex text-muted-foreground transition-opacity group-focus-within:opacity-0">
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-6 select-none items-center gap-1 rounded-[6px] border border-border/60 bg-muted/50 px-2 font-mono text-[11px] font-bold opacity-100 sm:flex text-muted-foreground transition-opacity group-focus-within:opacity-0">
             <span>{modifierKey}</span>K
           </kbd>
         )}
@@ -180,7 +182,7 @@ export function GlobalSearch() {
             ) : (
               filteredResults.map((category) => (
                 <div key={category.category}>
-                  <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <div className="px-2 pb-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     {category.label}
                     <div className="h-px flex-1 bg-border/40" />
                   </div>
@@ -199,7 +201,7 @@ export function GlobalSearch() {
                             <p className="text-sm font-bold truncate text-foreground leading-tight">
                               {item.title}
                             </p>
-                            <p className="text-[10px] text-muted-foreground truncate font-mono mt-0.5">
+                            <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
                               {item.subtitle}
                             </p>
                           </div>
@@ -214,7 +216,7 @@ export function GlobalSearch() {
           </div>
 
           <div className="bg-muted/30 border-t border-border/50 p-2 text-center">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-1">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-1">
               Powered by <span className="text-primary">HIVE</span>
             </span>
           </div>

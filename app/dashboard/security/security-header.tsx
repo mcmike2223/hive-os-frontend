@@ -27,7 +27,7 @@ export function SecurityHeader({ tenantName }: { tenantName: string }) {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                     </span>
-                    <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-[0.2em]">
+                    <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.2em]">
                         {t('security.node_clearance', 'Node Clearance')}: {tenantName}
                     </p>
                 </div>

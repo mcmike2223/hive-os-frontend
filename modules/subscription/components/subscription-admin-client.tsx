@@ -440,7 +440,7 @@ function PricingMatrix({
 
   const renderPriceInput = (scope: keyof PricingUpdatePayload, key: string, label: string) => (
     <label className="block min-w-[140px] space-y-1">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
           ETB
@@ -491,7 +491,7 @@ function PricingMatrix({
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
                       {module.name}
-                      <Badge variant={module.is_addon ? "outline" : "secondary"} className="rounded-full px-2 py-0.5 text-[9px] uppercase tracking-widest">
+                      <Badge variant={module.is_addon ? "outline" : "secondary"} className="rounded-full px-2 py-0.5 text-[11px] uppercase tracking-widest">
                         {module.is_addon ? "Addon" : "Major Module"}
                       </Badge>
                     </span>
@@ -734,7 +734,7 @@ function FeaturePill({ feature }: { feature: SubscriptionAdminFeature }) {
   return (
     <div className="rounded-lg border border-border/40 bg-muted/30 px-2 py-1">
       <div className="truncate text-[11px] font-semibold text-foreground">{label}</div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{methods}</div>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{methods}</div>
     </div>
   );
 }

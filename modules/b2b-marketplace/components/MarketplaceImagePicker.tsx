@@ -56,7 +56,7 @@ export function MarketplaceImagePicker({
         ) : (
           <button type="button" onClick={() => setOpen(true)} className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground/50 transition-colors hover:text-primary">
             <ImageIcon className="h-6 w-6" />
-            <span className="text-[10px] font-medium">Choose / upload image</span>
+            <span className="text-[11px] font-medium">Choose / upload image</span>
           </button>
         )}
       </div>

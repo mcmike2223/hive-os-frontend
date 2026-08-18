@@ -222,7 +222,7 @@ export default function UnitConverterPage() {
               <p className="text-sm text-muted-foreground">Convert {cat.name.toLowerCase()} and more — instant, offline, precise</p>
             </div>
           </div>
-          <Badge className="bg-card/60 border-border/40 text-foreground text-[10px] px-3 py-1 rounded-full font-mono tracking-widest uppercase">
+          <Badge className="bg-card/60 border-border/40 text-foreground text-[11px] px-3 py-1 rounded-full font-mono tracking-widest uppercase">
             ⚡ Client-Side · Instant
           </Badge>
         </div>
@@ -247,7 +247,7 @@ export default function UnitConverterPage() {
                   )}
                 >
                   <span className="text-xl">{c.icon}</span>
-                  <span className="text-[9px] font-black leading-tight">{c.name.split(" ")[0]}</span>
+                  <span className="text-[11px] font-black leading-tight">{c.name.split(" ")[0]}</span>
                 </button>
               ))}
             </div>
@@ -258,7 +258,7 @@ export default function UnitConverterPage() {
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
               {/* FROM */}
               <div className="flex flex-col gap-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">From</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">From</label>
                 <select
                   value={fromUnit}
                   onChange={(e) => setFromUnit(e.target.value)}
@@ -294,7 +294,7 @@ export default function UnitConverterPage() {
 
               {/* TO */}
               <div className="flex flex-col gap-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">To</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">To</label>
                 <select
                   value={toUnit}
                   onChange={(e) => setToUnit(e.target.value)}
@@ -326,7 +326,7 @@ export default function UnitConverterPage() {
                   {" = "}
                   <span className="font-black text-primary">{result} {cat.units[toUnit]?.symbol}</span>
                 </p>
-                <Button variant="outline" size="sm" className="rounded-full h-7 px-3 text-[10px]" onClick={copy}>
+                <Button variant="outline" size="sm" className="rounded-full h-7 px-3 text-[11px]" onClick={copy}>
                   {copied ? <Check className="h-3 w-3 mr-1 text-emerald-500" /> : <Copy className="h-3 w-3 mr-1" />}
                   Copy
                 </Button>
@@ -353,9 +353,9 @@ export default function UnitConverterPage() {
                     }
                   }}
                 >
-                  <span className="text-[10px] text-muted-foreground font-semibold">{conv.label}</span>
+                  <span className="text-[11px] text-muted-foreground font-semibold">{conv.label}</span>
                   <span className={cn("text-sm font-black font-mono truncate", conv.key === fromUnit ? "text-primary" : "text-foreground")}>
-                    {conv.value} <span className="text-muted-foreground font-normal text-[10px]">{conv.symbol}</span>
+                    {conv.value} <span className="text-muted-foreground font-normal text-[11px]">{conv.symbol}</span>
                   </span>
                 </div>
               ))}

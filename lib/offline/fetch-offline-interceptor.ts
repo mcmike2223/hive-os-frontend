@@ -23,10 +23,20 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // Only these request headers are persisted with a queued item. Auth + tenant
 // headers are re-applied fresh by the axios request interceptor at flush time.
+//
+// x-idempotency-key MUST be persisted. It is the one header here that cannot be
+// re-derived at flush time, because it identifies this specific submission
+// rather than the session. Queuing is triggered by a network error, which the
+// browser reports identically whether the server never saw the request or saw
+// it, committed it, and lost the response on the way back. Replaying without
+// the key in the second case creates a duplicate order — the guest is billed
+// twice and the kitchen cooks twice — in exactly the flaky-connectivity
+// conditions this queue exists to survive.
 const SAFE_HEADER_KEYS = new Set([
   "accept",
   "accept-language",
   "content-type",
+  "x-idempotency-key",
   "x-tenant-id",
   "x-tenant-context",
   "x-tenant-signature",

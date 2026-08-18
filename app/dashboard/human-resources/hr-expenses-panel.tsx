@@ -138,7 +138,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                           size="sm"
                           onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'approved' })}
                           disabled={updatingAction !== null}
-                          className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700"
+                          className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700"
                         >
                           {updatingAction?.id === e.id && updatingAction?.status === 'approved' ? (
                             <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Approving...</>
@@ -151,7 +151,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                           variant="outline"
                           onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'rejected' })}
                           disabled={updatingAction !== null}
-                          className="h-7 text-[10px] text-red-600"
+                          className="h-7 text-[11px] text-red-600"
                         >
                           {updatingAction?.id === e.id && updatingAction?.status === 'rejected' ? (
                             <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Rejecting...</>
@@ -166,7 +166,7 @@ export function HrExpensesPanel({ employees }: { employees: any[] }) {
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: e.id, status: 'reimbursed' })}
                         disabled={updatingAction !== null}
-                        className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                        className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700"
                       >
                         {updatingAction?.id === e.id && updatingAction?.status === 'reimbursed' ? (
                           <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Reimbursing...</>

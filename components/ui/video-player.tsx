@@ -1106,7 +1106,7 @@ export function VideoPlayer({
           )}
         >
           {activeChapter && (
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/55 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] mb-0.5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/55 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] mb-0.5">
               {activeChapter.label}
             </p>
           )}
@@ -1181,7 +1181,7 @@ export function VideoPlayer({
         <div className="absolute right-4 top-4 z-30 w-[min(24rem,calc(100%-2rem))] rounded-3xl border border-white/10 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">Keyboard Shortcuts</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/55">Keyboard Shortcuts</p>
               <p className="mt-1 text-sm font-semibold text-white/85">Learning controls at your fingertips</p>
             </div>
             <button
@@ -1357,7 +1357,7 @@ export function VideoPlayer({
                     className="absolute bottom-5 flex flex-col items-center transform -translate-x-1/2 pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-100"
                     style={{ left: `${hoverProgress}%` }}
                   >
-                    <div className="bg-black/95 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl text-center border border-white/10 whitespace-nowrap">
+                    <div className="bg-black/95 text-white text-[11px] font-bold px-2 py-1 rounded shadow-xl text-center border border-white/10 whitespace-nowrap">
                       {hoverTime}
                     </div>
                   </div>
@@ -1454,7 +1454,7 @@ export function VideoPlayer({
                     {showChapters && (
                       <div className="absolute bottom-full right-0 mb-4 w-56 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
                         <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2 mb-1">
-                          <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Chapters</h4>
+                          <h4 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Chapters</h4>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
@@ -1484,7 +1484,7 @@ export function VideoPlayer({
                             className="flex items-center justify-between gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-muted/80 rounded-xl transition-colors"
                           >
                             <span className="truncate text-left">{chapter.label}</span>
-                            <span className="font-mono text-[10px] text-muted-foreground">{formatTime(chapter.time)}</span>
+                            <span className="font-mono text-[11px] text-muted-foreground">{formatTime(chapter.time)}</span>
                           </button>
                         ))}
                       </div>
@@ -1499,7 +1499,7 @@ export function VideoPlayer({
                     </button>
                     {showCC && (
                       <div className="absolute bottom-full right-0 mb-4 w-44 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
-                        <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Subtitles</h4>
+                        <h4 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Subtitles</h4>
                         <button type="button" onClick={() => { setActiveSubtitle(-1); setShowCC(false); }} className="flex items-center justify-between px-3 py-2 text-xs font-bold text-foreground hover:bg-muted/80 rounded-xl transition-colors">
                           Off {activeSubtitle === -1 && <Check className="h-4 w-4 text-primary" />}
                         </button>
@@ -1518,18 +1518,18 @@ export function VideoPlayer({
                     <button type="button" onClick={() => handleMenuToggle('quality')} aria-label="Video quality" aria-expanded={showQuality} className={cn("transition-colors flex items-center gap-1", activeQuality !== -1 || adaptiveQualityPending ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "text-white hover:text-white/80")} title="Quality">
                       <Settings className="h-6 w-6" />
                       {activeQuality !== -1 && qualityLevels[activeQuality] ? (
-                        <span className="text-[10px] font-black bg-primary/20 text-primary px-1.5 rounded-md">
+                        <span className="text-[11px] font-black bg-primary/20 text-primary px-1.5 rounded-md">
                           {qualityLevels[activeQuality]?.label || `${qualityLevels[activeQuality]?.height}p`}
                         </span>
                       ) : adaptiveQualityPending ? (
-                        <span className="text-[10px] font-black bg-primary/20 text-primary px-1.5 rounded-md">Prep</span>
+                        <span className="text-[11px] font-black bg-primary/20 text-primary px-1.5 rounded-md">Prep</span>
                       ) : !isHlsSource ? (
-                        <span className="text-[10px] font-black bg-primary/20 text-primary px-1.5 rounded-md">MP4</span>
+                        <span className="text-[11px] font-black bg-primary/20 text-primary px-1.5 rounded-md">MP4</span>
                       ) : null}
                     </button>
                     {showQuality && (
                       <div className="absolute bottom-full right-0 mb-4 w-44 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
-                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Quality</h4>
+                        <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Quality</h4>
                         
                         {isHlsSource ? (
                             <>
@@ -1573,7 +1573,7 @@ export function VideoPlayer({
                   </button>
                   {showSpeed && (
                     <div className="absolute bottom-full right-0 mb-4 w-40 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
-                      <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Speed</h4>
+                      <h4 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Speed</h4>
                       {availablePlaybackRates.map((rate) => (
                         <button type="button" key={rate} onClick={() => changePlaybackRate(rate)} className="flex items-center justify-between px-3 py-2 text-xs font-bold text-foreground hover:bg-muted/80 rounded-xl transition-colors">
                           {rate === 1 ? 'Normal' : `${rate}x`}

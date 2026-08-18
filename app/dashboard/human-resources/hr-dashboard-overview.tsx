@@ -74,13 +74,13 @@ import {
 } from "@/modules/humanresources/api";
 
 const CHART_COLOURS = [
-  "#1d4ed8",
-  "#047857",
-  "#b45309",
-  "#7c3aed",
-  "#b91c1c",
-  "#0369a1",
-  "#475569",
+  "hsl(var(--primary))",
+  "#10b981",
+  "#f59e0b",
+  "#6366f1",
+  "#ec4899",
+  "#06b6d4",
+  "#8b5cf6",
 ];
 
 const tooltipStyle = {
@@ -350,15 +350,15 @@ function ChartPanel({
 
   return (
     <article
-      className={`rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 ${className}`}
+      className={`rounded-2xl border border-border bg-card text-card-foreground shadow-sm ${className}`}
       aria-labelledby={titleId}
     >
-      <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-start sm:justify-between dark:border-slate-800">
+      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 id={titleId} className="text-base font-semibold text-slate-950 dark:text-white">
+          <h3 id={titleId} className="text-base font-semibold text-foreground">
             {title}
           </h3>
-          <p id={descriptionId} className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p id={descriptionId} className="mt-1 text-sm text-muted-foreground">
             {description}
           </p>
         </div>
@@ -377,13 +377,13 @@ function ChartPanel({
           </div>
           {!hasValues && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-lg border border-dashed border-slate-300 bg-white/95 px-4 py-3 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-950/95 dark:text-slate-300">
+              <div className="rounded-lg border border-dashed border-border bg-background/95 px-4 py-3 text-center text-sm text-muted-foreground shadow-sm">
                 No recorded data in this period
               </div>
             </div>
           )}
         </div>
-        <div className="mt-4 border-t border-slate-200 pt-4 text-sm dark:border-slate-800">
+        <div className="mt-4 border-t border-border pt-4 text-sm">
           {summary}
         </div>
       </div>
@@ -430,20 +430,27 @@ function MetricCard({
   tone: "blue" | "green" | "amber" | "red";
 }) {
   const tones = {
-    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-950 dark:bg-blue-950/40 dark:text-blue-200",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-200",
-    amber: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-950 dark:bg-amber-950/40 dark:text-amber-100",
-    red: "border-red-200 bg-red-50 text-red-800 dark:border-red-950 dark:bg-red-950/40 dark:text-red-200",
+    blue: "border-primary/20 bg-primary/5 text-foreground hover:border-primary/40",
+    green: "border-emerald-500/20 bg-emerald-500/5 text-foreground hover:border-emerald-500/40",
+    amber: "border-amber-500/20 bg-amber-500/5 text-foreground hover:border-amber-500/40",
+    red: "border-rose-500/20 bg-rose-500/5 text-foreground hover:border-rose-500/40",
+  };
+
+  const iconTones = {
+    blue: "text-primary",
+    green: "text-emerald-600 dark:text-emerald-400",
+    amber: "text-amber-600 dark:text-amber-400",
+    red: "text-rose-600 dark:text-rose-400",
   };
 
   return (
-    <article className={`rounded-2xl border p-5 ${tones[tone]}`}>
+    <article className={`rounded-2xl border p-5 transition-all shadow-sm ${tones[tone]}`}>
       <div className="flex items-start justify-between gap-4">
-        <p className="text-sm font-medium">{label}</p>
-        <span aria-hidden="true">{icon}</span>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <span aria-hidden="true" className={iconTones[tone]}>{icon}</span>
       </div>
-      <p className="mt-5 font-mono text-3xl font-semibold tabular-nums">{value}</p>
-      <p className="mt-2 text-xs opacity-80">{detail}</p>
+      <p className="mt-4 font-mono text-3xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
     </article>
   );
 }
@@ -824,7 +831,7 @@ export function HrDashboardOverview() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.charts.recruitment_pipeline} margin={{ left: 4, right: 4 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" angle={-25} textAnchor="end" height={72} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" angle={-25} textAnchor="end" height={72} tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} />
               <RechartsTooltip contentStyle={tooltipStyle} />
               <Bar dataKey="value" name="Applicants" fill="#b45309" radius={[6, 6, 0, 0]} isAnimationActive={!reducedMotion} />
@@ -945,7 +952,7 @@ export function HrDashboardOverview() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.charts.contract_types} margin={{ left: 4, right: 4 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" angle={-20} textAnchor="end" height={60} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" angle={-20} textAnchor="end" height={60} tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} />
               <RechartsTooltip contentStyle={tooltipStyle} />
               <Bar dataKey="value" name="Employees" fill="#0369a1" radius={[6, 6, 0, 0]} isAnimationActive={!reducedMotion} />

@@ -40,7 +40,7 @@ export const LMS_FONT_HREF =
   "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap";
 
 export const LMS_MY_LEARNING_PATH = "/dashboard/learning-management?tab=my-learning";
-export const LOGIN_HREF = `/sign-in?redirect=${encodeURIComponent(LMS_MY_LEARNING_PATH)}`;
+export const LOGIN_HREF = `/lms-login?redirect=${encodeURIComponent(LMS_MY_LEARNING_PATH)}`;
 export const REGISTER_HREF = "/lms-register";
 export const COURSES_HREF = "/courses";
 

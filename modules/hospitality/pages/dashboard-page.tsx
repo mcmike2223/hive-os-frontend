@@ -240,7 +240,7 @@ export default function HospitalityDashboardPage() {
           <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-6 transition-all hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/80 dark:text-emerald-400/80">Sales Income</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-600/80 dark:text-emerald-400/80">Sales Income</p>
                 <h3 className="text-3xl font-black tracking-tight">
                   ETB {(overview.financials?.[financialPeriod]?.income || 0).toLocaleString()}
                 </h3>
@@ -256,7 +256,7 @@ export default function HospitalityDashboardPage() {
           <div className="relative overflow-hidden rounded-[2rem] border border-rose-500/20 bg-gradient-to-br from-rose-500/10 to-rose-500/5 p-6 transition-all hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600/80 dark:text-rose-400/80">Total Expenses</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-600/80 dark:text-rose-400/80">Total Expenses</p>
                 <h3 className="text-3xl font-black tracking-tight">
                   ETB {(overview.financials?.[financialPeriod]?.expenses || 0).toLocaleString()}
                 </h3>
@@ -272,7 +272,7 @@ export default function HospitalityDashboardPage() {
           <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-6 transition-all hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/80 dark:text-amber-400/80">Marketing Comps</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-600/80 dark:text-amber-400/80">Marketing Comps</p>
                 <h3 className="text-3xl font-black tracking-tight">
                   ETB {(overview.financials?.[financialPeriod]?.comps || 0).toLocaleString()}
                 </h3>
@@ -293,7 +293,7 @@ export default function HospitalityDashboardPage() {
           )}>
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/80 dark:text-indigo-400/80">Net Revenue</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600/80 dark:text-indigo-400/80">Net Revenue</p>
                 <h3 className="text-3xl font-black tracking-tight">
                   ETB {(overview.financials?.[financialPeriod]?.net_revenue || 0).toLocaleString()}
                 </h3>
@@ -358,7 +358,7 @@ export default function HospitalityDashboardPage() {
               >
                 <div className="relative z-10 flex items-start justify-between">
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{card.label}</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">{card.label}</p>
                     <h2 className="text-4xl font-black tracking-tighter">{card.value}</h2>
                     <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
@@ -759,7 +759,7 @@ export default function HospitalityDashboardPage() {
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500">
-                    <span className="text-[10px] font-black uppercase">{new Date(reservation.reservation_time).toLocaleString('en-US', { month: 'short' })}</span>
+                    <span className="text-[11px] font-black uppercase">{new Date(reservation.reservation_time).toLocaleString('en-US', { month: 'short' })}</span>
                     <span className="text-lg font-black leading-none">{new Date(reservation.reservation_time).getDate()}</span>
                   </div>
                   <div>
@@ -773,15 +773,15 @@ export default function HospitalityDashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="hidden sm:flex flex-col items-end gap-1">
-                    <Badge variant="secondary" className="rounded-md font-mono text-[10px] bg-muted/50">
+                    <Badge variant="secondary" className="rounded-md font-mono text-[11px] bg-muted/50">
                       {reservation.reservation_code ?? `#${reservation.id}`}
                     </Badge>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{reservation.location?.label ?? `${locationLabel} TBD`}</span>
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{reservation.location?.label ?? `${locationLabel} TBD`}</span>
                   </div>
                   <Badge 
                     variant={reservation.status === "confirmed" ? "default" : "outline"}
                     className={cn(
-                      "rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                      "rounded-full px-3 py-0.5 text-[11px] font-black uppercase tracking-widest",
                       reservation.status === "confirmed" && "bg-emerald-500 hover:bg-emerald-600 border-none"
                     )}
                   >

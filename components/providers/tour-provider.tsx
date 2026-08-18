@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { Joyride, type EventData, type Step, STATUS, EVENTS, type TooltipRenderProps } from "react-joyride";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
+import { useTranslation } from "@/store/use-translation";
 
 interface TourContextType {
     startTour: (steps: Step[], type?: 'welcome' | 'system') => void;
@@ -20,9 +21,17 @@ export const useTour = () => {
     return context;
 };
 
-const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps>(
-    ({ index, step, backProps, closeProps, primaryProps, skipProps, tooltipProps, isLastStep }, ref) => {
+const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps & { totalSteps?: number }>(
+    ({ index, step, backProps, closeProps, primaryProps, skipProps, tooltipProps, isLastStep, totalSteps }, ref) => {
+        // Every label below used to be hardcoded English, so an Amharic operator
+        // got a fully translated tour body with English controls.
+        const { t } = useTranslation();
+
         if (!step) return null;
+
+        const total = totalSteps ?? 0;
+        const current = index + 1;
+        const progress = total > 0 ? Math.round((current / total) * 100) : 0;
 
         const safeTooltipProps = tooltipProps as React.HTMLAttributes<HTMLDivElement>;
 
@@ -54,10 +63,17 @@ const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps>(
                     <X className="h-4 w-4" />
                 </Button>
 
-                <div className="mb-8 mt-2 pr-6">
+                <div className="mb-6 mt-2 pr-6">
+                    {total > 0 && (
+                        <p className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+                            {t("tour.step_counter", "Step {current} of {total}")
+                                .replace("{current}", String(current))
+                                .replace("{total}", String(total))}
+                        </p>
+                    )}
                     {step.title && (
                         <h3 className="font-space font-black text-xl tracking-tight mb-3 text-foreground flex items-center gap-3">
-                            <span className="relative flex h-3 w-3">
+                            <span className="relative flex h-3 w-3 shrink-0">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
                             </span>
@@ -69,36 +85,59 @@ const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps>(
                     </div>
                 </div>
 
+                {total > 0 && (
+                    <div
+                        className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-valuenow={current}
+                        aria-valuemin={1}
+                        aria-valuemax={total}
+                        aria-label={t("tour.progress", "Tour progress")}
+                    >
+                        <div
+                            className="h-full rounded-full bg-primary transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between border-t border-border/50 pt-5 mt-auto relative z-10">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-9 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-foreground/5 px-3 rounded-xl transition-colors" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-foreground/5 px-3 rounded-xl transition-colors"
                         {...skipProps}
                     >
-                        Dismiss
+                        {t("tour.dismiss", "Dismiss")}
                     </Button>
-                    
+
                     <div className="flex items-center gap-2">
                         {index > 0 && (
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-9 rounded-xl text-xs font-bold px-4 border-border/60 hover:bg-muted/50 transition-all active:scale-95" 
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 rounded-xl text-xs font-bold px-4 border-border/60 hover:bg-muted/50 transition-all active:scale-95 flex items-center gap-1.5"
                                 {...backProps}
                             >
-                                Back
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                {t("tour.back", "Back")}
                             </Button>
                         )}
-                        <Button 
-                            size="sm" 
-                            className="h-9 rounded-xl text-xs font-black px-6 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2" 
+                        <Button
+                            size="sm"
+                            className="h-9 rounded-xl text-xs font-black px-6 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2"
                             {...primaryProps}
                         >
                             {isLastStep ? (
-                                <>Mission Complete</>
+                                <>
+                                    <Check className="h-3.5 w-3.5" />
+                                    {t("tour.finish", "Finish")}
+                                </>
                             ) : (
-                                <>Next Protocol</>
+                                <>
+                                    {t("tour.next", "Next")}
+                                    <ArrowRight className="h-3.5 w-3.5" />
+                                </>
                             )}
                         </Button>
                     </div>
@@ -157,14 +196,21 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
         const { status, type, action, index } = data;
 
         if (type === EVENTS.TOOLTIP) {
-            const stepTarget = steps[index]?.target as string;
-            if (stepTarget) {
-                const element = document.querySelector(stepTarget);
-                if (element) {
-                    setTimeout(() => {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 50);
-                }
+            // Sidebar steps carry live elements rather than selectors (nested nav
+            // rows have no id). Passing one to querySelector stringified it to its
+            // href and threw a SyntaxError, killing the tour on the first such step.
+            const stepTarget = steps[index]?.target;
+            const element =
+                stepTarget instanceof HTMLElement
+                    ? stepTarget
+                    : typeof stepTarget === 'string'
+                        ? document.querySelector(stepTarget)
+                        : null;
+
+            if (element) {
+                setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
             }
         }
 
@@ -212,7 +258,9 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
                         textColor: "hsl(var(--foreground))",
                         spotlightRadius: 32,
                     }}
-                    tooltipComponent={CustomTooltip}
+                    tooltipComponent={(props: TooltipRenderProps) => (
+                        <CustomTooltip {...props} totalSteps={steps.length} />
+                    )}
                     floatingOptions={{ 
                         hideArrow: true,
                         shiftOptions: { padding: 20 },

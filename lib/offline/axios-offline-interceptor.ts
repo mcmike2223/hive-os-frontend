@@ -11,10 +11,15 @@ import { getRequestLabel } from "@/lib/offline/url-invalidation";
 
 const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 
+// x-idempotency-key MUST be persisted here for the same reason as in the fetch
+// interceptor: it identifies the submission, not the session, so nothing can
+// re-derive it at flush time, and replaying a committed write without it
+// duplicates that write. Keep the two allowlists in step.
 const SAFE_HEADER_KEYS = new Set([
   "accept",
   "accept-language",
   "content-type",
+  "x-idempotency-key",
   "x-tenant-id",
   "x-tenant-context",
   "x-tenant-signature",
