@@ -4,6 +4,9 @@ import type { Warehouse, WarehouseLocation, WarehouseStock } from "./types";
 const BASE_URL = "warehouse";
 
 export const warehouseApi = {
+    // Overview dashboard
+    overview: (params?: Record<string, any>) => http.get(`${BASE_URL}/overview`, { params }),
+
     // Warehouses
     listWarehouses: (params?: Record<string, any>) => http.get(`${BASE_URL}/warehouses`, { params }),
     getWarehouse: (id: number) => http.get(`${BASE_URL}/warehouses/${id}`),

@@ -1,4 +1,4 @@
-import { Warehouse, Rows3, Grid3X3 } from "lucide-react";
+import { Warehouse, Rows3, Grid3X3, Gauge } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const warehouseModule: FrontendModuleDefinition = {
@@ -7,12 +7,23 @@ export const warehouseModule: FrontendModuleDefinition = {
   description: "Dedicated warehouse, shelf, and box management module.",
   backendModule: "Modules\\Warehouse",
   routePrefixes: [
+    "/dashboard/warehouse",
     "/dashboard/warehouse/warehouses",
     "/dashboard/warehouse/locations/shelves",
     "/dashboard/warehouse/locations/boxes",
     "/dashboard/warehouse/movements",
   ],
   navItems: [
+    {
+      moduleId: "warehouse",
+      translationKey: "nav.warehouse_overview",
+      fallbackLabel: "Warehouse Overview",
+      href: "/dashboard/warehouse",
+      icon: Gauge,
+      permissions: ["view_inventory", "manage_inventory"],
+      subscriptionSlug: "warehouse_management",
+      placement: "primary",
+    },
     {
       moduleId: "warehouse",
       translationKey: "nav.warehouse_warehouses",

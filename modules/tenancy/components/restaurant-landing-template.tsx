@@ -32,6 +32,7 @@ import {
   Reveal,
   CountUp,
 } from "./lounge-fx";
+import { CustomLandingFrame, useCustomLandingHtml } from "./custom-landing-frame";
 
 type BrandSettings = {
   app_title?: string | null;
@@ -442,6 +443,13 @@ export function RestaurantLandingTemplate({
 
   const isDark = mounted ? resolvedTheme === "dark" : true;
   const brandName = brandSettings?.app_title || tenantName || "Savory Lounge";
+  const customLandingHtml = useCustomLandingHtml(
+    template,
+    brandName,
+    "Restaurant",
+    isDark,
+    brandSettings,
+  );
   
   // Resolve Logo
   const rawLogoUrl = isDark
@@ -659,6 +667,17 @@ export function RestaurantLandingTemplate({
       a: t("landing.faq.a5", "Absolutely. Choose 'Private Event / Buyout' in the booking form and our events team will design the night around you."),
     },
   ];
+
+  // Templates that carry their own page code render it instead of this design.
+  if (customLandingHtml) {
+    return (
+      <CustomLandingFrame
+        html={customLandingHtml}
+        title={`${brandName} landing page`}
+        mode={template.rendering.mode}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>

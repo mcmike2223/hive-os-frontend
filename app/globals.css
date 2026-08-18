@@ -99,6 +99,15 @@
     --chart-3: #d97706;
     --chart-4: #8b5cf6;
 
+    /* Reserved severity ramp for ordered risk bands and state fills. Kept
+       separate from the categorical slots on purpose: a colour that means
+       "bad" must never also mean "series 4". Always shipped with the written
+       state beside it, never as colour alone. */
+    --sc-critical: #e11d48;
+    --sc-warning: #ea580c;
+    --sc-caution: #a16207;
+    --sc-good: #15803d;
+
     /* Terminal / raw-payload surface. Deliberately near-black in both themes so
        monospace dumps read as machine output rather than page content. */
     --terminal-surface: 0 0% 5%;
@@ -128,6 +137,13 @@
     --input: 240 3.7% 15.9%;
     --ring: 160 84% 39%;
     --primary-readable: var(--primary-readable-dark);
+
+    /* Dark mode is stepped, not flipped: the same severity meanings re-picked
+       against the near-black surface so each still clears contrast there. */
+    --sc-critical: #fb7185;
+    --sc-warning: #fb923c;
+    --sc-caution: #fbbf24;
+    --sc-good: #4ade80;
   }
 
   * {

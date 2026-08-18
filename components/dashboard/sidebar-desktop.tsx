@@ -31,7 +31,16 @@ import {
   Fingerprint,
   WalletCards,
   BadgeDollarSign,
+  ChartNoAxesCombined,
+  HandCoins,
   Factory,
+  Compass,
+  Sprout,
+  LifeBuoy,
+  ShieldCheck,
+  Telescope,
+  Truck,
+  Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -201,10 +210,22 @@ function SidebarInner({
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
+  const [isLandingTemplatesOpen, setIsLandingTemplatesOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
+  const [isProcurementOpen, setIsProcurementOpen] = useState(false);
+  const [isSupplyChainOpen, setIsSupplyChainOpen] = useState(false);
+  const [isSalesOpen, setIsSalesOpen] = useState(false);
+  const [isCrmOpen, setIsCrmOpen] = useState(false);
+  const [isFleetOpen, setIsFleetOpen] = useState(false);
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const [isInternalAuditOpen, setIsInternalAuditOpen] = useState(false);
+  const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+  const [isVantageOpen, setIsVantageOpen] = useState(false);
+  const [isAgricultureOpen, setIsAgricultureOpen] = useState(false);
   const [isProductionOpen, setIsProductionOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
@@ -237,10 +258,22 @@ function SidebarInner({
       setIsWorkflowOpen(true);
       setIsLmsOpen(true);
       setIsB2BMarketplaceOpen(true);
+      setIsLandingTemplatesOpen(true);
       setIsHumanResourcesOpen(true);
       setIsAttendanceOpen(true);
       setIsPayrollOpen(true);
       setIsFinanceOpen(true);
+      setIsPerformanceOpen(true);
+      setIsProcurementOpen(true);
+      setIsSupplyChainOpen(true);
+      setIsSalesOpen(true);
+      setIsCrmOpen(true);
+      setIsFleetOpen(true);
+      setIsServiceOpen(true);
+      setIsInternalAuditOpen(true);
+      setIsStrategyOpen(true);
+      setIsVantageOpen(true);
+      setIsAgricultureOpen(true);
       setIsProductionOpen(true);
     };
 
@@ -338,7 +371,7 @@ function SidebarInner({
   const standardNavItems = filteredNav.filter(
     (item) =>
       !DASHBOARD_MODULE_IDS.has(item.moduleId) &&
-      item.href !== "/dashboard/landing-templates",
+      item.href !== "/dashboard/landing-library",
   );
   const inventoryModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "inventory",
@@ -361,6 +394,9 @@ function SidebarInner({
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
   );
+  const landingTemplatesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "landing-templates",
+  );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
   );
@@ -372,6 +408,39 @@ function SidebarInner({
   );
   const financeModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "finance",
+  );
+  const performanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "performance",
+  );
+  const procurementModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "procurement",
+  );
+  const supplyChainModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "supplychain",
+  );
+  const salesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "sales",
+  );
+  const crmModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "crm",
+  );
+  const fleetModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "fleet",
+  );
+  const serviceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "service",
+  );
+  const internalAuditModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "internal-audit",
+  );
+  const strategyModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "strategy",
+  );
+  const vantageModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "vantage",
+  );
+  const agricultureModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "agriculture",
   );
   const productionModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "production",
@@ -406,6 +475,10 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
+    if (pathname.startsWith("/dashboard/landing-pages")) {
+      setIsModulesOpen(true);
+      setIsLandingTemplatesOpen(true);
+    }
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
@@ -422,6 +495,50 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsFinanceOpen(true);
     }
+    if (pathname.startsWith("/dashboard/performance")) {
+      setIsModulesOpen(true);
+      setIsPerformanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/procurement")) {
+      setIsModulesOpen(true);
+      setIsProcurementOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/supply-chain")) {
+      setIsModulesOpen(true);
+      setIsSupplyChainOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/sales")) {
+      setIsModulesOpen(true);
+      setIsSalesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/crm")) {
+      setIsModulesOpen(true);
+      setIsCrmOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/fleet")) {
+      setIsModulesOpen(true);
+      setIsFleetOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/service")) {
+      setIsModulesOpen(true);
+      setIsServiceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/internal-audit")) {
+      setIsModulesOpen(true);
+      setIsInternalAuditOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/strategy")) {
+      setIsModulesOpen(true);
+      setIsStrategyOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/vantage")) {
+      setIsModulesOpen(true);
+      setIsVantageOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/agriculture")) {
+      setIsModulesOpen(true);
+      setIsAgricultureOpen(true);
+    }
     if (pathname.startsWith("/dashboard/production")) {
       setIsModulesOpen(true);
       setIsProductionOpen(true);
@@ -431,7 +548,7 @@ function SidebarInner({
       pathname.startsWith("/dashboard/tools/converters") ||
       pathname.startsWith("/dashboard/mail") ||
       pathname.startsWith("/dashboard/chat") ||
-      pathname.startsWith("/dashboard/landing-templates")
+      pathname.startsWith("/dashboard/landing-library")
     ) {
       setIsAppsOpen(true);
     }
@@ -1051,6 +1168,94 @@ function SidebarInner({
                     })}
 
                     {renderModuleSection({
+                      items: procurementModuleItems,
+                      label: t("nav.procurement", "Procurement Management"),
+                      icon: HandCoins,
+                      openState: isProcurementOpen,
+                      onToggle: () => setIsProcurementOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: supplyChainModuleItems,
+                      label: t("nav.supply_chain", "Supply Chain Management"),
+                      icon: Truck,
+                      openState: isSupplyChainOpen,
+                      onToggle: () => setIsSupplyChainOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: salesModuleItems,
+                      label: t("nav.sales", "Sales Management"),
+                      icon: BadgeDollarSign,
+                      openState: isSalesOpen,
+                      onToggle: () => setIsSalesOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: crmModuleItems,
+                      label: t("nav.crm", "Customer Relationships"),
+                      icon: Handshake,
+                      openState: isCrmOpen,
+                      onToggle: () => setIsCrmOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: fleetModuleItems,
+                      label: t("nav.fleet", "Fleet Management"),
+                      icon: Truck,
+                      openState: isFleetOpen,
+                      onToggle: () => setIsFleetOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: serviceModuleItems,
+                      label: t("nav.service", "Service and Maintenance"),
+                      icon: LifeBuoy,
+                      openState: isServiceOpen,
+                      onToggle: () => setIsServiceOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: internalAuditModuleItems,
+                      label: t("nav.internal_audit", "Internal Audit"),
+                      icon: ShieldCheck,
+                      openState: isInternalAuditOpen,
+                      onToggle: () => setIsInternalAuditOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: strategyModuleItems,
+                      label: t("nav.strategy", "Strategic Planning"),
+                      icon: Compass,
+                      openState: isStrategyOpen,
+                      onToggle: () => setIsStrategyOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: vantageModuleItems,
+                      label: t("nav.vantage", "Vantage"),
+                      icon: Telescope,
+                      openState: isVantageOpen,
+                      onToggle: () => setIsVantageOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: agricultureModuleItems,
+                      label: t("nav.agriculture", "Agriculture"),
+                      icon: Sprout,
+                      openState: isAgricultureOpen,
+                      onToggle: () => setIsAgricultureOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
+                      items: performanceModuleItems,
+                      label: t("nav.performance", "Performance Management"),
+                      icon: ChartNoAxesCombined,
+                      openState: isPerformanceOpen,
+                      onToggle: () => setIsPerformanceOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
                       items: productionModuleItems,
                       label: t("nav.production", "Production Management"),
                       icon: Factory,
@@ -1339,6 +1544,68 @@ function SidebarInner({
                         )}
                       </div>
                     )}
+
+                    {isTenantNode && landingTemplatesModuleItems.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setIsLandingTemplatesOpen(!isLandingTemplatesOpen)
+                          }
+                          className={cn(
+                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            pathname.startsWith("/dashboard/landing-pages")
+                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
+                              : "hive-sidebar-subsection-idle"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <LayoutTemplate className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/landing-pages") ? "text-primary font-bold" : "")} />
+                            <span className="truncate">
+                              {t("nav.landing_templates", "Landing Templates")}
+                            </span>
+                          </div>
+                          {isLandingTemplatesOpen ? (
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 opacity-50" />
+                          )}
+                        </button>
+                        {isLandingTemplatesOpen && (
+                          <div className="flex flex-col gap-1 pl-4">
+                            {landingTemplatesModuleItems.map((item) => {
+                              const active =
+                                item.href === "/dashboard"
+                                  ? pathname === "/dashboard"
+                                  : pathname === item.href ||
+                                    pathname.startsWith(item.href + "/");
+                              const Icon = item.icon;
+                              const label = t(
+                                item.translationKey,
+                                item.fallbackLabel,
+                              );
+
+                              return (
+                                <Link
+                                  key={item.href}
+                                  id={item.tourId}
+                                  href={item.href}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
+                                    active
+                                      ? "hive-sidebar-nested-active"
+                                      : "hive-sidebar-nested-idle",
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1512,18 +1779,18 @@ function SidebarInner({
                   )}
                   {canAccessLandingTemplates && !isTenantNode && (
                     <Link
-                      href="/dashboard/landing-templates"
+                      href="/dashboard/landing-library"
                       id="tour-nav-landing-templates"
                       className={cn(
                         "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
-                        pathname.includes("/dashboard/landing-templates")
+                        pathname.includes("/dashboard/landing-library")
                           ? "hive-sidebar-nested-active"
                           : "hive-sidebar-nested-idle",
                       )}
                     >
                       <LayoutTemplate className="h-4 w-4 shrink-0" />
                       <span className="truncate">
-                        {t("nav.landing_templates", "Landing Templates")}
+                        {t("nav.landing_library", "Landing Library")}
                       </span>
                     </Link>
                   )}
@@ -1591,11 +1858,11 @@ function SidebarInner({
                   )}
                   {canAccessLandingTemplates && !isTenantNode && (
                     <Link
-                      href="/dashboard/landing-templates"
-                      title="Landing Templates"
+                      href="/dashboard/landing-library"
+                      title="Landing Library"
                       className={cn(
                         "group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 mt-1",
-                        pathname.includes("/dashboard/landing-templates")
+                        pathname.includes("/dashboard/landing-library")
                           ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25"
                           : "text-muted-foreground hover:bg-muted/80 hover:text-foreground font-semibold",
                       )}

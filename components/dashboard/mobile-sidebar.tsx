@@ -31,7 +31,16 @@ import {
   Fingerprint,
   WalletCards,
   BadgeDollarSign,
+  ChartNoAxesCombined,
+  HandCoins,
   Factory,
+  Compass,
+  Sprout,
+  LifeBuoy,
+  ShieldCheck,
+  Telescope,
+  Truck,
+  Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,7 +86,7 @@ const APP_PATH_PREFIXES = [
   "/dashboard/tools/converter",
   "/dashboard/mail",
   "/dashboard/chat",
-  "/dashboard/landing-templates",
+  "/dashboard/landing-library",
 ];
 
 const isAppPath = (href: string) =>
@@ -203,10 +212,22 @@ export function MobileSidebar() {
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const [isLmsOpen, setIsLmsOpen] = useState(false);
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
+  const [isLandingTemplatesOpen, setIsLandingTemplatesOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
+  const [isProcurementOpen, setIsProcurementOpen] = useState(false);
+  const [isSupplyChainOpen, setIsSupplyChainOpen] = useState(false);
+  const [isSalesOpen, setIsSalesOpen] = useState(false);
+  const [isCrmOpen, setIsCrmOpen] = useState(false);
+  const [isFleetOpen, setIsFleetOpen] = useState(false);
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const [isInternalAuditOpen, setIsInternalAuditOpen] = useState(false);
+  const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+  const [isVantageOpen, setIsVantageOpen] = useState(false);
+  const [isAgricultureOpen, setIsAgricultureOpen] = useState(false);
   const [isProductionOpen, setIsProductionOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
@@ -387,6 +408,9 @@ export function MobileSidebar() {
   const b2bMarketplaceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "b2b-marketplace",
   );
+  const landingTemplatesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "landing-templates",
+  );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
   );
@@ -398,6 +422,39 @@ export function MobileSidebar() {
   );
   const financeModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "finance",
+  );
+  const performanceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "performance",
+  );
+  const procurementModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "procurement",
+  );
+  const supplyChainModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "supplychain",
+  );
+  const salesModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "sales",
+  );
+  const crmModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "crm",
+  );
+  const fleetModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "fleet",
+  );
+  const serviceModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "service",
+  );
+  const internalAuditModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "internal-audit",
+  );
+  const strategyModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "strategy",
+  );
+  const vantageModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "vantage",
+  );
+  const agricultureModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "agriculture",
   );
   const productionModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "production",
@@ -438,6 +495,10 @@ export function MobileSidebar() {
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
+    if (pathname.startsWith("/dashboard/landing-pages")) {
+      setIsModulesOpen(true);
+      setIsLandingTemplatesOpen(true);
+    }
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
@@ -453,6 +514,50 @@ export function MobileSidebar() {
     if (pathname.startsWith("/dashboard/finance")) {
       setIsModulesOpen(true);
       setIsFinanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/performance")) {
+      setIsModulesOpen(true);
+      setIsPerformanceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/procurement")) {
+      setIsModulesOpen(true);
+      setIsProcurementOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/supply-chain")) {
+      setIsModulesOpen(true);
+      setIsSupplyChainOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/sales")) {
+      setIsModulesOpen(true);
+      setIsSalesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/crm")) {
+      setIsModulesOpen(true);
+      setIsCrmOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/fleet")) {
+      setIsModulesOpen(true);
+      setIsFleetOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/service")) {
+      setIsModulesOpen(true);
+      setIsServiceOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/internal-audit")) {
+      setIsModulesOpen(true);
+      setIsInternalAuditOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/strategy")) {
+      setIsModulesOpen(true);
+      setIsStrategyOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/vantage")) {
+      setIsModulesOpen(true);
+      setIsVantageOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/agriculture")) {
+      setIsModulesOpen(true);
+      setIsAgricultureOpen(true);
     }
     if (pathname.startsWith("/dashboard/production")) {
       setIsModulesOpen(true);
@@ -913,6 +1018,94 @@ export function MobileSidebar() {
                         })}
 
                         {renderModuleSection({
+                          items: procurementModuleItems,
+                          label: t("nav.procurement", "Procurement Management"),
+                          icon: HandCoins,
+                          openState: isProcurementOpen,
+                          onToggle: () => setIsProcurementOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: supplyChainModuleItems,
+                          label: t("nav.supply_chain", "Supply Chain Management"),
+                          icon: Truck,
+                          openState: isSupplyChainOpen,
+                          onToggle: () => setIsSupplyChainOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: salesModuleItems,
+                          label: t("nav.sales", "Sales Management"),
+                          icon: BadgeDollarSign,
+                          openState: isSalesOpen,
+                          onToggle: () => setIsSalesOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: crmModuleItems,
+                          label: t("nav.crm", "Customer Relationships"),
+                          icon: Handshake,
+                          openState: isCrmOpen,
+                          onToggle: () => setIsCrmOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: fleetModuleItems,
+                          label: t("nav.fleet", "Fleet Management"),
+                          icon: Truck,
+                          openState: isFleetOpen,
+                          onToggle: () => setIsFleetOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: serviceModuleItems,
+                          label: t("nav.service", "Service and Maintenance"),
+                          icon: LifeBuoy,
+                          openState: isServiceOpen,
+                          onToggle: () => setIsServiceOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: internalAuditModuleItems,
+                          label: t("nav.internal_audit", "Internal Audit"),
+                          icon: ShieldCheck,
+                          openState: isInternalAuditOpen,
+                          onToggle: () => setIsInternalAuditOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: strategyModuleItems,
+                          label: t("nav.strategy", "Strategic Planning"),
+                          icon: Compass,
+                          openState: isStrategyOpen,
+                          onToggle: () => setIsStrategyOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: vantageModuleItems,
+                          label: t("nav.vantage", "Vantage"),
+                          icon: Telescope,
+                          openState: isVantageOpen,
+                          onToggle: () => setIsVantageOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: agricultureModuleItems,
+                          label: t("nav.agriculture", "Agriculture"),
+                          icon: Sprout,
+                          openState: isAgricultureOpen,
+                          onToggle: () => setIsAgricultureOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: performanceModuleItems,
+                          label: t("nav.performance", "Performance Management"),
+                          icon: ChartNoAxesCombined,
+                          openState: isPerformanceOpen,
+                          onToggle: () => setIsPerformanceOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
                           items: productionModuleItems,
                           label: t("nav.production", "Production Management"),
                           icon: Factory,
@@ -947,6 +1140,16 @@ export function MobileSidebar() {
                           onToggle: () =>
                             setIsB2BMarketplaceOpen((value) => !value),
                         })}
+
+                        {isTenantNode &&
+                          renderModuleSection({
+                            items: landingTemplatesModuleItems,
+                            label: t("nav.landing_templates", "Landing Templates"),
+                            icon: LayoutTemplate,
+                            openState: isLandingTemplatesOpen,
+                            onToggle: () =>
+                              setIsLandingTemplatesOpen((value) => !value),
+                          })}
                       </div>
                     )}
                   </div>
@@ -1019,11 +1222,11 @@ export function MobileSidebar() {
                           {canAccessLandingTemplates &&
                             !isTenantNode &&
                             renderAppLink(
-                              "/dashboard/landing-templates",
-                              t("nav.landing_templates", "Landing Templates"),
+                              "/dashboard/landing-library",
+                              t("nav.landing_library", "Landing Library"),
                               LayoutTemplate,
-                              pathname.includes("/dashboard/landing-templates"),
-                              "tour-nav-landing-templates",
+                              pathname.includes("/dashboard/landing-library"),
+                              "tour-nav-landing-library",
                             )}
                         </div>
                       )}

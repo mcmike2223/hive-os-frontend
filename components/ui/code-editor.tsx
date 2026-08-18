@@ -31,6 +31,12 @@ interface CodeEditorProps {
   showPreview?: boolean;
   setShowPreview?: (val: boolean) => void;
   previewHtml?: string;
+  /**
+   * Full-bleed preview to render instead of the A4 `previewHtml` frame. Use
+   * when the preview is a live page (e.g. an iframe of the real template
+   * route) rather than a document — the paper-sized container crops it.
+   */
+  previewNode?: React.ReactNode;
   className?: string;
   readOnly?: boolean;
 }
@@ -209,9 +215,10 @@ const createUniqueFilename = (filename: string, existingNames: string[]): string
 export function CodeEditor({ 
   files, 
   setFiles, 
-  showPreview = false, 
-  setShowPreview, 
-  previewHtml = "", 
+  showPreview = false,
+  setShowPreview,
+  previewHtml = "",
+  previewNode,
   className,
   readOnly = false
 }: CodeEditorProps) {
@@ -1038,11 +1045,15 @@ export function CodeEditor({
         <div className="flex flex-1 w-full bg-[#1e1e1e] min-w-0 flex-col">
           <div className="relative flex-1 min-w-0">
             {showPreview ? (
-                <div className="absolute inset-0 bg-[#e0e0e0] flex justify-center overflow-auto p-4 sm:p-8">
-                    <div className="bg-white shadow-xl w-full max-w-[210mm] min-h-[297mm] mx-auto overflow-hidden relative">
-                      <iframe srcDoc={deferredPreviewHtml} className="w-full h-full border-none absolute inset-0" sandbox="allow-same-origin allow-scripts" />
-                    </div>
-                </div>
+                previewNode ? (
+                  <div className="absolute inset-0 overflow-hidden bg-white">{previewNode}</div>
+                ) : (
+                  <div className="absolute inset-0 bg-[#e0e0e0] flex justify-center overflow-auto p-4 sm:p-8">
+                      <div className="bg-white shadow-xl w-full max-w-[210mm] min-h-[297mm] mx-auto overflow-hidden relative">
+                        <iframe srcDoc={deferredPreviewHtml} className="w-full h-full border-none absolute inset-0" sandbox="allow-same-origin allow-scripts" />
+                      </div>
+                  </div>
+                )
             ) : (
               monacoError ? (
                 <div className="absolute inset-0 flex flex-col bg-[#111315]">

@@ -28,6 +28,7 @@ import { formatDocumentTitle } from "@/lib/document-title";
 import { getBackendStorageUrl } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import { publicLearningApi, type LmsPublicLanding } from "@/modules/Lms/api";
+import { CustomLandingFrame, useCustomLandingHtml } from "./custom-landing-frame";
 import type {
   TenantLandingCard,
   TenantLandingFaq,
@@ -99,7 +100,7 @@ const FONT_HREF =
   "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap";
 
 const LMS_MY_LEARNING_PATH = "/dashboard/learning-management?tab=my-learning";
-const LOGIN_HREF = `/sign-in?redirect=${encodeURIComponent(LMS_MY_LEARNING_PATH)}`;
+const LOGIN_HREF = `/lms-login?redirect=${encodeURIComponent(LMS_MY_LEARNING_PATH)}`;
 const REGISTER_HREF = "/lms-register";
 const COURSE_CATALOG_HREF = "/courses";
 
@@ -513,6 +514,8 @@ function SectionHeader({
 
 export function LmsLandingTemplate({ brandSettings, template, tenantName }: LmsLandingTemplateProps) {
   const brandName = brandSettings?.app_title || tenantName;
+  // This design is light-only, so custom code renders against the light palette.
+  const customLandingHtml = useCustomLandingHtml(template, brandName, "LMS", false, brandSettings);
   // Default to the lms2 template purple; a tenant brand color still wins when set.
   const accent = normalizeHexColor(brandSettings?.primary_color, PURPLE);
   const accentSoft = blendWithWhite(accent, 0.88);
@@ -586,6 +589,17 @@ export function LmsLandingTemplate({ brandSettings, template, tenantName }: LmsL
   }, []);
 
   const categoryIcons = [LibraryBig, Layers3, ShieldCheck, UsersRound, LineChart, MonitorPlay, BarChart3, BookOpenCheck];
+
+  // Templates that carry their own page code render it instead of this design.
+  if (customLandingHtml) {
+    return (
+      <CustomLandingFrame
+        html={customLandingHtml}
+        title={`${brandName} landing page`}
+        mode={template.rendering.mode}
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-white text-[var(--lms-navy)] antialiased" style={styleVars}>

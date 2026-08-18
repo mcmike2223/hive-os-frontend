@@ -65,6 +65,7 @@ import {
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTranslation } from "@/store/use-translation";
+import { CustomLandingFrame, useCustomLandingHtml } from "./custom-landing-frame";
 import { motion, AnimatePresence, useInView, useMotionValue, animate } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -1208,6 +1209,7 @@ export default function B2BLandingTemplate({
   // ── Resolve content from the tenant landing template; fall back to built-in defaults ──
   const b2b = template?.b2b ?? {};
   const brandName = brandSettings?.app_title?.trim() || tenantName?.trim() || "B2B Marketplace";
+  const customLandingHtml = useCustomLandingHtml(template, brandName, "B2B", true, brandSettings);
   const pubImg = (u?: string) => {
     if (!u) return "";
     // Private media serve URL → public-serve so it loads without a login, on any device.
@@ -1428,6 +1430,17 @@ export default function B2BLandingTemplate({
       window.scrollTo({ top: y, behavior: "smooth" });
     }
   };
+
+  // Templates that carry their own page code render it instead of this design.
+  if (customLandingHtml && template) {
+    return (
+      <CustomLandingFrame
+        html={customLandingHtml}
+        title={`${brandName} landing page`}
+        mode={template.rendering.mode}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-screen w-full text-foreground overflow-x-hidden">
