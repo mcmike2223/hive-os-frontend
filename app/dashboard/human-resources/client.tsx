@@ -81,6 +81,7 @@ import { HrAssetsPanel } from "./hr-assets-panel";
 import { HrExpensesPanel } from "./hr-expenses-panel";
 import {
   EmployeeRelationsPanel,
+  EmployeeProfileWorkspace,
   HrFormsPanel,
   EmployeeTransfersPanel,
 } from "./hr-extended-panels";
