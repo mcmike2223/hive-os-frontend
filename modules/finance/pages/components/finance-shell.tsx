@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 import type { ReactNode } from "react";
 import { AlertCircle, Landmark, LoaderCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PanelTableSkeleton } from "@/components/ui/loading-states";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import styles from "@/modules/finance/pages/components/finance-shell.module.css";
 
@@ -26,6 +29,27 @@ export const financeSections = [
   ["Compliance", "/dashboard/finance/operations"],
   ["Settings", "/dashboard/finance/settings"],
 ] as const;
+
+export const financeJournalTypes = [
+  ["general", "General journal"],
+  ["adjustment", "Adjustment"],
+  ["opening", "Opening balance"],
+] as const;
+
+export function useDebouncedValue<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = React.useState(value);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+}
+
+export function FinanceTableSkeleton({ rows = 6, cols = 6 }: { rows?: number; cols?: number }) {
+  return <PanelTableSkeleton rows={rows} cols={cols} />;
+}
 
 export function FinanceShell({ title, description, eyebrow, actions, children }: { title: string; description: string; eyebrow?: string; actions?: ReactNode; children: ReactNode }) {
   const pathname = usePathname();
@@ -61,9 +85,7 @@ export function FinanceShell({ title, description, eyebrow, actions, children }:
 }
 
 export function FinanceError({ error, title = "Finance data could not be loaded" }: { error: unknown; title?: string }) {
-  const message = typeof error === "object" && error && "response" in error
-    ? String((error as { response?: { data?: { message?: string } } }).response?.data?.message ?? "The server rejected this request.")
-    : error instanceof Error ? error.message : "Try again or contact your system administrator.";
+  const message = getErrorMessage(error, "The server rejected this request.");
   return <Alert variant="destructive"><AlertCircle aria-hidden="true" /><AlertTitle>{title}</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>;
 }
 
@@ -85,13 +107,37 @@ export function Money({ value, currency = "ETB" }: { value: number | string | nu
   return <span className="tabular-nums">{new Intl.NumberFormat("en-ET", { style: "currency", currency, maximumFractionDigits: 2 }).format(Number.isFinite(amount) ? amount : 0)}</span>;
 }
 
-export function FinanceTable<T>({ caption, columns, rows, getKey }: { caption: string; columns: Array<{ key: string; label: string; align?: "left" | "right"; render: (row: T) => ReactNode }>; rows: T[]; getKey: (row: T) => string | number }) {
+export function FinanceTable<T>({ caption, columns, rows, getKey, onRowClick }: { caption: string; columns: Array<{ key: string; label: string; align?: "left" | "right"; render: (row: T) => ReactNode }>; rows: T[]; getKey: (row: T) => string | number; onRowClick?: (row: T) => void }) {
   if (rows.length === 0) return <FinanceEmpty title="No records yet" description={caption} />;
   return (
     <Table>
       <TableCaption>{caption}</TableCaption>
       <TableHeader><TableRow>{columns.map((column) => <TableHead key={column.key} scope="col" className={column.align === "right" ? "text-right" : undefined}>{column.label}</TableHead>)}</TableRow></TableHeader>
-      <TableBody>{rows.map((row) => <TableRow key={getKey(row)}>{columns.map((column) => <TableCell key={column.key} className={column.align === "right" ? "text-right" : undefined}>{column.render(row)}</TableCell>)}</TableRow>)}</TableBody>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow
+            key={getKey(row)}
+            onClick={(event) => {
+              if (!onRowClick) return;
+              const target = event.target as HTMLElement | null;
+              // Don't trigger row click when clicking on interactive controls inside the row.
+              if (
+                target?.closest(
+                  "button, a, input, select, textarea, [role='button'], [role='menuitem'], [data-radix-dropdown-menu-item]"
+                )
+              ) {
+                return;
+              }
+              // Also ignore clicks within dropdown menu content (covers cases where Radix renders menu items as non-button elements).
+              if (target?.closest("[data-radix-dropdown-menu-content]")) return;
+              onRowClick(row);
+            }}
+            className={onRowClick ? "cursor-pointer" : undefined}
+          >
+            {columns.map((column) => <TableCell key={column.key} className={column.align === "right" ? "text-right" : undefined}>{column.render(row)}</TableCell>)}
+          </TableRow>
+        ))}
+      </TableBody>
     </Table>
   );
 }

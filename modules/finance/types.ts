@@ -19,6 +19,9 @@ export type FinanceAccount = {
   is_control: boolean;
   is_system: boolean;
   is_active: boolean;
+  parent?: Pick<FinanceAccount, "id" | "code" | "name" | "type"> | null;
+  children?: FinanceAccount[];
+  lines_count?: number;
 };
 
 export type FinanceContact = {
@@ -35,7 +38,11 @@ export type FinanceContact = {
   currency: string;
   credit_limit: string;
   payment_terms_days: number;
+  address?: string | null;
   is_active: boolean;
+  receivableAccount?: Pick<FinanceAccount, "id" | "code" | "name"> | null;
+  payableAccount?: Pick<FinanceAccount, "id" | "code" | "name"> | null;
+  documents?: FinanceDocument[];
 };
 
 export type FinanceJournalLine = {
@@ -97,6 +104,8 @@ export type FinanceDocument = {
   total: string;
   paid_amount: string;
   reference?: string | null;
+  journal?: FinanceJournal | null;
+  bankAccount?: Pick<FinanceAccount, "id" | "code" | "name"> | null;
 };
 
 export type FinanceBudget = {
@@ -106,9 +115,21 @@ export type FinanceBudget = {
   ends_on: string;
   status: string;
   department?: string | null;
+  cost_center?: string | null;
   currency: string;
   lines: Array<{ account_id: number; amount: number; notes?: string }>;
   total_amount: string;
+};
+
+export type FinanceBudgetDetail = {
+  budget: FinanceBudget;
+  variance: FinanceReport;
+};
+
+export type FinanceBankReconciliationItem = {
+  kind: "add" | "subtract";
+  description: string;
+  amount: number;
 };
 
 export type FinanceBankReconciliation = {
@@ -120,6 +141,8 @@ export type FinanceBankReconciliation = {
   book_balance: string;
   difference: string;
   status: string;
+  items?: FinanceBankReconciliationItem[];
+  completed_at?: string | null;
 };
 
 export type FinancePeriod = {
@@ -167,10 +190,35 @@ export type FinanceReport = {
   totals: Record<string, unknown>;
 };
 
+export type FinanceAccountMapping = {
+  id: number;
+  source_module: string;
+  event: string;
+  debit_account_id: number;
+  credit_account_id: number;
+  tax_rate_id: number | null;
+  is_active: boolean;
+  debit_account?: { id: number; code: string; name: string };
+  credit_account?: { id: number; code: string; name: string };
+  tax_rate?: { id: number; code: string; name: string; rate: string } | null;
+};
+
+export type FinanceUnlockRequest = {
+  id: number;
+  period_id: number;
+  status: string;
+  reason: string;
+  review_notes: string | null;
+  requested_by: number | null;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  period?: FinancePeriod;
+};
+
 export type FinanceSettings = {
   system_accounts: FinanceAccount[];
   tax_rates: FinanceTaxRate[];
   periods: FinancePeriod[];
-  account_mappings: Array<Record<string, unknown>>;
-  unlock_requests: Array<Record<string, unknown>>;
+  account_mappings: FinanceAccountMapping[];
+  unlock_requests: FinanceUnlockRequest[];
 };
