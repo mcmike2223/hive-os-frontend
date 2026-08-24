@@ -109,6 +109,10 @@ export const procurementApi = {
     action<Agreement>(`/procurement/agreements/${id}/actions/${verb}`),
   auditEvents: (params: Params = {}) =>
     getPage<AuditEvent>("/procurement/audit-events", params),
+  reportSummary: async () =>
+    (
+      await api.get<Envelope<ProcurementDashboard>>("/procurement/reports/summary")
+    ).data.data,
   exportReport: async (dataset: string) =>
     (
       await api.get<Blob>("/procurement/reports/export", {

@@ -191,17 +191,17 @@ export default function FinanceOperationsPage() {
         ) : undefined
       }
     >
-      {query.isPending || settings.isPending ? (
-        <>
-          <FinanceLoading cards={4} />
-          <div className="grid gap-6 xl:grid-cols-2">
-            <FinanceTableSkeleton rows={5} cols={6} />
-            <FinanceTableSkeleton rows={5} cols={5} />
-          </div>
-        </>
-      ) : query.isError || settings.isError || !query.data || !settings.data ? (
-        <FinanceError error={query.error ?? settings.error} />
-      ) : (
+    {query.isPending || settings.isPending ? (
+      <>
+        <FinanceLoading cards={4} />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <FinanceTableSkeleton rows={5} cols={6} />
+          <FinanceTableSkeleton rows={5} cols={5} />
+        </div>
+      </>
+    ) : query.isError || settings.isError || !query.data || !settings.data ? (
+      <FinanceError error={query.error ?? settings.error} />
+    ) : (
         <OperationsWorkspace
           data={query.data}
           accounts={settings.data.system_accounts}
@@ -400,12 +400,12 @@ function OperationsWorkspace({
         </Card>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Tax balance due" value={<Money value={taxDue} />} description={`${data.tax_obligations.filter((item) => item.status !== "paid").length} open or filed obligation(s).`} status={taxDue > 0 ? "pending" : "clear"} />
-        <MetricCard title="Integration review" value={pendingEvents} description="Source events awaiting mapping or retry." status={pendingEvents ? "pending" : "clear"} />
-        <MetricCard title="Net fixed assets" value={<Money value={netAssets} />} description={`${data.assets.length} registered asset(s).`} />
-        <MetricCard title="Bank import queue" value={data.bank_transactions.filter((item) => item.status !== "matched").length} description="Unmatched or suggested transactions." />
-      </div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <MetricCard title="Tax balance due" value={<Money value={taxDue} />} description={`${data.tax_obligations.filter((item) => item.status !== "paid").length} open or filed obligation(s).`} status={taxDue > 0 ? "pending" : "clear"} />
+      <MetricCard title="Integration review" value={pendingEvents} description="Source events awaiting mapping or retry." status={pendingEvents ? "pending" : "clear"} />
+      <MetricCard title="Net fixed assets" value={<Money value={netAssets} />} description={`${data.assets.length} registered asset(s).`} />
+      <MetricCard title="Bank import queue" value={data.bank_transactions.filter((item) => item.status !== "matched").length} description="Unmatched or suggested transactions." />
+    </div>
 
       {showForms && canManage ? (
         <section aria-labelledby="new-operation-heading" className="space-y-4">
@@ -469,7 +469,7 @@ function OperationsWorkspace({
         </section>
       ) : null}
 
-      <section aria-labelledby="tax-obligations-heading" className="grid min-w-0 gap-6 xl:grid-cols-2">
+    <section aria-labelledby="tax-obligations-heading" className="grid min-w-0 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -506,11 +506,11 @@ function OperationsWorkspace({
                 setDetailTax(row);
               }}
               columns={[
-                { key: "type", label: "Tax", render: (row) => row.type.replaceAll("_", " ") },
-                { key: "period", label: "Period", render: (row) => `${row.period_start} – ${row.period_end}` },
-                { key: "due", label: "Due", render: (row) => row.due_date },
-                { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
-                { key: "balance", label: "Balance", align: "right", render: (row) => <Money value={Math.max(0, Number(row.tax_amount) - Number(row.paid_amount))} /> },
+        { key: "type", label: "Tax", render: (row) => row.type.replaceAll("_", " ") },
+        { key: "period", label: "Period", render: (row) => `${row.period_start} – ${row.period_end}` },
+        { key: "due", label: "Due", render: (row) => row.due_date },
+        { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
+        { key: "balance", label: "Balance", align: "right", render: (row) => <Money value={Math.max(0, Number(row.tax_amount) - Number(row.paid_amount))} /> },
                 {
                   key: "actions",
                   label: "Actions",
@@ -550,18 +550,18 @@ function OperationsWorkspace({
                 setDetailFx(row);
               }}
               columns={[
-                { key: "pair", label: "Currency pair", render: (row) => <span className="font-mono">{row.base_currency}/{row.quote_currency}</span> },
-                { key: "date", label: "Effective", render: (row) => row.effective_date },
-                { key: "rate", label: "Rate", align: "right", render: (row) => Number(row.rate).toLocaleString("en-ET", { maximumFractionDigits: 8 }) },
-                { key: "type", label: "Type", render: (row) => <FinanceStatus value={row.rate_type} /> },
-                { key: "source", label: "Source", render: (row) => `${row.source}${row.is_official ? " · official" : ""}` },
+        { key: "pair", label: "Currency pair", render: (row) => <span className="font-mono">{row.base_currency}/{row.quote_currency}</span> },
+        { key: "date", label: "Effective", render: (row) => row.effective_date },
+        { key: "rate", label: "Rate", align: "right", render: (row) => Number(row.rate).toLocaleString("en-ET", { maximumFractionDigits: 8 }) },
+        { key: "type", label: "Type", render: (row) => <FinanceStatus value={row.rate_type} /> },
+        { key: "source", label: "Source", render: (row) => `${row.source}${row.is_official ? " · official" : ""}` },
               ]}
             />
           </CardContent>
         </Card>
-      </section>
+    </section>
 
-      <section aria-labelledby="assets-heading" className="grid min-w-0 gap-6 xl:grid-cols-2">
+    <section aria-labelledby="assets-heading" className="grid min-w-0 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -588,10 +588,10 @@ function OperationsWorkspace({
                 setDetailAsset(row);
               }}
               columns={[
-                { key: "asset", label: "Asset", render: (row) => <span><span className="font-mono">{row.code}</span> · {row.name}</span> },
-                { key: "cost", label: "Cost", align: "right", render: (row) => <Money value={row.acquisition_cost} /> },
-                { key: "book", label: "Book value", align: "right", render: (row) => <Money value={Number(row.acquisition_cost) - Number(row.accumulated_depreciation)} /> },
-                { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
+        { key: "asset", label: "Asset", render: (row) => <span><span className="font-mono">{row.code}</span> · {row.name}</span> },
+        { key: "cost", label: "Cost", align: "right", render: (row) => <Money value={row.acquisition_cost} /> },
+        { key: "book", label: "Book value", align: "right", render: (row) => <Money value={Number(row.acquisition_cost) - Number(row.accumulated_depreciation)} /> },
+        { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
                 {
                   key: "action",
                   label: "Action",
@@ -645,10 +645,10 @@ function OperationsWorkspace({
                 setDetailRecurring(row);
               }}
               columns={[
-                { key: "name", label: "Schedule", render: (row) => row.name },
-                { key: "frequency", label: "Frequency", render: (row) => row.frequency },
+        { key: "name", label: "Schedule", render: (row) => row.name },
+        { key: "frequency", label: "Frequency", render: (row) => row.frequency },
                 { key: "next", label: "Next run", render: (row) => formatDate(row.next_run_on) },
-                { key: "runs", label: "Runs", align: "right", render: (row) => row.run_count },
+        { key: "runs", label: "Runs", align: "right", render: (row) => row.run_count },
                 {
                   key: "action",
                   label: "Action",
@@ -707,9 +707,9 @@ function OperationsWorkspace({
             )}
           </CardContent>
         </Card>
-      </section>
+    </section>
 
-      <section aria-labelledby="integration-events-heading" className="grid min-w-0 gap-6 xl:grid-cols-2">
+    <section aria-labelledby="integration-events-heading" className="grid min-w-0 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -749,10 +749,10 @@ function OperationsWorkspace({
                 setDetailSource(row);
               }}
               columns={[
-                { key: "source", label: "Source event", render: (row) => `${row.source_module} · ${row.event}` },
-                { key: "date", label: "Date", render: (row) => row.event_date },
-                { key: "amount", label: "Value", align: "right", render: (row) => <Money value={row.amount} /> },
-                { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
+        { key: "source", label: "Source event", render: (row) => `${row.source_module} · ${row.event}` },
+        { key: "date", label: "Date", render: (row) => row.event_date },
+        { key: "amount", label: "Value", align: "right", render: (row) => <Money value={row.amount} /> },
+        { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
                 {
                   key: "action",
                   label: "Review action",
@@ -828,16 +828,16 @@ function OperationsWorkspace({
               getKey={(row) => row.id}
               onRowClick={openBankDetail}
               columns={[
-                { key: "date", label: "Date", render: (row) => row.transaction_date },
+        { key: "date", label: "Date", render: (row) => row.transaction_date },
                 { key: "account", label: "Account", render: (row) => (row.account ? `${row.account.code} · ${row.account.name}` : String(row.account_id)) },
-                { key: "description", label: "Description", render: (row) => row.description },
-                { key: "amount", label: "Amount", align: "right", render: (row) => <Money value={row.amount} /> },
-                { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
+        { key: "description", label: "Description", render: (row) => row.description },
+        { key: "amount", label: "Amount", align: "right", render: (row) => <Money value={row.amount} /> },
+        { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.status} /> },
               ]}
             />
           </CardContent>
         </Card>
-      </section>
+    </section>
 
       <TaxDetailDialog
         obligation={detailTax}

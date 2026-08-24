@@ -21,6 +21,8 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PanelTableSkeleton } from "@/components/ui/loading-states";
+import { getErrorMessage } from "@/lib/errors";
 import {
   Table,
   TableBody,
@@ -61,31 +63,25 @@ export function ProcurementShell({
       aria-labelledby="procurement-page-title"
       className="flex min-w-0 flex-col gap-6 pb-10"
     >
-      <header className="relative isolate overflow-hidden rounded-[2rem] border border-amber-900/15 bg-[#f8f1df] p-5 text-[#173d32] shadow-sm dark:border-amber-200/20 dark:bg-[#142c26] dark:text-[#f7f0db] sm:p-7">
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 right-0 -z-10 w-2/5 bg-[radial-gradient(circle_at_center,#d3942d33_0,transparent_68%)]"
-        />
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-2">
-            <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-[#7b4d06] dark:text-[#f0c77b]">
-              <Sprout aria-hidden="true" className="size-4" />
-              Field-to-ledger control
-            </p>
-            <h1
-              id="procurement-page-title"
-              className="text-2xl font-semibold tracking-tight sm:text-3xl"
-            >
-              {title}
-            </h1>
-            <p className="text-sm leading-relaxed text-[#3d5d53] dark:text-[#c7d9d2]">
-              {description}
-            </p>
+      <header className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Sprout aria-hidden="true" className="size-4" />
+            <span>Procurement management</span>
           </div>
-          {actions ? (
-            <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
-          ) : null}
+          <h1
+            id="procurement-page-title"
+            className="text-2xl font-semibold tracking-tight sm:text-3xl"
+          >
+            {title}
+          </h1>
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         </div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+        ) : null}
       </header>
       <nav
         aria-label="Procurement management sections"
@@ -105,7 +101,7 @@ export function ProcurementShell({
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   active
-                    ? "bg-[#1d5b49] text-white dark:bg-[#d9a441] dark:text-[#172e27]"
+                    ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -127,36 +123,45 @@ export function ProcurementError({
   error: unknown;
   title?: string;
 }) {
-  const message =
+  const fieldErrors =
     typeof error === "object" && error && "response" in error
-      ? String(
+      ? Object.values(
           (
             error as {
-              response?: {
-                data?: { message?: string; errors?: Record<string, string[]> };
-              };
+              response?: { data?: { errors?: Record<string, string[]> } };
             }
-          ).response?.data?.message ??
-            Object.values(
-              (
-                error as {
-                  response?: { data?: { errors?: Record<string, string[]> } };
-                }
-              ).response?.data?.errors ?? {},
-            ).flat()[0] ??
-            "The server rejected this request.",
+          ).response?.data?.errors ?? {},
         )
-      : error instanceof Error
-        ? error.message
-        : "Try again or contact your administrator.";
+          .flat()
+          .map((value) => String(value).trim())
+          .filter(Boolean)
+      : [];
+  const message = getErrorMessage(
+    error,
+    "Try again or contact your administrator.",
+  );
   return (
     <Alert variant="destructive">
       <AlertTriangle aria-hidden="true" />
       <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
+      <AlertDescription>
+        {fieldErrors.length > 1 ? (
+          <ul className="list-disc space-y-1 pl-4">
+            {fieldErrors.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          message
+        )}
+      </AlertDescription>
     </Alert>
   );
 }
+export function ProcurementTableSkeleton({ rows = 6, cols = 6 }: { rows?: number; cols?: number }) {
+  return <PanelTableSkeleton rows={rows} cols={cols} />;
+}
+
 export function ProcurementLoading({ cards = 4 }: { cards?: number }) {
   return (
     <div
@@ -167,7 +172,7 @@ export function ProcurementLoading({ cards = 4 }: { cards?: number }) {
         <Card key={index}>
           <CardHeader>
             <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-7 w-36" />
           </CardHeader>
           <CardContent>
             <Skeleton className="h-4 w-full" />
@@ -220,11 +225,6 @@ export function ProcurementStatus({ value }: { value: string }) {
   return (
     <Badge
       variant={danger ? "destructive" : warning ? "outline" : "secondary"}
-      className={
-        warning
-          ? "border-amber-700/40 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
-          : undefined
-      }
     >
       {value.replaceAll("_", " ")}
     </Badge>
@@ -242,14 +242,12 @@ export function MetricCard({
   status?: string;
 }) {
   return (
-    <Card className="border-[#214f42]/15">
+    <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <CardDescription>{title}</CardDescription>
-            <CardTitle className="text-2xl tabular-nums text-[#1d5b49] dark:text-[#9fd5c2]">
-              {value}
-            </CardTitle>
+            <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
           </div>
           {status ? <ProcurementStatus value={status} /> : null}
         </div>

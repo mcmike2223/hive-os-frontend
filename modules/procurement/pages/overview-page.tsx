@@ -28,6 +28,7 @@ import {
   ProcurementShell,
   ProcurementStatus,
   ProcurementTable,
+  ProcurementTableSkeleton,
 } from "@/modules/procurement/pages/components/procurement-shell";
 
 export default function ProcurementOverviewPage() {
@@ -40,7 +41,7 @@ export default function ProcurementOverviewPage() {
       title="Procurement control tower"
       description="Follow every commitment from a budget-backed request through fair supplier competition, delivery quality, invoice matching, and the finance ledger."
       actions={
-        <Button asChild className="bg-[#1d5b49] text-white hover:bg-[#164739]">
+        <Button asChild>
           <Link href="/dashboard/procurement/requisitions">
             Create requisition
             <ArrowRight aria-hidden="true" data-icon="inline-end" />
@@ -49,7 +50,15 @@ export default function ProcurementOverviewPage() {
       }
     >
       {query.isLoading ? (
-        <ProcurementLoading />
+        <>
+          <ProcurementLoading />
+          <div className="grid gap-6 xl:grid-cols-3">
+            <ProcurementTableSkeleton rows={4} cols={3} />
+            <ProcurementTableSkeleton rows={4} cols={3} />
+            <ProcurementTableSkeleton rows={4} cols={3} />
+          </div>
+          <ProcurementTableSkeleton rows={5} cols={5} />
+        </>
       ) : query.error || !query.data ? (
         <ProcurementError error={query.error} />
       ) : (

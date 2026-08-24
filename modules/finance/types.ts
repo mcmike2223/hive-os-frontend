@@ -163,6 +163,14 @@ export type FinanceTaxRate = {
   is_active: boolean;
 };
 
+export type FinanceCostCenter = {
+  id: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+};
+
 export type FinanceDashboard = {
   currency: string;
   metrics: { cash_balance: number; receivables: number; payables: number; net_income_ytd: number };
@@ -218,6 +226,7 @@ export type FinanceUnlockRequest = {
 export type FinanceSettings = {
   system_accounts: FinanceAccount[];
   tax_rates: FinanceTaxRate[];
+  cost_centers: FinanceCostCenter[];
   periods: FinancePeriod[];
   account_mappings: FinanceAccountMapping[];
   unlock_requests: FinanceUnlockRequest[];

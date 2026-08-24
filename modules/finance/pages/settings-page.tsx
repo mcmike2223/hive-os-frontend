@@ -18,6 +18,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { financeApi } from "@/modules/finance/api";
 import type {
   FinanceAccountMapping,
+  FinanceCostCenter,
   FinancePeriod,
   FinanceTaxRate,
   FinanceUnlockRequest,
@@ -90,6 +91,9 @@ export default function FinanceSettingsPage() {
 
   const [taxStatusFilter, setTaxStatusFilter] = useState("");
   const [taxKindFilter, setTaxKindFilter] = useState("");
+  const [costCenterStatusFilter, setCostCenterStatusFilter] = useState("");
+  const [costCenterInput, setCostCenterInput] = useState("");
+  const costCenterSearch = useDebouncedValue(costCenterInput.trim().toLowerCase());
   const [periodStatusFilter, setPeriodStatusFilter] = useState("");
   const [unlockStatusFilter, setUnlockStatusFilter] = useState("");
   const [mappingModuleInput, setMappingModuleInput] = useState("");
@@ -97,15 +101,18 @@ export default function FinanceSettingsPage() {
   const [mappingStatusFilter, setMappingStatusFilter] = useState("");
 
   const [showTaxForm, setShowTaxForm] = useState(false);
+  const [showCostCenterForm, setShowCostCenterForm] = useState(false);
   const [showPeriodForm, setShowPeriodForm] = useState(false);
   const [showMappingForm, setShowMappingForm] = useState(false);
 
   const [editTax, setEditTax] = useState<FinanceTaxRate | null>(null);
+  const [editCostCenter, setEditCostCenter] = useState<FinanceCostCenter | null>(null);
   const [editMapping, setEditMapping] = useState<FinanceAccountMapping | null>(null);
   const [unlocking, setUnlocking] = useState<FinancePeriod | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ request: FinanceUnlockRequest; decision: "approved" | "rejected" } | null>(null);
 
   const [detailTax, setDetailTax] = useState<FinanceTaxRate | null>(null);
+  const [detailCostCenter, setDetailCostCenter] = useState<FinanceCostCenter | null>(null);
   const [detailPeriod, setDetailPeriod] = useState<FinancePeriod | null>(null);
   const [detailUnlock, setDetailUnlock] = useState<FinanceUnlockRequest | null>(null);
   const [detailMapping, setDetailMapping] = useState<FinanceAccountMapping | null>(null);
@@ -124,6 +131,10 @@ export default function FinanceSettingsPage() {
       if (variables.label === "Tax rate created" || variables.label === "Tax rate updated") {
         setShowTaxForm(false);
         setEditTax(null);
+      }
+      if (variables.label === "Cost center created" || variables.label === "Cost center updated") {
+        setShowCostCenterForm(false);
+        setEditCostCenter(null);
       }
       if (variables.label === "Fiscal period created") setShowPeriodForm(false);
       if (variables.label === "Account mapping saved") {
@@ -154,6 +165,15 @@ export default function FinanceSettingsPage() {
     );
   }, [query.data, taxStatusFilter, taxKindFilter]);
 
+  const filteredCostCenters = useMemo(() => {
+    if (!query.data) return [];
+    return (query.data.cost_centers ?? []).filter(
+      (row) =>
+        (!costCenterStatusFilter || (costCenterStatusFilter === "active" ? row.is_active : !row.is_active)) &&
+        (!costCenterSearch || row.code.toLowerCase().includes(costCenterSearch) || row.name.toLowerCase().includes(costCenterSearch)),
+    );
+  }, [query.data, costCenterStatusFilter, costCenterSearch]);
+
   const filteredPeriods = useMemo(() => {
     if (!query.data) return [];
     return query.data.periods.filter((row) => !periodStatusFilter || row.status === periodStatusFilter);
@@ -181,7 +201,7 @@ export default function FinanceSettingsPage() {
   return (
     <FinanceShell
       title="Finance settings"
-      description="Configure VAT, fiscal periods, source-module account mappings, unlock governance, and posting integrations without weakening ledger controls."
+      description="Configure VAT, cost centers, fiscal periods, source-module account mappings, unlock governance, and posting integrations without weakening ledger controls."
     >
       {query.isPending ? (
         <div className="grid gap-6 xl:grid-cols-2">
@@ -372,6 +392,90 @@ export default function FinanceSettingsPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle><h2 className="text-base font-semibold">Cost centers</h2></CardTitle>
+              <CardDescription>Shared codes used by procurement requisitions and other finance posting. Deactivate instead of deleting so historical documents keep their link.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="cost-center-search">Code or name</FieldLabel>
+                  <Input
+                    id="cost-center-search"
+                    type="search"
+                    value={costCenterInput}
+                    onChange={(e) => setCostCenterInput(e.target.value)}
+                    placeholder="Filter by code or name"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="cost-center-status-filter">Status</FieldLabel>
+                  <NativeSelect id="cost-center-status-filter" value={costCenterStatusFilter} onChange={(e) => setCostCenterStatusFilter(e.target.value)}>
+                    <NativeSelectOption value="">All statuses</NativeSelectOption>
+                    <NativeSelectOption value="active">Active</NativeSelectOption>
+                    <NativeSelectOption value="inactive">Inactive</NativeSelectOption>
+                  </NativeSelect>
+                </Field>
+              </div>
+              <FinanceTable
+                caption="Tenant finance cost centers."
+                rows={filteredCostCenters}
+                getKey={(row) => row.id}
+                onRowClick={(row) => {
+                  if (anyBusy) return;
+                  setDetailCostCenter(row);
+                }}
+                columns={[
+                  { key: "code", label: "Code", render: (row) => <span className="font-mono">{row.code}</span> },
+                  { key: "name", label: "Name", render: (row) => row.name },
+                  { key: "description", label: "Description", render: (row) => row.description || "—" },
+                  { key: "status", label: "Status", render: (row) => <FinanceStatus value={row.is_active ? "active" : "inactive"} /> },
+                  {
+                    key: "actions",
+                    label: "",
+                    align: "right",
+                    render: (row) =>
+                      canManage ? (
+                        <RowActionsMenu
+                          anyBusy={anyBusy}
+                          loading={busyKey === `cost-center:${row.id}:toggle` || busyKey === `cost-center:${row.id}:edit`}
+                          items={[
+                            { label: "Edit", icon: <Edit className="h-4 w-4" />, onClick: () => setEditCostCenter(row) },
+                            {
+                              label: row.is_active ? "Deactivate" : "Activate",
+                              icon: <Power className="h-4 w-4" />,
+                              onClick: () =>
+                                run(
+                                  () => financeApi.updateCostCenter(row.id, { is_active: !row.is_active }),
+                                  "Cost center updated",
+                                  `cost-center:${row.id}:toggle`,
+                                ),
+                            },
+                          ]}
+                        />
+                      ) : null,
+                  },
+                ]}
+              />
+              {canManage ? (
+                <div className="flex justify-end">
+                  <Button variant="outline" disabled={anyBusy} onClick={() => setShowCostCenterForm((value) => !value)}>
+                    <Plus data-icon="inline-start" aria-hidden="true" />
+                    {showCostCenterForm ? "Hide cost center form" : "Add cost center"}
+                  </Button>
+                </div>
+              ) : null}
+              {canManage && showCostCenterForm ? (
+                <CostCenterForm
+                  anyBusy={anyBusy}
+                  loading={busyKey === "form:cost-center"}
+                  onSubmit={(payload) => run(() => financeApi.createCostCenter(payload), "Cost center created", "form:cost-center")}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -590,6 +694,18 @@ export default function FinanceSettingsPage() {
         }}
       />
 
+      <CostCenterEditDialog
+        key={editCostCenter?.id ?? "cost-center-none"}
+        costCenter={editCostCenter}
+        anyBusy={anyBusy}
+        loading={editCostCenter !== null && busyKey === `cost-center:${editCostCenter.id}:edit`}
+        onOpenChange={(open) => { if (!open) setEditCostCenter(null); }}
+        onSubmit={(payload) => {
+          if (!editCostCenter) return;
+          run(() => financeApi.updateCostCenter(editCostCenter.id, payload), "Cost center updated", `cost-center:${editCostCenter.id}:edit`);
+        }}
+      />
+
       <MappingEditDialog
         key={editMapping?.id ?? "mapping-none"}
         mapping={editMapping}
@@ -635,6 +751,7 @@ export default function FinanceSettingsPage() {
       />
 
       <TaxDetailDialog tax={detailTax} onOpenChange={(open) => { if (!open) setDetailTax(null); }} />
+      <CostCenterDetailDialog costCenter={detailCostCenter} onOpenChange={(open) => { if (!open) setDetailCostCenter(null); }} />
       <PeriodDetailDialog period={detailPeriod} onOpenChange={(open) => { if (!open) setDetailPeriod(null); }} />
       <UnlockDetailDialog request={detailUnlock} onOpenChange={(open) => { if (!open) setDetailUnlock(null); }} />
       <MappingDetailDialog mapping={detailMapping} onOpenChange={(open) => { if (!open) setDetailMapping(null); }} />
@@ -744,6 +861,119 @@ function TaxForm({
         </Button>
       </FieldGroup>
     </form>
+  );
+}
+
+function CostCenterForm({
+  anyBusy,
+  loading,
+  onSubmit,
+}: {
+  anyBusy: boolean;
+  loading: boolean;
+  onSubmit: (payload: Record<string, unknown>) => void;
+}) {
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    onSubmit({
+      name: values.get("name"),
+      code: values.get("code"),
+      description: String(values.get("description") ?? "").trim() || null,
+      is_active: true,
+    });
+    event.currentTarget.reset();
+  }
+
+  return (
+    <form onSubmit={submit} className="rounded-xl border p-4">
+      <FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="cost-center-code">Code (required)</FieldLabel>
+            <Input id="cost-center-code" name="code" required maxLength={40} disabled={anyBusy} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="cost-center-name">Name (required)</FieldLabel>
+            <Input id="cost-center-name" name="name" required maxLength={255} disabled={anyBusy} />
+          </Field>
+        </div>
+        <Field>
+          <FieldLabel htmlFor="cost-center-description">Description</FieldLabel>
+          <Input id="cost-center-description" name="description" maxLength={500} disabled={anyBusy} />
+        </Field>
+        <Button type="submit" disabled={anyBusy}>
+          {loading ? <BusyLabel busy>Add cost center</BusyLabel> : "Add cost center"}
+        </Button>
+      </FieldGroup>
+    </form>
+  );
+}
+
+function CostCenterEditDialog({
+  costCenter,
+  anyBusy,
+  loading,
+  onOpenChange,
+  onSubmit,
+}: {
+  costCenter: FinanceCostCenter | null;
+  anyBusy: boolean;
+  loading: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (payload: Record<string, unknown>) => void;
+}) {
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    onSubmit({
+      name: values.get("name"),
+      code: values.get("code"),
+      description: String(values.get("description") ?? "").trim() || null,
+      is_active: values.get("active") === "1",
+    });
+  }
+
+  return (
+    <Dialog open={costCenter !== null} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form onSubmit={submit} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>Edit cost center</DialogTitle>
+            <DialogDescription>Update the code, name, and whether procurement can still select this cost center.</DialogDescription>
+          </DialogHeader>
+          {costCenter ? (
+            <FieldGroup>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="edit-cost-center-code">Code (required)</FieldLabel>
+                  <Input id="edit-cost-center-code" name="code" required maxLength={40} defaultValue={costCenter.code} disabled={anyBusy} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-cost-center-name">Name (required)</FieldLabel>
+                  <Input id="edit-cost-center-name" name="name" required maxLength={255} defaultValue={costCenter.name} disabled={anyBusy} />
+                </Field>
+              </div>
+              <Field>
+                <FieldLabel htmlFor="edit-cost-center-description">Description</FieldLabel>
+                <Input id="edit-cost-center-description" name="description" maxLength={500} defaultValue={costCenter.description ?? ""} disabled={anyBusy} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="edit-cost-center-active">Status</FieldLabel>
+                <NativeSelect id="edit-cost-center-active" name="active" defaultValue={costCenter.is_active ? "1" : "0"} disabled={anyBusy}>
+                  <NativeSelectOption value="1">Active</NativeSelectOption>
+                  <NativeSelectOption value="0">Inactive</NativeSelectOption>
+                </NativeSelect>
+              </Field>
+            </FieldGroup>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={anyBusy}>Cancel</Button>
+            <Button type="submit" disabled={anyBusy}>{loading ? <BusyLabel busy>Save changes</BusyLabel> : "Save changes"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1157,6 +1387,27 @@ function TaxDetailDialog({ tax, onOpenChange }: { tax: FinanceTaxRate | null; on
             <DetailField label="Rate">{Number(tax.rate).toFixed(2)}%</DetailField>
             <DetailField label="Price treatment">{tax.is_inclusive ? "Tax inclusive" : "Tax exclusive"}</DetailField>
             <DetailField label="Status"><FinanceStatus value={tax.is_active ? "active" : "inactive"} /></DetailField>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CostCenterDetailDialog({ costCenter, onOpenChange }: { costCenter: FinanceCostCenter | null; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={costCenter !== null} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cost center details</DialogTitle>
+          <DialogDescription>Finance cost center available to procurement and other posting.</DialogDescription>
+        </DialogHeader>
+        {costCenter ? (
+          <div className="grid gap-4 pb-2 sm:grid-cols-2">
+            <DetailField label="Code"><span className="font-mono">{costCenter.code}</span></DetailField>
+            <DetailField label="Name">{costCenter.name}</DetailField>
+            <DetailField label="Description">{costCenter.description || "—"}</DetailField>
+            <DetailField label="Status"><FinanceStatus value={costCenter.is_active ? "active" : "inactive"} /></DetailField>
           </div>
         ) : null}
       </DialogContent>
