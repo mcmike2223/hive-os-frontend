@@ -203,16 +203,16 @@ export default function FinanceSettingsPage() {
       title="Finance settings"
       description="Configure VAT, cost centers, fiscal periods, source-module account mappings, unlock governance, and posting integrations without weakening ledger controls."
     >
-      {query.isPending ? (
-        <div className="grid gap-6 xl:grid-cols-2">
-          <FinanceTableSkeleton rows={5} cols={4} />
-          <FinanceTableSkeleton rows={5} cols={4} />
-        </div>
+    {query.isPending ? (
+      <div className="grid gap-6 xl:grid-cols-2">
+        <FinanceTableSkeleton rows={5} cols={4} />
+        <FinanceTableSkeleton rows={5} cols={4} />
+      </div>
       ) : query.isError || !query.data ? (
-        <FinanceError error={query.error} />
-      ) : (
-        <div className="grid gap-6">
-          <div className="grid gap-6 xl:grid-cols-2">
+      <FinanceError error={query.error} />
+    ) : (
+      <div className="grid gap-6">
+        <div className="grid gap-6 xl:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle><h2 className="text-base font-semibold">Tax rates</h2></CardTitle>
@@ -391,7 +391,7 @@ export default function FinanceSettingsPage() {
                 ) : null}
               </CardContent>
             </Card>
-          </div>
+        </div>
 
           <Card>
             <CardHeader>
@@ -544,7 +544,7 @@ export default function FinanceSettingsPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle><h2 className="text-base font-semibold">Source account mappings</h2></CardTitle>
@@ -1349,7 +1349,7 @@ function ReviewUnlockDialog({
             <div className="rounded-md border p-4 text-sm">
               <div className="font-medium">Request reason</div>
               <p className="mt-1 text-muted-foreground">{target.request.reason}</p>
-            </div>
+      </div>
           ) : null}
           <Field>
             <FieldLabel htmlFor="review-notes">Review notes</FieldLabel>

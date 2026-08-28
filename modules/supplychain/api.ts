@@ -31,6 +31,7 @@ export const supplyChainApi = {
 
   // Routes
   listRoutes: (params?: Params) => http.get(`${BASE_URL}/routes`, { params }),
+  getRoute: (id: number) => http.get(`${BASE_URL}/routes/${id}`),
   createRoute: (data: Payload) => http.post(`${BASE_URL}/routes`, data),
   updateRoute: (id: number, data: Payload) => http.put(`${BASE_URL}/routes/${id}`, data),
   deleteRoute: (id: number) => http.delete(`${BASE_URL}/routes/${id}`),
@@ -39,6 +40,7 @@ export const supplyChainApi = {
   listShipments: (params?: Params) => http.get(`${BASE_URL}/shipments`, { params }),
   getShipment: (id: number) => http.get(`${BASE_URL}/shipments/${id}`),
   createShipment: (data: Payload) => http.post(`${BASE_URL}/shipments`, data),
+  updateShipment: (id: number, data: Payload) => http.put(`${BASE_URL}/shipments/${id}`, data),
   transitionShipment: (id: number, status: string) =>
     http.post(`${BASE_URL}/shipments/${id}/transition`, { status }),
   recordDelivery: (id: number, data: Payload) => http.post(`${BASE_URL}/shipments/${id}/deliver`, data),
@@ -47,6 +49,7 @@ export const supplyChainApi = {
   listTransfers: (params?: Params) => http.get(`${BASE_URL}/transfers`, { params }),
   getTransfer: (id: number) => http.get(`${BASE_URL}/transfers/${id}`),
   createTransfer: (data: Payload) => http.post(`${BASE_URL}/transfers`, data),
+  updateTransfer: (id: number, data: Payload) => http.put(`${BASE_URL}/transfers/${id}`, data),
   transitionTransfer: (id: number, status: string) =>
     http.post(`${BASE_URL}/transfers/${id}/transition`, { status }),
   dispatchTransfer: (id: number, data?: Payload) =>
@@ -58,6 +61,7 @@ export const supplyChainApi = {
   listReturns: (params?: Params) => http.get(`${BASE_URL}/returns`, { params }),
   getReturn: (id: number) => http.get(`${BASE_URL}/returns/${id}`),
   createReturn: (data: Payload) => http.post(`${BASE_URL}/returns`, data),
+  updateReturn: (id: number, data: Payload) => http.put(`${BASE_URL}/returns/${id}`, data),
   transitionReturn: (id: number, status: string) =>
     http.post(`${BASE_URL}/returns/${id}/transition`, { status }),
   inspectReturn: (id: number, data: Payload) => http.post(`${BASE_URL}/returns/${id}/inspect`, data),
@@ -69,5 +73,6 @@ export const supplyChainApi = {
   createLandedCost: (data: Payload) => http.post(`${BASE_URL}/landed-costs`, data),
   updateLandedCost: (id: number, data: Payload) => http.put(`${BASE_URL}/landed-costs/${id}`, data),
   allocateLandedCost: (id: number) => http.post(`${BASE_URL}/landed-costs/${id}/allocate`),
+  postLandedCost: (id: number) => http.post(`${BASE_URL}/landed-costs/${id}/post`),
   deleteLandedCost: (id: number) => http.delete(`${BASE_URL}/landed-costs/${id}`),
 };

@@ -112,11 +112,14 @@ export interface DeliveryRoute {
   area?: string | null;
   service_days?: string[] | null;
   default_vehicle?: string | null;
+  default_driver_id?: number | null;
   planned_distance_km?: number | string | null;
   planned_duration_minutes?: number | null;
   capacity_units?: number | null;
   is_active: boolean;
   notes?: string | null;
+  shipments_count?: number;
+  driver?: { id: number; name?: string | null; email?: string | null } | null;
 }
 
 export interface ShipmentItem {
@@ -152,6 +155,7 @@ export interface Shipment {
   destination_address?: string | null;
   destination_phone?: string | null;
   received_by_name?: string | null;
+  received_by_phone?: string | null;
   proof_reference?: string | null;
   failure_reason?: string | null;
   total_quantity: number | string;
@@ -161,6 +165,7 @@ export interface Shipment {
   notes?: string | null;
   items?: ShipmentItem[];
   route?: DeliveryRoute | null;
+  driver?: { id: number; name?: string | null; email?: string | null } | null;
 }
 
 export interface TransferOrderItem {
@@ -188,6 +193,7 @@ export interface TransferOrder {
   received_at?: string | null;
   vehicle?: string | null;
   reason?: string | null;
+  notes?: string | null;
   in_transit_quantity: number;
   items?: TransferOrderItem[];
 }
@@ -218,6 +224,7 @@ export interface SupplyChainReturn {
   total_quantity: number | string;
   credit_amount: number | string;
   inspection_notes?: string | null;
+  notes?: string | null;
   items?: ReturnItem[];
   shipment?: Shipment | null;
 }
@@ -261,17 +268,20 @@ export interface LandedCost {
   status: "draft" | "allocated" | "posted";
   cleared_on?: string | null;
   declaration_number?: string | null;
+  notes?: string | null;
   lines?: LandedCostLine[];
 }
 
 export interface SupplyChainOverview {
   period: { from: string; to: string };
+  base_currency?: string;
   targets: { otif: number; fill_rate: number; return_rate: number };
   service: {
     shipments_total: number;
     shipments_completed: number;
     shipments_in_flight: number;
     shipments_failed: number;
+    otif_count: number;
     fill_rate_percent: number;
     otif_percent: number;
     units_delivered: number;
@@ -286,7 +296,11 @@ export interface SupplyChainOverview {
     stockout_risk: number;
     top_shortages: Array<{
       product_id: number;
+      product_name?: string | null;
+      product_sku?: string | null;
       warehouse_id: number | null;
+      warehouse_name?: string | null;
+      warehouse_code?: string | null;
       projected_position: number;
       /** Gap below the reorder point — always positive, so bars rank correctly. */
       shortfall: number;
@@ -298,13 +312,15 @@ export interface SupplyChainOverview {
   transfers: {
     in_transit_orders: number;
     in_transit_units: number;
-    awaiting_approval: number;
+    awaiting_dispatch: number;
+    draft_orders: number;
   };
   returns: {
     total: number;
     open: number;
     units_returned: number;
     credit_value: number;
+    return_rate_percent: number;
     by_reason: Array<{ reason: string; count: number; units: number }>;
   };
   landed_cost: {
@@ -320,6 +336,7 @@ export interface SupplyChainOverview {
     shipments: number;
     fill_rate_percent: number;
     on_time_percent: number;
+    otif_percent: number;
     units_delivered: number;
   }>;
   daily_service: Array<{

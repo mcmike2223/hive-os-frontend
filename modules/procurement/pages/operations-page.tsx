@@ -259,7 +259,7 @@ function Suppliers({ references }: { references: ProcurementReferences }) {
             label: "Eligibility",
             render: (row) => (
               <span>
-                <ProcurementStatus value={row.eligibility_status} />
+              <ProcurementStatus value={row.eligibility_status} />
                 {row.debarred_until ? (
                   <span className="block text-xs text-muted-foreground">
                     Debarred until {row.debarred_until}
@@ -392,36 +392,36 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
       loading={isProcurementListLoading(query)}
     >
       <div className="space-y-3">
-        <ProcurementTable<Requisition>
-          caption="Purchase requisitions with budget and approval status."
-          rows={query.data?.data ?? []}
-          getKey={(row) => row.id}
-          columns={[
-            {
-              key: "request",
-              label: "Request",
-              render: (row) => (
-                <strong>
-                  {row.number}
-                  <span className="block max-w-64 truncate text-xs font-normal text-muted-foreground">
-                    {row.title}
-                  </span>
+      <ProcurementTable<Requisition>
+        caption="Purchase requisitions with budget and approval status."
+        rows={query.data?.data ?? []}
+        getKey={(row) => row.id}
+        columns={[
+          {
+            key: "request",
+            label: "Request",
+            render: (row) => (
+              <strong>
+                {row.number}
+                <span className="block max-w-64 truncate text-xs font-normal text-muted-foreground">
+                  {row.title}
+                </span>
                   {row.business_justification ? (
                     <span className="block max-w-64 truncate text-xs font-normal text-muted-foreground">
                       {row.business_justification}
                     </span>
                   ) : null}
-                </strong>
-              ),
-            },
-            {
-              key: "method",
-              label: "Method",
-              render: (row) => row.procurement_method.replaceAll("_", " "),
-            },
-            {
-              key: "budget",
-              label: "Budget",
+              </strong>
+            ),
+          },
+          {
+            key: "method",
+            label: "Method",
+            render: (row) => row.procurement_method.replaceAll("_", " "),
+          },
+          {
+            key: "budget",
+            label: "Budget",
               render: (row) => (
                 <span>
                   <ProcurementStatus value={row.budget_status} />
@@ -432,13 +432,13 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
                   ) : null}
                 </span>
               ),
-            },
-            {
-              key: "value",
-              label: "Estimated value",
-              align: "right",
-              render: (row) => formatMoney(row.estimated_total, row.currency),
-            },
+          },
+          {
+            key: "value",
+            label: "Estimated value",
+            align: "right",
+            render: (row) => formatMoney(row.estimated_total, row.currency),
+          },
             {
               key: "pipeline",
               label: "Pipeline",
@@ -449,9 +449,9 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
                 </span>
               ),
             },
-            {
-              key: "status",
-              label: "Status",
+          {
+            key: "status",
+            label: "Status",
               render: (row) => (
                 <span>
                   <ProcurementStatus value={row.status} />
@@ -462,11 +462,11 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
                   ) : null}
                 </span>
               ),
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (row) => (
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (row) => (
                 <ActionGroup stack>
                   {canCreate &&
                   row.budget_status !== "available" &&
@@ -475,7 +475,7 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
                       requisition={row}
                       group={`requisition-actions-${row.id}`}
                     />
-                  ) : null}
+                ) : null}
                   {canCreate && row.status === "draft" ? (
                     <RequisitionEditForm
                       requisition={row}
@@ -485,25 +485,25 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
                   {canCreate &&
                   row.status === "draft" &&
                   row.budget_status === "available" ? (
-                    <ActionButton
-                      label="Submit"
-                      queryKey="requisitions"
+                  <ActionButton
+                    label="Submit"
+                    queryKey="requisitions"
                       successText={`Requisition ${row.number} submitted.`}
                       errorFallback="Requisition could not be submitted."
-                      run={() =>
-                        procurementApi.requisitionAction(row.id, "submit")
-                      }
-                    />
-                  ) : null}
+                    run={() =>
+                      procurementApi.requisitionAction(row.id, "submit")
+                    }
+                  />
+                ) : null}
                   {canApprove && row.status === "pending_approval" ? (
                     <>
-                      <ActionButton
-                        label="Approve"
-                        queryKey="requisitions"
+                  <ActionButton
+                    label="Approve"
+                    queryKey="requisitions"
                         successText={`Requisition ${row.number} approved.`}
                         errorFallback="Requisition could not be approved."
-                        run={() =>
-                          procurementApi.requisitionAction(row.id, "approve")
+                    run={() =>
+                      procurementApi.requisitionAction(row.id, "approve")
                         }
                       />
                       <RequisitionReasonAction
@@ -534,14 +534,14 @@ function Requisitions({ references }: { references: ProcurementReferences }) {
                       errorFallback="Requisition could not be reopened."
                       run={() =>
                         procurementApi.requisitionAction(row.id, "reopen")
-                      }
-                    />
-                  ) : null}
-                </ActionGroup>
-              ),
-            },
-          ]}
-        />
+                    }
+                  />
+                ) : null}
+              </ActionGroup>
+            ),
+          },
+        ]}
+      />
         <RequisitionPagination
           page={query.data?.current_page ?? 1}
           lastPage={query.data?.last_page ?? 1}
@@ -593,7 +593,7 @@ function Sourcing({ references }: { references: ProcurementReferences }) {
       create={
         canManage ? (
           <div className="grid gap-4">
-            <SourcingForm references={references} />
+          <SourcingForm references={references} />
             <BidForm
               references={references}
               events={publishedEvents.data?.data ?? []}
@@ -881,20 +881,20 @@ function Orders({ references }: { references: ProcurementReferences }) {
       loading={isProcurementListLoading(query)}
     >
       <div className="space-y-3">
-        <ProcurementTable<PurchaseOrder>
-          caption="Purchase order commitments and fulfillment progress."
-          rows={query.data?.data ?? []}
-          getKey={(row) => row.id}
-          columns={[
-            {
-              key: "order",
-              label: "Order",
-              render: (row) => (
-                <strong>
-                  {row.number}
+      <ProcurementTable<PurchaseOrder>
+        caption="Purchase order commitments and fulfillment progress."
+        rows={query.data?.data ?? []}
+        getKey={(row) => row.id}
+        columns={[
+          {
+            key: "order",
+            label: "Order",
+            render: (row) => (
+              <strong>
+                {row.number}
                   <span className="block max-w-64 truncate text-xs font-normal text-muted-foreground">
-                    {row.supplier?.name ?? "Supplier"}
-                  </span>
+                  {row.supplier?.name ?? "Supplier"}
+                </span>
                   {row.revision_number > 1 ? (
                     <span className="block text-xs font-normal text-muted-foreground">
                       Rev {row.revision_number}
@@ -910,35 +910,35 @@ function Orders({ references }: { references: ProcurementReferences }) {
                       Over-receipt {Number(row.over_receipt_tolerance_percent ?? 0)}%
                     </span>
                   ) : null}
-                </strong>
-              ),
-            },
-            {
-              key: "expected",
-              label: "Expected",
-              render: (row) => row.expected_on ?? "Not set",
-            },
-            {
-              key: "value",
-              label: "Total",
-              align: "right",
-              render: (row) => formatMoney(row.total, row.currency),
-            },
-            {
-              key: "received",
-              label: "Received",
-              align: "right",
-              render: (row) => `${Number(row.received_percent).toFixed(0)}%`,
-            },
-            {
-              key: "invoiced",
-              label: "Invoiced",
-              align: "right",
-              render: (row) => `${Number(row.invoiced_percent).toFixed(0)}%`,
-            },
-            {
-              key: "status",
-              label: "Status",
+              </strong>
+            ),
+          },
+          {
+            key: "expected",
+            label: "Expected",
+            render: (row) => row.expected_on ?? "Not set",
+          },
+          {
+            key: "value",
+            label: "Total",
+            align: "right",
+            render: (row) => formatMoney(row.total, row.currency),
+          },
+          {
+            key: "received",
+            label: "Received",
+            align: "right",
+            render: (row) => `${Number(row.received_percent).toFixed(0)}%`,
+          },
+          {
+            key: "invoiced",
+            label: "Invoiced",
+            align: "right",
+            render: (row) => `${Number(row.invoiced_percent).toFixed(0)}%`,
+          },
+          {
+            key: "status",
+            label: "Status",
               render: (row) => (
                 <span>
                   <ProcurementStatus value={row.status} />
@@ -949,11 +949,11 @@ function Orders({ references }: { references: ProcurementReferences }) {
                   ) : null}
                 </span>
               ),
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (row) => (
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (row) => (
                 <ActionGroup stack>
                   {canCreate && row.status === "draft" ? (
                     <PurchaseOrderEditForm
@@ -962,38 +962,38 @@ function Orders({ references }: { references: ProcurementReferences }) {
                     />
                   ) : null}
                   {canCreate && row.status === "draft" ? (
-                    <ActionButton
-                      label="Submit"
-                      queryKey="orders"
+                  <ActionButton
+                    label="Submit"
+                    queryKey="orders"
                       successText={`${row.number} submitted.`}
                       errorFallback="Purchase order could not be submitted."
-                      run={() =>
-                        procurementApi.purchaseOrderAction(row.id, "submit")
-                      }
-                    />
-                  ) : null}
+                    run={() =>
+                      procurementApi.purchaseOrderAction(row.id, "submit")
+                    }
+                  />
+                ) : null}
                   {canApprove && row.status === "pending_approval" ? (
-                    <ActionButton
-                      label="Approve"
-                      queryKey="orders"
+                  <ActionButton
+                    label="Approve"
+                    queryKey="orders"
                       successText={`${row.number} approved.`}
                       errorFallback="Purchase order could not be approved."
-                      run={() =>
-                        procurementApi.purchaseOrderAction(row.id, "approve")
-                      }
-                    />
-                  ) : null}
+                    run={() =>
+                      procurementApi.purchaseOrderAction(row.id, "approve")
+                    }
+                  />
+                ) : null}
                   {canCreate && row.status === "approved" ? (
-                    <ActionButton
-                      label="Issue"
-                      queryKey="orders"
+                  <ActionButton
+                    label="Issue"
+                    queryKey="orders"
                       successText={`${row.number} issued.`}
                       errorFallback="Purchase order could not be issued."
-                      run={() =>
-                        procurementApi.purchaseOrderAction(row.id, "issue")
-                      }
-                    />
-                  ) : null}
+                    run={() =>
+                      procurementApi.purchaseOrderAction(row.id, "issue")
+                    }
+                  />
+                ) : null}
                   {canCreate && row.status === "issued" ? (
                     <PurchaseOrderConfirmForm order={row} />
                   ) : null}
@@ -1026,21 +1026,21 @@ function Orders({ references }: { references: ProcurementReferences }) {
                   ["received", "partially_received", "confirmed"].includes(
                     row.status,
                   ) ? (
-                    <ActionButton
+                  <ActionButton
                       label="Close"
-                      queryKey="orders"
+                    queryKey="orders"
                       successText={`${row.number} closed.`}
                       errorFallback="Purchase order could not be closed."
-                      run={() =>
+                    run={() =>
                         procurementApi.purchaseOrderAction(row.id, "close")
-                      }
-                    />
-                  ) : null}
-                </ActionGroup>
-              ),
-            },
-          ]}
-        />
+                    }
+                  />
+                ) : null}
+              </ActionGroup>
+            ),
+          },
+        ]}
+      />
         <RequisitionPagination
           page={query.data?.current_page ?? 1}
           lastPage={query.data?.last_page ?? 1}
@@ -1144,89 +1144,89 @@ function Receiving({ references }: { references: ProcurementReferences }) {
       }
     >
       <div className="space-y-3">
-        <ProcurementTable<GoodsReceipt>
-          caption="Goods receipts, inspection decisions, and inventory posting state."
-          rows={receipts.data?.data ?? []}
-          getKey={(row) => row.id}
-          columns={[
-            {
-              key: "receipt",
-              label: "Receipt",
-              render: (row) => (
-                <strong>
-                  {row.number}
-                  <span className="block text-xs font-normal text-muted-foreground">
-                    {row.purchase_order?.number ?? "Purchase order"}
+      <ProcurementTable<GoodsReceipt>
+        caption="Goods receipts, inspection decisions, and inventory posting state."
+        rows={receipts.data?.data ?? []}
+        getKey={(row) => row.id}
+        columns={[
+          {
+            key: "receipt",
+            label: "Receipt",
+            render: (row) => (
+              <strong>
+                {row.number}
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {row.purchase_order?.number ?? "Purchase order"}
                     {row.purchase_order?.supplier?.name
                       ? ` · ${row.purchase_order.supplier.name}`
                       : ""}
-                  </span>
+                </span>
                   {row.supplier_delivery_note ? (
                     <span className="block max-w-56 truncate text-xs font-normal text-muted-foreground">
                       DN: {row.supplier_delivery_note}
                     </span>
                   ) : null}
-                </strong>
-              ),
-            },
-            { key: "date", label: "Received", render: (row) => row.received_on },
-            {
-              key: "inspection",
-              label: "Inspection",
-              render: (row) => (
+              </strong>
+            ),
+          },
+          { key: "date", label: "Received", render: (row) => row.received_on },
+          {
+            key: "inspection",
+            label: "Inspection",
+            render: (row) => (
                 <span>
-                  <ProcurementStatus value={row.inspection_status} />
+              <ProcurementStatus value={row.inspection_status} />
                   {row.nonconformance_reference ? (
                     <span className="block max-w-40 truncate text-xs text-muted-foreground">
                       NCR: {row.nonconformance_reference}
                     </span>
                   ) : null}
                 </span>
-              ),
-            },
-            {
-              key: "stock",
-              label: "Stock posting",
-              render: (row) => (
-                <ProcurementStatus
-                  value={row.stock_posted_at ? "posted" : "pending"}
-                />
-              ),
-            },
-            {
-              key: "status",
-              label: "Status",
-              render: (row) => <ProcurementStatus value={row.status} />,
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (row) => (
+            ),
+          },
+          {
+            key: "stock",
+            label: "Stock posting",
+            render: (row) => (
+              <ProcurementStatus
+                value={row.stock_posted_at ? "posted" : "pending"}
+              />
+            ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (row) => <ProcurementStatus value={row.status} />,
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (row) => (
                 <ActionGroup stack>
                   {canInspect &&
                   !row.stock_posted_at &&
                   row.inspection_status === "pending" ? (
-                    <ReceiptInspectionForm receipt={row} />
-                  ) : null}
+                  <ReceiptInspectionForm receipt={row} />
+                ) : null}
                   {canReceive &&
                   !row.stock_posted_at &&
-                  ["passed", "accepted_with_exception"].includes(
-                    row.inspection_status,
-                  ) ? (
-                    <ActionButton
-                      label="Post stock"
-                      queryKey="receipts"
+                ["passed", "accepted_with_exception"].includes(
+                  row.inspection_status,
+                ) ? (
+                  <ActionButton
+                    label="Post stock"
+                    queryKey="receipts"
                       invalidateKeys={["orders"]}
                       successText={`${row.number} posted to stock.`}
                       errorFallback="Stock could not be posted."
-                      run={() => procurementApi.postReceipt(row.id)}
-                    />
-                  ) : null}
-                </ActionGroup>
-              ),
-            },
-          ]}
-        />
+                    run={() => procurementApi.postReceipt(row.id)}
+                  />
+                ) : null}
+              </ActionGroup>
+            ),
+          },
+        ]}
+      />
         <RequisitionPagination
           page={receipts.data?.current_page ?? 1}
           lastPage={receipts.data?.last_page ?? 1}
@@ -1356,31 +1356,31 @@ function Invoices({ references }: { references: ProcurementReferences }) {
       }
     >
       <div className="space-y-3">
-        <ProcurementTable<SupplierInvoice>
-          caption="Supplier invoices with purchase-order, receipt, and Finance posting controls."
-          rows={invoices.data?.data ?? []}
-          getKey={(row) => row.id}
-          columns={[
-            {
-              key: "invoice",
-              label: "Invoice",
-              render: (row) => (
-                <strong>
-                  {row.number}
-                  <span className="block text-xs font-normal text-muted-foreground">
-                    Vendor: {row.supplier_invoice_number}
-                  </span>
+      <ProcurementTable<SupplierInvoice>
+        caption="Supplier invoices with purchase-order, receipt, and Finance posting controls."
+        rows={invoices.data?.data ?? []}
+        getKey={(row) => row.id}
+        columns={[
+          {
+            key: "invoice",
+            label: "Invoice",
+            render: (row) => (
+              <strong>
+                {row.number}
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Vendor: {row.supplier_invoice_number}
+                </span>
                   {row.purchase_order?.supplier?.name ? (
                     <span className="block text-xs font-normal text-muted-foreground">
                       {row.purchase_order.supplier.name}
                     </span>
                   ) : null}
-                </strong>
-              ),
-            },
-            {
-              key: "order",
-              label: "PO",
+              </strong>
+            ),
+          },
+          {
+            key: "order",
+            label: "PO",
               render: (row) => (
                 <span>
                   {row.purchase_order?.number ?? row.purchase_order_id}
@@ -1391,17 +1391,17 @@ function Invoices({ references }: { references: ProcurementReferences }) {
                   ) : null}
                 </span>
               ),
-            },
-            {
-              key: "value",
-              label: "Total",
-              align: "right",
-              render: (row) => formatMoney(row.total, row.currency),
-            },
-            {
-              key: "match",
-              label: "Match",
-              render: (row) => (
+          },
+          {
+            key: "value",
+            label: "Total",
+            align: "right",
+            render: (row) => formatMoney(row.total, row.currency),
+          },
+          {
+            key: "match",
+            label: "Match",
+            render: (row) => (
                 <InvoiceMatchCell invoice={row} />
               ),
             },
@@ -1410,56 +1410,56 @@ function Invoices({ references }: { references: ProcurementReferences }) {
               label: "Status",
               render: (row) => <ProcurementStatus value={row.status} />,
             },
-            {
-              key: "finance",
-              label: "Finance",
-              render: (row) =>
-                row.finance_document
-                  ? `${row.finance_document.number} · ${row.finance_document.status}`
-                  : "Not posted",
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (row) => (
+          {
+            key: "finance",
+            label: "Finance",
+            render: (row) =>
+              row.finance_document
+                ? `${row.finance_document.number} · ${row.finance_document.status}`
+                : "Not posted",
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (row) => (
                 <ActionGroup stack>
                   {canManage && row.status === "draft" ? (
                     <InvoiceEditForm invoice={row} references={references} />
                   ) : null}
                   {canManage &&
                   ["pending", "exception"].includes(row.match_status) &&
-                  row.status !== "posted" ? (
-                    <ActionButton
-                      label="Run match"
-                      queryKey="invoices"
+                row.status !== "posted" ? (
+                  <ActionButton
+                    label="Run match"
+                    queryKey="invoices"
                       successText={`${row.number} three-way match completed.`}
                       errorFallback="Three-way match could not be run."
-                      run={() => procurementApi.invoiceAction(row.id, "match")}
-                    />
-                  ) : null}
+                    run={() => procurementApi.invoiceAction(row.id, "match")}
+                  />
+                ) : null}
                   {canOverride && row.match_status === "exception" ? (
-                    <InvoiceOverrideForm invoice={row} />
-                  ) : null}
+                  <InvoiceOverrideForm invoice={row} />
+                ) : null}
                   {canManage &&
                   row.status === "matched" &&
                   ["matched", "override_approved"].includes(row.match_status) ? (
-                    <ActionButton
-                      label="Submit"
-                      queryKey="invoices"
+                  <ActionButton
+                    label="Submit"
+                    queryKey="invoices"
                       successText={`${row.number} submitted for approval.`}
                       errorFallback="Invoice could not be submitted."
-                      run={() => procurementApi.invoiceAction(row.id, "submit")}
-                    />
-                  ) : null}
+                    run={() => procurementApi.invoiceAction(row.id, "submit")}
+                  />
+                ) : null}
                   {canApprove && row.status === "pending_approval" ? (
-                    <ActionButton
-                      label="Approve"
-                      queryKey="invoices"
+                  <ActionButton
+                    label="Approve"
+                    queryKey="invoices"
                       successText={`${row.number} approved.`}
                       errorFallback="Invoice could not be approved."
-                      run={() => procurementApi.invoiceAction(row.id, "approve")}
-                    />
-                  ) : null}
+                    run={() => procurementApi.invoiceAction(row.id, "approve")}
+                  />
+                ) : null}
                   {canApprove &&
                   ["pending_approval", "matched", "blocked"].includes(
                     row.status,
@@ -1467,20 +1467,20 @@ function Invoices({ references }: { references: ProcurementReferences }) {
                     <InvoiceRejectAction invoice={row} />
                   ) : null}
                   {canManage && row.status === "approved" ? (
-                    <ActionButton
-                      label="Post to Finance"
-                      queryKey="invoices"
+                  <ActionButton
+                    label="Post to Finance"
+                    queryKey="invoices"
                       invalidateKeys={["orders"]}
                       successText={`${row.number} posted to Finance.`}
                       errorFallback="Invoice could not be posted to Finance."
-                      run={() => procurementApi.invoiceAction(row.id, "post")}
-                    />
-                  ) : null}
-                </ActionGroup>
-              ),
-            },
-          ]}
-        />
+                    run={() => procurementApi.invoiceAction(row.id, "post")}
+                  />
+                ) : null}
+              </ActionGroup>
+            ),
+          },
+        ]}
+      />
         <RequisitionPagination
           page={invoices.data?.current_page ?? 1}
           lastPage={invoices.data?.last_page ?? 1}
@@ -1567,58 +1567,58 @@ function Agreements({ references }: { references: ProcurementReferences }) {
       loading={isProcurementListLoading(query)}
     >
       <div className="space-y-3">
-        <ProcurementTable<Agreement>
-          caption="Framework, blanket, service-level, and rate agreements."
-          rows={query.data?.data ?? []}
-          getKey={(row) => row.id}
-          columns={[
-            {
-              key: "agreement",
-              label: "Agreement",
-              render: (row) => (
-                <strong>
-                  {row.number}
+      <ProcurementTable<Agreement>
+        caption="Framework, blanket, service-level, and rate agreements."
+        rows={query.data?.data ?? []}
+        getKey={(row) => row.id}
+        columns={[
+          {
+            key: "agreement",
+            label: "Agreement",
+            render: (row) => (
+              <strong>
+                {row.number}
                   <span className="block max-w-64 truncate text-xs font-normal text-muted-foreground">
-                    {row.title}
-                  </span>
+                  {row.title}
+                </span>
                   <span className="block text-xs font-normal text-muted-foreground">
                     {row.type.replaceAll("_", " ")}
                     {row.auto_replenishment ? " · auto replenishment" : ""}
                   </span>
-                </strong>
-              ),
-            },
-            {
-              key: "supplier",
-              label: "Supplier",
-              render: (row) => row.supplier?.name ?? row.supplier_id,
-            },
-            {
-              key: "validity",
-              label: "Validity",
-              render: (row) => `${row.starts_on} – ${row.ends_on}`,
-            },
-            {
-              key: "ceiling",
-              label: "Ceiling",
-              align: "right",
-              render: (row) => formatMoney(row.ceiling_amount, row.currency),
-            },
-            {
-              key: "committed",
-              label: "Committed",
-              align: "right",
-              render: (row) => formatMoney(row.committed_amount, row.currency),
-            },
-            {
-              key: "status",
-              label: "Status",
-              render: (row) => <ProcurementStatus value={row.status} />,
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (row) => (
+              </strong>
+            ),
+          },
+          {
+            key: "supplier",
+            label: "Supplier",
+            render: (row) => row.supplier?.name ?? row.supplier_id,
+          },
+          {
+            key: "validity",
+            label: "Validity",
+            render: (row) => `${row.starts_on} – ${row.ends_on}`,
+          },
+          {
+            key: "ceiling",
+            label: "Ceiling",
+            align: "right",
+            render: (row) => formatMoney(row.ceiling_amount, row.currency),
+          },
+          {
+            key: "committed",
+            label: "Committed",
+            align: "right",
+            render: (row) => formatMoney(row.committed_amount, row.currency),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (row) => <ProcurementStatus value={row.status} />,
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (row) => (
                 <ActionGroup stack>
                   {canManage && row.status === "draft" ? (
                     <AgreementEditForm
@@ -1627,31 +1627,31 @@ function Agreements({ references }: { references: ProcurementReferences }) {
                     />
                   ) : null}
                   {canManage && row.status === "draft" ? (
-                    <ActionButton
-                      label="Activate"
-                      queryKey="agreements"
+                  <ActionButton
+                    label="Activate"
+                    queryKey="agreements"
                       successText={`${row.number} activated.`}
                       errorFallback="Agreement could not be activated."
-                      run={() =>
-                        procurementApi.agreementAction(row.id, "activate")
-                      }
-                    />
-                  ) : null}
+                    run={() =>
+                      procurementApi.agreementAction(row.id, "activate")
+                    }
+                  />
+                ) : null}
                   {canManage && row.status === "active" ? (
-                    <ActionButton
-                      label="Suspend"
-                      queryKey="agreements"
+                  <ActionButton
+                    label="Suspend"
+                    queryKey="agreements"
                       successText={`${row.number} suspended.`}
                       errorFallback="Agreement could not be suspended."
-                      run={() =>
-                        procurementApi.agreementAction(row.id, "suspend")
-                      }
-                    />
-                  ) : null}
+                    run={() =>
+                      procurementApi.agreementAction(row.id, "suspend")
+                    }
+                  />
+                ) : null}
                   {canManage && row.status === "suspended" ? (
-                    <ActionButton
-                      label="Resume"
-                      queryKey="agreements"
+                  <ActionButton
+                    label="Resume"
+                    queryKey="agreements"
                       successText={`${row.number} resumed.`}
                       errorFallback="Agreement could not be resumed."
                       run={() =>
@@ -1669,13 +1669,13 @@ function Agreements({ references }: { references: ProcurementReferences }) {
                       run={() =>
                         procurementApi.agreementAction(row.id, "close")
                       }
-                    />
-                  ) : null}
-                </ActionGroup>
-              ),
-            },
-          ]}
-        />
+                  />
+                ) : null}
+              </ActionGroup>
+            ),
+          },
+        ]}
+      />
         <RequisitionPagination
           page={query.data?.current_page ?? 1}
           lastPage={query.data?.last_page ?? 1}
@@ -1699,9 +1699,22 @@ function RecordsLayout({
   toolbar?: ReactNode;
   children: ReactNode;
 }) {
+  const createRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#create") return;
+    const panel = createRef.current;
+    if (!panel) return;
+    panel.open = true;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
   return (
     <>
-      <details className="group rounded-2xl border bg-card shadow-sm">
+      <details
+        id="create"
+        ref={createRef}
+        className="group rounded-2xl border bg-card shadow-sm"
+      >
         <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-2xl px-5 py-3 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           <CirclePlus aria-hidden="true" className="size-5 text-primary" />
           Create or capture a record
@@ -1983,17 +1996,17 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
             qualified supplier.
           </DialogDescription>
         </DialogHeader>
-        <form
+      <form
           key={open ? `open-${supplier.id}` : `closed-${supplier.id}`}
           className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
             const parseList = (value: string) =>
               value
                 .split(",")
                 .map((item) => item.trim())
                 .filter(Boolean);
-            mutation.mutate({
+          mutation.mutate({
               name: name.trim() || undefined,
               code: code.trim() || undefined,
               email: email.trim() || undefined,
@@ -2031,9 +2044,9 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
               responsiveness_score: responsiveness,
               invoice_accuracy_score: invoiceAccuracy,
               domestic_supplier: domestic,
-            });
-          }}
-        >
+          });
+        }}
+      >
           <Grid>
             <Field id={`supplier-${supplier.id}-name`} label="Supplier name">
               <Input
@@ -2192,20 +2205,20 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
                 onChange={(e) => setAccountNumber(e.target.value)}
               />
             </Field>
-            <Field id={`supplier-${supplier.id}-eligibility`} label="Eligibility">
-              <select
-                id={`supplier-${supplier.id}-eligibility`}
+        <Field id={`supplier-${supplier.id}-eligibility`} label="Eligibility">
+          <select
+            id={`supplier-${supplier.id}-eligibility`}
                 value={eligibility}
                 onChange={(e) => setEligibility(e.target.value)}
-                className={fieldClass}
-              >
-                <option value="pending">Pending</option>
-                <option value="eligible">Eligible</option>
-                <option value="conditional">Conditional</option>
-                <option value="suspended">Suspended</option>
-                <option value="debarred">Debarred</option>
-              </select>
-            </Field>
+            className={fieldClass}
+          >
+            <option value="pending">Pending</option>
+            <option value="eligible">Eligible</option>
+            <option value="conditional">Conditional</option>
+            <option value="suspended">Suspended</option>
+            <option value="debarred">Debarred</option>
+          </select>
+        </Field>
             <Field id={`supplier-${supplier.id}-quality`} label="Quality score">
               <Input
                 id={`supplier-${supplier.id}-quality`}
@@ -2218,21 +2231,21 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
                 required
               />
             </Field>
-            <Field
+          <Field
               id={`supplier-${supplier.id}-delivery`}
               label="On-time delivery score"
-            >
-              <Input
+          >
+            <Input
                 id={`supplier-${supplier.id}-delivery`}
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
                 value={delivery}
                 onChange={(e) => setDelivery(Number(e.target.value))}
-                required
-              />
-            </Field>
+              required
+            />
+          </Field>
             <Field
               id={`supplier-${supplier.id}-responsiveness`}
               label="Responsiveness score"
@@ -2263,14 +2276,14 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
                 required
               />
             </Field>
-            <Field id={`supplier-${supplier.id}-debarred`} label="Debarred until">
-              <Input
-                id={`supplier-${supplier.id}-debarred`}
-                type="date"
+        <Field id={`supplier-${supplier.id}-debarred`} label="Debarred until">
+          <Input
+            id={`supplier-${supplier.id}-debarred`}
+            type="date"
                 value={debarredUntil}
                 onChange={(e) => setDebarredUntil(e.target.value)}
-              />
-            </Field>
+          />
+        </Field>
             <div className="flex items-center gap-2 self-end pb-3">
               <Checkbox
                 id={`supplier-${supplier.id}-domestic`}
@@ -2282,7 +2295,7 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
               </Label>
             </div>
           </Grid>
-          <InlineMutationError error={mutation.error} />
+        <InlineMutationError error={mutation.error} />
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -2296,10 +2309,10 @@ function SupplierEligibilityForm({ supplier }: { supplier: SupplierProfile }) {
               type="submit"
               disabled={mutation.isPending || !hasChanges}
             >
-              <BusyLabel busy={mutation.isPending}>Save review</BusyLabel>
-            </Button>
+          <BusyLabel busy={mutation.isPending}>Save review</BusyLabel>
+        </Button>
           </div>
-        </form>
+      </form>
       </DialogContent>
     </Dialog>
   );
@@ -3117,11 +3130,11 @@ function SupplierForm({
   const title = "Qualify a supplier";
   const description =""
   if (loading) {
-    return (
-      <FormShell
+  return (
+    <FormShell
         title={title}
         description={description}
-        mutation={mutation}
+      mutation={mutation}
         submitLabel="Qualify supplier"
         onSubmit={() => {}}
       >
@@ -3916,22 +3929,22 @@ function SourcingFields({
 }) {
   return (
     <>
-      <Grid>
+          <Grid>
         <Field id={`${idPrefix}-requisition`} label="Approved requisition">
-          <select
+              <select
             id={`${idPrefix}-requisition`}
-            name="requisition_id"
-            className={fieldClass}
+                name="requisition_id"
+                className={fieldClass}
             defaultValue={event?.requisition_id ?? ""}
-          >
-            <option value="">Independent sourcing</option>
+              >
+                <option value="">Independent sourcing</option>
             {requisitions.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.number} · {row.title}
-              </option>
-            ))}
-          </select>
-        </Field>
+                  <option key={row.id} value={row.id}>
+                    {row.number} · {row.title}
+                  </option>
+                ))}
+              </select>
+            </Field>
         <Field id={`${idPrefix}-title`} label="Event title">
           <Input
             id={`${idPrefix}-title`}
@@ -3939,7 +3952,7 @@ function SourcingFields({
             required
             defaultValue={event?.title ?? ""}
           />
-        </Field>
+            </Field>
         <Field id={`${idPrefix}-method`} label="Method">
           <select
             id={`${idPrefix}-method`}
@@ -3947,33 +3960,33 @@ function SourcingFields({
             className={fieldClass}
             defaultValue={event?.method ?? "request_for_quotation"}
           >
-            {references.methods.map((method) => (
-              <option key={method.value} value={method.value}>
-                {method.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+                {references.methods.map((method) => (
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
         <Field id={`${idPrefix}-value`} label="Estimated value">
-          <Input
+              <Input
             id={`${idPrefix}-value`}
-            name="estimated_value"
-            type="number"
-            min="0"
-            step="0.01"
-            required
+                name="estimated_value"
+                type="number"
+                min="0"
+                step="0.01"
+                required
             defaultValue={event ? String(event.estimated_value) : ""}
-          />
-        </Field>
+              />
+            </Field>
         <Field id={`${idPrefix}-egp`} label="e-GP reference">
           <Input
             id={`${idPrefix}-egp`}
             name="egp_reference"
             defaultValue={event?.egp_reference ?? ""}
           />
-        </Field>
+            </Field>
         <Field id={`${idPrefix}-sbd`} label="Standard bidding document">
-          <Input
+              <Input
             id={`${idPrefix}-sbd`}
             name="standard_bidding_document"
             defaultValue={event?.standard_bidding_document ?? ""}
@@ -3983,7 +3996,7 @@ function SourcingFields({
           <Input
             id={`${idPrefix}-clarify`}
             name="clarification_deadline"
-            type="datetime-local"
+                type="datetime-local"
             defaultValue={datetimeLocalValue(event?.clarification_deadline)}
           />
         </Field>
@@ -4061,9 +4074,9 @@ function SourcingFields({
             step="1"
             required
             defaultValue={String(criteriaWeight(event?.evaluation_criteria, "preference", 10))}
-          />
-        </Field>
-      </Grid>
+              />
+            </Field>
+          </Grid>
       <Field id={`${idPrefix}-scope`} label="Scope and specification">
         <Textarea
           id={`${idPrefix}-scope`}
@@ -4071,7 +4084,7 @@ function SourcingFields({
           rows={3}
           defaultValue={event?.scope ?? ""}
         />
-      </Field>
+          </Field>
       <Field
         id={`${idPrefix}-documents`}
         label="Documents"
@@ -4200,10 +4213,10 @@ function BidForm({
               >
                 <option value="">Select a published event</option>
                 {events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.number} · {event.title}
-                  </option>
-                ))}
+                    <option key={event.id} value={event.id}>
+                      {event.number} · {event.title}
+                    </option>
+                  ))}
               </select>
             </Field>
             <Field id="bid-supplier" label="Supplier">
@@ -4305,10 +4318,10 @@ function PurchaseOrderForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <FormShell
+    <FormShell
           title="Order details"
           description="Link a requisition or agreement when applicable, then set delivery and receipt rules."
-          mutation={mutation}
+      mutation={mutation}
           submitLabel="Create purchase order"
           onSubmit={(event) => {
             event.preventDefault();
@@ -4463,9 +4476,9 @@ function PurchaseOrderConfirmForm({ order }: { order: PurchaseOrder }) {
     <InlineAction label="Confirm supplier" group={`order-actions-${order.id}`}>
       <form
         className="space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const form = new FormData(event.currentTarget);
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
           const reference = String(form.get("reference") ?? "").trim();
           if (!reference) {
             toast.error("Enter the supplier confirmation reference.");
@@ -4849,13 +4862,13 @@ function ReceiptForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <FormShell
+    <FormShell
           title="Receipt details"
-          description="Select the purchase order to copy its immutable line keys and enter the delivered quantities."
-          mutation={mutation}
+      description="Select the purchase order to copy its immutable line keys and enter the delivered quantities."
+      mutation={mutation}
           submitLabel="Capture goods receipt"
-          onSubmit={(event) => {
-            event.preventDefault();
+      onSubmit={(event) => {
+        event.preventDefault();
             if (!orderId) {
               toast.error("Select an issued purchase order.");
               return;
@@ -4864,9 +4877,9 @@ function ReceiptForm({
               toast.error("The selected order has no lines to receive.");
               return;
             }
-            const form = new FormData(event.currentTarget);
-            mutation.mutate({
-              purchase_order_id: Number(orderId),
+        const form = new FormData(event.currentTarget);
+        mutation.mutate({
+          purchase_order_id: Number(orderId),
               supplier_delivery_note: textValue(form, "delivery_note"),
               received_on: textValue(form, "received_on"),
               attachments: listValue(form, "attachments") ?? [],
@@ -4894,10 +4907,10 @@ function ReceiptForm({
                   expiry_date: line.expiry_date || undefined,
                 };
               }),
-            });
-          }}
-        >
-          <Grid>
+        });
+      }}
+    >
+      <Grid>
             <Field
               id="grn-order"
               label="Purchase order"
@@ -4909,39 +4922,39 @@ function ReceiptForm({
                     : "No receivable orders yet. Issue a purchase order first."
               }
             >
-              <select
-                id="grn-order"
-                value={orderId}
-                onChange={(e) => selectOrder(e.target.value)}
-                required
+          <select
+            id="grn-order"
+            value={orderId}
+            onChange={(e) => selectOrder(e.target.value)}
+            required
                 disabled={ordersLoading || !orders.length}
-                className={fieldClass}
-              >
+            className={fieldClass}
+          >
                 <option value="">
                   {orders.length
                     ? "Select an issued order"
                     : "No issued / confirmed orders"}
                 </option>
                 {orders.map((order) => (
-                  <option key={order.id} value={order.id}>
+                <option key={order.id} value={order.id}>
                     {order.number} · {order.supplier?.name ?? "Supplier"} ·{" "}
                     {order.status}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field id="grn-delivery-note" label="Supplier delivery note">
-              <Input id="grn-delivery-note" name="delivery_note" />
-            </Field>
-            <Field id="grn-date" label="Received date">
-              <Input
-                id="grn-date"
-                name="received_on"
-                type="date"
-                defaultValue={today()}
-                required
-              />
-            </Field>
+                </option>
+              ))}
+          </select>
+        </Field>
+        <Field id="grn-delivery-note" label="Supplier delivery note">
+          <Input id="grn-delivery-note" name="delivery_note" />
+        </Field>
+        <Field id="grn-date" label="Received date">
+          <Input
+            id="grn-date"
+            name="received_on"
+            type="date"
+            defaultValue={today()}
+            required
+          />
+        </Field>
             <div className="md:col-span-2">
               <Field
                 id="grn-attachments"
@@ -4951,7 +4964,7 @@ function ReceiptForm({
                 <Input id="grn-attachments" name="attachments" />
               </Field>
             </div>
-          </Grid>
+      </Grid>
           {!ordersLoading && !orders.length ? (
             <Alert>
               <Send aria-hidden="true" />
@@ -4967,7 +4980,7 @@ function ReceiptForm({
             onChange={setLines}
             references={references}
           />
-        </FormShell>
+    </FormShell>
       </CardContent>
     </Card>
   );
@@ -5013,13 +5026,13 @@ function InvoiceForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <FormShell
+    <FormShell
           title="Invoice details"
           description="Purchase-order lines are copied for line-level price and quantity matching."
-          mutation={mutation}
+      mutation={mutation}
           submitLabel="Capture supplier invoice"
-          onSubmit={(event) => {
-            event.preventDefault();
+      onSubmit={(event) => {
+        event.preventDefault();
             if (!orderId) {
               toast.error("Select a purchase order with posted receipts.");
               return;
@@ -5191,11 +5204,11 @@ function InvoiceFields({
                 : "No invoiceable purchase orders"}
             </option>
             {orders.map((order) => (
-              <option key={order.id} value={order.id}>
+                <option key={order.id} value={order.id}>
                 {order.number} · {order.supplier?.name ?? "Supplier"} · received{" "}
                 {Number(order.received_percent ?? 0).toFixed(0)}%
-              </option>
-            ))}
+                </option>
+              ))}
             {invoice?.purchase_order &&
             !orders.some((row) => row.id === invoice.purchase_order?.id) ? (
               <option value={invoice.purchase_order.id}>
@@ -5638,7 +5651,7 @@ function LineItemsEditor({
                 return (
                   <option key={item.id} value={item.id} title={label}>
                     {optionText(label)}
-                  </option>
+                </option>
                 );
               })}
             </select>
@@ -5757,27 +5770,27 @@ function ReceiptLines({
         const received = Number(line.received_quantity ?? line.quantity ?? 0);
         const accepted = Number(line.accepted_quantity ?? received);
         return (
-          <div
-            key={line.line_key}
+        <div
+          key={line.line_key}
             className="grid gap-3 rounded-xl border p-3 md:grid-cols-3"
-          >
+        >
             <div className="md:col-span-3">
-              <span className="text-sm font-medium">{line.description}</span>
-              <span className="block text-xs text-muted-foreground">
-                Ordered {Number(line.quantity).toFixed(3)} {line.unit}
+            <span className="text-sm font-medium">{line.description}</span>
+            <span className="block text-xs text-muted-foreground">
+              Ordered {Number(line.quantity).toFixed(3)} {line.unit}
                 {line.line_key ? ` · ${line.line_key}` : ""}
-              </span>
-            </div>
-            <Field
+            </span>
+          </div>
+          <Field
+            id={`receipt-${line.line_key}-quantity`}
+            label="Received quantity"
+          >
+            <Input
               id={`receipt-${line.line_key}-quantity`}
-              label="Received quantity"
-            >
-              <Input
-                id={`receipt-${line.line_key}-quantity`}
-                type="number"
-                min="0.001"
-                step="0.001"
-                value={line.received_quantity ?? line.quantity}
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={line.received_quantity ?? line.quantity}
                 onChange={(e) => {
                   const nextReceived = Number(e.target.value);
                   update(index, {
@@ -5788,18 +5801,18 @@ function ReceiptLines({
                     ),
                   });
                 }}
-              />
-            </Field>
-            <Field
+            />
+          </Field>
+          <Field
+            id={`receipt-${line.line_key}-accepted`}
+            label="Accepted quantity"
+          >
+            <Input
               id={`receipt-${line.line_key}-accepted`}
-              label="Accepted quantity"
-            >
-              <Input
-                id={`receipt-${line.line_key}-accepted`}
-                type="number"
-                min="0"
-                step="0.001"
-                value={line.accepted_quantity ?? line.quantity}
+              type="number"
+              min="0"
+              step="0.001"
+              value={line.accepted_quantity ?? line.quantity}
                 onChange={(e) => {
                   const nextAccepted = Number(e.target.value);
                   update(index, {
@@ -5822,34 +5835,34 @@ function ReceiptLines({
                   line.rejected_quantity ??
                   Math.max(0, received - accepted)
                 }
-                onChange={(e) =>
+              onChange={(e) =>
                   update(index, {
                     rejected_quantity: Number(e.target.value),
                   })
-                }
-              />
-            </Field>
-            <Field id={`receipt-${line.line_key}-item`} label="Inventory item">
-              <select
-                id={`receipt-${line.line_key}-item`}
-                value={line.inventory_item_id ?? ""}
-                onChange={(e) =>
+              }
+            />
+          </Field>
+          <Field id={`receipt-${line.line_key}-item`} label="Inventory item">
+            <select
+              id={`receipt-${line.line_key}-item`}
+              value={line.inventory_item_id ?? ""}
+              onChange={(e) =>
                   update(index, {
                     inventory_item_id: e.target.value
                       ? Number(e.target.value)
                       : null,
                   })
-                }
-                className={fieldClass}
-              >
-                <option value="">Do not post to stock</option>
-                {references.inventory_items.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.sku} · {item.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
+              }
+              className={fieldClass}
+            >
+              <option value="">Do not post to stock</option>
+              {references.inventory_items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.sku} · {item.name}
+                </option>
+              ))}
+            </select>
+          </Field>
             <Field id={`receipt-${line.line_key}-lot`} label="Lot number">
               <Input
                 id={`receipt-${line.line_key}-lot`}
@@ -5894,7 +5907,7 @@ function ReceiptLines({
                 }
               />
             </Field>
-          </div>
+        </div>
         );
       })}
     </fieldset>
@@ -6001,14 +6014,14 @@ export function ReportsPage() {
             />
           </div>
         )}
-        <Card>
-          <CardHeader>
-            <CardTitle>Export datasets</CardTitle>
-            <CardDescription>
-              CSV exports use the same tenant-scoped records shown in the
-              workspace.
-            </CardDescription>
-          </CardHeader>
+      <Card>
+        <CardHeader>
+          <CardTitle>Export datasets</CardTitle>
+          <CardDescription>
+            CSV exports use the same tenant-scoped records shown in the
+            workspace.
+          </CardDescription>
+        </CardHeader>
           <CardContent className="space-y-3">
             {canExport ? (
               <div className="flex flex-wrap gap-2">
@@ -6017,15 +6030,15 @@ export function ReportsPage() {
                   ["supplier-performance", "Supplier performance"],
                   ["invoice-matching", "Invoice matching"],
                 ].map(([dataset, label]) => (
-                  <Button
+          <Button
                     key={dataset}
-                    variant="outline"
+            variant="outline"
                     disabled={exporting !== null}
                     onClick={() => download(dataset, label)}
-                  >
-                    <Download aria-hidden="true" data-icon="inline-start" />
+          >
+            <Download aria-hidden="true" data-icon="inline-start" />
                     <BusyLabel busy={exporting === dataset}>{label}</BusyLabel>
-                  </Button>
+          </Button>
                 ))}
               </div>
             ) : (
@@ -6038,22 +6051,22 @@ export function ReportsPage() {
                 </AlertDescription>
               </Alert>
             )}
-          </CardContent>
-        </Card>
-        {audit.error ? (
-          <ProcurementError error={audit.error} />
+        </CardContent>
+      </Card>
+      {audit.error ? (
+        <ProcurementError error={audit.error} />
         ) : isProcurementListLoading(audit) ? (
           <ProcurementTableSkeleton rows={6} cols={5} />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <h2>Audit trail</h2>
-              </CardTitle>
-              <CardDescription>
-                Who did what, to which record, and when.
-              </CardDescription>
-            </CardHeader>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <h2>Audit trail</h2>
+            </CardTitle>
+            <CardDescription>
+              Who did what, to which record, and when.
+            </CardDescription>
+          </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3">
                 <Field id="audit-entity-type" label="Record type">
@@ -6107,24 +6120,24 @@ export function ReportsPage() {
                 </Field>
               </div>
               <ProcurementTable<AuditEvent>
-                caption="Procurement audit events in reverse chronological order."
-                rows={audit.data?.data ?? []}
-                getKey={(row) => row.id}
-                columns={[
-                  {
-                    key: "time",
-                    label: "Occurred",
+              caption="Procurement audit events in reverse chronological order."
+              rows={audit.data?.data ?? []}
+              getKey={(row) => row.id}
+              columns={[
+                {
+                  key: "time",
+                  label: "Occurred",
                     render: (row) =>
                       new Date(row.occurred_at).toLocaleString(),
-                  },
-                  {
-                    key: "entity",
-                    label: "Record",
-                    render: (row) => `${row.entity_type} #${row.entity_id}`,
-                  },
-                  {
-                    key: "event",
-                    label: "Event",
+                },
+                {
+                  key: "entity",
+                  label: "Record",
+                  render: (row) => `${row.entity_type} #${row.entity_id}`,
+                },
+                {
+                  key: "event",
+                  label: "Event",
                     render: (row) => (
                       <ProcurementStatus value={row.event} />
                     ),
@@ -6133,23 +6146,23 @@ export function ReportsPage() {
                     key: "context",
                     label: "Context",
                     render: (row) => <AuditEventContext event={row} />,
-                  },
-                  {
-                    key: "actor",
-                    label: "Actor",
-                    render: (row) =>
-                      row.actor_id ? `User ${row.actor_id}` : "System",
-                  },
-                ]}
-              />
+                },
+                {
+                  key: "actor",
+                  label: "Actor",
+                  render: (row) =>
+                    row.actor_id ? `User ${row.actor_id}` : "System",
+                },
+              ]}
+            />
               <RequisitionPagination
                 page={audit.data?.current_page ?? 1}
                 lastPage={audit.data?.last_page ?? 1}
                 onPageChange={setPage}
               />
-            </CardContent>
-          </Card>
-        )}
+          </CardContent>
+        </Card>
+      )}
       </div>
     </ProcurementShell>
   );

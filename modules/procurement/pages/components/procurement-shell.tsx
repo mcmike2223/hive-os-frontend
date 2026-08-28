@@ -235,14 +235,16 @@ export function MetricCard({
   value,
   description,
   status,
+  href,
 }: {
   title: string;
   value: ReactNode;
   description: string;
   status?: string;
+  href?: string;
 }) {
-  return (
-    <Card>
+  const body = (
+    <>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
@@ -255,7 +257,16 @@ export function MetricCard({
       <CardContent>
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
-    </Card>
+    </>
+  );
+  if (!href) return <Card>{body}</Card>;
+  return (
+    <Link
+      href={href}
+      className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <Card className="h-full transition-colors hover:bg-muted/30">{body}</Card>
+    </Link>
   );
 }
 export function ProcurementTable<T>({

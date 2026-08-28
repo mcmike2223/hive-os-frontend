@@ -27,7 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fetchInventoryProducts } from "@/modules/inventory/api";
+import type { ProductRecord } from "@/modules/inventory/types";
 import { warehouseApi } from "@/modules/warehouse/api";
+import type { WarehouseLocation } from "@/modules/warehouse/types";
 import { WorkflowTrigger } from "@/modules/workflow/components/workflow-trigger";
 import { notifyMutationOutcome } from "@/modules/workflow/utils/mutation-outcome";
 
@@ -76,7 +79,7 @@ const DEFAULT_MOVEMENT_FORM: MovementForm = {
   product_id: 0,
   from_location_id: null,
   to_location_id: 0,
-  type: "transfer",
+  type: "receipt",
   quantity: "",
   unit_cost: "",
   batch_number: "",
@@ -87,12 +90,62 @@ const DEFAULT_MOVEMENT_FORM: MovementForm = {
   notes: "",
 };
 
+function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: T[] }).data;
+  }
+  return [];
+}
+
+function locationLabel(loc: WarehouseLocation): string {
+  const site = loc.warehouse?.name || loc.warehouse?.code;
+  const spot = loc.name || loc.code || `Location #${loc.id}`;
+  return site ? `${site} · ${spot}` : spot;
+}
+
 export default function StockMovementsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [tableQuery, setTableQuery] = React.useState<TableQueryState>(DEFAULT_QUERY);
   const [movementDialogOpen, setMovementDialogOpen] = React.useState(false);
   const [movementForm, setMovementForm] = React.useState<MovementForm>(DEFAULT_MOVEMENT_FORM);
+  const pickerOpenRef = React.useRef(false);
+  const pickerCloseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePickerOpenChange = React.useCallback((open: boolean) => {
+    if (pickerCloseTimerRef.current) {
+      clearTimeout(pickerCloseTimerRef.current);
+      pickerCloseTimerRef.current = null;
+    }
+    if (open) {
+      pickerOpenRef.current = true;
+      return;
+    }
+    // Same click that dismisses Select also hits Dialog's dismiss layer — guard briefly.
+    pickerOpenRef.current = true;
+    pickerCloseTimerRef.current = setTimeout(() => {
+      pickerOpenRef.current = false;
+      pickerCloseTimerRef.current = null;
+    }, 150);
+  }, []);
+
+  const preventDialogDismissForPicker = React.useCallback((event: { preventDefault: () => void; target: EventTarget }) => {
+    const target = event.target;
+    if (target instanceof Element) {
+      if (
+        target.closest("[data-radix-select-content]") ||
+        target.closest("[data-radix-popper-content-wrapper]") ||
+        target.closest("[role='listbox']")
+      ) {
+        event.preventDefault();
+        return;
+      }
+    }
+    if (pickerOpenRef.current) {
+      event.preventDefault();
+    }
+  }, []);
 
   const movementsQuery = useQuery({
     queryKey: ["warehouse", "movements", tableQuery],
@@ -104,6 +157,24 @@ export default function StockMovementsPage() {
         sort_col: tableQuery.sortCol,
         sort_dir: tableQuery.sortDir,
       }).then(res => res.data),
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ["inventory", "products", "movement-picker"],
+    queryFn: async () => {
+      const res = await fetchInventoryProducts({ per_page: 200, limit: 200 });
+      return unwrapList<ProductRecord>(res);
+    },
+    enabled: movementDialogOpen,
+  });
+
+  const locationsQuery = useQuery({
+    queryKey: ["warehouse", "locations", "movement-picker"],
+    queryFn: async () => {
+      const res = await warehouseApi.listLocations({ limit: 500 }).then((r) => r.data);
+      return unwrapList<WarehouseLocation>(res);
+    },
+    enabled: movementDialogOpen,
   });
 
   const applyTableQuery = React.useCallback((nextPartial: Partial<TableQueryState>) => {
@@ -279,35 +350,92 @@ export default function StockMovementsPage() {
                   placeholder="0"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="movement-product">{t("inventory.common.product_id", "Product ID")}</Label>
-                <Input
-                  id="movement-product"
-                  type="number"
-                  value={movementForm.product_id || ""}
-                  onChange={(event) => setMovementForm((prev) => ({ ...prev, product_id: parseInt(event.target.value) || 0 }))}
-                  placeholder="Product ID"
-                />
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="movement-product">{t("inventory.common.product", "Product")}</Label>
+                <Select
+                  value={movementForm.product_id ? String(movementForm.product_id) : undefined}
+                  onValueChange={(val) => setMovementForm((prev) => ({ ...prev, product_id: Number(val) || 0 }))}
+                >
+                  <SelectTrigger id="movement-product">
+                    <SelectValue
+                      placeholder={
+                        productsQuery.isLoading
+                          ? t("inventory.common.loading", "Loading…")
+                          : t("inventory.movements.pick_product", "Select a product")
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(productsQuery.data ?? []).map((product) => (
+                      <SelectItem key={product.id} value={String(product.id)}>
+                        {product.name}
+                        {product.sku ? ` (${product.sku})` : ""}
+                      </SelectItem>
+                    ))}
+                    {!productsQuery.isLoading && (productsQuery.data?.length ?? 0) === 0 ? (
+                      <div className="px-2 py-3 text-xs text-muted-foreground">
+                        {t("inventory.movements.no_products", "No products found. Add one in Inventory → Products.")}
+                      </div>
+                    ) : null}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="movement-to-location">{t("inventory.common.to_location", "To Location")}</Label>
-                <Input
-                  id="movement-to-location"
-                  type="number"
-                  value={movementForm.to_location_id || ""}
-                  onChange={(event) => setMovementForm((prev) => ({ ...prev, to_location_id: parseInt(event.target.value) || 0 }))}
-                  placeholder="Location ID"
-                />
+                <Select
+                  value={movementForm.to_location_id ? String(movementForm.to_location_id) : undefined}
+                  onValueChange={(val) => setMovementForm((prev) => ({ ...prev, to_location_id: Number(val) || 0 }))}
+                >
+                  <SelectTrigger id="movement-to-location">
+                    <SelectValue
+                      placeholder={
+                        locationsQuery.isLoading
+                          ? t("inventory.common.loading", "Loading…")
+                          : t("inventory.movements.pick_to_location", "Select destination")
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(locationsQuery.data ?? []).map((loc) => (
+                      <SelectItem key={loc.id} value={String(loc.id)}>
+                        {locationLabel(loc)}
+                      </SelectItem>
+                    ))}
+                    {!locationsQuery.isLoading && (locationsQuery.data?.length ?? 0) === 0 ? (
+                      <div className="px-2 py-3 text-xs text-muted-foreground">
+                        {t("inventory.movements.no_locations", "No locations found. Create a warehouse shelf/box first.")}
+                      </div>
+                    ) : null}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="movement-from-location">{t("inventory.common.from_location", "From Location")}</Label>
-                <Input
-                  id="movement-from-location"
-                  type="number"
-                  value={movementForm.from_location_id || ""}
-                  onChange={(event) => setMovementForm((prev) => ({ ...prev, from_location_id: parseInt(event.target.value) || null }))}
-                  placeholder="Location ID (optional)"
-                />
+                <Select
+                  value={movementForm.from_location_id ? String(movementForm.from_location_id) : "none"}
+                  onValueChange={(val) =>
+                    setMovementForm((prev) => ({
+                      ...prev,
+                      from_location_id: val === "none" ? null : Number(val) || null,
+                    }))
+                  }
+                >
+                  <SelectTrigger id="movement-from-location">
+                    <SelectValue
+                      placeholder={t("inventory.movements.pick_from_location", "Optional source")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      {t("inventory.movements.no_from_location", "None (external / opening)")}
+                    </SelectItem>
+                    {(locationsQuery.data ?? []).map((loc) => (
+                      <SelectItem key={loc.id} value={String(loc.id)}>
+                        {locationLabel(loc)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="movement-unit-cost">{t("inventory.common.unit_cost", "Unit Cost")}</Label>
@@ -372,7 +500,17 @@ export default function StockMovementsPage() {
                   toast.error(t("inventory.movements.required_fields", "Product, To Location, and Quantity are required."));
                   return;
                 }
-                createMovementMutation.mutate(movementForm);
+                createMovementMutation.mutate({
+                  ...movementForm,
+                  unit_cost: movementForm.unit_cost || null,
+                  batch_number: movementForm.batch_number || null,
+                  serial_number: movementForm.serial_number || null,
+                  expiry_date: movementForm.expiry_date || null,
+                  reference_type: movementForm.reference_type || null,
+                  reference_id: movementForm.reference_id || null,
+                  notes: movementForm.notes || null,
+                  from_location_id: movementForm.from_location_id || null,
+                });
               }}
             >
               {createMovementMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

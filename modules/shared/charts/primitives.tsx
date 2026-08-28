@@ -17,15 +17,17 @@ export function StatTile({
   meta,
   alert = false,
   icon,
+  href,
 }: {
   label: string;
   value: string;
   meta?: string;
   alert?: boolean;
   icon?: React.ReactNode;
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-4">
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
         {icon ? <span className="text-muted-foreground">{icon}</span> : null}
@@ -37,8 +39,21 @@ export function StatTile({
           {meta}
         </p>
       ) : null}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        className="block rounded-2xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/40 hover:bg-card/80"
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return <div className="rounded-2xl border border-border/60 bg-card p-4">{inner}</div>;
 }
 
 export function Panel({
@@ -200,14 +215,18 @@ export function ServiceMeter({
   label,
   value,
   target,
+  lowerIsBetter = false,
 }: {
   label: string;
   value: number;
   target: number;
+  lowerIsBetter?: boolean;
 }) {
   const targetPercent = target * 100;
-  const meets = value >= targetPercent;
-  const close = value >= targetPercent * 0.9;
+  const meets = lowerIsBetter ? value <= targetPercent : value >= targetPercent;
+  const close = lowerIsBetter
+    ? value <= targetPercent * 1.25
+    : value >= targetPercent * 0.9;
 
   const tone = meets ? "text-emerald-600 dark:text-emerald-400" : close ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400";
   const bar = meets ? "bg-emerald-500" : close ? "bg-amber-500" : "bg-rose-500";

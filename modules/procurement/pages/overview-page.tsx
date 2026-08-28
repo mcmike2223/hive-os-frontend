@@ -42,7 +42,7 @@ export default function ProcurementOverviewPage() {
       description="Follow every commitment from a budget-backed request through fair supplier competition, delivery quality, invoice matching, and the finance ledger."
       actions={
         <Button asChild>
-          <Link href="/dashboard/procurement/requisitions">
+          <Link href="/dashboard/procurement/requisitions#create">
             Create requisition
             <ArrowRight aria-hidden="true" data-icon="inline-end" />
           </Link>
@@ -102,22 +102,26 @@ function Dashboard({
           title="Committed spend"
           value={formatMoney(data.metrics.committed_spend)}
           description={`${data.metrics.open_orders} open purchase order(s).`}
+          href="/dashboard/procurement/orders"
         />
         <MetricCard
           title="Three-way match rate"
           value={`${data.metrics.match_rate.toFixed(1)}%`}
           description="Matched or authorized supplier invoices."
           status={data.metrics.unmatched_invoices ? "exception" : "matched"}
+          href="/dashboard/procurement/invoices"
         />
         <MetricCard
           title="Quality pass rate"
           value={`${data.metrics.quality_pass_rate.toFixed(1)}%`}
           description="Inspected receipts accepted by quality control."
+          href="/dashboard/procurement/receiving"
         />
         <MetricCard
           title="Eligible suppliers"
           value={data.metrics.eligible_suppliers}
           description="Qualified suppliers available for sourcing."
+          href="/dashboard/procurement/suppliers"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -125,19 +129,23 @@ function Dashboard({
           title="Active sourcing events"
           value={data.metrics.sourcing_active}
           description="Published or under bid evaluation."
+          href="/dashboard/procurement/sourcing"
         />
         <MetricCard
           title="Overdue deliveries"
           value={data.metrics.overdue_deliveries}
           description="Expected dates passed on open orders."
           status={data.metrics.overdue_deliveries ? "overdue" : "clear"}
+          href="/dashboard/procurement/orders"
         />
         <MetricCard
           title="Agreements expiring"
           value={data.metrics.agreements_expiring}
           description="Framework or blanket agreements ending within 60 days."
+          href="/dashboard/procurement/agreements"
         />
       </div>
+      <RequisitionPipeline rows={data.pipeline} />
       <ProcurementCharts data={data} />
       <section
         aria-label="Procurement attention queues"
@@ -148,14 +156,19 @@ function Dashboard({
         <AttentionInvoices rows={data.attention.invoices} />
       </section>
       <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2>Supplier performance leaders</h2>
-          </CardTitle>
-          <CardDescription>
-            Operational scores are recalculated from inspection outcomes,
-            delivery timeliness, and invoice accuracy.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div className="space-y-1.5">
+            <CardTitle>
+              <h2>Supplier performance leaders</h2>
+            </CardTitle>
+            <CardDescription>
+              Operational scores are recalculated from inspection outcomes,
+              delivery timeliness, and invoice accuracy.
+            </CardDescription>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/procurement/suppliers">View suppliers</Link>
+          </Button>
         </CardHeader>
         <CardContent>
           <ProcurementTable<SupplierProfile>
@@ -166,8 +179,14 @@ function Dashboard({
               {
                 key: "supplier",
                 label: "Supplier",
-                render: (row) =>
-                  row.supplier?.name ?? `Supplier ${row.supplier_id}`,
+                render: (row) => (
+                  <Link
+                    href="/dashboard/procurement/suppliers"
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    {row.supplier?.name ?? `Supplier ${row.supplier_id}`}
+                  </Link>
+                ),
               },
               {
                 key: "quality",
@@ -204,16 +223,71 @@ function Dashboard({
   );
 }
 
+function RequisitionPipeline({
+  rows,
+}: {
+  rows: Array<{ status: string; count: number; value: number }>;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle>
+            <h2>Requisition pipeline</h2>
+          </CardTitle>
+          <CardDescription>
+            Count and estimated value by requisition status across the tenant.
+          </CardDescription>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/dashboard/procurement/requisitions">View requisitions</Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <ProcurementTable
+          caption="Requisition pipeline by status."
+          rows={rows}
+          getKey={(row) => row.status}
+          columns={[
+            {
+              key: "status",
+              label: "Status",
+              render: (row) => <ProcurementStatus value={row.status} />,
+            },
+            {
+              key: "count",
+              label: "Count",
+              align: "right",
+              render: (row) => row.count,
+            },
+            {
+              key: "value",
+              label: "Estimated value",
+              align: "right",
+              render: (row) => formatMoney(row.value),
+            },
+          ]}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function AttentionRequisitions({ rows }: { rows: Requisition[] }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>Approval queue</h2>
-        </CardTitle>
-        <CardDescription>
-          Requests waiting for budget or management action.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle>
+            <h2>Approval queue</h2>
+          </CardTitle>
+          <CardDescription>
+            Requisitions waiting for management approval.
+          </CardDescription>
+        </div>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/dashboard/procurement/requisitions">Open</Link>
+        </Button>
       </CardHeader>
       <CardContent>
         <ProcurementTable
@@ -225,12 +299,15 @@ function AttentionRequisitions({ rows }: { rows: Requisition[] }) {
               key: "request",
               label: "Request",
               render: (row) => (
-                <span className="font-medium">
+                <Link
+                  href="/dashboard/procurement/requisitions"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                >
                   {row.number}
                   <span className="block text-xs font-normal text-muted-foreground">
                     {row.title}
                   </span>
-                </span>
+                </Link>
               ),
             },
             {
@@ -250,16 +327,22 @@ function AttentionRequisitions({ rows }: { rows: Requisition[] }) {
     </Card>
   );
 }
+
 function AttentionOrders({ rows }: { rows: PurchaseOrder[] }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>Delivery queue</h2>
-        </CardTitle>
-        <CardDescription>
-          Open commitments ordered by expected delivery.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle>
+            <h2>Overdue deliveries</h2>
+          </CardTitle>
+          <CardDescription>
+            Open orders past their expected delivery date.
+          </CardDescription>
+        </div>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/dashboard/procurement/orders">Open</Link>
+        </Button>
       </CardHeader>
       <CardContent>
         <ProcurementTable
@@ -271,12 +354,16 @@ function AttentionOrders({ rows }: { rows: PurchaseOrder[] }) {
               key: "order",
               label: "Order",
               render: (row) => (
-                <span className="font-medium">
+                <Link
+                  href="/dashboard/procurement/receiving"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                >
                   {row.number}
                   <span className="block text-xs font-normal text-muted-foreground">
                     {row.supplier?.name ?? "Supplier"}
+                    {row.expected_on ? ` · due ${row.expected_on}` : ""}
                   </span>
-                </span>
+                </Link>
               ),
             },
             {
@@ -296,16 +383,22 @@ function AttentionOrders({ rows }: { rows: PurchaseOrder[] }) {
     </Card>
   );
 }
+
 function AttentionInvoices({ rows }: { rows: SupplierInvoice[] }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>Match exceptions</h2>
-        </CardTitle>
-        <CardDescription>
-          Invoices waiting for goods receipt or discrepancy resolution.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle>
+            <h2>Match exceptions</h2>
+          </CardTitle>
+          <CardDescription>
+            Invoices waiting for goods receipt or discrepancy resolution.
+          </CardDescription>
+        </div>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/dashboard/procurement/invoices">Open</Link>
+        </Button>
       </CardHeader>
       <CardContent>
         <ProcurementTable
@@ -317,12 +410,15 @@ function AttentionInvoices({ rows }: { rows: SupplierInvoice[] }) {
               key: "invoice",
               label: "Invoice",
               render: (row) => (
-                <span className="font-medium">
+                <Link
+                  href="/dashboard/procurement/invoices"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                >
                   {row.number}
                   <span className="block text-xs font-normal text-muted-foreground">
                     {row.supplier_invoice_number}
                   </span>
-                </span>
+                </Link>
               ),
             },
             {
