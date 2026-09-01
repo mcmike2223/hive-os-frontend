@@ -12,6 +12,7 @@ export type ModuleId =
   | "workflow"
   | "projectmanagement"
   | "humanresources"
+  | "identitycards"
   | "attendance"
   | "payroll"
   | "finance"
@@ -28,7 +29,8 @@ export type ModuleId =
   | "agriculture"
   | "lms"
   | "b2b-marketplace"
-  | "landing-templates";
+  | "landing-templates"
+  | "support_bot";
 export type DashboardNavPlacement = "primary" | "secondary";
 
 export interface ModuleNavItem {
@@ -42,6 +44,7 @@ export interface ModuleNavItem {
   businessTypes?: string[];
   tourId?: string;
   placement: DashboardNavPlacement;
+  audience?: "all" | "central" | "tenant";
 }
 
 export interface FrontendModuleDefinition {

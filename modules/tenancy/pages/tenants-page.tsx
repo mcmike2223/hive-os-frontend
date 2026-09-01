@@ -26,59 +26,59 @@ export default function TenantsPage() {
   const tenantTourSteps = [
     {
       target: "#tour-tenant-header",
-      title: t("tour.node_mgmt_title", "Node Management"),
-      content: t("tour.node_mgmt_desc", "This is the master command center for all active tenant nodes on the HIVE.OS network."),
+      title: t("tour.node_mgmt_title", "Tenant Managment"),
+      content: t("tour.node_mgmt_desc", "This is the master command center for all active tenant accounts on the HIVE.OS network."),
       placement: "bottom" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-tenant-provision",
       title: t("tour.provision_title", "Provision a Node"),
       content: t("tour.provision_desc", "Click here to allocate new infrastructure. You will define the organization name, capacity plan, and establish super admin credentials."),
       placement: "left" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-datatable-search",
       title: t("tour.matrix_search_title", "Matrix Search"),
       content: t("tour.matrix_search_desc", "Filter the active node list instantly by ID or Organization Name."),
       placement: "bottom" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-datatable-copy",
       title: t("tour.copy_title", "Copy to Clipboard"),
       content: t("tour.copy_desc", "Quickly copy the current matrix view to your clipboard for sharing."),
       placement: "bottom" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-datatable-export",
       title: t("tour.export_title", "Export Data"),
       content: t("tour.export_desc", "Download the complete matrix dataset in your preferred format (CSV, Excel)."),
       placement: "bottom" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-datatable-print",
       title: t("tour.print_title", "Print Matrix"),
       content: t("tour.print_desc", "Send the current node configuration list to your PDF/Print processor."),
       placement: "bottom" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-datatable-refresh",
       title: t("tour.refresh_title", "Force Sync"),
       content: t("tour.refresh_desc", "Manually refresh the datatable to pull the latest telemetry from the network."),
       placement: "bottom" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-tenant-table",
       title: t("tour.matrix_title", "The Node Matrix"),
       content: t("tour.matrix_desc", "Monitor real-time network status."),
       placement: "top-start" as const,
-      disableBeacon: true,
+      skipBeacon: true,
       floaterProps: { disableFlip: true },
     },
     {
@@ -86,35 +86,35 @@ export default function TenantsPage() {
       title: t("tour.inspect_title", "Inspect Node"),
       content: t("tour.inspect_desc", "View deep metrics, routing domains, and active capacity plans for this specific node."),
       placement: "top" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-action-status",
       title: t("tour.power_title", "Network Power"),
       content: t("tour.power_desc", "Instantly suspend or restore network access for this tenant database."),
       placement: "top" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-action-admin",
       title: t("tour.clearance_title", "Operator Clearance"),
       content: t("tour.clearance_desc", "Enable or disable Super Admin login capabilities for this tenant."),
       placement: "top" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-action-edit",
       title: t("tour.reconfig_title", "Reconfigure Node"),
       content: t("tour.reconfig_desc", "Update the organization name, adjust the capacity plan, or modify routing rules."),
       placement: "top" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "#tour-action-purge",
       title: t("tour.purge_title", "Purge Protocol"),
       content: t("tour.purge_desc", "Permanently delete this node and destroy all associated telemetry data. Use with extreme caution."),
       placement: "top-end" as const,
-      disableBeacon: true,
+      skipBeacon: true,
     },
   ];
 
@@ -131,7 +131,7 @@ export default function TenantsPage() {
 
       if (!viewLogged.current) {
         viewLogged.current = true;
-        logFrontendAction({ module: "Tenant Management", action: "access_denied", description: "Operator blocked from accessing Master Node Management." }).catch(() => {});
+        logFrontendAction({ module: "Tenant Management", action: "access_denied", description: "Operator blocked from accessing Master Tenant Managment." }).catch(() => { });
       }
 
       const timer = setTimeout(() => router.replace("/dashboard"), 3000);
@@ -141,7 +141,7 @@ export default function TenantsPage() {
     setAccessStatus("granted");
     if (!viewLogged.current) {
       viewLogged.current = true;
-      logFrontendAction({ module: "Tenant Management", action: "viewed", description: "Accessed Master Node Management module." }).catch(() => {});
+      logFrontendAction({ module: "Tenant Management", action: "viewed", description: "Accessed Master Tenant Managment module." }).catch(() => { });
     }
   }, [canViewTenants, isLoaded, router]);
 
@@ -188,7 +188,7 @@ export default function TenantsPage() {
         <Breadcrumbs
           items={[
             { label: "Hive.OS", href: "/dashboard", icon: <Home className="h-4 w-4" /> },
-            { label: t("nav.tenants", "Node Management") },
+            { label: t("nav.tenants", "Tenant Managment") },
           ]}
         />
       </div>
@@ -198,7 +198,7 @@ export default function TenantsPage() {
           {/* The page title is the document's h1 — this was an h2, so the route
               had no top-level heading for screen readers to announce. */}
           <h1 className="font-space flex items-center gap-2 text-2xl font-black tracking-tight">
-            <Network className="h-6 w-6 text-primary" /> {t("tenants.title", "Node Management")}
+            <Network className="h-6 w-6 text-primary" /> {t("tenants.title", "Tenant Managment")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("tenants.subtitle", "Provision, monitor, and configure active tenant databases within the ecosystem.")}

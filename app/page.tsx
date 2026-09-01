@@ -5,6 +5,11 @@ import {
   ArrowUp,
   BatteryCharging,
   Boxes,
+  Star,
+  Rocket,
+  Layers,
+  HardDrive,
+  Crown,
   Building2,
   Calculator,
   Car,
@@ -35,6 +40,13 @@ import { LandingProof } from "@/modules/landing/components/landing-proof";
 import { LandingMetrics } from "@/modules/landing/components/landing-metrics";
 import { LandingSecurity } from "@/modules/landing/components/landing-security";
 import { LandingCompare } from "@/modules/landing/components/landing-compare";
+import { EthiopianPayrollCalculator } from "@/modules/landing/components/ethiopian-payroll-calculator";
+import { ErpWorkbenchPreview } from "@/modules/landing/components/erp-workbench-preview";
+import { SupportWebchatWidget } from "@/components/support-bot/support-webchat-widget";
+import { ErpIndustrySolutions } from "@/modules/landing/components/erp-industry-solutions";
+import { ErpSubdomainChecker } from "@/modules/landing/components/erp-subdomain-checker";
+import { fetchPublicSubscriptionCatalog } from "@/modules/subscription/api";
+import type { SignupCatalogModule } from "@/modules/subscription/components/signup-catalog-selector";
 import { Reveal, RevealGroup, RevealItem, SpotlightCard } from "@/modules/landing/components/reveal";
 import {
   Eyebrow,
@@ -289,6 +301,167 @@ const PartnerSlider = ({ partners }: { partners: PartnerLogo[] }) => {
   );
 };
 
+// ─── Dynamic Plan Metadata & Helpers ─────────────────────────────────────────
+type PlanMeta = {
+  label: string;
+  tagline: string;
+  color: string;
+  bg: string;
+  ring: string;
+  price: string;
+  priceNote: string;
+  storageMb: number;
+  storageLabel: string;
+  icon: React.ElementType;
+  highlight?: boolean;
+  features: string[];
+};
+
+type CatalogPlan = {
+  name?: string;
+  description?: string;
+  monthly_price_etb?: number | string;
+  mail_storage_quota_mb?: number | string;
+  is_disabled?: boolean;
+};
+
+const PLAN_META: Record<string, PlanMeta> = {
+  larva: {
+    label: "Larva",
+    tagline: "Free trial — start small",
+    color: "text-slate-500",
+    bg: "from-slate-500/10 to-slate-400/5",
+    ring: "ring-slate-500/30",
+    price: "Free",
+    priceNote: "forever",
+    storageMb: 512,
+    storageLabel: "512 MB",
+    icon: Zap,
+    features: [
+      "Internal Mailbox",
+      "512 MB mailbox quota",
+      "Up to 5 users",
+      "Shared DB instance",
+      "Dashboard overview",
+    ],
+  },
+  startup: {
+    label: "Startup",
+    tagline: "Launch your operations",
+    color: "text-sky-500",
+    bg: "from-sky-500/10 to-cyan-400/5",
+    ring: "ring-sky-500/30",
+    price: "Free",
+    priceNote: "/month",
+    storageMb: 2048,
+    storageLabel: "2 GB",
+    icon: Rocket,
+    features: [
+      "Mailbox + File Manager",
+      "Image Editor",
+      "Document Converter",
+      "2 GB storage quota",
+      "Isolated DB schema",
+    ],
+  },
+  business: {
+    label: "Business",
+    tagline: "Full productivity suite",
+    color: "text-indigo-500",
+    bg: "from-indigo-500/10 to-violet-400/5",
+    ring: "ring-indigo-500/30",
+    price: "ETB 3,499",
+    priceNote: "/month",
+    storageMb: 10240,
+    storageLabel: "10 GB",
+    icon: Layers,
+    highlight: true,
+    features: [
+      "All Startup modules",
+      "Media Library + Video Player",
+      "Advanced Analytics",
+      "Audit Logs + Alerts Center",
+      "Invoice & Billing + Inventory",
+      "Security Management",
+      "10 GB storage quota",
+    ],
+  },
+  enterprise: {
+    label: "Enterprise",
+    tagline: "Large-scale operations",
+    color: "text-violet-500",
+    bg: "from-violet-500/10 to-purple-400/5",
+    ring: "ring-violet-500/30",
+    price: "ETB 7,999",
+    priceNote: "/month",
+    storageMb: 51200,
+    storageLabel: "50 GB",
+    icon: Star,
+    features: [
+      "All Business modules",
+      "Workflow Automation",
+      "API Access + API Docs",
+      "Fleet Management",
+      "Developer tools",
+      "50 GB storage quota",
+      "Priority support",
+    ],
+  },
+  overlord: {
+    label: "Overlord",
+    tagline: "All-inclusive power",
+    color: "text-amber-500",
+    bg: "from-amber-500/10 to-orange-400/5",
+    ring: "ring-amber-500/30",
+    price: "ETB 12,999",
+    priceNote: "/month",
+    storageMb: 204800,
+    storageLabel: "200 GB",
+    icon: Crown,
+    features: [
+      "Every module unlocked (17 total)",
+      "200 GB storage quota",
+      "Custom integrations",
+      "Dedicated SLA",
+      "Techive engineering support",
+    ],
+  },
+};
+
+const PLAN_ORDER = ["larva", "startup", "business", "enterprise", "overlord"];
+
+function formatPlanPrice(amount: number) {
+  return amount <= 0 ? "Free" : `ETB ${amount.toLocaleString()}`;
+}
+
+function formatStorage(mb: number) {
+  if (mb < 1024) return `${mb} MB`;
+  if (mb < 1024 * 1024) return `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB`;
+  return `${(mb / 1024 / 1024).toFixed(1)} TB`;
+}
+
+function fallbackAmount(meta: PlanMeta) {
+  if (meta.price.toLowerCase() === "free") return 0;
+  return Number(meta.price.replace(/[^\d.]/g, "")) || 0;
+}
+
+function buildPlanFeatures(
+  planKey: string,
+  fallback: PlanMeta,
+  planDefaults: Record<string, string[]>,
+  catalog: SignupCatalogModule[],
+  storageLabel: string,
+) {
+  const moduleNames = new Map(catalog.map((module) => [module.slug, module.name]));
+  const includedModules = (planDefaults[planKey] ?? [])
+    .map((slug) => moduleNames.get(slug))
+    .filter((name): name is string => Boolean(name));
+
+  const features = Array.from(new Set([...includedModules.slice(0, 5), `${storageLabel} storage quota`]));
+  return features.length ? features : fallback.features;
+}
+
+
 function LandingUI({
   initialPortalName = "HIVE.OS",
   initialTenantSlug = "hive",
@@ -324,7 +497,7 @@ function LandingUI({
   };
 
   // 🚀 FETCH PUBLIC BRAND SETTINGS
-  const { data: brandData } = useQuery({
+  const { data: brandData, dataUpdatedAt: brandDataUpdatedAt } = useQuery({
     queryKey: ["publicBrandSettings", detectedTenantSlug, isTenantExperience, workspaceScope],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
@@ -361,6 +534,56 @@ function LandingUI({
     retry: 1,
   });
 
+  // 🚀 Live Public Subscription Catalog for Dynamic Pricing (Same as /auth/signup)
+  const { data: catalogData } = useQuery({
+    queryKey: ["public-catalog"],
+    queryFn: fetchPublicSubscriptionCatalog,
+    staleTime: 300000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    enabled: !initialIsTenant,
+  });
+
+  const catalogPayload = catalogData?.data ?? {};
+  const catalogModules = useMemo(
+    () => (catalogPayload.catalog ?? []) as SignupCatalogModule[],
+    [catalogPayload.catalog],
+  );
+  const planPricing = (catalogPayload.plan_pricing ?? {}) as Record<string, CatalogPlan>;
+  const planDefaults = (catalogPayload.plan_defaults ?? {}) as Record<string, string[]>;
+
+  const dynamicPlans = useMemo(() => {
+    const hasLivePlans = Object.keys(planPricing).length > 0;
+
+    return PLAN_ORDER.flatMap((planKey) => {
+      const fallback = PLAN_META[planKey];
+      const pricing = planPricing[planKey];
+
+      if (!fallback || (hasLivePlans && !pricing) || pricing?.is_disabled) {
+        return [];
+      }
+
+      const rawPrice = Number(pricing?.monthly_price_etb ?? fallbackAmount(fallback));
+      const rawStorage = Number(pricing?.mail_storage_quota_mb ?? fallback.storageMb);
+      const monthlyPriceEtb = Number.isFinite(rawPrice) ? rawPrice : fallbackAmount(fallback);
+      const storageMb = Number.isFinite(rawStorage) ? rawStorage : fallback.storageMb;
+      const storageLabel = formatStorage(storageMb);
+
+      return [{
+        ...fallback,
+        key: planKey,
+        label: pricing?.name ?? fallback.label,
+        tagline: pricing?.description ?? fallback.tagline,
+        monthlyPriceEtb,
+        price: formatPlanPrice(monthlyPriceEtb),
+        priceNote: monthlyPriceEtb <= 0 ? (planKey === "larva" ? "forever" : "/month") : "/month",
+        storageMb,
+        storageLabel,
+        features: buildPlanFeatures(planKey, fallback, planDefaults, catalogModules, storageLabel),
+      }];
+    });
+  }, [catalogModules, planDefaults, planPricing]);
+
   const brandSettings = brandData?.data;
   const tenantLandingPayload = tenantLandingData?.data;
 
@@ -389,7 +612,11 @@ function LandingUI({
         link.rel = "icon";
         document.getElementsByTagName("head")[0].appendChild(link);
       }
-      if (favUrl) link.href = favUrl;
+      if (favUrl) {
+        const versionedUrl = new URL(favUrl, window.location.origin);
+        versionedUrl.searchParams.set("brand", String(brandDataUpdatedAt));
+        link.href = versionedUrl.href;
+      }
     }
     if (brandSettings?.app_title) {
       if (isTenantExperience && tenantLandingPayload?.business_type === "lms") {
@@ -400,7 +627,7 @@ function LandingUI({
         ? formatDocumentTitle(brandSettings.app_title)
         : formatDocumentTitle("Enterprise Operations", brandSettings.app_title);
     }
-  }, [brandSettings, isTenantExperience, tenantLandingPayload?.business_type]);
+  }, [brandSettings, brandDataUpdatedAt, isTenantExperience, tenantLandingPayload?.business_type]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -526,7 +753,6 @@ function LandingUI({
 
   if (isTenantExperience) {
     if (isLoadingTenantLanding) {
-      // Savory keeps its lounge spinner; every other tenant gets the marketplace preloader.
       if (detectedTenantSlug === "savory-lounge") {
         return (
           <div className="flex h-screen w-screen items-center justify-center bg-[#080510]">
@@ -543,13 +769,74 @@ function LandingUI({
     }
 
     const businessType = tenantLandingPayload?.business_type;
-    const isRestaurant = businessType === "restaurant" || detectedTenantSlug === "savory-lounge";
+    const resolvedTemplate = resolveLandingTemplate(tenantLandingPayload?.landing_page_template);
+    const selectedTemplateKey = resolvedTemplate.meta?.template_key ?? "";
+    const selectedTemplateBusinessType = resolvedTemplate.meta?.business_type ?? businessType;
+    const hasCustomCode = (resolvedTemplate.rendering.mode === "custom_code" || resolvedTemplate.rendering.mode === "raw_package") && Boolean(resolvedTemplate.rendering.html?.trim());
+    const isSavoryLounge = selectedTemplateKey === "savory-lounge-nightclub" || selectedTemplateKey === "savory-lounge" || detectedTenantSlug === "savory-lounge" || (["nightclub", "restaurant", "lounge"].includes(businessType) && selectedTemplateKey === "signature");
+    const isLmsTemplate = selectedTemplateKey === "lms-academy" || selectedTemplateKey === "lms" || detectedTenantSlug === "lms-demo" || (
+      selectedTemplateBusinessType === "lms" && (!selectedTemplateKey || selectedTemplateKey === "signature")
+    );
+    const isB2BTemplate = selectedTemplateKey === "b2b-marketplace" || selectedTemplateKey === "b2b" || detectedTenantSlug === "global-b2b" || (
+      selectedTemplateBusinessType === "b2b" && (!selectedTemplateKey || selectedTemplateKey === "signature")
+    );
 
-    if (isRestaurant) {
+    const hasAssignedTemplate = Boolean(
+      (tenantLandingPayload?.has_template && tenantLandingPayload?.landing_page_template) ||
+      isSavoryLounge ||
+      isLmsTemplate ||
+      isB2BTemplate ||
+      hasCustomCode ||
+      [
+        "lms-academy", "savory-lounge-nightclub", "b2b-marketplace",
+        "restaurant-modern", "water-beverage", "technology-company",
+        "lms", "savory-lounge", "b2b", "restaurant", "water-bottling", "software-development"
+      ].includes(selectedTemplateKey) ||
+      ["lanouveil", "global-b2b", "savory-lounge", "aquauno", "aquavivo", "techive", "lms-demo"].includes(detectedTenantSlug)
+    );
+
+    // If tenant is not assigned a template, redirect to login page (/sign-in)
+    if (!hasAssignedTemplate) {
+      if (typeof window !== "undefined") {
+        window.location.replace("/sign-in");
+      }
       return (
-        <RestaurantLandingTemplate 
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-white">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-slate-400 font-medium">Redirecting to login...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (hasCustomCode) {
+      return (
+        <TenantBusinessLanding
           brandSettings={brandSettings}
-          template={resolveLandingTemplate(tenantLandingPayload?.landing_page_template)}
+          businessLabel={
+            tenantLandingPayload?.business_type_meta?.label ||
+            tenantLandingPayload?.business_type ||
+            t('landing.common.general_business', "General Business")
+          }
+          template={resolvedTemplate}
+          tenantName={
+            tenantLandingPayload?.tenant?.name ||
+            brandSettings?.app_title ||
+            detectedTenantSlug ||
+            t('landing.common.tenant_workspace', "Tenant Workspace")
+          }
+          tenantData={tenantLandingPayload?.tenant_data || tenantLandingPayload?.tenant}
+          collections={tenantLandingPayload?.collections}
+        />
+      );
+    }
+
+    if (isSavoryLounge) {
+      return (
+        <RestaurantLandingTemplate
+          brandSettings={brandSettings}
+          template={resolvedTemplate}
           tenantName={
             tenantLandingPayload?.tenant?.name ||
             brandSettings?.app_title ||
@@ -560,26 +847,11 @@ function LandingUI({
       );
     }
 
-    if (businessType === "b2b") {
-      return (
-        <B2BLandingTemplate
-          brandSettings={brandSettings}
-          template={resolveLandingTemplate(tenantLandingPayload?.landing_page_template)}
-          tenantName={
-            tenantLandingPayload?.tenant?.name ||
-            brandSettings?.app_title ||
-            detectedTenantSlug ||
-            t('landing.common.tenant_workspace', "Tenant Workspace")
-          }
-        />
-      );
-    }
-
-    if (businessType === "lms") {
+    if (isLmsTemplate) {
       return (
         <LmsLandingTemplate
           brandSettings={brandSettings}
-          template={resolveLandingTemplate(tenantLandingPayload?.landing_page_template)}
+          template={resolvedTemplate}
           tenantName={
             tenantLandingPayload?.tenant?.name ||
             brandSettings?.app_title ||
@@ -598,15 +870,15 @@ function LandingUI({
           tenantLandingPayload?.business_type ||
           t('landing.common.general_business', "General Business")
         }
-        template={resolveLandingTemplate(
-          tenantLandingPayload?.landing_page_template,
-        )}
+        template={resolvedTemplate}
         tenantName={
           tenantLandingPayload?.tenant?.name ||
           brandSettings?.app_title ||
           detectedTenantSlug ||
           t('landing.common.tenant_workspace', "Tenant Workspace")
         }
+        tenantData={tenantLandingPayload?.tenant_data || tenantLandingPayload?.tenant}
+        collections={tenantLandingPayload?.collections}
       />
     );
   }
@@ -673,6 +945,41 @@ function LandingUI({
 
       {/* --- PLATFORM FACTS --- */}
       <LandingMetrics />
+
+      {/* --- INSTANT ERP PORTAL CLAIM --- */}
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 -mt-6 mb-12 relative z-20">
+        <Reveal variant="scale">
+          <ErpSubdomainChecker />
+        </Reveal>
+      </div>
+
+      {/* --- INTERACTIVE ERP OPERATIONAL WORKBENCH --- */}
+      <SectionShell id="erp-workbench" tone="raised" glow="primary" innerClassName="max-w-6xl">
+        <SectionHeading
+          eyebrow="Interactive Operations · Live ERP Workbench"
+          title="Test-drive core"
+          accent="business workflows"
+          description="Experience real-time invoice calculations with 15% VAT, multi-warehouse stock levels, GPS fleet dispatches, and financial ledger consolidation."
+        />
+
+        <Reveal variant="scale" className="mt-8">
+          <ErpWorkbenchPreview />
+        </Reveal>
+      </SectionShell>
+
+      {/* --- INDUSTRY-SPECIFIC ERP SOLUTIONS --- */}
+      <SectionShell id="solutions" tone="base" glow="cool" innerClassName="max-w-6xl">
+        <SectionHeading
+          eyebrow="Tailored Architectures · Industry Solutions"
+          title="Engineered for your"
+          accent="specific business sector"
+          description="Pre-configured module suites and automated workflows tailored for Ethiopian wholesale, manufacturing, transport, and enterprise services."
+        />
+
+        <Reveal variant="scale" className="mt-8">
+          <ErpIndustrySolutions />
+        </Reveal>
+      </SectionShell>
 
       {/* --- BENTO GRID MODULES --- */}
       <SectionShell id="modules" tone="base" glow="primary">
@@ -875,41 +1182,7 @@ function LandingUI({
           ))}
         </RevealGroup>
 
-        {/* Settlement strip: makes the reconciliation claim concrete. */}
-        <Reveal variant="scale" className="mt-6">
-          <div className="overflow-hidden rounded-3xl border border-border/70 bg-background/60 backdrop-blur-sm">
-            <WindowChrome
-              label={t("landing.fintech.settlement_label", "Settlement queue")}
-              status={t("landing.fintech.settlement_status", "Reconciled")}
-            />
-            <div className="grid divide-y divide-border/60 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4">
-              {[
-                { rail: "Telebirr", amount: "412,900", count: "184" },
-                { rail: "CBE Birr", amount: "1,204,500", count: "96" },
-                { rail: "Chapa", amount: "88,240", count: "51" },
-                { rail: "ArifPay", amount: "247,110", count: "77" },
-              ].map((row) => (
-                <div
-                  key={row.rail}
-                  className="border-border/60 px-6 py-5 sm:border-r sm:last:border-r-0"
-                >
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                    {row.rail}
-                  </p>
-                  <p className="mt-2 font-space text-xl font-bold tabular-nums">
-                    {row.amount}{" "}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {t("landing.hr.currency", "ETB")}
-                    </span>
-                  </p>
-                  <p className="mt-1 font-mono text-[11px] text-primary">
-                    {row.count} {t("landing.fintech.txns", "txns matched")}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+
       </SectionShell>
 
       {/* --- SMART MOBILITY & INFRASTRUCTURE --- */}
@@ -1047,61 +1320,12 @@ function LandingUI({
       <SectionShell id="hr" tone="raised" glow="primary">
         <div className="flex flex-col items-center gap-14 lg:flex-row lg:gap-16">
           <Reveal variant="scale" className="order-2 w-full flex-1 lg:order-1">
-            <div className="relative mx-auto max-w-sm">
+            <div className="relative mx-auto w-full">
               <div
                 aria-hidden
-                className="absolute left-1/2 top-1/2 -z-10 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[90px]"
+                className="absolute left-1/2 top-1/2 -z-10 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[100px]"
               />
-              <div className="overflow-hidden rounded-3xl border border-border/70 bg-background/80 shadow-2xl shadow-background backdrop-blur-sm transition-transform duration-500 hover:-translate-y-1">
-                <WindowChrome
-                  label={t("landing.hr.payslip_title", "Payslip generation")}
-                  status={t("landing.hr.payslip_status", "Approved")}
-                />
-                <div className="space-y-3.5 p-6 font-mono text-[13px]">
-                  <Row
-                    label={t("landing.hr.gross_salary", "Gross Salary")}
-                    value="25,000.00"
-                    currency={t("landing.hr.currency", "ETB")}
-                  />
-                  <Row
-                    label={t("landing.hr.income_tax", "Income Tax (ERCA)")}
-                    value="-4,550.00"
-                    currency={t("landing.hr.currency", "ETB")}
-                    tone="negative"
-                  />
-                  <Row
-                    label={t("landing.hr.pension_emp", "Pension (7% Emp)")}
-                    value="-1,750.00"
-                    currency={t("landing.hr.currency", "ETB")}
-                    tone="negative"
-                  />
-                  <div className="h-px bg-border/70" />
-                  <Row
-                    label={t("landing.hr.pension_boss", "Employer Pension (11%)")}
-                    value="2,750.00"
-                    currency={t("landing.hr.currency", "ETB")}
-                    muted
-                  />
-                  <div className="h-px bg-border/70" />
-                  <div className="flex items-baseline justify-between pt-1">
-                    <span className="font-space text-sm font-bold">
-                      {t("landing.hr.net_pay", "Net Pay")}
-                    </span>
-                    <span className="font-space text-2xl font-bold tabular-nums text-primary">
-                      18,700.00{" "}
-                      <span className="text-xs font-normal text-muted-foreground">
-                        {t("landing.hr.currency", "ETB")}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 border-t border-border/60 bg-primary/5 px-6 py-3">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    {t("landing.hr.payslip_note", "Bands applied automatically")}
-                  </span>
-                </div>
-              </div>
+              <EthiopianPayrollCalculator />
             </div>
           </Reveal>
 
@@ -1380,146 +1604,163 @@ function LandingUI({
       {/* --- POSITIONING TABLE --- */}
       {!initialIsTenant && <LandingCompare />}
 
-      {/* ─── HOW IT WORKS ──────────────────────────────────────────────── */}
+      {/* ─── HOW IT WORKS ────────────────────────────────────────────── */}
       {!initialIsTenant && (
-        <SectionShell id="how-it-works" tone="base" glow="primary">
+        <SectionShell id="how-it-works" tone="base" glow="primary" innerClassName="max-w-6xl">
           <SectionHeading
-            eyebrow={t("landing.how.badge", "Two ways to get started")}
-            title={t("landing.how.title_part1", "How onboarding")}
-            accent={t("landing.how.title_part3", "Works")}
+            eyebrow={t("landing.how.badge", "Self-Service Onboarding")}
+            title={t("landing.how.title_part1", "From signup to launch in")}
+            accent={t("landing.how.title_part3", "Minutes")}
             description={t(
               "landing.how.desc",
-              "Every organization on Hive chooses their own deployment path. Self-service is instant, or let our admin team provision your node manually.",
+              "Any organization can register, select a plan, complete instant payment via ArifPay, and launch a fully isolated tenant workspace automatically.",
             )}
           />
 
-          <div>
-            <RevealGroup step={0.14} className="grid gap-6 md:grid-cols-2">
-              {/* Self-Service Path */}
-              <RevealItem variant="scale"><div className="relative h-full rounded-[2rem] border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-violet-500/5 p-8 hover:shadow-lg hover:shadow-indigo-500/10 transition-all group">
-                <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
-                  {t('landing.how.self_service', 'Self-Service')}
+          <Reveal variant="scale" className="w-full">
+            <SpotlightCard className="relative overflow-hidden rounded-[2.5rem] border border-primary/25 bg-gradient-to-b from-card/90 via-card/70 to-card/95 p-6 sm:p-8 md:p-12 shadow-2xl shadow-primary/5 backdrop-blur-2xl transition-all duration-500 hover:border-primary/45 group">
+              {/* Background ambient lighting effects */}
+              <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-primary/15 blur-[100px] transition-opacity duration-500 group-hover:opacity-100 opacity-60" />
+              <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px] transition-opacity duration-500 group-hover:opacity-100 opacity-50" />
+              <div className="tech-grid pointer-events-none absolute inset-0 opacity-15" />
+
+              {/* Header inside the Showcase Card */}
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-8 border-b border-border/60">
+                <div className="max-w-2xl">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-mono font-bold uppercase tracking-wider text-primary mb-3">
+                    <Zap className="h-3.5 w-3.5 animate-pulse" />
+                    {t('landing.how.self_service', 'Self-Service Onboarding')}
+                  </div>
+                  <h3 className="font-space text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
+                    {t('landing.how.self_title', 'Tenants Register Themselves')}
+                  </h3>
+                  <p className="mt-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    {t('landing.how.self_desc', 'Any organization can visit this page, pick a plan, complete payment via ArifPay, and get their workspace provisioned automatically — no admin required.')}
+                  </p>
                 </div>
-                <div className="h-14 w-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6">
-                  <Zap className="h-7 w-7 text-indigo-500" />
+
+                {/* Feature highlight badges */}
+                <div className="flex flex-wrap sm:flex-nowrap lg:flex-col gap-2.5 shrink-0">
+                  <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-2 text-xs font-mono text-foreground backdrop-blur-md">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="font-semibold">Instant Automated Provisioning</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-muted/40 px-3.5 py-2 text-xs font-mono text-muted-foreground backdrop-blur-md">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    <span>Telebirr, CBE & Card Checkout</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-muted/40 px-3.5 py-2 text-xs font-mono text-muted-foreground backdrop-blur-md">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                    <span>Isolated DB & Custom Subdomain</span>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-black font-space mb-3">
-                  {t('landing.how.self_title', 'Tenants Register Themselves')}
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-8">
-                  {t('landing.how.self_desc', 'Any organization can visit this page, pick a plan, complete payment via ArifPay, and get their workspace provisioned automatically — no admin required.')}
-                </p>
-                <ol className="space-y-4 mb-8">
+              </div>
+
+              {/* 4-Step Interactive Timeline Grid */}
+              <div className="relative z-10 my-8 sm:my-10">
+                <RevealGroup step={0.1} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
                   {[
                     {
                       n: "01",
                       title: t('landing.how.step1_title', 'Choose a Plan'),
                       desc: t('landing.how.step1_desc', 'Compare plans below and pick the one that fits your team.'),
+                      icon: Boxes,
+                      badge: "Tier Selection",
                     },
                     {
                       n: "02",
                       title: t('landing.how.step2_title', 'Complete ArifPay Checkout'),
                       desc: t('landing.how.step2_desc', 'Pay securely via Telebirr, CBE or Card through ArifPay.'),
+                      icon: Wallet,
+                      badge: "Local Payments",
                     },
                     {
                       n: "03",
                       title: t('landing.how.step3_title', 'Workspace Auto-Provisions'),
                       desc: t('landing.how.step3_desc', 'Your isolated tenant database and admin account are created instantly.'),
+                      icon: CloudLightning,
+                      badge: "Zero-Touch Setup",
                     },
                     {
                       n: "04",
                       title: t('landing.how.step4_title', 'Add Modules Anytime'),
                       desc: t('landing.how.step4_desc', 'Upgrade or add more modules from your subscription dashboard.'),
+                      icon: ShieldCheck,
+                      badge: "Scale on Demand",
                     },
-                  ].map((step) => (
-                    <li key={step.n} className="flex gap-4">
-                      <span className="h-8 w-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-black text-xs shrink-0 mt-0.5 border border-indigo-500/20">
-                        {step.n}
-                      </span>
-                      <div>
-                        <p className="font-bold text-foreground text-sm">
-                          {step.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {step.desc}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-                <Link href="/auth/signup">
-                  <Button className="w-full font-space font-bold uppercase tracking-wider bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all gap-2">
-                    {t('landing.hero.cta_free', 'Get Started Free')} <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
+                  ].map((step, idx) => {
+                    const IconComponent = step.icon;
+                    return (
+                      <RevealItem key={step.n} variant="scale">
+                        <div className="relative h-full flex flex-col justify-between rounded-2xl border border-border/70 bg-card/60 p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card/90 hover:shadow-lg hover:shadow-primary/10 group/card">
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="font-mono text-xs font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border border-primary/20 bg-primary/10 text-primary">
+                                Step {step.n}
+                              </span>
+                              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80">
+                                {step.badge}
+                              </span>
+                            </div>
+
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 transition-transform duration-300 group-hover/card:scale-110">
+                              <IconComponent className="h-6 w-6 text-primary" />
+                            </div>
+
+                            <h4 className="font-space text-lg font-bold text-foreground mb-2 leading-snug">
+                              {step.title}
+                            </h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                              {step.desc}
+                            </p>
+                          </div>
+
+                          {/* Bottom subtle indicator line */}
+                          <div className="mt-5 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5 text-primary">
+                              <Check className="h-3 w-3" /> Auto Verified
+                            </span>
+                            <span className="opacity-50">0{idx + 1}/04</span>
+                          </div>
+                        </div>
+                      </RevealItem>
+                    );
+                  })}
+                </RevealGroup>
               </div>
 
-              {/* Admin-Provisioned Path */}
-              </RevealItem>
+              {/* Bottom CTA and reassurance bar */}
+              <div className="relative z-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-5">
+                <div className="flex items-center gap-3 text-center sm:text-left">
+                  <div className="h-3 w-3 rounded-full bg-primary animate-ping" />
+                  <div>
+                    <p className="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                      Fully Automated Deployment Engine
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Instant sub-schema creation · No manual approval delay · 24/7 self-registration
+                    </p>
+                  </div>
+                </div>
 
-              <RevealItem variant="scale"><div className="relative h-full rounded-[2rem] border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-8 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
-                <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                  {t('landing.how.admin_managed', 'Admin-Managed')}
-                </div>
-                <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-                  <ShieldCheck className="h-7 w-7 text-amber-500" />
-                </div>
-                <h3 className="text-2xl font-black font-space mb-3">
-                  {t('landing.how.admin_title', 'Central Admin Provisions Tenants')}
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-8">
-                  {t('landing.how.admin_desc', 'Central Super Admins can manually create and configure any tenant — assigning their plan, storage quota, and enabled modules directly from the admin panel.')}
-                </p>
-                <ol className="space-y-4 mb-8">
-                  {[
-                    {
-                      n: "01",
-                      title: t('landing.how.admin_step1_title', 'Open Tenants Panel'),
-                      desc: t('landing.how.admin_step1_desc', 'Go to Dashboard → Tenants and click "Create New Tenant".'),
-                    },
-                    {
-                      n: "02",
-                      title: t('landing.how.admin_step2_title', 'Select Plan & Modules'),
-                      desc: t('landing.how.admin_step2_desc', 'Assign a subscription plan and pick which modules to enable.'),
-                    },
-                    {
-                      n: "03",
-                      title: t('landing.how.admin_step3_title', 'Set Storage Quota'),
-                      desc: t('landing.how.admin_step3_desc', 'Override the plan default or use per-plan quotas set in Email Settings.'),
-                    },
-                    {
-                      n: "04",
-                      title: t('landing.how.admin_step4_title', 'Provision Instantly'),
-                      desc: t('landing.how.admin_step4_desc', 'The tenant workspace is created immediately with full isolation.'),
-                    },
-                  ].map((step) => (
-                    <li key={step.n} className="flex gap-4">
-                      <span className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 font-black text-xs shrink-0 mt-0.5 border border-amber-500/20">
-                        {step.n}
-                      </span>
-                      <div>
-                        <p className="font-bold text-foreground text-sm">
-                          {step.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {step.desc}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-                <Link href="/sign-in">
+                <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
                   <Button
                     variant="outline"
-                    className="w-full font-space font-bold uppercase tracking-wider border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-500 transition-all gap-2"
+                    onClick={() => scrollToSection("pricing")}
+                    className="w-full sm:w-auto rounded-full border-border/80 px-6 py-5 font-space text-xs font-bold uppercase tracking-wider transition-all hover:border-primary/40 hover:bg-primary/10"
                   >
-                    {t('landing.how.admin_signin', 'Admin Sign In')} <ArrowRight className="h-4 w-4" />
+                    {t("landing.nav.pricing", "Compare Plans")}
                   </Button>
-                </Link>
+                  <Link href="/auth/signup" className="w-full sm:w-auto">
+                    <Button className="w-full sm:w-auto gap-2 rounded-full border-none bg-primary px-7 py-5 font-space text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/90">
+                      {t("landing.hero.cta_free", "Get Started Free")}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
-              </RevealItem>
-            </RevealGroup>
-          </div>
+            </SpotlightCard>
+          </Reveal>
         </SectionShell>
       )}
 
@@ -1539,180 +1780,82 @@ function LandingUI({
           <div>
             {/* Plan grid */}
             <RevealGroup step={0.07} className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-              {(
-                [
-                  {
-                    key: "larva",
-                    label: t('landing.pricing.larva_label', 'Larva'),
-                    tagline: t('landing.pricing.larva_tagline', 'Free trial'),
-                    price: t('landing.pricing.free', 'Free'),
-                    priceNote: t('landing.pricing.forever', 'forever'),
-                    storage: "512 MB",
-                    color: "text-slate-500",
-                    ring: "ring-slate-500/30",
-                    bg: "from-slate-500/10 to-slate-400/5",
-                    highlight: false,
-                    features: [
-                      t('landing.pricing.feat_mailbox', 'Internal Mailbox'),
-                      t('landing.pricing.feat_storage_512', '512 MB mailbox quota'),
-                      t('landing.pricing.feat_users_5', 'Up to 5 users'),
-                      t('landing.pricing.feat_shared', 'Shared instance'),
-                      t('landing.pricing.feat_overview', 'Dashboard overview'),
-                    ],
-                  },
-                  {
-                    key: "startup",
-                    label: t('landing.pricing.startup_label', 'Startup'),
-                    tagline: t('landing.pricing.startup_tagline', 'Launch-ready'),
-                    price: t('landing.pricing.free', 'Free'),
-                    priceNote: t('landing.pricing.per_month', '/month'),
-                    storage: "2 GB",
-                    color: "text-sky-500",
-                    ring: "ring-sky-500/30",
-                    bg: "from-sky-500/10 to-cyan-400/5",
-                    highlight: false,
-                    features: [
-                      t('landing.pricing.feat_mailbox_file', 'Mailbox + File Manager'),
-                      t('landing.pricing.feat_img_editor', 'Image Editor'),
-                      t('landing.pricing.feat_doc_conv', 'Document Converter'),
-                      t('landing.pricing.feat_storage_2gb', '2 GB storage quota'),
-                      t('landing.pricing.feat_isolated_db', 'Isolated DB schema'),
-                    ],
-                  },
-                  {
-                    key: "business",
-                    label: t('landing.pricing.business_label', 'Business'),
-                    tagline: t('landing.pricing.business_tagline', 'Most popular'),
-                    price: "ETB 3,499",
-                    priceNote: t('landing.pricing.per_month', '/month'),
-                    storage: "10 GB",
-                    color: "text-indigo-500",
-                    ring: "ring-indigo-500/30",
-                    bg: "from-indigo-500/10 to-violet-400/5",
-                    highlight: true,
-                    features: [
-                      t('landing.pricing.feat_all_startup', 'All Startup modules'),
-                      t('landing.pricing.feat_media_video', 'Media Library + Video Player'),
-                      t('landing.pricing.feat_analytics', 'Advanced Analytics'),
-                      t('landing.pricing.feat_audit', 'Audit Logs + Alerts Center'),
-                      t('landing.pricing.feat_billing', 'Invoice & Billing'),
-                      t('landing.pricing.feat_inventory', 'Inventory Control'),
-                      t('landing.pricing.feat_security', 'Security Management'),
-                      t('landing.pricing.feat_storage_10gb', '10 GB storage quota'),
-                    ],
-                  },
-                  {
-                    key: "enterprise",
-                    label: t('landing.pricing.enterprise_label', 'Enterprise'),
-                    tagline: t('landing.pricing.enterprise_tagline', 'Large-scale ops'),
-                    price: "ETB 7,999",
-                    priceNote: t('landing.pricing.per_month', '/month'),
-                    storage: "50 GB",
-                    color: "text-violet-500",
-                    ring: "ring-violet-500/30",
-                    bg: "from-violet-500/10 to-purple-400/5",
-                    highlight: false,
-                    features: [
-                      t('landing.pricing.feat_all_business', 'All Business modules'),
-                      t('landing.pricing.feat_automation', 'Workflow Automation'),
-                      t('landing.pricing.feat_api', 'API Access + API Docs'),
-                      t('landing.pricing.feat_fleet', 'Fleet Management'),
-                      t('landing.pricing.feat_dev_tools', 'Developer tools'),
-                      t('landing.pricing.feat_storage_50gb', '50 GB storage quota'),
-                      t('landing.pricing.feat_priority_support', 'Priority support'),
-                    ],
-                  },
-                  {
-                    key: "overlord",
-                    label: t('landing.pricing.overlord_label', 'Overlord'),
-                    tagline: t('landing.pricing.overlord_tagline', 'All-inclusive'),
-                    price: "ETB 12,999",
-                    priceNote: t('landing.pricing.per_month', '/month'),
-                    storage: "200 GB",
-                    color: "text-amber-500",
-                    ring: "ring-amber-500/30",
-                    bg: "from-amber-500/10 to-orange-400/5",
-                    highlight: false,
-                    features: [
-                      t('landing.pricing.feat_all_unlocked', 'Every module unlocked (17 total)'),
-                      t('landing.pricing.feat_storage_200gb', '200 GB storage quota'),
-                      t('landing.pricing.feat_custom_integration', 'Custom module integrations'),
-                      t('landing.pricing.feat_sla', 'Dedicated SLA'),
-                      t('landing.pricing.feat_eng_support', 'Techive engineering support'),
-                    ],
-                  },
-                ] as const
-              ).map((plan) => (
-                <RevealItem key={plan.key} variant="scale" className="min-h-0">
-                <SpotlightCard
-                  className={cn(
-                    "flex h-full flex-col overflow-hidden rounded-3xl border p-6 transition-all duration-300",
-                    plan.highlight
-                      ? "border-primary/40 bg-primary/[0.07] shadow-xl shadow-primary/10 lg:-my-2 lg:py-8"
-                      : "border-border/60 bg-card/40 backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card/70",
-                  )}
-                >
-                  {plan.highlight && (
-                    <>
-                      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
-                      <div className="absolute right-5 top-5 rounded-full bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-primary-foreground">
-                        {t("landing.pricing.popular", "Popular")}
-                      </div>
-                    </>
-                  )}
-
-                  <div
-                    className={cn(
-                      "mb-1 font-mono text-[11px] font-bold uppercase tracking-[0.18em]",
-                      plan.highlight ? "text-primary" : "text-muted-foreground",
-                    )}
-                  >
-                    {plan.label}
-                  </div>
-                  <p className="mb-5 text-xs text-muted-foreground">{plan.tagline}</p>
-
-                  {/* text-2xl, not larger: at five columns "ETB 12,999" wraps
-                      onto a second line above ~1.6rem and knocks the quota chip
-                      out of alignment with the other four cards. */}
-                  <div className="mb-5 flex items-baseline gap-1">
-                    <span className="whitespace-nowrap font-space text-2xl font-bold leading-none tracking-tight">
-                      {plan.price}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">{plan.priceNote}</span>
-                  </div>
-
-                  <div className="mb-5 flex items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2 font-mono text-[11px] font-bold text-muted-foreground">
-                    <Globe className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    {plan.storage} {t("landing.pricing.mailbox_quota", "quota")}
-                  </div>
-
-                  <ul className="mb-6 flex-1 space-y-2.5">
-                    {plan.features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                        <span className="leading-snug">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link href="/auth/signup" className="mt-auto block">
-                    <Button
-                      size="sm"
+              {dynamicPlans.map((plan) => {
+                const PlanIcon = plan.icon;
+                return (
+                  <RevealItem key={plan.key} variant="scale" className="min-h-0">
+                    <SpotlightCard
                       className={cn(
-                        "w-full gap-1.5 rounded-xl font-space text-xs font-bold uppercase tracking-wider transition-all",
+                        "flex h-full flex-col overflow-hidden rounded-3xl border p-6 transition-all duration-300",
                         plan.highlight
-                          ? "border-none bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:bg-primary/90"
-                          : "border-border/70 bg-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
+                          ? "border-primary/40 bg-primary/[0.07] shadow-xl shadow-primary/10 lg:-my-2 lg:py-8"
+                          : "border-border/60 bg-card/40 backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card/70",
                       )}
-                      variant={plan.highlight ? "default" : "outline"}
                     >
-                      {t("landing.pricing.get_started", "Get Started")}
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
-                </SpotlightCard>
-                </RevealItem>
-              ))}
+                      {plan.highlight && (
+                        <>
+                          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
+                          <div className="absolute right-5 top-5 rounded-full bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-primary-foreground">
+                            {t("landing.pricing.popular", "Popular")}
+                          </div>
+                        </>
+                      )}
+
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center bg-gradient-to-br", plan.bg)}>
+                          <PlanIcon className={cn("h-4 w-4", plan.color)} />
+                        </div>
+                        <div
+                          className={cn(
+                            "font-mono text-[11px] font-bold uppercase tracking-[0.18em]",
+                            plan.highlight ? "text-primary" : "text-muted-foreground",
+                          )}
+                        >
+                          {plan.label}
+                        </div>
+                      </div>
+                      <p className="mb-5 text-xs text-muted-foreground min-h-[32px] line-clamp-2">{plan.tagline}</p>
+
+                      <div className="mb-5 flex items-baseline gap-1">
+                        <span className="whitespace-nowrap font-space text-2xl font-bold leading-none tracking-tight">
+                          {plan.price}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">{plan.priceNote}</span>
+                      </div>
+
+                      <div className="mb-5 flex items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2 font-mono text-[11px] font-bold text-muted-foreground">
+                        <HardDrive className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        {plan.storageLabel} {t("landing.pricing.mailbox_quota", "quota")}
+                      </div>
+
+                      <ul className="mb-6 flex-1 space-y-2.5">
+                        {plan.features.map((f, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            <span className="leading-snug">{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Link href={`/auth/signup?plan=${plan.key}`} className="mt-auto block">
+                        <Button
+                          size="sm"
+                          className={cn(
+                            "w-full gap-1.5 rounded-xl font-space text-xs font-bold uppercase tracking-wider transition-all",
+                            plan.highlight
+                              ? "border-none bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:bg-primary/90"
+                              : "border-border/70 bg-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
+                          )}
+                          variant={plan.highlight ? "default" : "outline"}
+                        >
+                          {t("landing.pricing.get_started", "Get Started")}
+                          <ArrowRight className="h-3 w-3" />
+                        </Button>
+                      </Link>
+                    </SpotlightCard>
+                  </RevealItem>
+                );
+              })}
             </RevealGroup>
 
             {/* Admin-provision callout */}
@@ -1848,14 +1991,7 @@ function LandingUI({
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/sign-in">
-                <Button
-                  variant="outline"
-                  className="rounded-full border-border/70 px-8 py-6 font-space text-base font-bold uppercase tracking-wider transition-all duration-300 hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
-                >
-                  {t("landing.how.admin_signin", "Admin Sign In")}
-                </Button>
-              </Link>
+
             </div>
             <p className="mt-7 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               {t(
@@ -1971,6 +2107,9 @@ function LandingUI({
           </div>
         </div>
       </footer>
+
+      {/* Floating AI Customer Support Webchat Widget */}
+      <SupportWebchatWidget botSlug="hive-ai-assistant" />
     </div>
   );
 }

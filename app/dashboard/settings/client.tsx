@@ -22,6 +22,7 @@ import {
   X,
   Activity,
   Mail,
+  MessageSquare,
   UserPlus,
   ShieldCheck,
   CreditCard,
@@ -33,8 +34,12 @@ import {
   Building2,
   BookOpenCheck,
   FileText,
+  Bot,
+  Send,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { Step } from "react-joyride";
+import { useTour } from "@/components/providers/tour-provider";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,12 +99,14 @@ import { LocalizationManager } from "@/components/settings/localization-manager"
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { BackupSettings } from "@/components/settings/backup-settings";
 import { EmailSettings } from "@/components/settings/email-settings";
+import { SmsSettings } from "@/components/settings/sms-settings";
+import { TelegramSettings } from "@/components/settings/telegram-settings";
 import { PaymentSettings } from "@/components/settings/payment-settings";
 import RealtimeSettings from "@/modules/core/components/realtime-settings";
-import { PlanSettings } from "@/components/settings/plan-settings";
 import { TenantLandingSettings } from "@/components/settings/tenant-landing-settings";
 import SeoSettings from "@/components/settings/seo-settings";
 import { ErpReferenceSettings } from "@/components/settings/erp-reference-settings";
+import { AiAssistantSettings } from "./ai-assistant-settings";
 import { useChatStore } from "@/store/chat-store";
 import { useMailStore } from "@/store/mail-store";
 
@@ -245,6 +252,7 @@ const SecureBrandAsset = ({
   previewUrl,
   lastSaved,
   fallbackText,
+  altText,
   className,
   isWide,
 }: {
@@ -252,6 +260,7 @@ const SecureBrandAsset = ({
   previewUrl?: string | null;
   lastSaved: number;
   fallbackText: string;
+  altText: string;
   className?: string;
   isWide?: boolean;
 }) => {
@@ -315,7 +324,7 @@ const SecureBrandAsset = ({
     return (
       <img
         src={blobUrl}
-        alt="Brand Asset"
+        alt={altText}
         className={cn(
           "transition-all duration-500 group-hover:scale-105",
           className,
@@ -576,26 +585,39 @@ function BrandSettings() {
     targetKey,
     fallback,
     wide = false,
+    variant = "default",
   }: {
     label: string;
     targetKey: keyof BrandFormData;
     fallback: string;
     wide?: boolean;
-  }) => (
+    variant?: "default" | "logo-light" | "logo-dark" | "favicon" | "sidebar";
+  }) => {
+    const isLogo = variant === "logo-light" || variant === "logo-dark";
+    const isCompact = variant === "favicon" || variant === "sidebar";
+
+    return (
     <div
       className={cn(
         "flex flex-col gap-2",
-        wide ? "col-span-1 sm:col-span-2 md:col-span-3" : "col-span-1",
+        wide
+          ? "col-span-1 sm:col-span-2 md:col-span-3"
+          : isLogo
+            ? "col-span-1 lg:col-span-2"
+            : "col-span-1",
       )}
     >
-      <Label className="text-[11px] font-black text-muted-foreground uppercase tracking-widest text-center">
+      <p className="text-center text-[11px] font-black uppercase tracking-widest text-muted-foreground">
         {label}
-      </Label>
+      </p>
       <div className="relative group p-1 rounded-2xl bg-card border-2 border-dashed border-border/50 hover:border-primary transition-all duration-300">
         <div
           className={cn(
-            "rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden relative shadow-inner",
-            wide ? "h-64" : "h-32",
+            "rounded-xl flex items-center justify-center overflow-hidden relative shadow-inner",
+            wide ? "h-64 bg-muted/50" : isLogo ? "h-36" : "h-28",
+            variant === "logo-light" && "bg-slate-50",
+            variant === "logo-dark" && "bg-slate-950",
+            isCompact && "bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]",
           )}
         >
           <SecureBrandAsset
@@ -607,8 +629,13 @@ function BrandSettings() {
             previewUrl={previews[targetKey]}
             lastSaved={lastSaved}
             fallbackText={fallback}
+            altText={`${label} preview`}
             isWide={wide}
-            className="w-full h-full"
+            className={cn(
+              wide && "h-full w-full",
+              isLogo && "max-h-24 max-w-[420px] px-3",
+              isCompact && "h-16 w-16 p-0",
+            )}
           />
           <button
             type="button"
@@ -626,7 +653,7 @@ function BrandSettings() {
           </button>
           {previews[targetKey] && (
             <div className="absolute bottom-2 right-2 bg-emerald-500 text-white rounded-full p-1 shadow-lg ring-2 ring-background z-20">
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
             </div>
           )}
         </div>
@@ -637,7 +664,8 @@ function BrandSettings() {
         </p>
       )}
     </div>
-  );
+    );
+  };
 
   if (isLoading) return <SettingsPanelSkeleton />;
 
@@ -652,21 +680,25 @@ function BrandSettings() {
             label={t("settings.logo_light", "Logo Light")}
             targetKey="logo_light"
             fallback="NO LOGO"
+            variant="logo-light"
           />
           <BrandImageSelector
             label={t("settings.logo_dark", "Logo Dark")}
             targetKey="logo_dark"
             fallback="NO LOGO"
+            variant="logo-dark"
           />
           <BrandImageSelector
             label={t("settings.favicon", "Favicon")}
             targetKey="favicon"
             fallback="NO FAVICON"
+            variant="favicon"
           />
           <BrandImageSelector
             label={t("settings.sidebar_icon", "Sidebar")}
             targetKey="sidebar_icon"
             fallback="H"
+            variant="sidebar"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-border/50">
@@ -839,6 +871,7 @@ function BrandSettings() {
                   previewUrl={previewLogoUrl}
                   lastSaved={lastSaved}
                   fallbackText="H"
+                  altText="Dashboard brand preview"
                   className="w-full h-full"
                 />
               </div>
@@ -1830,6 +1863,15 @@ function SettingsTabs({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("brand");
+  const { currentStep, isActive: isTourActive } = useTour();
+
+  useEffect(() => {
+    if (!isTourActive || !currentStep) return;
+    const switchTab = (currentStep.data as Record<string, any> | undefined)?.switchTab;
+    if (switchTab && switchTab !== activeTab) {
+      handleTabChange(switchTab);
+    }
+  }, [currentStep, isTourActive, activeTab]);
 
   useEffect(() => {
     const urlTab = searchParams.get("tab");
@@ -1881,6 +1923,20 @@ function SettingsTabs({
               icon: Mail,
             }
           : null,
+        canManageGeneral
+          ? {
+              id: "sms",
+              label: t("nav.settings_sms", "SMS Gateway (Multi-Provider)"),
+              icon: MessageSquare,
+            }
+          : null,
+        canManageGeneral
+          ? {
+              id: "telegram",
+              label: t("nav.settings_telegram", "Telegram Bot"),
+              icon: Send,
+            }
+          : null,
         canManagePayments
           ? { id: "payments", label: "Payment Providers", icon: CreditCard }
           : null,
@@ -1916,6 +1972,11 @@ function SettingsTabs({
               icon: BookOpenCheck,
             }
           : null,
+        {
+          id: "ai-assistant",
+          label: "AI & Copilot Settings",
+          icon: Bot,
+        },
       ].filter(Boolean) as Array<{
         id: string;
         label: string;
@@ -2042,6 +2103,16 @@ function SettingsTabs({
           <GeneralSettings />
         )}
         {canManageGeneral && resolvedActiveTab === "email" && <EmailSettings />}
+        {canManageGeneral && resolvedActiveTab === "sms" && (
+          <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
+            <SmsSettings />
+          </div>
+        )}
+        {canManageGeneral && resolvedActiveTab === "telegram" && (
+          <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
+            <TelegramSettings />
+          </div>
+        )}
         {canManagePayments && resolvedActiveTab === "payments" && (
           <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
             <PaymentSettings />
@@ -2071,13 +2142,26 @@ function SettingsTabs({
           </div>
         )}
         {canManagePlans && resolvedActiveTab === "plans" && (
-          <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
-            <PlanSettings />
+          <div className="rounded-[2rem] border border-border/50 bg-card/40 p-8 shadow-sm transition-all animate-in fade-in slide-in-from-bottom-2">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-black tracking-tight">Subscription administration has moved</h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                Plans, module pricing, hybrid activation amounts, billing terms, reminders, coupons, and tenant assignments now share one canonical workspace. Payment gateway credentials remain in Payment Providers.
+              </p>
+              <Button type="button" className="mt-6" onClick={() => router.push("/dashboard/subscriptions")}>
+                <Sparkles aria-hidden="true" /> Open Subscription Administration
+              </Button>
+            </div>
           </div>
         )}
         {canViewHrSettings && resolvedActiveTab === "erp-reference-data" && (
           <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
             <ErpReferenceSettings canManage={canManageHrSettings} />
+          </div>
+        )}
+        {resolvedActiveTab === "ai-assistant" && (
+          <div className="transition-all animate-in fade-in slide-in-from-bottom-2">
+            <AiAssistantSettings />
           </div>
         )}
       </div>
@@ -2089,6 +2173,7 @@ export default function SettingsClient() {
   const { t } = useTranslation();
   const { hasPermission, hasAnyPermission, isLoaded } = usePermissions();
   const [isCentralNode, setIsCentralNode] = useState<boolean | null>(null);
+  const { startTour } = useTour();
 
   useEffect(() => {
     setIsCentralNode(!isTenantSession());
@@ -2139,6 +2224,160 @@ export default function SettingsClient() {
     return <SettingsWorkspaceSkeleton />;
   }
 
+  const handleStartTour = () => {
+    const steps: Step[] = [
+      {
+        target: "#tour-settings-tabs",
+        title: t("settings.tour_nav_title", "Preferences Navigation"),
+        content: t(
+          "settings.tour_nav_desc",
+          "Navigate across white-label branding, mail transports, security policies, and integrations.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+      },
+    ];
+
+    if (canManageBrand) {
+      steps.push({
+        target: "#settings-tab-brand",
+        title: t("settings.tour_brand_title", "White-Label Branding"),
+        content: t(
+          "settings.tour_brand_desc",
+          "Upload light and dark mode logos, customize color schemes, typography, and company signatures.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "brand" },
+      });
+    }
+
+    if (canManageGeneral) {
+      steps.push({
+        target: "#settings-tab-general",
+        title: t("settings.tour_general_title", "Corporate Identity & Policies"),
+        content: t(
+          "settings.tour_general_desc",
+          "Configure organization legal name, 2FA security enforcement, and operational modes.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "general" },
+      });
+      steps.push({
+        target: "#settings-tab-email",
+        title: t("settings.tour_email_title", "Mail Transport Driver & Quotas"),
+        content: t(
+          "settings.tour_email_desc",
+          "Configure Mailpit sandbox or live transport drivers (SMTP, Resend, Postmark, SES) and storage quotas.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "email" },
+      });
+    }
+
+    if (canManagePayments) {
+      steps.push({
+        target: "#settings-tab-payments",
+        title: t("settings.tour_payments_title", "Payment Gateways"),
+        content: t(
+          "settings.tour_payments_desc",
+          "Configure merchant API credentials, Telebirr, Chapa, Stripe, and bank transfer options.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "payments" },
+      });
+    }
+
+    if (canManageGeneral && isCentralNode) {
+      steps.push({
+        target: "#settings-tab-realtime",
+        title: t("settings.tour_realtime_title", "Realtime Broadcasting"),
+        content: t(
+          "settings.tour_realtime_desc",
+          "Monitor WebSocket connections and broadcast events powered by Laravel Reverb.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "realtime" },
+      });
+    }
+
+    if (canManageLocalization) {
+      steps.push({
+        target: "#settings-tab-localization",
+        title: t("settings.tour_loc_title", "Localization & Translations"),
+        content: t(
+          "settings.tour_loc_desc",
+          "Manage multi-language translation strings and terminology dictionaries.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "localization" },
+      });
+    }
+
+    if (canAccessBackups) {
+      steps.push({
+        target: "#settings-tab-backup",
+        title: t("settings.tour_backup_title", "Disaster Recovery & Backups"),
+        content: t(
+          "settings.tour_backup_desc",
+          "Generate automated or manual encrypted database snapshots and manage volume backups.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "backup" },
+      });
+    }
+
+    if (canManagePlans) {
+      steps.push({
+        target: "#settings-tab-plans",
+        title: t("settings.tour_plans_title", "Subscription Tier Definitions"),
+        content: t(
+          "settings.tour_plans_desc",
+          "Manage tenant capacity plans, user limits, and feature module entitlements.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "plans" },
+      });
+    }
+
+    if (canManageSeo) {
+      steps.push({
+        target: "#settings-tab-seo",
+        title: t("settings.tour_seo_title", "SEO & Meta Indexing"),
+        content: t(
+          "settings.tour_seo_desc",
+          "Define global metadata tags, search engine indexing parameters, and social OpenGraph cards.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "seo" },
+      });
+    }
+
+    if (canViewHrSettings) {
+      steps.push({
+        target: "#settings-tab-erp-reference-data",
+        title: t("settings.tour_hr_title", "HR & ERP Reference Data"),
+        content: t(
+          "settings.tour_hr_desc",
+          "Manage organizational codes, departments, designation ranks, and document number sequences.",
+        ),
+        placement: "right",
+        skipBeacon: true,
+        data: { switchTab: "erp-reference-data" },
+      });
+    }
+
+    startTour(steps);
+  };
+
   if (!hasAnySettingsAccess) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-[2rem] border border-border/50 bg-card/40 p-8 text-center">
@@ -2169,6 +2408,15 @@ export default function SettingsClient() {
           />{" "}
           {t("nav.settings", "System Preferences")}
         </h1>
+        <Button
+          id="tour-settings-tour-btn"
+          variant="outline"
+          size="sm"
+          onClick={handleStartTour}
+          className="h-10 rounded-xl shadow-sm text-muted-foreground hover:text-foreground border-border/50 bg-background/50 backdrop-blur-md flex items-center gap-1.5 font-bold"
+        >
+          <HelpCircle className="w-4 h-4" /> {t("settings.tour_btn", "Preferences Tour")}
+        </Button>
       </div>
       <Suspense fallback={<SettingsWorkspaceSkeleton />}>
         <SettingsTabs

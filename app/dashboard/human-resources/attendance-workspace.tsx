@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -8,7 +9,6 @@ import {
   CheckCircle2,
   Clock3,
   Coffee,
-  Fingerprint,
   History,
   LogIn,
   LogOut,
@@ -23,7 +23,6 @@ import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { AttendanceCorrections } from "@/app/dashboard/human-resources/attendance-corrections";
-import { AttendanceDeviceSummary } from "@/modules/attendance/components/attendance-device-summary";
 import { AttendanceReconciliation } from "@/app/dashboard/human-resources/attendance-reconciliation";
 import { ScheduleWorkspace } from "@/app/dashboard/human-resources/schedule-workspace";
 import { Button } from "@/components/ui/button";
@@ -47,12 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
 import { initEcho } from "@/lib/echo";
@@ -81,7 +75,7 @@ const controlClass =
 const selectClass =
   "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
 const tabTriggerClass =
-  "min-h-11 whitespace-normal px-3 text-left text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-700 data-[state=active]:bg-white data-[state=active]:text-slate-950 dark:text-slate-100 dark:focus-visible:ring-cyan-300 dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-white";
+  "min-h-11 whitespace-normal px-3 text-left text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:bg-background data-[state=active]:text-foreground";
 const today = () => new Date().toISOString().slice(0, 10);
 const eventLabels: Record<AttendanceEventType, string> = {
   clock_in: "Clock in",
@@ -95,13 +89,7 @@ const stateLabels: Record<AttendanceSelfServiceStatus["state"], string> = {
   on_break: "On break",
 };
 
-type AttendanceView =
-  | "today"
-  | "issues"
-  | "reconcile"
-  | "schedules"
-  | "events"
-  | "devices";
+type AttendanceView = "today" | "issues" | "reconcile" | "schedules" | "events";
 
 type EchoPrivateChannel = {
   listen: (
@@ -442,8 +430,10 @@ function WorkdayRail({ status }: { status: AttendanceSelfServiceStatus }) {
 }
 
 export function AttendanceWorkspace({
+  headingLevel = "h2",
   onAddSchedule,
 }: {
+  headingLevel?: "h1" | "h2";
   onAddSchedule?: () => void;
 }) {
   const scope = getWorkspaceScopeKey();
@@ -501,6 +491,7 @@ export function AttendanceWorkspace({
   const [lastLiveUpdate, setLastLiveUpdate] = useState<string | null>(null);
   const refreshTimer = useRef<number | null>(null);
   const statusMessageId = useId();
+  const Heading = headingLevel;
 
   const summary = useQuery({
     queryKey: ["hr-attendance", scope, "summary", date],
@@ -591,6 +582,7 @@ export function AttendanceWorkspace({
     if (!token) return;
 
     const echo = initEcho(token);
+    if (!echo) return;
     const tenantId = getTenantId();
     const channelName = tenantId ? `tenant.${tenantId}.hr` : "hr";
     const channel = echo.private(channelName) as unknown as EchoPrivateChannel;
@@ -755,7 +747,6 @@ export function AttendanceWorkspace({
     ...(canViewReconciliation ? (["issues", "reconcile"] as const) : []),
     ...(canViewSchedules ? (["schedules"] as const) : []),
     ...(canView || canPunch ? (["events"] as const) : []),
-    ...(canViewCapture ? (["devices"] as const) : []),
   ];
   const resolvedView = availableViews.includes(activeView)
     ? activeView
@@ -770,6 +761,33 @@ export function AttendanceWorkspace({
     canViewSchedules
   ) {
     return <ScheduleWorkspace />;
+  }
+
+  if (
+    isLoaded &&
+    !canView &&
+    !canPunch &&
+    !canViewReconciliation &&
+    !canViewSchedules &&
+    canViewCapture
+  ) {
+    return (
+      <Card className="border-border/60 bg-card/60">
+        <CardContent className="p-6">
+          <h2 className="text-xl font-black">Attendance devices</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Your role can manage attendance devices. Device health, employee
+            mapping, connectors, and sync history are available in one dedicated
+            workspace.
+          </p>
+          <Button asChild className="mt-4 min-h-11">
+            <Link href="/dashboard/attendance/devices">
+              Open Devices &amp; Sync
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (
@@ -794,23 +812,23 @@ export function AttendanceWorkspace({
 
   return (
     <section aria-labelledby="attendance-workspace-title" className="space-y-5">
-      <header className="overflow-hidden rounded-2xl border border-blue-700 bg-blue-50 p-5 text-slate-950 dark:border-cyan-300 dark:bg-slate-950 dark:text-slate-50">
+      <header className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/60 p-5 shadow-sm backdrop-blur-md sm:p-7">
+        <div className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-end">
-          <div>
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-blue-800 dark:text-cyan-200">
-              <Fingerprint aria-hidden="true" className="h-4 w-4" />
-              Workforce time
+          <div className="relative">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+              Attendance Management
             </p>
-            <h2
+            <Heading
               id="attendance-workspace-title"
               className="mt-2 text-3xl font-black tracking-tight"
             >
-              Attendance, from punch to proof
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700 dark:text-slate-200">
-              Start with Today, then open one focused task at a time. The work
-              date stays consistent across records, issues, reconciliation, and
-              the event log.
+              Today’s workforce, at a glance
+            </Heading>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Review today, fix exceptions, reconcile records, manage schedules,
+              and inspect the immutable event ledger. People, devices, and
+              reports each have one dedicated sidebar destination.
             </p>
           </div>
 
@@ -830,7 +848,7 @@ export function AttendanceWorkspace({
                 type="button"
                 variant="outline"
                 onClick={onAddSchedule}
-                className="min-h-11 border-slate-700 bg-white text-slate-950 hover:bg-slate-100 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
+                className="min-h-11 bg-background/70"
               >
                 <CalendarDays aria-hidden="true" />
                 Add schedule
@@ -852,14 +870,14 @@ export function AttendanceWorkspace({
         <div
           id={statusMessageId}
           role="status"
-          className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200"
+          className="relative mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground"
         >
           <Radio
             aria-hidden="true"
             className={
               realtimeConnected
-                ? "h-4 w-4 text-teal-800 dark:text-teal-200"
-                : "h-4 w-4 text-amber-800 dark:text-amber-200"
+                ? "h-4 w-4 text-emerald-600 dark:text-emerald-300"
+                : "h-4 w-4 text-amber-600 dark:text-amber-300"
             }
           />
           {realtimeConnected
@@ -878,281 +896,263 @@ export function AttendanceWorkspace({
           <CardContent className="p-3 sm:p-4">
             <TabsList
               aria-label="Attendance workspace views"
-              className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-slate-500 bg-slate-100 p-1.5 sm:grid-cols-3 xl:grid-cols-6 dark:bg-slate-900"
+              className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/60 p-1.5 sm:grid-cols-3 xl:grid-cols-5"
             >
               {(canView || canPunch) && (
-                <TabsTrigger
-                  value="today"
-                  className={tabTriggerClass}
-                >
+                <TabsTrigger value="today" className={tabTriggerClass}>
                   <CalendarDays aria-hidden="true" />
                   Today
                 </TabsTrigger>
               )}
               {canViewReconciliation && (
-                <TabsTrigger
-                  value="issues"
-                  className={tabTriggerClass}
-                >
+                <TabsTrigger value="issues" className={tabTriggerClass}>
                   <Activity aria-hidden="true" />
                   Fix issues
                 </TabsTrigger>
               )}
               {canViewReconciliation && (
-                <TabsTrigger
-                  value="reconcile"
-                  className={tabTriggerClass}
-                >
+                <TabsTrigger value="reconcile" className={tabTriggerClass}>
                   <ShieldCheck aria-hidden="true" />
                   Reconcile
                 </TabsTrigger>
               )}
               {canViewSchedules && (
-                <TabsTrigger
-                  value="schedules"
-                  className={tabTriggerClass}
-                >
+                <TabsTrigger value="schedules" className={tabTriggerClass}>
                   <Clock3 aria-hidden="true" />
                   Schedules
                 </TabsTrigger>
               )}
               {(canView || canPunch) && (
-                <TabsTrigger
-                  value="events"
-                  className={tabTriggerClass}
-                >
+                <TabsTrigger value="events" className={tabTriggerClass}>
                   <History aria-hidden="true" />
                   Event log
                 </TabsTrigger>
               )}
-              {canViewCapture && (
-                <TabsTrigger
-                  value="devices"
-                  className={tabTriggerClass}
-                >
-                  <Fingerprint aria-hidden="true" />
-                  Devices
-                </TabsTrigger>
-              )}
             </TabsList>
-            <p className="mt-3 px-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+            <p className="mt-3 px-1 text-sm leading-6 text-muted-foreground">
               Choose one work area. Use the Attendance Management sidebar for
-              people, device setup, device administration, and reports.
+              user linking, device administration, and reports.
             </p>
           </CardContent>
         </Card>
 
         <TabsContent value="today" className="space-y-5">
           {canPunch && (
-        <Card className="border-slate-500 dark:border-slate-400">
-          <CardContent className="p-5">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)]">
-              <div>
-                <div className="flex flex-wrap items-start justify-between gap-3">
+            <Card className="border-slate-500 dark:border-slate-400">
+              <CardContent className="p-5">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)]">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300">
-                      My workday
-                    </p>
-                    <h3 className="mt-1 text-2xl font-black">
-                      {ownStatus
-                        ? stateLabels[ownStatus.state]
-                        : "Checking your attendance link"}
-                    </h3>
-                    {ownStatus && (
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {ownStatus.date} · {ownStatus.timezone}
-                      </p>
-                    )}
-                  </div>
-                  {selfStatus.isFetching && (
-                    <span className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      <RefreshCw
-                        aria-hidden="true"
-                        className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                      />
-                      Refreshing
-                    </span>
-                  )}
-                </div>
-
-                {selfStatus.isError ? (
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-700 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100">
-                    <div>
-                      <p className="font-bold">Unlinked User Account</p>
-                      <p className="mt-0.5 text-xs text-amber-900 dark:text-amber-200">
-                        {errorMessage(
-                          selfStatus.error,
-                          "Your user account is not linked to an employee record. Ask HR to link it before using self-service attendance.",
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300">
+                          My workday
+                        </p>
+                        <h3 className="mt-1 text-2xl font-black">
+                          {ownStatus
+                            ? stateLabels[ownStatus.state]
+                            : "Checking your attendance link"}
+                        </h3>
+                        {ownStatus && (
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            {ownStatus.date} · {ownStatus.timezone}
+                          </p>
                         )}
-                      </p>
+                      </div>
+                      {selfStatus.isFetching && (
+                        <span className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          <RefreshCw
+                            aria-hidden="true"
+                            className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                          />
+                          Refreshing
+                        </span>
+                      )}
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => linkAccountMutation.mutate()}
-                      disabled={linkAccountMutation.isPending}
-                      className="bg-amber-900 font-bold text-white hover:bg-amber-950 dark:bg-amber-200 dark:text-slate-950"
-                    >
-                      <UserRoundCheck className="mr-1.5 h-4 w-4" />
-                      {linkAccountMutation.isPending
-                        ? "Linking…"
-                        : "Link My Account Now"}
-                    </Button>
+
+                    {selfStatus.isError ? (
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-700 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100">
+                        <div>
+                          <p className="font-bold">Unlinked User Account</p>
+                          <p className="mt-0.5 text-xs text-amber-900 dark:text-amber-200">
+                            {errorMessage(
+                              selfStatus.error,
+                              "Your user account is not linked to an employee record. Ask HR to link it before using self-service attendance.",
+                            )}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => linkAccountMutation.mutate()}
+                          disabled={linkAccountMutation.isPending}
+                          className="bg-amber-900 font-bold text-white hover:bg-amber-950 dark:bg-amber-200 dark:text-slate-950"
+                        >
+                          <UserRoundCheck className="mr-1.5 h-4 w-4" />
+                          {linkAccountMutation.isPending
+                            ? "Linking…"
+                            : "Link My Account Now"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {(ownStatus?.next_actions ?? []).map((action) => (
+                          <Button
+                            key={action}
+                            type="button"
+                            variant={
+                              action === "clock_out" || action === "break_start"
+                                ? "outline"
+                                : "default"
+                            }
+                            onClick={() => punch.mutate(action)}
+                            disabled={punch.isPending || date !== today()}
+                            className="min-h-11"
+                          >
+                            {action === "clock_in" && (
+                              <LogIn aria-hidden="true" />
+                            )}
+                            {action === "clock_out" && (
+                              <LogOut aria-hidden="true" />
+                            )}
+                            {action === "break_start" && (
+                              <Coffee aria-hidden="true" />
+                            )}
+                            {action === "break_end" && (
+                              <Activity aria-hidden="true" />
+                            )}
+                            {eventLabels[action]}
+                          </Button>
+                        ))}
+                        {date !== today() && (
+                          <p className="w-full text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            Self-service punches are available only on today’s
+                            workday. Choose today to record a live event.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {(ownStatus?.next_actions ?? []).map((action) => (
-                      <Button
-                        key={action}
-                        type="button"
-                        variant={
-                          action === "clock_out" || action === "break_start"
-                            ? "outline"
-                            : "default"
-                        }
-                        onClick={() => punch.mutate(action)}
-                        disabled={punch.isPending || date !== today()}
-                        className="min-h-11"
-                      >
-                        {action === "clock_in" && <LogIn aria-hidden="true" />}
-                        {action === "clock_out" && (
-                          <LogOut aria-hidden="true" />
-                        )}
-                        {action === "break_start" && (
-                          <Coffee aria-hidden="true" />
-                        )}
-                        {action === "break_end" && (
-                          <Activity aria-hidden="true" />
-                        )}
-                        {eventLabels[action]}
-                      </Button>
-                    ))}
-                    {date !== today() && (
-                      <p className="w-full text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        Self-service punches are available only on today’s
-                        workday. Choose today to record a live event.
+
+                  <div className="border-t border-slate-500 pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0 dark:border-slate-400">
+                    <div className="flex items-center gap-2">
+                      <History
+                        aria-hidden="true"
+                        className="h-5 w-5 text-teal-800 dark:text-teal-200"
+                      />
+                      <h3 className="font-black">Workday rail</h3>
+                    </div>
+                    {ownStatus ? (
+                      <WorkdayRail status={ownStatus} />
+                    ) : (
+                      <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                        Your event timeline will appear here.
                       </p>
                     )}
                   </div>
-                )}
-              </div>
-
-              <div className="border-t border-slate-500 pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0 dark:border-slate-400">
-                <div className="flex items-center gap-2">
-                  <History
-                    aria-hidden="true"
-                    className="h-5 w-5 text-teal-800 dark:text-teal-200"
-                  />
-                  <h3 className="font-black">Workday rail</h3>
                 </div>
-                {ownStatus ? (
-                  <WorkdayRail status={ownStatus} />
-                ) : (
-                  <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-                    Your event timeline will appear here.
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
           )}
 
           {canView && (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {metricCards.map(({ label, value, icon: Icon }) => (
-            <Card
-              key={label}
-              className="border-slate-500 dark:border-slate-400"
-            >
-              <CardContent className="flex items-center justify-between gap-4 p-5">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">
-                    {label}
-                  </p>
-                  <p className="mt-2 text-3xl font-black">{value}</p>
-                </div>
-                <Icon
-                  aria-hidden="true"
-                  className="h-7 w-7 text-blue-800 dark:text-cyan-200"
-                />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {metricCards.map(({ label, value, icon: Icon }) => (
+                <Card
+                  key={label}
+                  className="border-slate-500 dark:border-slate-400"
+                >
+                  <CardContent className="flex items-center justify-between gap-4 p-5">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">
+                        {label}
+                      </p>
+                      <p className="mt-2 text-3xl font-black">{value}</p>
+                    </div>
+                    <Icon
+                      aria-hidden="true"
+                      className="h-7 w-7 text-blue-800 dark:text-cyan-200"
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
 
           <Card className="border-slate-500 dark:border-slate-400">
-        <CardContent className="p-0">
-          <div className="border-b border-slate-500 p-5 dark:border-slate-400">
-            <h3 className="text-xl font-black">Daily attendance records</h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Calculated records created from processed events for {date}.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableCaption>
-                Daily attendance records for {date}, including first punch, last
-                punch, worked time, and status.
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead scope="col">Employee</TableHead>
-                  <TableHead scope="col">First in</TableHead>
-                  <TableHead scope="col">Last out</TableHead>
-                  <TableHead scope="col">Worked</TableHead>
-                  <TableHead scope="col">Late</TableHead>
-                  <TableHead scope="col">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recordRows.length ? (
-                  recordRows.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-semibold">
-                        <div>
-                          {record.employee?.primary_name ?? "My attendance"}
-                        </div>
-                        {record.employee?.employee_number && (
-                          <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30 mt-1">
-                            {formatEmployeeNumber(
-                              record.employee.employee_number,
-                            )}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{formatTime(record.first_in_at)}</TableCell>
-                      <TableCell>{formatTime(record.last_out_at)}</TableCell>
-                      <TableCell>
-                        {formatMinutes(record.worked_minutes)}
-                      </TableCell>
-                      <TableCell>
-                        {formatMinutes(record.late_minutes)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex rounded-full border border-slate-700 bg-slate-50 px-2 py-1 text-xs font-bold capitalize text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
-                          {record.status.replaceAll("_", " ")}
-                        </span>
-                      </TableCell>
+            <CardContent className="p-0">
+              <div className="border-b border-slate-500 p-5 dark:border-slate-400">
+                <h3 className="text-xl font-black">Daily attendance records</h3>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Calculated records created from processed events for {date}.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableCaption>
+                    Daily attendance records for {date}, including first punch,
+                    last punch, worked time, and status.
+                  </TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead scope="col">Employee</TableHead>
+                      <TableHead scope="col">First in</TableHead>
+                      <TableHead scope="col">Last out</TableHead>
+                      <TableHead scope="col">Worked</TableHead>
+                      <TableHead scope="col">Late</TableHead>
+                      <TableHead scope="col">Status</TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-10 text-center text-slate-600 dark:text-slate-300"
-                    >
-                      {records.isLoading
-                        ? "Loading attendance records…"
-                        : "No calculated attendance records for this date."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+                  </TableHeader>
+                  <TableBody>
+                    {recordRows.length ? (
+                      recordRows.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-semibold">
+                            <div>
+                              {record.employee?.primary_name ?? "My attendance"}
+                            </div>
+                            {record.employee?.employee_number && (
+                              <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30 mt-1">
+                                {formatEmployeeNumber(
+                                  record.employee.employee_number,
+                                )}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {formatTime(record.first_in_at)}
+                          </TableCell>
+                          <TableCell>
+                            {formatTime(record.last_out_at)}
+                          </TableCell>
+                          <TableCell>
+                            {formatMinutes(record.worked_minutes)}
+                          </TableCell>
+                          <TableCell>
+                            {formatMinutes(record.late_minutes)}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex rounded-full border border-slate-700 bg-slate-50 px-2 py-1 text-xs font-bold capitalize text-slate-900 dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
+                              {record.status.replaceAll("_", " ")}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="py-10 text-center text-slate-600 dark:text-slate-300"
+                        >
+                          {records.isLoading
+                            ? "Loading attendance records…"
+                            : "No calculated attendance records for this date."}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -1172,12 +1172,6 @@ export function AttendanceWorkspace({
           </TabsContent>
         )}
 
-        {canViewCapture && (
-          <TabsContent value="devices">
-            <AttendanceDeviceSummary />
-          </TabsContent>
-        )}
-
         {canViewSchedules && (
           <TabsContent value="schedules">
             <ScheduleWorkspace />
@@ -1187,120 +1181,127 @@ export function AttendanceWorkspace({
         {(canView || canPunch) && (
           <TabsContent value="events">
             <Card className="border-slate-500 dark:border-slate-400">
-        <CardContent className="p-0">
-          <div className="grid gap-4 border-b border-slate-500 p-5 md:grid-cols-[1fr_minmax(14rem,20rem)] md:items-end dark:border-slate-400">
-            <div>
-              <h3 className="text-xl font-black">Immutable event ledger</h3>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Normalized source events, processing state, and server receipt
-                details. These entries cannot be edited or deleted.
-              </p>
-            </div>
-            {canView && (
-              <div className="space-y-2">
-                <Label htmlFor="attendance-event-employee">
-                  Filter events by employee
-                </Label>
-                <select
-                  id="attendance-event-employee"
-                  value={eventEmployeeId}
-                  onChange={(event) => setEventEmployeeId(event.target.value)}
-                  className={selectClass}
-                >
-                  <option value="">All visible employees</option>
-                  {employees.data?.data.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.primary_name} ·{" "}
-                      {formatEmployeeNumber(employee.employee_number)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableCaption>
-                Normalized attendance events for {date}, ordered newest first.
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead scope="col">Event ID</TableHead>
-                  <TableHead scope="col">Employee</TableHead>
-                  <TableHead scope="col">Event</TableHead>
-                  <TableHead scope="col">Time</TableHead>
-                  <TableHead scope="col">Source</TableHead>
-                  <TableHead scope="col">Processing</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {eventRows.length ? (
-                  eventRows.map((event) => (
-                    <TableRow key={event.event_uuid}>
-                      <TableCell className="font-mono text-xs">
-                        {event.event_uuid.slice(0, 8)}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        <div>
-                          {event.employee?.primary_name ?? "My attendance"}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          {event.employee?.employee_number && (
-                            <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30">
-                              {formatEmployeeNumber(
-                                event.employee.employee_number,
-                              )}
-                            </span>
-                          )}
-                          <span className="text-xs font-normal text-slate-600 dark:text-slate-300">
-                            {event.external_employee_identifier ??
-                              "Linked user"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {eventLabels[event.event_type]}
-                      </TableCell>
-                      <TableCell>
-                        <time dateTime={event.occurred_at}>
-                          {formatTime(
-                            event.occurred_at,
-                            event.organization_timezone,
-                          )}
-                        </time>
-                      </TableCell>
-                      <TableCell className="capitalize">
-                        {event.source.replaceAll("_", " ")}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={
-                            event.processing_status === "processed"
-                              ? "inline-flex rounded-full border border-teal-800 bg-teal-50 px-2 py-1 text-xs font-bold capitalize text-teal-950 dark:border-teal-200 dark:bg-teal-950 dark:text-teal-100"
-                              : "inline-flex rounded-full border border-amber-800 bg-amber-50 px-2 py-1 text-xs font-bold capitalize text-amber-950 dark:border-amber-200 dark:bg-amber-950 dark:text-amber-100"
-                          }
-                        >
-                          {event.processing_status}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-10 text-center text-slate-600 dark:text-slate-300"
-                    >
-                      {events.isLoading
-                        ? "Loading attendance events…"
-                        : "No normalized attendance events for this date."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+              <CardContent className="p-0">
+                <div className="grid gap-4 border-b border-slate-500 p-5 md:grid-cols-[1fr_minmax(14rem,20rem)] md:items-end dark:border-slate-400">
+                  <div>
+                    <h3 className="text-xl font-black">
+                      Immutable event ledger
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Normalized source events, processing state, and server
+                      receipt details. These entries cannot be edited or
+                      deleted.
+                    </p>
+                  </div>
+                  {canView && (
+                    <div className="space-y-2">
+                      <Label htmlFor="attendance-event-employee">
+                        Filter events by employee
+                      </Label>
+                      <select
+                        id="attendance-event-employee"
+                        value={eventEmployeeId}
+                        onChange={(event) =>
+                          setEventEmployeeId(event.target.value)
+                        }
+                        className={selectClass}
+                      >
+                        <option value="">All visible employees</option>
+                        {employees.data?.data.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.primary_name} ·{" "}
+                            {formatEmployeeNumber(employee.employee_number)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableCaption>
+                      Normalized attendance events for {date}, ordered newest
+                      first.
+                    </TableCaption>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead scope="col">Event ID</TableHead>
+                        <TableHead scope="col">Employee</TableHead>
+                        <TableHead scope="col">Event</TableHead>
+                        <TableHead scope="col">Time</TableHead>
+                        <TableHead scope="col">Source</TableHead>
+                        <TableHead scope="col">Processing</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eventRows.length ? (
+                        eventRows.map((event) => (
+                          <TableRow key={event.event_uuid}>
+                            <TableCell className="font-mono text-xs">
+                              {event.event_uuid.slice(0, 8)}
+                            </TableCell>
+                            <TableCell className="font-semibold">
+                              <div>
+                                {event.employee?.primary_name ??
+                                  "My attendance"}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {event.employee?.employee_number && (
+                                  <span className="inline-flex items-center rounded bg-blue-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-mono font-bold text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-500/30">
+                                    {formatEmployeeNumber(
+                                      event.employee.employee_number,
+                                    )}
+                                  </span>
+                                )}
+                                <span className="text-xs font-normal text-slate-600 dark:text-slate-300">
+                                  {event.external_employee_identifier ??
+                                    "Linked user"}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-semibold">
+                              {eventLabels[event.event_type]}
+                            </TableCell>
+                            <TableCell>
+                              <time dateTime={event.occurred_at}>
+                                {formatTime(
+                                  event.occurred_at,
+                                  event.organization_timezone,
+                                )}
+                              </time>
+                            </TableCell>
+                            <TableCell className="capitalize">
+                              {event.source.replaceAll("_", " ")}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={
+                                  event.processing_status === "processed"
+                                    ? "inline-flex rounded-full border border-teal-800 bg-teal-50 px-2 py-1 text-xs font-bold capitalize text-teal-950 dark:border-teal-200 dark:bg-teal-950 dark:text-teal-100"
+                                    : "inline-flex rounded-full border border-amber-800 bg-amber-50 px-2 py-1 text-xs font-bold capitalize text-amber-950 dark:border-amber-200 dark:bg-amber-950 dark:text-amber-100"
+                                }
+                              >
+                                {event.processing_status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="py-10 text-center text-slate-600 dark:text-slate-300"
+                          >
+                            {events.isLoading
+                              ? "Loading attendance events…"
+                              : "No normalized attendance events for this date."}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
             </Card>
           </TabsContent>
         )}

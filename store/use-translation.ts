@@ -13,7 +13,7 @@ interface TranslationState {
 const getApiUrl = (endpoint: string) => `${getBackendApiRoot()}${endpoint}`;
 
 export const useTranslation = create<TranslationState>((set, get) => ({
-  locale: 'en', 
+  locale: 'en',
   dictionary: {},
   isReady: false,
 
@@ -26,7 +26,7 @@ export const useTranslation = create<TranslationState>((set, get) => ({
     if (typeof window !== 'undefined') {
       localStorage.setItem('hive_locale', newLocale);
     }
-    
+
     try {
       const res = await fetch(getApiUrl(`/translations/${newLocale}`), {
         headers: {
@@ -34,7 +34,7 @@ export const useTranslation = create<TranslationState>((set, get) => ({
           ...getTenantHeaders()
         }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         const cleanDictionary = data.data || data || {};
@@ -50,14 +50,27 @@ export const useTranslation = create<TranslationState>((set, get) => ({
 
   t: (key: string, fallback?: string, replacements?: Record<string, any>) => {
     const { dictionary } = get();
-    let text = dictionary[key] || fallback || key;
-    
-    if (replacements) {
-      Object.entries(replacements).forEach(([k, v]) => {
-        text = text.replace(`:${k}`, v);
-      });
+    let text = dictionary[key];
+    if (!text && key.startsWith('global.')) {
+      text = dictionary[key.slice(7)];
     }
-    
+    if (!text && !key.includes('.')) {
+      text = dictionary[`global.${key}`];
+    }
+    text = text || fallback || key;
+
+    if (replacements) {
+      // Sort keys by length descending so longer keys (e.g., 'total') are replaced before prefixes (e.g., 'to')
+      Object.entries(replacements)
+        .sort((a, b) => b[0].length - a[0].length)
+        .forEach(([k, v]) => {
+          text = text
+            .replace(new RegExp(`:${k}\\b`, 'g'), String(v))
+            .replace(new RegExp(`:${k}`, 'g'), String(v))
+            .replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+        });
+    }
+
     return text;
   }
 }));

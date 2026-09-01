@@ -364,7 +364,7 @@ export default function InventoryProductsPage() {
       },
       {
         id: "category",
-        header: "Category",
+        header: "Product Category",
         cell: ({ row }) => {
           const cat = row.original.category;
           return cat ? (
@@ -1023,7 +1023,7 @@ function ProductDetailSheet({
                   <div className="grid gap-3 sm:grid-cols-2">
                     <DetailField label="Currency" value={currencyCode} />
                     <DetailField label="Country" value={countryLabel} />
-                    <DetailField label="Category" value={product.category?.name || "Uncategorized"} />
+                    <DetailField label="Product Category" value={product.category?.name || "Uncategorized"} />
                     <DetailField label="Variant Mode" value={product.parent_product_id ? "Variant" : "Standalone"} />
                     <DetailField label="Parent Product" value={product.parent?.name || "-"} />
                     <DetailField label="Units Per Package" value={String(product.units_per_package || 1)} />

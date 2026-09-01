@@ -71,6 +71,7 @@ export function WorkflowSyncProvider() {
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     
     // Channel 1: Laravel notifications. Listen on every supported user channel
     // because tenant-aware notifications can be delivered with different model names.

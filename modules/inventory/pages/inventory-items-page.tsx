@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Trash2, Package } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, Package, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/store/use-translation";
 
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import {
   fetchInventoryItems,
+  fetchNextInventorySku,
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
@@ -245,10 +246,36 @@ export default function InventoryItemsPage() {
 
   const clearSelection = React.useCallback(() => setSelectedRowIds({}), []);
 
-  const openCreate = React.useCallback(() => {
-    setForm(DEFAULT_FORM);
+  const handleGenerateNextSku = React.useCallback(async () => {
+    try {
+      const res = await fetchNextInventorySku();
+      if (res?.sku) {
+        setForm((prev) => ({ ...prev, sku: res.sku }));
+        return;
+      }
+    } catch {
+      // fallback auto-increment based on table count
+    }
+    const currentCount = itemsQuery.data?.total || itemsQuery.data?.data?.length || 0;
+    const fallbackSku = `SKU-${String(currentCount + 1).padStart(4, "0")}`;
+    setForm((prev) => ({ ...prev, sku: fallbackSku }));
+  }, [itemsQuery.data]);
+
+  const openCreate = React.useCallback(async () => {
+    let nextSku = "SKU-0001";
+    try {
+      const res = await fetchNextInventorySku();
+      if (res?.sku) nextSku = res.sku;
+    } catch {
+      const currentCount = itemsQuery.data?.total || itemsQuery.data?.data?.length || 0;
+      nextSku = `SKU-${String(currentCount + 1).padStart(4, "0")}`;
+    }
+    setForm({
+      ...DEFAULT_FORM,
+      sku: nextSku,
+    });
     setOpen(true);
-  }, []);
+  }, [itemsQuery.data]);
 
   const openEdit = React.useCallback((item: InventoryItem) => {
     setForm({
@@ -476,13 +503,35 @@ export default function InventoryItemsPage() {
           <div className="grid gap-4 px-6 py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="item-sku">{t("inventory.common.sku", "SKU")}</Label>
-                <Input
-                  id="item-sku"
-                  value={form.sku}
-                  onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
-                  placeholder="SKU-001"
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="item-sku" className="flex items-center gap-1.5 font-semibold">
+                    <span>{t("inventory.common.sku", "SKU")}</span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20 font-mono">
+                      Auto-increment
+                    </Badge>
+                  </Label>
+                  {!form.id && (
+                    <button
+                      type="button"
+                      onClick={handleGenerateNextSku}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors"
+                      title="Generate next available SKU"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      <span>Next SKU</span>
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Input
+                    id="item-sku"
+                    value={form.sku}
+                    onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
+                    placeholder="e.g. SKU-0001 (Auto-assigned)"
+                    className="font-mono font-semibold pr-8"
+                  />
+                  <Sparkles className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary/60 pointer-events-none" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="item-unit">{t("inventory.common.unit", "Unit")}</Label>

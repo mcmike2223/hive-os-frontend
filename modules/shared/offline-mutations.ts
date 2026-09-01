@@ -22,9 +22,9 @@ import type { TenantLandingTemplate } from "@/modules/tenancy/landing-template";
 const tenantInvalidationKeys: QueryKey[] = [["tenants"]];
 const userInvalidationKeys: QueryKey[] = [["users"]];
 
-type QueuedUserPrimitive = string | number | boolean | null;
+type QueuedUserPrimitive = string | number | boolean | null | Record<string, any> | Array<any>;
 
-const toFormData = (payload: Record<string, QueuedUserPrimitive | undefined>) => {
+const toFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
 
   Object.entries(payload).forEach(([key, value]) => {
@@ -34,6 +34,8 @@ const toFormData = (payload: Record<string, QueuedUserPrimitive | undefined>) =>
 
     if (value === null) {
       formData.append(key, "");
+    } else if (typeof value === "object") {
+      formData.append(key, JSON.stringify(value));
     } else {
       formData.append(key, String(value));
     }
@@ -78,6 +80,17 @@ export type UserOfflinePayload = {
   avatar_path?: string;
   remove_avatar?: "1";
   hospitality_staff_id?: number | null;
+  phone_number?: string | null;
+  telegram_chat_id?: string | null;
+  telegram_username?: string | null;
+  notification_preferences?: {
+    default_channel?: string;
+    channels?: {
+      email?: boolean;
+      sms?: boolean;
+      telegram?: boolean;
+    };
+  } | null;
 };
 
 export type UserUpdateOfflinePayload = {

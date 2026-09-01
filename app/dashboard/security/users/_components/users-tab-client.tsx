@@ -4,6 +4,7 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { startImpersonationSession } from "@/lib/auth-sync";
 import {
   AlertCircle,
   Calendar,
@@ -25,11 +26,15 @@ import {
   VenetianMask,
   X,
   Zap,
+  Phone,
+  Send,
+  Bell,
+  MessageSquare,
 } from "lucide-react";
 
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, 
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -55,6 +60,7 @@ import {
   updateUserOfflineMutationDefinition,
 } from "@/modules/shared/offline-mutations";
 import { fetchRoles, fetchUsers } from "@/modules/identity/api";
+import { logFrontendAction } from "@/modules/core/api";
 import api from "@/modules/shared/api/http";
 import { createRole, fetchPermissions } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -63,7 +69,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useTenantModuleAccess } from "@/hooks/use-tenant-module-access";
 import { useTranslation } from "@/store/use-translation";
 import { getErrorMessage } from "@/lib/errors";
-import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, persistHiveContext } from "@/lib/runtime-context";
+import { getTrashChannelName, initEcho } from "@/lib/echo";
+import { getAccessToken, getBackendStorageUrl, persistHiveContext } from "@/lib/runtime-context";
 
 type ServerRoleRecord = { id: number | string; name: string };
 type ServerUserRecord = {
@@ -77,12 +84,17 @@ type ServerUserRecord = {
   role?: string;
   roles?: ServerRoleRecord[];
   hospitality_staff?: UserForClient["hospitalityStaff"];
+  phone_number?: string | null;
+  telegram_chat_id?: string | null;
+  telegram_username?: string | null;
+  notification_preferences?: any;
 };
 
 type AssignableRole = { id: string; name: string };
 type HospitalityStaffOption = NonNullable<UserForClient["hospitalityStaff"]>;
 type PickerFile = {
-  media_details?: { url?: string };
+  media_details?: { url?: string; signed_url?: string; thumbnail?: string; relative_path?: string; mime_type?: string };
+  public_url?: string;
   url?: string;
   path?: string;
 };
@@ -133,6 +145,17 @@ export type UserForClient = {
     role: string;
     phone?: string;
   } | null;
+  phoneNumber?: string | null;
+  telegramChatId?: string | null;
+  telegramUsername?: string | null;
+  notificationPreferences?: {
+    default_channel?: string;
+    channels?: {
+      email?: boolean;
+      sms?: boolean;
+      telegram?: boolean;
+    };
+  } | null;
 };
 
 const staffRoleToSystemRole: Record<string, string> = {
@@ -156,14 +179,28 @@ type Props = {
 export function UsersTabClient(props: Props) {
   const { tenantId, tenantName, companySettings, brandingSettings } = props;
   const isCentralAdmin = !tenantId;
+
+  const globalActionLock = React.useRef<Record<string, number>>({});
+  const triggerAudit = React.useCallback(async (action: string, description: string) => {
+    if (typeof window === "undefined") return;
+    const now = Date.now();
+    const payloadKey = `${action}_${description}`;
+    if (globalActionLock.current[payloadKey] && now - globalActionLock.current[payloadKey] < 800) return;
+    globalActionLock.current[payloadKey] = now;
+    try {
+      await logFrontendAction({ module: 'Identity & Access', action, description });
+    } catch (e) {}
+  }, []);
   const queryClient = useQueryClient();
-  const { t, locale } = useTranslation(); 
+  const { t, locale } = useTranslation();
 
   const { hasAnyPermission } = usePermissions();
   const canCreate = hasAnyPermission(["manage_users", "create_users"]);
   const canEdit = hasAnyPermission(["manage_users", "edit_users"]);
   const canDelete = hasAnyPermission(["manage_users", "delete_users"]);
-  const canImpersonate = hasAnyPermission(["manage_users"]);
+  const canImpersonate = hasAnyPermission(["manage_users", "impersonate_users"]);
+  const canToggleStatus = hasAnyPermission(["manage_users", "edit_users", "toggle_user_status"]);
+  const canExport = hasAnyPermission(["manage_users", "view_users", "export_users"]);
   const canManageStorage = hasAnyPermission(["manage_storage"]);
   const canBrowseAvatarLibrary = hasAnyPermission(["view_storage", "manage_storage"]);
   const { hasModule } = useTenantModuleAccess();
@@ -232,12 +269,12 @@ export function UsersTabClient(props: Props) {
 
   const mapServerUserToClient = React.useCallback(
     (u: ServerUserRecord): UserForClient => ({
-      id: String(u.id), 
+      id: String(u.id),
       name: u.name ?? null,
       email: u.email,
       isActive: !!u.is_active,
       createdAt: u.created_at ?? "",
-      avatarUrl: getStorageUrl(u.avatar_path || u.avatar_url),
+      avatarUrl: getStorageUrl(u.avatar_url || u.avatar_path),
       role: u.role ?? null,
       userRoles: (u.roles || []).map((r: ServerRoleRecord) => ({
         id: String(r.id),
@@ -245,6 +282,10 @@ export function UsersTabClient(props: Props) {
         role: { key: r.name, name: r.name },
       })),
       hospitalityStaff: u.hospitality_staff || null,
+      phoneNumber: u.phone_number || null,
+      telegramChatId: u.telegram_chat_id || null,
+      telegramUsername: u.telegram_username || null,
+      notificationPreferences: u.notification_preferences || null,
     }),
     [getStorageUrl]
   );
@@ -254,16 +295,47 @@ export function UsersTabClient(props: Props) {
   const [search, setSearch] = React.useState("");
   const [tableKey, setTableKey] = React.useState(0);
 
+  // ?? Real-time Reverb listener for User restoration/deletion
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = getAccessToken();
+    if (!token) return;
+    const echo = initEcho(token);
+    if (!echo) return;
+
+    const channelName = getTrashChannelName();
+    const channel = echo.private(channelName);
+
+    const handleTrashEvent = (event: any) => {
+      if (event?.entity_type === "user" || event?.action === "empty_trash" || event?.action === "bulk_restored" || event?.action === "auto_purged") {
+        queryClient.invalidateQueries({ queryKey: ["users"] });
+      }
+    };
+
+    channel.listen(".TrashUpdated", handleTrashEvent);
+    channel.listen("TrashUpdated", handleTrashEvent);
+
+    return () => {
+      channel.stopListening(".TrashUpdated");
+      channel.stopListening("TrashUpdated");
+    };
+  }, [queryClient]);
+
   const [sortCol, setSortCol] = React.useState<string | null>(null);
   const [sortDir, setSortDir] = React.useState<string | null>(null);
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [roleFilter, setRoleFilter] = React.useState<string>("all");
+  const [roleFilterOpen, setRoleFilterOpen] = React.useState(false);
+  const [onboardingFilter, setOnboardingFilter] = React.useState<string>("all");
+  const [avatarFilter, setAvatarFilter] = React.useState<string>("all");
   const [dateFrom, setDateFrom] = React.useState<string>("");
   const [dateTo, setDateTo] = React.useState<string>("");
 
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
   const [viewDialogOpen, setViewDialogOpen] = React.useState(false);
   const [isFileManagerOpen, setIsFileManagerOpen] = React.useState(false);
+  const avatarPickerOpenRef = React.useRef(false);
+  const avatarPickerTriggerRef = React.useRef<HTMLButtonElement>(null);
   const [comboboxOpen, setComboboxOpen] = React.useState(false);
   const [createRoleDialogOpen, setCreateRoleDialogOpen] = React.useState(false);
 
@@ -279,12 +351,43 @@ export function UsersTabClient(props: Props) {
   const [formHospitalityStaffId, setFormHospitalityStaffId] = React.useState<string>("");
   const [newRoleName, setNewRoleName] = React.useState("");
   const [newRolePermissions, setNewRolePermissions] = React.useState<string[]>([]);
-  
-  const [formAvatarPath, setFormAvatarPath] = React.useState<string | null>(null); 
+
+  const [formAvatarPath, setFormAvatarPath] = React.useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [isAvatarRemoved, setIsAvatarRemoved] = React.useState(false);
-  
+
+  const [formPhoneNumber, setFormPhoneNumber] = React.useState("");
+  const [formTelegramChatId, setFormTelegramChatId] = React.useState("");
+  const [formDefaultChannel, setFormDefaultChannel] = React.useState<"email" | "sms" | "telegram">("email");
+  const [formChannelEmail, setFormChannelEmail] = React.useState(true);
+  const [formChannelSms, setFormChannelSms] = React.useState(true);
+  const [formChannelTelegram, setFormChannelTelegram] = React.useState(true);
+
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+
+  const handleUserDialogOpenChange = React.useCallback((open: boolean) => {
+    if (!open && (avatarPickerOpenRef.current || createRoleDialogOpen)) return;
+    setCreateDialogOpen(open);
+  }, [createRoleDialogOpen]);
+
+  const openAvatarPicker = React.useCallback(() => {
+    avatarPickerOpenRef.current = true;
+    setIsFileManagerOpen(true);
+  }, []);
+
+  const handleAvatarPickerOpenChange = React.useCallback((open: boolean) => {
+    if (open) {
+      avatarPickerOpenRef.current = true;
+      setIsFileManagerOpen(true);
+      return;
+    }
+
+    setIsFileManagerOpen(false);
+    requestAnimationFrame(() => {
+      avatarPickerOpenRef.current = false;
+      avatarPickerTriggerRef.current?.focus();
+    });
+  }, []);
 
   const validateField = React.useCallback((field: string, value: string) => {
     let error = "";
@@ -305,11 +408,11 @@ export function UsersTabClient(props: Props) {
   }, []);
 
   const { data: usersData, isLoading, isFetching } = useQuery({
-    queryKey: ["users", page, pageSize, search, statusFilter, roleFilter, dateFrom, dateTo, sortCol, sortDir, tenantId],
+    queryKey: ["users", page, pageSize, search, statusFilter, roleFilter, onboardingFilter, avatarFilter, dateFrom, dateTo, sortCol, sortDir, tenantId],
     queryFn: async () => {
       const res = await fetchUsers({
         page, pageSize, search: search.trim(), status: statusFilter, role: roleFilter,
-        date_from: dateFrom, date_to: dateTo, sort_by: sortCol, sort_direction: sortDir, tenant_id: tenantId,
+        onboarding: onboardingFilter, avatar: avatarFilter, date_from: dateFrom, date_to: dateTo, sort_by: sortCol, sort_direction: sortDir, tenant_id: tenantId,
       }) as Record<string, unknown>;
 
       let rawUsers = [];
@@ -323,22 +426,11 @@ export function UsersTabClient(props: Props) {
       return {
           rows: rawUsers.map(mapServerUserToClient),
           total,
-          engine: meta?.engine as string || 'database'
+          engine: meta?.engine as string || 'database',
+          globalTotal: typeof res.unfiltered_total === "number" ? res.unfiltered_total : total,
       };
     },
     placeholderData: (prev) => prev,
-  });
-
-  const totalUsersQuery = useQuery({
-    queryKey: ["users", "total", tenantId],
-    queryFn: async () =>
-      extractUserTotal(
-        (await fetchUsers({
-          page: 1,
-          pageSize: 1,
-          tenant_id: tenantId,
-        })) as Record<string, unknown>,
-      ),
   });
 
   const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useQuery({
@@ -392,30 +484,20 @@ export function UsersTabClient(props: Props) {
 
   const impersonateMut = useMutation({
     mutationFn: async (userId: string) => {
-      const token = getAccessToken();
-      const apiRoot = getBackendApiRoot();
       const endpoint = tenantId
-        ? `${apiRoot}/users/${userId}/impersonate`
-        : `${apiRoot}/central/users/${userId}/impersonate`;
-      
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { ...getAuthHeaders(), 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error("Impersonation request failed");
-      return res.json();
+        ? `/users/${userId}/impersonate`
+        : `/central/users/${userId}/impersonate`;
+      return (await api.post(endpoint)).data;
     },
     onSuccess: (data) => {
       if (data.data?.token) {
-        const currentToken = getAccessToken();
-        if (currentToken && !localStorage.getItem('hive_original_token')) {
-          localStorage.setItem('hive_original_token', currentToken);
-        }
-        localStorage.setItem('hive_token', data.data.token);
-        persistHiveContext(data.data.context ?? null, data.data.context_signature ?? null);
-        window.dispatchEvent(new Event('hive_session_changed'));
+        startImpersonationSession({
+          token: data.data.token,
+          user: data.data.user,
+          context: data.data.context ?? null,
+          context_signature: data.data.context_signature ?? null,
+        });
         toast.success(t('users.impersonating', 'Impersonating user...'));
-
         window.location.href = '/dashboard';
       }
     },
@@ -458,6 +540,7 @@ export function UsersTabClient(props: Props) {
         queryClient,
       });
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "unlinked-staff"] });
       setCreateDialogOpen(false);
     },
@@ -479,6 +562,7 @@ export function UsersTabClient(props: Props) {
         queryClient,
       });
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
       queryClient.invalidateQueries({ queryKey: ["hospitality", "unlinked-staff"] });
       setCreateDialogOpen(false);
     },
@@ -520,12 +604,16 @@ export function UsersTabClient(props: Props) {
     if (q.sortDir !== undefined) setSortDir(q.sortDir);
   }, [setPageSize]);
 
-  const handleRefresh = React.useCallback(() => queryClient.invalidateQueries({ queryKey: ["users"] }), [queryClient]);
+  const handleRefresh = React.useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["users"] });
+    triggerAudit('viewed', 'Manually refreshed Operator Matrix');
+  }, [queryClient, triggerAudit]);
 
   const resetFilters = React.useCallback(() => {
-    setStatusFilter("all"); setRoleFilter("all"); setDateFrom(""); setDateTo("");
+    setStatusFilter("all"); setRoleFilter("all"); setOnboardingFilter("all"); setAvatarFilter("all"); setDateFrom(""); setDateTo("");
     setSearch(""); setSortCol(null); setSortDir(null); setPage(1); setTableKey((prev) => prev + 1);
-  }, []);
+    triggerAudit('filtered', 'Reset all Operator Matrix filters');
+  }, [triggerAudit]);
 
   const handleToggle = React.useCallback(async (id: string, currentStatus: boolean) => {
     try {
@@ -565,7 +653,7 @@ export function UsersTabClient(props: Props) {
 
       if (actionableResults.length > 0) {
         notifyBulkDeleteOutcomes(actionableResults, {
-          savedMessage: (count) => `${count} ${t('users.accounts_purged', 'accounts purged.')}`,
+          savedMessage: (count) => count === 1 ? t('users.moved_to_trash', 'Operator moved to Trash Bin (will be auto-purged in 30 days).') : `${count} ${t('users.moved_to_trash_plural', 'operators moved to Trash Bin (will be auto-purged in 30 days).')}`,
           submittedMessage: t("workflow.submitted_for_approval", "Submitted for approval."),
           queryClient,
         });
@@ -576,16 +664,23 @@ export function UsersTabClient(props: Props) {
   }, [deleteMut, queryClient, t]);
 
   const resetForm = React.useCallback(() => {
-    setFormName(""); setFormEmail(""); setFormPassword(""); 
+    setFormName(""); setFormEmail(""); setFormPassword("");
     setFormRoleId(assignableRoles.length > 0 ? assignableRoles[0].id : "");
     setFormAvatarPath(null); setPreviewUrl(null); setIsAvatarRemoved(false); setShowPassword(false);
     setFormHospitalityStaffId("");
-    setFieldErrors({}); 
+    setFormPhoneNumber("");
+    setFormTelegramChatId("");
+    setFormDefaultChannel("email");
+    setFormChannelEmail(true);
+    setFormChannelSms(true);
+    setFormChannelTelegram(true);
+    setFieldErrors({});
   }, [assignableRoles]);
 
-  const openCreate = React.useCallback(() => { 
-    setEditingUser(null); resetForm(); setCreateDialogOpen(true); 
-  }, [resetForm]);
+  const openCreate = React.useCallback(() => {
+    setEditingUser(null); resetForm(); setCreateDialogOpen(true);
+    triggerAudit('viewed', 'Accessed Operator Provisioning form');
+  }, [resetForm, triggerAudit]);
 
   const openEdit = React.useCallback((u: UserForClient) => {
     // 🚀 THE FIX: Removed 'return' here as well
@@ -598,27 +693,36 @@ export function UsersTabClient(props: Props) {
     setFormAvatarPath(null);
     setIsAvatarRemoved(false);
     setFormRoleId(u.userRoles[0]?.roleId || (assignableRoles.length > 0 ? assignableRoles[0].id : ""));
-    setFormPassword(""); 
+    setFormPassword("");
     setFormHospitalityStaffId(u.hospitalityStaff ? String(u.hospitalityStaff.id) : "");
-    setFieldErrors({}); 
+    setFormPhoneNumber(u.phoneNumber || "");
+    setFormTelegramChatId(u.telegramChatId || "");
+    const prefs = u.notificationPreferences || {};
+    setFormDefaultChannel((prefs.default_channel as "email" | "sms" | "telegram") || "email");
+    setFormChannelEmail(prefs.channels?.email ?? true);
+    setFormChannelSms(prefs.channels?.sms ?? true);
+    setFormChannelTelegram(prefs.channels?.telegram ?? true);
+    setFieldErrors({});
     setCreateDialogOpen(true);
-  }, [assignableRoles, isProtectedUser, t]);
+    triggerAudit('viewed', `Accessed Operator Modification form for: ${u.name || u.email}`);
+  }, [assignableRoles, isProtectedUser, t, triggerAudit]);
 
   const handleFileSelect = React.useCallback((file: PickerFile) => {
-      const rawUrl = file?.media_details?.url || file?.url || file?.path;
-      if (!rawUrl) {
+      const avatarPath = file?.media_details?.relative_path || file?.path;
+      const previewSource = file?.media_details?.signed_url || file?.media_details?.thumbnail || file?.media_details?.url || file?.url || avatarPath;
+      if (!avatarPath || !previewSource) {
           toast.error("Error: Could not extract image path from selection.");
           return;
       }
-      
-      setFormAvatarPath(extractPathFromUrl(rawUrl)); 
+
+      setFormAvatarPath(extractPathFromUrl(avatarPath));
       setIsAvatarRemoved(false);
 
-      const fullPreviewUrl = getBackendStorageUrl(rawUrl) || rawUrl;
+      const fullPreviewUrl = getBackendStorageUrl(previewSource) || previewSource;
       setPreviewUrl(fullPreviewUrl);
-      
-      setIsFileManagerOpen(false);
-  }, [extractPathFromUrl]);
+
+      handleAvatarPickerOpenChange(false);
+  }, [extractPathFromUrl, handleAvatarPickerOpenChange]);
 
   const removeAvatar = React.useCallback(() => {
     setFormAvatarPath(null); setPreviewUrl(null); setIsAvatarRemoved(true);
@@ -650,6 +754,17 @@ export function UsersTabClient(props: Props) {
         : Number(formHospitalityStaffId);
     }
 
+    if (formPhoneNumber.trim()) payload.phone_number = formPhoneNumber.trim();
+    if (formTelegramChatId.trim()) payload.telegram_chat_id = formTelegramChatId.trim();
+    payload.notification_preferences = {
+      default_channel: formDefaultChannel,
+      channels: {
+        email: formChannelEmail,
+        sms: formChannelSms,
+        telegram: formChannelTelegram,
+      },
+    };
+
     try {
       if (isEdit && editingUser) {
         const updatePayload: UserUpdateOfflinePayload = {
@@ -672,11 +787,15 @@ export function UsersTabClient(props: Props) {
           const formattedErrors: Record<string, string> = {};
           Object.keys(errors).forEach((key) => { formattedErrors[key] = errors[key][0]; });
           setFieldErrors(formattedErrors);
+          const firstInvalidField = Object.keys(formattedErrors)[0];
+          if (firstInvalidField) {
+            window.requestAnimationFrame(() => document.getElementById(firstInvalidField)?.focus());
+          }
         }
       }
       // Non-422 errors are surfaced by the mutation's onError handler.
     }
-  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule]);
+  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule, formPhoneNumber, formTelegramChatId, formDefaultChannel, formChannelEmail, formChannelSms, formChannelTelegram]);
 
   const getPrimaryRoleName = React.useCallback((u: UserForClient) => {
     if (u.role) return u.role;
@@ -722,17 +841,17 @@ export function UsersTabClient(props: Props) {
       },
     },
     {
-      id: "role", 
-      accessorFn: (row) => getPrimaryRoleName(row), 
-      header: t('users.col_clearance', "Clearance Level"), enableSorting: false, 
+      id: "role",
+      accessorFn: (row) => getPrimaryRoleName(row),
+      header: t('users.col_clearance', "Clearance Level"), enableSorting: false,
       cell: ({ row }) => {
         const roleName = getPrimaryRoleName(row.original);
         return <Badge variant={getRoleBadgeVariant(roleName)} className="capitalize shadow-sm">{roleName}</Badge>;
       },
     },
     {
-      id: "is_active", 
-      accessorFn: (row) => row.isActive ? t('global.active', 'Active') : t('global.locked', 'Locked'), 
+      id: "is_active",
+      accessorFn: (row) => row.isActive ? t('global.active', 'Active') : t('global.locked', 'Locked'),
       header: t('users.col_status', "Status"), enableSorting: true,
       cell: ({ row }) => {
         const u = row.original;
@@ -742,7 +861,7 @@ export function UsersTabClient(props: Props) {
               <Switch
                 checked={u.isActive}
                 onCheckedChange={() => handleToggle(u.id, u.isActive)}
-                disabled={toggleMut.isPending || isProtectedUser(u) || !canEdit}
+                disabled={toggleMut.isPending || isProtectedUser(u) || !canToggleStatus}
                 aria-label={`${u.isActive ? t('users.deactivate', 'Deactivate') : t('users.activate', 'Activate')} ${u.name || u.email}`}
                 className="data-[state=checked]:bg-emerald-500"
               />
@@ -767,19 +886,19 @@ export function UsersTabClient(props: Props) {
       id: "actions", header: t('users.col_actions', "Actions"), enableSorting: false, size: 120,
       cell: ({ row }) => {
         const u = row.original;
-        
+
         if (isProtectedUser(u)) return <div className="flex justify-end"><Badge variant="outline" className="text-[11px] uppercase tracking-widest text-amber-600 border-amber-200 bg-amber-50/50">Protected</Badge></div>;
-        
+
         return (
           <div className="flex items-center justify-end gap-1">
 
             {isCentralAdmin && u.id !== "1" && canImpersonate && (
               <span className="tour-users-action-impersonate flex">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-600/10" 
-                  title={t('users.impersonate', 'Impersonate User')} 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-600/10"
+                  title={t('users.impersonate', 'Impersonate User')}
                   onClick={() => impersonateMut.mutate(u.id)}
                   disabled={impersonateMut.isPending}
                 >
@@ -789,7 +908,7 @@ export function UsersTabClient(props: Props) {
             )}
 
             <span className="tour-users-action-view flex">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600" title={t('global.view', 'View Details')} onClick={() => { setViewUser(u); setViewDialogOpen(true); }}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600" title={t('global.view', 'View Details')} onClick={() => { setViewUser(u); setViewDialogOpen(true); triggerAudit('viewed', `Inspected operator profile: ${u.name || u.email} (ID ${u.id})`); }}>
                 <Eye className="h-4 w-4" />
               </Button>
             </span>
@@ -803,7 +922,7 @@ export function UsersTabClient(props: Props) {
                 showStatusBadge={false}
               />
             </span>
-            
+
             {canEdit && (
               <span className="tour-users-action-edit flex">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-indigo-600" title={t('global.edit', 'Edit')} onClick={() => openEdit(u)}>
@@ -835,14 +954,14 @@ export function UsersTabClient(props: Props) {
         );
       },
     },
-  ], [page, pageSize, handleToggle, toggleMut.isPending, deleteMut, openEdit, isProtectedUser, initials, getPrimaryRoleName, getRoleBadgeVariant, formatDate, canEdit, canDelete, isCentralAdmin, impersonateMut, t, canImpersonate, handleRefresh]);
+  ], [page, pageSize, handleToggle, toggleMut.isPending, deleteMut, openEdit, isProtectedUser, initials, getPrimaryRoleName, getRoleBadgeVariant, formatDate, canEdit, canDelete, isCentralAdmin, impersonateMut, t, locale, canImpersonate, handleRefresh]);
 
-  const exportUrl = `${isCentralAdmin ? '' : '/tenant'}/users/export?status=${statusFilter}&role=${roleFilter}&date_from=${dateFrom}&date_to=${dateTo}&search=${search}&sortCol=${sortCol || ""}&sortDir=${sortDir || ""}&locale=${locale}`;
+  const exportUrl = `${isCentralAdmin ? '' : '/tenant'}/users/export?status=${statusFilter}&role=${encodeURIComponent(roleFilter)}&onboarding=${onboardingFilter}&avatar=${avatarFilter}&date_from=${dateFrom}&date_to=${dateTo}&search=${encodeURIComponent(search)}&sortCol=${sortCol || ""}&sortDir=${sortDir || ""}&locale=${locale}`;
 
   return (
     <div className="space-y-4">
       <div id="tour-users-header" className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card/40 p-6 rounded-[2rem] border border-border/50 backdrop-blur-md shadow-sm gap-4">
-        
+
         <div className="flex items-start gap-4">
           <div>
             <h2 className="text-2xl font-black font-space flex items-center gap-2 tracking-tight">
@@ -858,7 +977,7 @@ export function UsersTabClient(props: Props) {
             </Badge>
           )}
         </div>
-        
+
         <div className="flex w-full items-stretch gap-3 sm:w-auto">
           <div className="min-w-32 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2.5">
             {/* Sits inside a bg-primary/10 card — hardcoded amber here dated from
@@ -867,9 +986,9 @@ export function UsersTabClient(props: Props) {
               {t("users.total_users", "Total users")}
             </p>
             <p className="mt-1 text-2xl font-black tabular-nums text-foreground">
-              {totalUsersQuery.isLoading
-                ? "—"
-                : (totalUsersQuery.data ?? 0).toLocaleString()}
+              {isLoading
+                 ? "—"
+                 : (usersData?.globalTotal ?? 0).toLocaleString()}
             </p>
           </div>
           {canCreate && (
@@ -892,14 +1011,14 @@ export function UsersTabClient(props: Props) {
         </div>
       </div>
 
-      <div className="bg-card border border-border/50 rounded-xl p-3 shadow-sm flex flex-wrap gap-3 items-center">
+      <div id="tour-users-filters" className="bg-card border border-border/50 rounded-xl p-3 shadow-sm flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2 text-muted-foreground shrink-0 pl-2">
           <Filter className="h-4 w-4" />
           <span className="text-sm font-medium">{t('users.filters', 'Filters:')}</span>
         </div>
 
         <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-          <SelectTrigger className="h-9 w-[130px] bg-background"><SelectValue placeholder={t('users.filter_status', 'Status')} /></SelectTrigger>
+          <SelectTrigger aria-label={t('users.filter_status', 'Filter users by status')} className="h-9 w-[130px] bg-background"><SelectValue placeholder={t('users.filter_status', 'Status')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('users.all_status', 'All Status')}</SelectItem>
             <SelectItem value="active">{t('global.active', 'Active')}</SelectItem>
@@ -907,50 +1026,102 @@ export function UsersTabClient(props: Props) {
           </SelectContent>
         </Select>
 
-        <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); setPage(1); }}>
-          <SelectTrigger className="h-9 w-[140px] bg-background"><SelectValue placeholder={t('users.filter_role', 'Role')} /></SelectTrigger>
+        <Popover open={roleFilterOpen} onOpenChange={setRoleFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" role="combobox" aria-expanded={roleFilterOpen} aria-label={t('users.filter_role', 'Filter users by role')} className="h-9 w-[180px] justify-between bg-background font-normal">
+              <span className="truncate">{roleFilter === "all" ? t('users.all_roles', 'All Roles') : roleFilter}</span>
+              <ChevronsUpDown aria-hidden="true" className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[260px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder={t('users.search_roles', 'Search roles...')} />
+              <CommandList>
+                <CommandEmpty>{t('users.no_roles_found', 'No roles found.')}</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem value="All Roles" onSelect={() => { setRoleFilter("all"); setRoleFilterOpen(false); setPage(1); }}>
+                    <Check aria-hidden="true" className={cn("mr-2 h-4 w-4", roleFilter === "all" ? "opacity-100" : "opacity-0")} />
+                    {t('users.all_roles', 'All Roles')}
+                  </CommandItem>
+                  {assignableRoles.map((role) => (
+                    <CommandItem key={role.id} value={role.name} onSelect={() => { setRoleFilter(role.name); setRoleFilterOpen(false); setPage(1); }}>
+                      <Check aria-hidden="true" className={cn("mr-2 h-4 w-4", roleFilter === role.name ? "opacity-100" : "opacity-0")} />
+                      {role.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        <Select value={onboardingFilter} onValueChange={(val) => { setOnboardingFilter(val); setPage(1); }}>
+          <SelectTrigger aria-label="Filter users by onboarding status" className="h-9 w-[170px] bg-background"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('users.all_roles', 'All Roles')}</SelectItem>
-            {assignableRoles.map((r) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+            <SelectItem value="all">{t("users.onboarding_all", "All Onboarding")}</SelectItem>
+            <SelectItem value="pending">{t("users.onboarding_pending", "Password Setup Pending")}</SelectItem>
+            <SelectItem value="complete">{t("users.onboarding_completed", "Onboarding Complete")}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={avatarFilter} onValueChange={(val) => { setAvatarFilter(val); setPage(1); }}>
+          <SelectTrigger aria-label="Filter users by profile photo" className="h-9 w-[155px] bg-background"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("users.avatar_all", "All Photos")}</SelectItem>
+            <SelectItem value="with">{t("users.avatar_with", "Has Profile Photo")}</SelectItem>
+            <SelectItem value="without">{t("users.avatar_without", "Missing Photo")}</SelectItem>
           </SelectContent>
         </Select>
 
         <div className="flex items-center gap-2 bg-background border border-input rounded-md px-2 h-9">
           <span className="text-xs text-muted-foreground">{t('users.joined', 'Joined:')}</span>
-          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="bg-transparent text-sm w-[110px] focus:outline-none" />
+          <label htmlFor="users-joined-from" className="sr-only">Joined from date</label>
+          <input id="users-joined-from" type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="bg-transparent text-sm w-[110px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm" />
           <span className="text-muted-foreground">-</span>
-          <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="bg-transparent text-sm w-[110px] focus:outline-none" />
+          <label htmlFor="users-joined-to" className="sr-only">Joined through date</label>
+          <input id="users-joined-to" type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="bg-transparent text-sm w-[110px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm" />
         </div>
 
-        {(statusFilter !== "all" || roleFilter !== "all" || dateFrom || dateTo) && (
-          <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9 px-3 text-destructive hover:bg-destructive/10"><X className="mr-1 h-4 w-4" /> {t('global.clear', 'Clear')}</Button>
+        {(statusFilter !== "all" || roleFilter !== "all" || onboardingFilter !== "all" || avatarFilter !== "all" || dateFrom || dateTo) && (
+          <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9 px-3 text-destructive hover:bg-destructive/10"><X aria-hidden="true" className="mr-1 h-4 w-4" /> {t('global.clear', 'Clear')}</Button>
         )}
       </div>
 
       <DataTable
-        key={tableKey}
+        key={`${tableKey}-${locale}`}
         columns={columns}
         data={usersData?.rows || []}
         totalEntries={usersData?.total || 0}
         loading={isLoading || isFetching}
-        exportEndpoint={exportUrl} 
+        exportEndpoint={canExport ? exportUrl : undefined}
         resourceName="users"
-        enableRowSelection={true}
+        enableRowSelection={canDelete}
         pageIndex={page}
         pageSize={pageSize}
         onQueryChange={handleQueryChange}
         onRefresh={handleRefresh}
         onResetFilters={resetFilters}
+        onCopy={canExport ? () => triggerAudit('copied', 'Copied Operator Matrix to system clipboard') : undefined}
+        onPrint={canExport ? () => triggerAudit('printed', 'Sent Operator Matrix to print / report processor') : undefined}
+        onExport={canExport ? (format) => triggerAudit('exported', `Exported Operator Ledger in ${format} format`) : undefined}
+        syncWithUrl={false}
         onDeleteRows={canDelete ? handleDeleteRows : undefined}
         searchPlaceholder={t('users.search_placeholder', "Filter by name or email...")}
-        syncWithUrl={true}
         companySettings={companySettings ?? undefined}
         brandingSettings={brandingSettings ?? undefined}
       />
 
       {/* CREATE/EDIT USER MODAL */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl">
+      <Dialog open={createDialogOpen} onOpenChange={handleUserDialogOpenChange}>
+        <DialogContent
+          className="sm:max-w-[550px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl"
+          onInteractOutside={(event) => {
+            if (avatarPickerOpenRef.current || createRoleDialogOpen) event.preventDefault();
+          }}
+          onEscapeKeyDown={(event) => {
+            if (avatarPickerOpenRef.current || createRoleDialogOpen) event.preventDefault();
+          }}
+        >
           <div className="px-6 py-5 border-b border-border/40 bg-muted/20">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
@@ -962,30 +1133,33 @@ export function UsersTabClient(props: Props) {
               <DialogDescription className="ml-10">{isEdit ? t('users.edit_desc', "Update clearance and details.") : t('users.new_desc', "Provision a new system operator.")}</DialogDescription>
             </DialogHeader>
           </div>
-          
+
           <form onSubmit={handleSubmit} noValidate>
             <div className="px-6 py-6 space-y-6">
-              
+
               <div className="flex items-center gap-5">
-                <div
+                <button
+                  ref={avatarPickerTriggerRef}
+                  type="button"
                   className={cn("relative group shrink-0 transition-all duration-200", canBrowseAvatarLibrary ? "cursor-pointer" : "cursor-default")}
-                  onClick={() => canBrowseAvatarLibrary && setIsFileManagerOpen(true)}
-                  aria-disabled={!canBrowseAvatarLibrary}
+                  onClick={() => canBrowseAvatarLibrary && openAvatarPicker()}
+                  disabled={!canBrowseAvatarLibrary}
+                  aria-label={previewUrl ? t('users.change_profile_photo', 'Change profile photo') : t('users.add_profile_photo', 'Add profile photo')}
                   title={!canBrowseAvatarLibrary ? t("storage.denied", "Storage access required to browse avatars.") : undefined}
                 >
                   <Avatar className="h-20 w-20 border-2 border-dashed border-border group-hover:border-primary/50 transition-colors bg-muted">
                     {previewUrl ? (
-                      <AvatarImage src={previewUrl} className="object-cover" />
+                      <AvatarImage src={previewUrl} alt={t('users.profile_photo_preview', 'Profile photo preview')} className="object-cover" />
                     ) : (
                       <AvatarFallback className="bg-muted text-muted-foreground">
-                        <ImageIcon className="h-8 w-8 opacity-50" />
+                        <ImageIcon aria-hidden="true" className="h-8 w-8 opacity-50" />
                       </AvatarFallback>
                     )}
                   </Avatar>
                   <div className={cn("absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity rounded-full", canBrowseAvatarLibrary ? "opacity-0 group-hover:opacity-100" : "opacity-0")}>
-                    <Upload className="h-5 w-5 text-white" />
+                    <Upload aria-hidden="true" className="h-5 w-5 text-white" />
                   </div>
-                </div>
+                </button>
                 <div className="space-y-1">
                   <h4 className="text-sm font-medium text-foreground">{t('users.profile_photo', 'Profile Photo')}</h4>
                   <p className="text-xs text-muted-foreground">{t('users.photo_reqs', 'Select an image from the File Manager.')}</p>
@@ -996,9 +1170,9 @@ export function UsersTabClient(props: Props) {
                   )}
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {tenantId && hasHospitalityModule && staffOptions.length > 0 && (
                   <div className="sm:col-span-2 space-y-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 p-4 rounded-2xl">
@@ -1087,30 +1261,30 @@ export function UsersTabClient(props: Props) {
 
                 <div className="sm:col-span-2 space-y-1.5">
                   <Label htmlFor="name" className={cn(fieldErrors.name && "text-destructive")}>{t('users.full_name', 'Full Name')} <span className="text-destructive">*</span></Label>
-                  <Input id="name" value={formName} onChange={(e) => { setFormName(e.target.value); validateField("name", e.target.value); }} required placeholder="e.g. Sarah Connor" className={cn("bg-muted/30 h-11 transition-all", fieldErrors.name && "border-destructive focus-visible:ring-destructive")} />
-                  {fieldErrors.name && <p className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle className="h-3 w-3" /> {fieldErrors.name}</p>}
+                  <Input id="name" value={formName} onChange={(e) => { setFormName(e.target.value); validateField("name", e.target.value); }} required aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} placeholder="e.g. Sarah Connor" className={cn("bg-muted/30 h-11 transition-all", fieldErrors.name && "border-destructive focus-visible:ring-destructive")} />
+                  {fieldErrors.name && <p id="name-error" className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle aria-hidden="true" className="h-3 w-3" /> {fieldErrors.name}</p>}
                 </div>
 
                 <div className="sm:col-span-2 space-y-1.5">
                   <Label htmlFor="email" className={cn(fieldErrors.email && "text-destructive")}>{t('users.email_address', 'Email Address')} <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Mail className={cn("absolute left-3 top-3 h-4 w-4", fieldErrors.email ? "text-destructive" : "text-muted-foreground")} />
-                    <Input id="email" type="email" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); validateField("email", e.target.value); }} required disabled={isEdit} placeholder="user@hive.os" className={cn("pl-9 bg-muted/30 h-11 transition-all", fieldErrors.email && "border-destructive focus-visible:ring-destructive text-destructive")} />
+                    <Input id="email" type="email" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); validateField("email", e.target.value); }} required disabled={isEdit} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined} placeholder="user@hive.os" className={cn("pl-9 bg-muted/30 h-11 transition-all", fieldErrors.email && "border-destructive focus-visible:ring-destructive text-destructive")} />
                   </div>
-                  {fieldErrors.email && <p className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle className="h-3 w-3" /> {fieldErrors.email}</p>}
+                  {fieldErrors.email && <p id="email-error" className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle aria-hidden="true" className="h-3 w-3" /> {fieldErrors.email}</p>}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="role" className={cn(fieldErrors.role && "text-destructive")}>{t('users.clearance_level', 'Clearance Level')} <span className="text-destructive">*</span></Label>
-                  <Select value={formRoleId} onValueChange={(val) => { 
+                  <Select value={formRoleId} onValueChange={(val) => {
                     if (val === "__create_new") {
                       setCreateRoleDialogOpen(true);
                     } else {
-                      setFormRoleId(val); 
-                      if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: "" })); 
+                      setFormRoleId(val);
+                      if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: "" }));
                     }
                   }} required>
-                    <SelectTrigger className={cn("bg-muted/30 h-11 transition-all", fieldErrors.role && "border-destructive focus:ring-destructive")}>
+                    <SelectTrigger id="role" aria-invalid={Boolean(fieldErrors.role)} aria-describedby={fieldErrors.role ? "role-error" : undefined} className={cn("bg-muted/30 h-11 transition-all", fieldErrors.role && "border-destructive focus:ring-destructive")}>
                       <SelectValue placeholder={t('users.select_role', "Select Role")} />
                     </SelectTrigger>
                     <SelectContent position="popper" side="bottom" className="max-h-[200px] rounded-xl border-border/50 shadow-xl">
@@ -1142,27 +1316,122 @@ export function UsersTabClient(props: Props) {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  {fieldErrors.role && <p id="role-error" className="text-[11px] font-bold uppercase tracking-widest text-destructive">{fieldErrors.role}</p>}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className={cn(fieldErrors.password && "text-destructive")}>
-                    {t('users.encryption_key', 'Encryption Key')} 
+                    {t('users.encryption_key', 'Encryption Key')}
                     {isEdit && <span className="text-[11px] font-medium text-emerald-500 ml-2 uppercase tracking-tight">({t('users.unchanged', 'Leave blank to keep current')})</span>}
                   </Label>
                   <div className="relative">
-                    <Input id="password" type={showPassword ? "text" : "password"} value={formPassword} onChange={(e) => { setFormPassword(e.target.value); validateField("password", e.target.value); }} required={!isEdit} placeholder={isEdit ? t('users.unchanged_placeholder', "Unchanged...") : "••••••••"} className={cn("pr-9 bg-muted/30 h-11 placeholder:text-muted-foreground/50 transition-all", fieldErrors.password && "border-destructive focus-visible:ring-destructive text-destructive")} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn("absolute right-3 top-3 transition-colors", fieldErrors.password ? "text-destructive/50 hover:text-destructive" : "text-muted-foreground hover:text-foreground")}>
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <Input id="password" type={showPassword ? "text" : "password"} value={formPassword} onChange={(e) => { setFormPassword(e.target.value); validateField("password", e.target.value); }} required={!isEdit} aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined} placeholder={isEdit ? t('users.unchanged_placeholder', "Unchanged...") : "••••••••"} className={cn("pr-9 bg-muted/30 h-11 placeholder:text-muted-foreground/50 transition-all", fieldErrors.password && "border-destructive focus-visible:ring-destructive text-destructive")} />
+                    <button type="button" aria-label={showPassword ? t('users.hide_password', 'Hide password') : t('users.show_password', 'Show password')} onClick={() => setShowPassword(!showPassword)} className={cn("absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", fieldErrors.password ? "text-destructive hover:text-destructive" : "text-muted-foreground hover:text-foreground")}>
+                      {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
                     </button>
                   </div>
-                  {fieldErrors.password && <p className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-start gap-1 mt-1 animate-in fade-in leading-tight"><AlertCircle className="h-3 w-3 shrink-0 mt-[1px]" /> {fieldErrors.password}</p>}
+                  {fieldErrors.password && <p id="password-error" className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-start gap-1 mt-1 animate-in fade-in leading-tight"><AlertCircle aria-hidden="true" className="h-3 w-3 shrink-0 mt-[1px]" /> {fieldErrors.password}</p>}
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
                 <Button type="button" variant="link" size="sm" onClick={() => { const newPass = generateStrongPassword(); setFormPassword(newPass); setShowPassword(true); validateField("password", newPass); }} className="h-auto p-0 text-xs text-primary gap-1.5">
                   <RefreshCw className="h-3 w-3" /> {t('users.generate_pass', 'Generate Strong Password')}
                 </Button>
+              </div>
+
+              <Separator />
+
+              {/* 🚀 NOTIFICATION CHANNELS & PREFERENCES */}
+              <div className="space-y-4 rounded-2xl bg-muted/30 border border-border/60 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Bell className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                        {t("users.notification_channels", "Notification Channels & Alert Routing")}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t("users.notification_channels_desc", "Configure SMS, Email, and Telegram bot dispatch.")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  {/* Phone Number for SMS */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone_number" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-sky-500" /> {t("users.phone_number", "Phone Number (SMS)")}
+                    </Label>
+                    <Input
+                      id="phone_number"
+                      value={formPhoneNumber}
+                      onChange={(e) => setFormPhoneNumber(e.target.value)}
+                      placeholder="0943488880 or +2519..."
+                      className="bg-background/80 h-10 text-xs font-mono rounded-xl border-border/60"
+                    />
+                  </div>
+
+                  {/* Telegram Chat ID */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="telegram_chat_id" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Send className="h-3.5 w-3.5 text-sky-500" /> {t("users.telegram_chat_id", "Telegram Chat ID")}
+                    </Label>
+                    <Input
+                      id="telegram_chat_id"
+                      value={formTelegramChatId}
+                      onChange={(e) => setFormTelegramChatId(e.target.value)}
+                      placeholder="e.g. 734736898"
+                      className="bg-background/80 h-10 text-xs font-mono rounded-xl border-border/60"
+                    />
+                  </div>
+                </div>
+
+                {/* Default Primary Channel Radio Group */}
+                <div className="space-y-2 pt-1 border-t border-border/40">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    {t("users.default_channel", "Default / Primary Alert Channel")}
+                  </Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["email", "sms", "telegram"] as const).map((channel) => (
+                      <button
+                        key={channel}
+                        type="button"
+                        onClick={() => setFormDefaultChannel(channel)}
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold transition-all",
+                          formDefaultChannel === channel
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background/60 text-muted-foreground hover:bg-muted/80 border-border/60"
+                        )}
+                      >
+                        {channel === "email" && <Mail className="h-3.5 w-3.5" />}
+                        {channel === "sms" && <MessageSquare className="h-3.5 w-3.5" />}
+                        {channel === "telegram" && <Send className="h-3.5 w-3.5" />}
+                        <span className="capitalize">{channel}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Channel Toggles */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-border/40">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border/40">
+                    <Label htmlFor="chan_email" className="text-xs font-medium cursor-pointer">Email Alerts</Label>
+                    <Switch id="chan_email" checked={formChannelEmail} onCheckedChange={setFormChannelEmail} />
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border/40">
+                    <Label htmlFor="chan_sms" className="text-xs font-medium cursor-pointer">SMS Alerts</Label>
+                    <Switch id="chan_sms" checked={formChannelSms} onCheckedChange={setFormChannelSms} />
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border/40">
+                    <Label htmlFor="chan_telegram" className="text-xs font-medium cursor-pointer">Telegram Bot</Label>
+                    <Switch id="chan_telegram" checked={formChannelTelegram} onCheckedChange={setFormChannelTelegram} />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1177,12 +1446,12 @@ export function UsersTabClient(props: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={canBrowseAvatarLibrary && isFileManagerOpen} onOpenChange={setIsFileManagerOpen}>
+      <Dialog open={canBrowseAvatarLibrary && isFileManagerOpen} onOpenChange={handleAvatarPickerOpenChange}>
           <DialogContent className="max-w-6xl w-[95vw] h-[85vh] p-0 overflow-hidden rounded-[2.5rem] bg-background border-border/50 shadow-2xl flex flex-col gap-0 z-[100]">
               <DialogTitle className="sr-only">Select User Avatar</DialogTitle>
               <div className="px-8 py-5 border-b border-border/50 bg-card/60 backdrop-blur-xl shrink-0 flex items-center gap-4 z-10">
                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 shadow-inner">
-                      <ImageIcon className="h-6 w-6 text-primary" />
+                      <ImageIcon aria-hidden="true" className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                       <h2 className="text-xl font-black tracking-tight text-foreground">Select Avatar</h2>
@@ -1194,7 +1463,7 @@ export function UsersTabClient(props: Props) {
                       .file-picker-wrapper > div > div:nth-child(1), .file-picker-wrapper > div > div:nth-child(2) > div:nth-child(2) { display: none !important; }
                       .file-picker-wrapper > div { height: 100% !important; min-height: 100% !important; margin: 0 !important; }
                   `}} />
-                  <FileManagerClient isPickerMode={true} access={{ canRead: canBrowseAvatarLibrary, canManage: canManageStorage }} onFileSelect={handleFileSelect} />
+                  <FileManagerClient isPickerMode={true} acceptedFileTypes="image/*" acceptedFileDescription="an image file" access={{ canRead: canBrowseAvatarLibrary, canManage: canManageStorage }} onFileSelect={handleFileSelect} />
               </div>
           </DialogContent>
       </Dialog>
@@ -1213,16 +1482,16 @@ export function UsersTabClient(props: Props) {
               <DialogDescription className="ml-10">{t('users.create_role_desc', 'Establish a new clearance level for system operators.')}</DialogDescription>
             </DialogHeader>
           </div>
-          
+
           <form onSubmit={(e) => { e.preventDefault(); if (newRoleName.trim()) createRoleMut.mutate({ name: newRoleName.trim(), permissions: newRolePermissions }); }}>
             <div className="px-6 py-6 space-y-6">
               <div className="space-y-1.5">
                 <Label htmlFor="newRoleName">{t('users.role_name', 'Role Name')} <span className="text-destructive">*</span></Label>
-                <Input 
-                  id="newRoleName" 
-                  value={newRoleName} 
-                  onChange={(e) => setNewRoleName(e.target.value)} 
-                  placeholder="e.g. Project Manager" 
+                <Input
+                  id="newRoleName"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                  placeholder="e.g. Project Manager"
                   className="bg-muted/30 h-11 transition-all"
                   autoFocus
                 />

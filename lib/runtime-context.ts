@@ -277,28 +277,14 @@ export const getBackendOrigin = (): string => {
 };
 
 export const getBackendApiRoot = (): string => {
-  // Tenant requests use the Next.js same-origin rewrite. This keeps the
-  // browser on its tenant host, lets Docker resolve the private backend name,
-  // and avoids requiring every generated or custom tenant host to expose the
-  // backend port directly.
-  if (shouldUseSameOriginTenantBackend()) {
+  // Browser requests always use the Next.js same-origin rewrite. The Next
+  // server reaches Laravel over INTERNAL_API_URL, so the client does not
+  // depend on a separately published backend port or cross-origin CORS.
+  if (typeof window !== "undefined") {
     return `${window.location.origin.replace(/\/+$/, "")}/api/v1`;
   }
 
   const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
-  const onTenantHost =
-    typeof window !== "undefined" && isTenantHost(window.location.hostname);
-
-  if (configured && onTenantHost) {
-    try {
-      const url = new URL(configured);
-      url.protocol = window.location.protocol;
-      url.hostname = window.location.hostname;
-      return normalizeApiRoot(url.toString());
-    } catch {
-      // Fallback
-    }
-  }
 
   if (configured) {
     return normalizeApiRoot(configured);
@@ -525,6 +511,12 @@ export const getBackendStorageUrl = (
 ): string | null => {
   if (!url) return null;
 
+  // Built-in brand fallbacks are shipped by Next.js from /public. Keep them
+  // same-origin instead of rewriting them to the Laravel API origin.
+  if (url.startsWith("/branding/")) {
+    return url;
+  }
+
   const assetPath = getStorageAssetPath(url);
   if (assetPath) {
     const onTenantHost =
@@ -564,6 +556,12 @@ export const extractStorageRelativePath = (
   url: string | null | undefined,
 ): string | null => {
   if (!url) return null;
+
+  // Built-in brand fallbacks are shipped by Next.js from /public. Keep them
+  // same-origin instead of rewriting them to the Laravel API origin.
+  if (url.startsWith("/branding/")) {
+    return url;
+  }
 
   const assetPath = getStorageAssetPath(url);
   if (assetPath) {

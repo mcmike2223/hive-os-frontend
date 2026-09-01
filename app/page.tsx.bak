@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  Activity, ArrowRight, ArrowUp, BatteryCharging, Boxes, Building2, Calculator, 
-  Car, Check, CheckCircle2, ChevronRight, CloudLightning, Code2, 
-  Database, FileText, Globe, LineChart, Network, 
-  PieChart, ShieldCheck, SmartphoneNfc, Truck, Users, 
+  Activity, ArrowRight, ArrowUp, BatteryCharging, Boxes, Building2, Calculator,
+  Car, Check, CheckCircle2, ChevronRight, CloudLightning, Code2,
+  Database, FileText, Globe, LineChart, Network,
+  PieChart, ShieldCheck, SmartphoneNfc, Truck, Users,
   Wallet, Zap
 } from "lucide-react";
 import React, { useEffect, useRef, useState, useMemo } from 'react';
@@ -40,10 +40,10 @@ function SafeLogo({ src, alt, className, fallback }: { src: string | null; alt: 
   }
 
   return (
-    <img 
-      src={src} 
-      alt={alt} 
-      className={className} 
+    <img
+      src={src}
+      alt={alt}
+      className={className}
       onError={() => setFailed(true)}
     />
   );
@@ -76,7 +76,7 @@ const PartnerSlider = ({ partners }: { partners: any[] }) => {
 
     const scrollStep = () => {
       if (!isHovered) {
-        scroller.scrollLeft += 0.5; 
+        scroller.scrollLeft += 0.5;
       }
 
       if (scroller.scrollLeft >= scroller.scrollWidth / 2) {
@@ -102,12 +102,12 @@ const PartnerSlider = ({ partners }: { partners: any[] }) => {
     <div className="w-full bg-background/50 backdrop-blur-sm border-y border-border py-12 overflow-hidden relative z-10 shadow-inner">
       <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent z-20 pointer-events-none"></div>
       <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none"></div>
-      
+
       <div className="text-center font-mono text-xs text-muted-foreground mb-10 tracking-widest uppercase">
         Ecosystem Integrations & Partners
       </div>
-      
-      <div 
+
+      <div
         ref={scrollerRef}
         className="flex overflow-x-auto no-scrollbar w-full cursor-grab active:cursor-grabbing"
       >
@@ -115,19 +115,19 @@ const PartnerSlider = ({ partners }: { partners: any[] }) => {
             <div key={arrayIndex} className="flex shrink-0 gap-6 items-center pr-6">
               {partners.map((partner, i) => {
                 return (
-                  <div 
-                    key={`${arrayIndex}-${i}`} 
+                  <div
+                    key={`${arrayIndex}-${i}`}
                     className="flex items-center gap-4 px-8 py-4 bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl hover:border-primary/50 hover:bg-card/80 transition-all duration-300 group shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.02)]"
                   >
                     <div className="w-12 h-12 p-2 rounded-xl bg-background/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm overflow-hidden relative">
-                       <img 
-                        src={partner.logo} 
-                        alt={`${partner.name} logo`} 
+                       <img
+                        src={partner.logo}
+                        alt={`${partner.name} logo`}
                         className="max-w-full max-h-full object-contain"
                         suppressHydrationWarning
                         onError={(e) => {
-                          e.currentTarget.onerror = null; 
-                          e.currentTarget.style.display = 'none'; 
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.style.display = 'none';
                         }}
                       />
                     </div>
@@ -150,7 +150,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  
+
   // SCROLL TO TOP STATE
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -178,10 +178,10 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
   });
 
   const brandSettings = brandData?.data;
-  
+
   // Default to Dark Mode during hydration
-  const isDark = mounted ? resolvedTheme === 'dark' : true; 
-  
+  const isDark = mounted ? resolvedTheme === 'dark' : true;
+
   // 🎨 DYNAMIC ASSET RESOLUTION
   const rawLogoUrl = useMemo(() => {
     const darkLogo = brandSettings?.logo_dark;
@@ -212,7 +212,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const y = element.getBoundingClientRect().top + window.scrollY - 80; 
+      const y = element.getBoundingClientRect().top + window.scrollY - 80;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
@@ -283,7 +283,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         return () => window.removeEventListener('resize', handleResize);
       }
     }
-  }, [resolvedTheme]); 
+  }, [resolvedTheme]);
 
   const partners = [
     { name: "COMMERCIAL BANK", logo: "/logos/cbe.png" },
@@ -304,7 +304,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden">
-      
+
       {/* 🚀 SCROLL TO TOP BUTTON */}
       {showScrollTop && (
         <Button
@@ -325,10 +325,10 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
       <nav className="fixed top-0 z-50 flex w-full items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur-xl transition-all">
         <Link href="/" className="flex items-center gap-2 font-space text-xl font-bold tracking-tight hover:text-primary transition-colors group">
           {/* 🚀 Safely render Logo without CORS fetch */}
-          <SafeLogo 
-            src={rawLogoUrl} 
-            alt={appTitle} 
-            className="h-9 w-auto object-contain transition-transform group-hover:scale-105" 
+          <SafeLogo
+            src={rawLogoUrl}
+            alt={appTitle}
+            className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
             fallback={
               <div className="flex items-center gap-2">
                 <Globe className="text-primary h-5 w-5 group-hover:rotate-180 transition-transform duration-700" />
@@ -337,7 +337,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             }
           />
         </Link>
-        
+
         <div className="hidden md:flex items-center gap-6 text-xs font-bold text-muted-foreground font-space uppercase">
           <button onClick={() => scrollToSection('modules')} className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer">Modules</button>
           <button onClick={() => scrollToSection('fintech')} className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer">Payments</button>
@@ -361,7 +361,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             {!initialIsTenant && (
               <Link href="/auth/signup">
                 <Button className="font-space font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 border-none hover:scale-105 transition-all duration-300 [clip-path:polygon(10%_0,100%_0,100%_70%,90%_100%,0_100%,0_30%)]">
-                  Deploy Node
+                  Create Buisness Account
                 </Button>
               </Link>
             )}
@@ -375,10 +375,10 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
           <span className="mr-2 h-2 w-2 rounded-full bg-primary animate-pulse"></span>
           {initialIsTenant ? `CONNECTED NODE: ${appTitle}` : 'DEVELOPED BY TECHIVE TECHNOLOGY SOLUTIONS'}
         </div>
-        
+
         <h1 className="max-w-5xl font-space text-5xl font-black leading-tight tracking-tighter md:text-7xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100 drop-shadow-2xl">
           {initialIsTenant ? (
-            <>Unified Management <br /> 
+            <>Unified Management <br />
               <span className="relative inline-block mt-2 mb-2 group">
                 <span className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/40 transition-all duration-700"></span>
                 <span className="relative bg-gradient-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent animate-text-shimmer uppercase">
@@ -390,44 +390,44 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             <>Unify Your <br /> <span className="bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent animate-text-shimmer">Enterprise Operations</span></>
           )}
         </h1>
-        
+
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl font-inter animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-          {initialIsTenant 
-            ? `Access the central node for ${appTitle}. Oversee HR, track freight logistics, and manage financial ledgers in real-time.` 
+          {initialIsTenant
+            ? `Access the central node for ${appTitle}. Oversee HR, track freight logistics, and manage financial ledgers in real-time.`
             : 'Hive is the comprehensive ERP solution built for scalable businesses in Ethiopia. Connect your Finance, HR, and Supply Chain with local tax and banking integrations.'}
         </p>
 
         {/* --- 3D DASHBOARD PREVIEW --- */}
         <div className="mt-20 w-full max-w-6xl [perspective:2000px] relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/20 blur-[120px] rounded-full pointer-events-none animate-pulse-hex"></div>
-          
+
           <div className="relative grid grid-cols-[80px_250px_1fr] overflow-hidden rounded-xl border border-primary/30 bg-background/60 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] h-[500px] md:h-[650px] animate-float-deck group hover:border-primary/60 transition-colors duration-500">
               <div className="absolute inset-0 w-full h-[2px] bg-primary/50 shadow-[0_0_15px_hsl(var(--primary))] z-50 animate-scan-beam pointer-events-none"></div>
-              
+
               <div className="flex flex-col items-center gap-6 border-r border-border bg-muted/20 pt-8 z-10">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)_/_0.2)] hover:scale-110 transition-transform cursor-pointer"><LineChart className="h-6 w-6"/></div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"><Truck className="h-6 w-6"/></div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"><Users className="h-6 w-6"/></div>
                 <div className="mt-auto mb-5 text-muted-foreground"><Activity className="h-6 w-6 animate-pulse"/></div>
               </div>
-              
+
               <div className="hidden md:block border-r border-border bg-muted/5 p-8 font-mono text-sm text-left z-10 relative">
                 <div className="mb-6 text-xs text-muted-foreground uppercase tracking-widest">&gt; System Modules</div>
                 <div className="space-y-6">
                   <div className="flex justify-between items-center group/item cursor-pointer">
-                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">General Ledger</span> 
+                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">General Ledger</span>
                      <span className="text-green-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> SYNCED</span>
                   </div>
                   <div className="flex justify-between items-center group/item cursor-pointer">
-                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Freight & Fleet</span> 
+                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Freight & Fleet</span>
                      <span className="text-green-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> ACTIVE</span>
                   </div>
                   <div className="flex justify-between items-center group/item cursor-pointer">
-                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Payroll Proc.</span> 
+                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Payroll Proc.</span>
                      <span className="text-yellow-500 animate-pulse">PENDING</span>
                   </div>
                 </div>
-                
+
                 <div className="absolute bottom-8 left-8 right-8 h-auto rounded border border-primary/20 bg-primary/5 p-4 text-primary text-xs shadow-inner overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent -translate-x-full animate-[shimmer-text_3s_infinite]"></div>
                   SERVER STATUS: <br/> <span className="text-lg font-bold">OPTIMAL</span>
@@ -439,7 +439,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
               <div className="p-8 bg-card/10 text-left z-10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 animate-pulse-hex"></div>
-                
+
                 <div className="flex items-end justify-between border-b border-border pb-6">
                   <div>
                     <h2 className="font-space text-3xl font-bold">Executive Summary</h2>
@@ -450,7 +450,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
                     <div className="font-mono text-xs text-muted-foreground">GROSS REVENUE (YTD)</div>
                   </div>
                 </div>
-                
+
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
                     <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">ACTIVE LOADS</div>
@@ -540,7 +540,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
       {/* --- FINTECH & PAYMENT GATEWAY INTEGRATION --- */}
       <section id="fintech" className="py-24 bg-card/20 relative overflow-hidden border-t border-border">
         <div className="absolute left-0 bottom-0 w-1/2 h-full bg-green-500/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
-        
+
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-green-500/10 text-green-500 border-none shadow-none">FINANCIAL ECOSYSTEM</Badge>
@@ -610,7 +610,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               </div>
             </div>
           </div>
-          
+
           <div className="flex-1 relative">
              <div className="w-full h-[400px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden relative group">
                 <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
@@ -789,7 +789,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               </div>
             </div>
           </div>
-          
+
           <div className="flex-1 relative flex justify-center">
             <div className="w-72 h-[600px] border-[8px] border-muted rounded-[3rem] bg-background shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-muted rounded-b-xl z-20"></div>
@@ -885,19 +885,19 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
         <div className="space-y-4">
           {faqs.map((faq, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className="border border-border bg-card/30 rounded-xl overflow-hidden transition-all duration-300"
             >
-              <button 
+              <button
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
                 className="w-full text-left px-6 py-5 flex justify-between items-center hover:bg-muted/20 transition-colors"
               >
                 <span className="font-bold font-space pr-4">{faq.q}</span>
                 <ChevronRight className={`w-5 h-5 text-primary transition-transform duration-300 shrink-0 ${openFaq === idx ? 'rotate-90' : ''}`} />
               </button>
-              
-              <div 
+
+              <div
                 className={`px-6 text-muted-foreground text-sm overflow-hidden transition-all duration-500 ease-in-out ${openFaq === idx ? 'max-h-40 pb-6 opacity-100' : 'max-h-0 py-0 opacity-0'}`}
               >
                 {faq.a}
@@ -912,7 +912,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         <section className="py-32 px-4 relative overflow-hidden">
           <div className="absolute inset-0 bg-primary/5"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-full bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
-          
+
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <h2 className="font-space text-5xl md:text-6xl font-black mb-6">Ready to upgrade your Ethiopian Enterprise?</h2>
             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
@@ -939,17 +939,17 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-4 gap-12 relative z-10">
            <div className="md:col-span-2">
               {/* 🚀 Using SafeLogo for the footer as well */}
-              <SafeLogo 
-                src={rawLogoUrl} 
-                alt={appTitle} 
-                className="h-10 w-auto object-contain mb-4 transition-transform hover:scale-105" 
+              <SafeLogo
+                src={rawLogoUrl}
+                alt={appTitle}
+                className="h-10 w-auto object-contain mb-4 transition-transform hover:scale-105"
                 fallback={
                   <h2 className={`font-space text-3xl font-bold mb-2 uppercase ${initialIsTenant ? 'text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400' : 'text-primary'}`}>
                     {appTitle}
                   </h2>
                 }
               />
-             
+
              <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-6">
                 {brandSettings?.footer_text || 'The robust Enterprise Resource Planning system. Streamlining Finance, HR, Smart Mobility, and Logistics for the modern Ethiopian business.'}
              </p>
@@ -959,7 +959,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
                <ArrowRight className="h-4 w-4 text-primary cursor-pointer group-hover:translate-x-2 transition-transform duration-300"/>
              </div>
            </div>
-           
+
            <div>
              <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">Modules</h4>
              <ul className="space-y-3 text-sm text-muted-foreground font-medium">
@@ -980,7 +980,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
              </ul>
            </div>
         </div>
-        
+
         <div className="mx-auto max-w-6xl mt-16 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border">

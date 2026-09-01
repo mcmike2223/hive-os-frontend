@@ -51,6 +51,7 @@ export function useProjectManagementRealtime(options: ProjectManagementRealtimeO
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     const workspaceChannelName = getProjectManagementChannelName();
     const workspaceChannel = echo.private(workspaceChannelName);
 

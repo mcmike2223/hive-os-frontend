@@ -1,9 +1,10 @@
-import { Code2, FileText, HardDrive, LayoutDashboard, Settings } from "lucide-react";
+import { Code2, FileText, HardDrive, LayoutDashboard, Settings, Trash2 } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 import {
   API_DOCS_ROUTE_PERMISSIONS,
   SETTINGS_ROUTE_PERMISSIONS,
   STORAGE_ROUTE_PERMISSIONS,
+  TRASH_ROUTE_PERMISSIONS,
 } from "@/lib/route-permissions";
 
 export const coreModule: FrontendModuleDefinition = {
@@ -11,7 +12,7 @@ export const coreModule: FrontendModuleDefinition = {
   name: "Core",
   description: "Shared operational capabilities such as dashboard, settings, audit logs, storage, and docs.",
   backendModule: "Modules\\Core",
-  routePrefixes: ["/dashboard", "/dashboard/audit-logs", "/dashboard/settings", "/dashboard/storage", "/dashboard/api-docs"],
+  routePrefixes: ["/dashboard", "/dashboard/trash", "/dashboard/audit-logs", "/dashboard/settings", "/dashboard/storage", "/dashboard/api-docs"],
   navItems: [
     {
       moduleId: "core",
@@ -43,6 +44,16 @@ export const coreModule: FrontendModuleDefinition = {
       permissions: [...STORAGE_ROUTE_PERMISSIONS],
       subscriptionSlug: ["file_manager", "media_library", "video_player", "audio_player"],
       tourId: "tour-nav-storage",
+      placement: "secondary",
+    },
+    {
+      moduleId: "core",
+      translationKey: "nav.trash",
+      fallbackLabel: "Trash Bin",
+      href: "/dashboard/trash",
+      icon: Trash2,
+      permissions: [...TRASH_ROUTE_PERMISSIONS],
+      tourId: "tour-nav-trash",
       placement: "secondary",
     },
     {

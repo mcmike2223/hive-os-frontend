@@ -5,7 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { Server, PlusCircle, Pencil, Trash2, Loader2, Calendar, Globe, AlertCircle, Power, UserX, UserPlus, Mail, Eye, UserCheck, Layers, LayoutTemplate } from "lucide-react";
+import type { Step } from "react-joyride";
+import { useTour } from "@/components/providers/tour-provider";
+import { HelpCircle, Server, PlusCircle, Pencil, Trash2, Loader2, Calendar, Globe, AlertCircle, Power, UserX, UserPlus, Mail, Eye, UserCheck, Layers, LayoutTemplate } from "lucide-react";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,6 +36,9 @@ import { type VirtualFile } from "@/components/ui/code-editor";
 import { fetchTenants } from "@/modules/tenancy/api";
 import { TenantDomainManager } from "@/modules/tenancy/components/tenant-domain-manager";
 import { TenantLandingTemplateEditor } from "@/modules/tenancy/components/tenant-landing-template-editor";
+import { TemplatePickerDialog } from "@/modules/landing-templates/components/template-picker-dialog";
+import { TemplatePreviewDialog } from "@/modules/landing-templates/components/template-preview-dialog";
+import type { TemplateLibraryCard } from "@/modules/landing-templates/lib/api";
 import {
     applyLandingTemplateMeta,
     buildTenantLandingPreviewHtml,
@@ -45,6 +50,7 @@ import {
     resolveLandingTemplate,
     resolveTemplateVariant,
     type TenantLandingPreviewBranding,
+    type TenantLandingTemplate,
 } from "@/modules/tenancy/landing-template";
 import { getErrorMessage } from "@/lib/errors";
 import { getBackendApiRoot, getWorkspaceScopeKey } from "@/lib/runtime-context";
@@ -156,7 +162,7 @@ export function TenantsTableClient({ companySettings, brandingSettings }: Props)
     const [page, setPage] = React.useState(1);
     const [pageSize, setPageSize] = useLocalStorage<number>("tenants_table_page_size", 10);
     const [search, setSearch] = React.useState("");
-    const [sortCol, setSortCol] = React.useState<string>("created_at"); 
+    const [sortCol, setSortCol] = React.useState<string>("created_at");
     const [sortDir, setSortDir] = React.useState<string>("desc");
     const [tableKey, setTableKey] = React.useState(0);
 
@@ -179,15 +185,19 @@ export function TenantsTableClient({ companySettings, brandingSettings }: Props)
     const [landingTemplateFiles, setLandingTemplateFiles] = React.useState<VirtualFile[]>(
         createTemplateFiles(formatLandingTemplateJson(FALLBACK_TENANT_LANDING_TEMPLATE))
     );
+    const [landingTemplateRevision, setLandingTemplateRevision] = React.useState(0);
     const [showLandingPreview, setShowLandingPreview] = React.useState(true);
+    const [libraryPickerOpen, setLibraryPickerOpen] = React.useState(false);
+    const [selectedLibraryTemplate, setSelectedLibraryTemplate] = React.useState<TemplateLibraryCard | null>(null);
+    const [previewDialogTarget, setPreviewDialogTarget] = React.useState<TemplateLibraryCard | null>(null);
 
     const triggerAudit = React.useCallback(async (action: string, description: string) => {
         if (typeof window === "undefined") return;
         const now = Date.now();
         const payloadKey = `${action}_${description}`;
-        if (globalActionLock[payloadKey] && now - globalActionLock[payloadKey] < 500) return; 
+        if (globalActionLock[payloadKey] && now - globalActionLock[payloadKey] < 500) return;
         globalActionLock[payloadKey] = now;
-        try { await logFrontendAction({ module: 'Tenant Management', action, description }); } catch (e) {}
+        try { await logFrontendAction({ module: 'Tenant Management', action, description }); } catch (e) { }
     }, []);
 
     const { data: tenantsData, isLoading, isFetching } = useQuery({
@@ -199,7 +209,7 @@ export function TenantsTableClient({ companySettings, brandingSettings }: Props)
         placeholderData: (prev) => prev,
     });
 
-const { data: subscriptionCatalogData } = useQuery({
+    const { data: subscriptionCatalogData } = useQuery({
         queryKey: ["tenant-subscription-catalog"],
         queryFn: fetchSubscriptionCatalog,
         enabled: canCreate || canEdit,
@@ -234,7 +244,7 @@ const { data: subscriptionCatalogData } = useQuery({
     const businessTypeMap = React.useMemo(
         () => Object.fromEntries(businessTypes.map((option) => [option.key, option])),
         [businessTypes]
-);
+    );
     const activeBusinessTypeDefinition = businessTypeMap[formBusinessType] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
 
     // Also keep plan defaults for module defaults
@@ -290,6 +300,27 @@ const { data: subscriptionCatalogData } = useQuery({
         ),
         [activeBusinessTypeDefinition.label, parsedLandingTemplateState.template, previewBranding, previewColorMode]
     );
+    const viewLandingTemplate = React.useMemo(() => {
+        if (!viewTenant) return null;
+        const definition = businessTypeMap[viewTenant.business_type ?? ""] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
+        return resolveLandingTemplate(viewTenant.landing_page_template, definition.default_template);
+    }, [businessTypeMap, businessTypes, viewTenant]);
+    const viewLandingPreviewHtml = React.useMemo(() => {
+        if (!viewLandingTemplate || !viewTenant) return "";
+        const definition = businessTypeMap[viewTenant.business_type ?? ""] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
+        return buildTenantLandingPreviewHtml(
+            viewLandingTemplate,
+            viewTenant.name || "Tenant Brand",
+            definition.label,
+            {
+                colorMode: previewColorMode,
+                branding: {
+                    ...previewBranding,
+                    app_title: viewTenant.name || "Tenant Brand",
+                },
+            }
+        );
+    }, [businessTypeMap, businessTypes, previewBranding, previewColorMode, viewLandingTemplate, viewTenant]);
     const initialEditSnapshot = React.useMemo(() => {
         if (!editingTenant) {
             return null;
@@ -383,6 +414,7 @@ const { data: subscriptionCatalogData } = useQuery({
                 formatLandingTemplateJson(resolveLandingTemplate(template, fallback ?? FALLBACK_TENANT_LANDING_TEMPLATE))
             )
         );
+        setLandingTemplateRevision((revision) => revision + 1);
     }, []);
 
     const handlePlanChange = React.useCallback((nextPlan: string) => {
@@ -401,6 +433,7 @@ const { data: subscriptionCatalogData } = useQuery({
 
     const handleBusinessTypeChange = React.useCallback((nextType: string) => {
         const definition = businessTypeMap[nextType] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
+        setSelectedLibraryTemplate(null);
         setFormBusinessType(definition.key);
         writeLandingTemplate(
             buildPresetTemplate(definition, definition.default_template_key),
@@ -410,10 +443,32 @@ const { data: subscriptionCatalogData } = useQuery({
 
     const handleTemplateVariantChange = React.useCallback((nextTemplateKey: string) => {
         const definition = businessTypeMap[formBusinessType] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
+        setSelectedLibraryTemplate(null);
         writeLandingTemplate(buildPresetTemplate(definition, nextTemplateKey), definition.default_template);
     }, [buildPresetTemplate, businessTypeMap, businessTypes, formBusinessType, writeLandingTemplate]);
 
+    const handleSelectLibraryTemplate = React.useCallback((tpl: TemplateLibraryCard) => {
+        setSelectedLibraryTemplate(tpl);
+        const matchingBusinessType = businessTypes.find((bt: BusinessTypeCatalogEntry) => tpl.business_types?.includes(bt.key)) ?? activeBusinessTypeDefinition;
+        if (matchingBusinessType.key !== formBusinessType) {
+            setFormBusinessType(matchingBusinessType.key);
+        }
+        const rawTemplate = (tpl.preview ?? matchingBusinessType.default_template) as TenantLandingTemplate;
+        const hydrated = applyLandingTemplateMeta(rawTemplate, {
+            business_type: matchingBusinessType.key,
+            business_label: matchingBusinessType.label,
+            template_key: tpl.slug,
+            template_label: tpl.name,
+            template_description: tpl.description || matchingBusinessType.description,
+            is_custom: false,
+        });
+        writeLandingTemplate(hydrated, matchingBusinessType.default_template);
+        setShowLandingPreview(true);
+        toast.success(t('tenants.template_selected', `Applied template: ${tpl.name}`));
+    }, [activeBusinessTypeDefinition, businessTypes, formBusinessType, t, writeLandingTemplate]);
+
     const handleResetTemplate = React.useCallback(() => {
+        setSelectedLibraryTemplate(null);
         writeLandingTemplate(
             buildPresetTemplate(activeBusinessTypeDefinition, selectedTemplateVariant.key),
             activeBusinessTypeDefinition.default_template
@@ -527,9 +582,9 @@ const { data: subscriptionCatalogData } = useQuery({
         triggerAudit('viewed', 'Operator manually refreshed Node Matrix datatable');
         queryClient.invalidateQueries({ queryKey: ["tenants"] });
     }, [queryClient, triggerAudit]);
-    
-    const resetFilters = React.useCallback(() => { 
-        setSearch(""); setSortCol("created_at"); setSortDir("desc"); setPage(1); setTableKey(prev => prev + 1); 
+
+    const resetFilters = React.useCallback(() => {
+        setSearch(""); setSortCol("created_at"); setSortDir("desc"); setPage(1); setTableKey(prev => prev + 1);
         triggerAudit('filtered', 'Operator reset all Node Matrix active filters');
     }, [triggerAudit]);
 
@@ -550,12 +605,14 @@ const { data: subscriptionCatalogData } = useQuery({
         }
     }, [deleteMut, triggerAudit, t]);
 
-    const openView = (tenant: TenantRecord) => { 
-        setViewTenant(tenant); setViewDialogOpen(true); 
+    const openView = (tenant: TenantRecord) => {
+        setViewTenant(tenant); setViewDialogOpen(true);
         triggerAudit('viewed', `Operator performed deep metric inspection on Node ID: ${tenant.id}`);
     };
-    
+
     const openCreate = () => {
+        setSelectedLibraryTemplate(null);
+        setShowLandingPreview(true);
         const defaultBusinessType = businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
         setEditingTenant(null); setFormId(""); setFormName(""); setFormPlan("business"); setFormDomain("");
         setFormBusinessType(defaultBusinessType.key);
@@ -569,7 +626,7 @@ const { data: subscriptionCatalogData } = useQuery({
         setDialogOpen(true);
         triggerAudit('viewed', 'Operator accessed the Provisioning UI panel');
     };
-    
+
     const openEdit = (tenant: TenantRecord) => {
         const selectedBusinessType = businessTypeMap[tenant.business_type ?? ""] ?? businessTypes[0] ?? FALLBACK_TENANT_BUSINESS_TYPES[0];
         const existingTemplate = resolveLandingTemplate(
@@ -589,6 +646,8 @@ const { data: subscriptionCatalogData } = useQuery({
             is_custom: existingTemplate.meta?.is_custom
                 ?? (formatLandingTemplateJson(existingTemplate) !== formatLandingTemplateJson(sourceVariant.template)),
         });
+        setSelectedLibraryTemplate(null);
+        setShowLandingPreview(true);
         setEditingTenant(tenant); setFormId(tenant.id); setFormName(tenant.name ?? ""); setFormPlan(tenant.plan ?? "business"); setFormDomain(tenant.domain ?? "");
         setFormBusinessType(selectedBusinessType.key);
         writeLandingTemplate(hydratedTemplate, selectedBusinessType.default_template);
@@ -668,13 +727,13 @@ const { data: subscriptionCatalogData } = useQuery({
             id: "id", accessorKey: "id", header: t('tenants.col_id', "Node ID"),
             cell: ({ row }) => <div className="flex items-center gap-2 font-mono text-sm font-bold text-foreground"><Server className="h-4 w-4 text-primary" />{row.original.id}</div>,
         },
-        { 
-            id: "name", accessorFn: (row) => row.name || row.id, header: t('tenants.col_org', "Organization Name"), 
-            cell: ({ row }) => <span className="font-semibold">{row.original.name || row.original.id}</span> 
+        {
+            id: "name", accessorFn: (row) => row.name || row.id, header: t('tenants.col_org', "Organization Name"),
+            cell: ({ row }) => <span className="font-semibold">{row.original.name || row.original.id}</span>
         },
-        { 
-            id: "plan", accessorFn: (row) => row.plan, header: t('tenants.col_plan', "Capacity Plan"), 
-            cell: ({ row }) => getPlanBadge(row.original.plan) 
+        {
+            id: "plan", accessorFn: (row) => row.plan, header: t('tenants.col_plan', "Capacity Plan"),
+            cell: ({ row }) => getPlanBadge(row.original.plan)
         },
         {
             id: "business_type",
@@ -709,9 +768,9 @@ const { data: subscriptionCatalogData } = useQuery({
             cell: ({ row }) => <div className="flex items-center gap-1.5 text-muted-foreground font-mono text-xs"><Globe className="h-3.5 w-3.5" />{row.original.domain}</div>,
         },
         {
-            id: "status", 
+            id: "status",
             // 🚀 THE FIX: Translate the accessor string for frontend Copy/Print
-            accessorFn: (row) => row.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended"), 
+            accessorFn: (row) => row.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended"),
             header: t('tenants.col_status', "Node Status"),
             cell: ({ row }) => <Badge variant="outline" className={cn("uppercase text-[11px]", row.original.is_active ? "text-emerald-500 border-emerald-200 bg-emerald-50/50" : "text-destructive border-destructive/30 bg-destructive/10")}>{row.original.is_active ? t('global.online', "Online") : t('global.suspended', "Suspended")}</Badge>
         },
@@ -754,7 +813,7 @@ const { data: subscriptionCatalogData } = useQuery({
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="rounded-[2rem] bg-background/95 backdrop-blur-xl">
                                     <AlertDialogHeader><AlertDialogTitle className="text-destructive flex items-center gap-2"><AlertCircle className="h-5 w-5" /> {t('tenants.purge_title', "Purge Node?")}</AlertDialogTitle><AlertDialogDescription>{t('tenants.purge_desc', "This will permanently delete")} <strong>{tr.name}</strong> {t('tenants.purge_desc2', "and all data.")}</AlertDialogDescription></AlertDialogHeader>
-                                    <AlertDialogFooter><AlertDialogCancel className="rounded-xl">{t('global.cancel', "Cancel")}</AlertDialogCancel><AlertDialogAction className="rounded-xl bg-destructive" onClick={() => { void deleteMut.mutateAsync(tr.id).then((result) => { if (isOfflineMutationQueuedResult(result)) { toast.info(`Offline: node ${tr.id} deletion has been queued for sync.`); return; } toast.success(t('tenants.node_purged', "Node purged.")); }).catch(() => {}); }}>{t('tenants.purge_confirm', "Confirm Purge")}</AlertDialogAction></AlertDialogFooter>
+                                    <AlertDialogFooter><AlertDialogCancel className="rounded-xl">{t('global.cancel', "Cancel")}</AlertDialogCancel><AlertDialogAction className="rounded-xl bg-destructive" onClick={() => { void deleteMut.mutateAsync(tr.id).then((result) => { if (isOfflineMutationQueuedResult(result)) { toast.info(`Offline: node ${tr.id} deletion has been queued for sync.`); return; } toast.success(t('tenants.node_purged', "Node purged.")); }).catch(() => { }); }}>{t('tenants.purge_confirm', "Confirm Purge")}</AlertDialogAction></AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
                         )}
@@ -764,16 +823,108 @@ const { data: subscriptionCatalogData } = useQuery({
         }
     ], [canEdit, canDelete, canSuspend, toggleStatusMut.isPending, toggleAdminMut.isPending, openView, openEdit, t]);
 
+    const { startTour } = useTour();
+
+    const handleStartTour = React.useCallback(() => {
+        const steps: Step[] = [
+            {
+                target: '#tour-tenant-provision',
+                title: t('tenants.provision_title', 'Provision Tenant Account'),
+                content: t('tenants.provision_tour_desc', 'Launch a new isolated tenant database node, configure its domain, administrator, and capacity plan.'),
+                placement: 'bottom',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-tenant-table',
+                title: t('tenants.table_title', 'Tenant Registry'),
+                content: t('tenants.table_tour_desc', 'Monitor active workspaces, domain mappings, subscription tiers, and health status.'),
+                placement: 'top',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-datatable-search',
+                title: t('tour.search_title', 'Matrix Search'),
+                content: t('tenants.search_tour_desc', 'Search across tenant identifiers, organization names, or primary domains.'),
+                placement: 'bottom',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-datatable-export',
+                title: t('tour.export_title', 'Export Ledger'),
+                content: t('tenants.export_tour_desc', 'Export the full tenant accounts registry to Excel, CSV, or PDF format.'),
+                placement: 'bottom',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-action-view',
+                title: t('tenants.view_title', 'Inspect Node Telemetry'),
+                content: t('tenants.view_tour_desc', 'View connection credentials, domain bindings, and real-time database health.'),
+                placement: 'top',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-action-status',
+                title: t('tenants.status_title', 'Suspend / Resume Node'),
+                content: t('tenants.status_tour_desc', 'Immediately activate or suspend tenant workspace access with full isolation.'),
+                placement: 'top',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-action-admin',
+                title: t('tenants.admin_access_title', 'Admin Credentials Access'),
+                content: t('tenants.admin_access_tour_desc', 'Enable or disable Super Admin access to the tenant portal.'),
+                placement: 'top',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-action-edit',
+                title: t('tenants.edit_title', 'Reconfigure Node'),
+                content: t('tenants.edit_tour_desc', 'Update capacity plans, custom domains, and organizational details.'),
+                placement: 'top',
+                skipBeacon: true,
+            },
+            {
+                target: '#tour-action-purge',
+                title: t('tenants.purge_title', 'Purge Database'),
+                content: t('tenants.purge_tour_desc', 'Permanently drop the isolated database and purge all node assets from the cluster.'),
+                placement: 'top-end',
+                skipBeacon: true,
+            }
+        ];
+
+        startTour(steps);
+    }, [startTour, t]);
+
     const exportUrl = `${getBackendApiRoot()}/tenants/export?search=${encodeURIComponent(search || "")}&sortCol=${sortCol}&sortDir=${sortDir}&locale=${locale}`;
 
     return (
         <div className="space-y-4 mt-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card/40 p-6 rounded-[2rem] border border-border/50 backdrop-blur-md shadow-sm gap-4 mt-2">
-                {canCreate && (
-                    <div id="tour-tenant-provision" className="w-full flex justify-end">
-                        <Button onClick={openCreate} className="rounded-xl shadow-lg shadow-primary/20 h-11 px-6 font-bold tracking-wide"><PlusCircle className="mr-2 h-5 w-5" /> {t('tenants.provision_btn', 'Provision Node')}</Button>
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                        <Server className="h-5 w-5" />
                     </div>
-                )}
+                    <div>
+                        <h1 className="text-2xl font-space font-black tracking-tight">{t('tenants.title', 'Tenant Accounts')}</h1>
+                        <p className="text-xs text-muted-foreground">{t('tenants.subtitle', 'Provision, monitor, and manage isolated tenant database instances.')}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        id="tour-tenants-tour-btn"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleStartTour}
+                        className="h-10 rounded-xl shadow-sm text-muted-foreground hover:text-foreground border-border/50 bg-background/50 backdrop-blur-md flex items-center gap-1.5 font-bold"
+                    >
+                        <HelpCircle className="w-4 h-4" /> {t('tenants.tour_btn', 'Node Tour')}
+                    </Button>
+                    {canCreate && (
+                        <div id="tour-tenant-provision">
+                            <Button onClick={openCreate} className="rounded-xl shadow-lg shadow-primary/20 h-10 px-6 font-bold tracking-wide"><PlusCircle className="mr-2 h-4 w-4" /> {t('tenants.provision_btn', 'Create Tenant Account')}</Button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div id="tour-tenant-table">
@@ -783,18 +934,18 @@ const { data: subscriptionCatalogData } = useQuery({
                     pageIndex={page} pageSize={pageSize} onQueryChange={handleQueryChange} onRefresh={handleRefresh}
                     onResetFilters={resetFilters} onDeleteRows={canDelete ? handleDeleteRows : undefined}
                     searchPlaceholder={t('tenants.search_placeholder', "Filter nodes by ID or name...")} syncWithUrl={true}
-                    
-                    onCopy={() => triggerAudit('copied', 'Copied Node Matrix view to clipboard')} 
+
+                    onCopy={() => triggerAudit('copied', 'Copied Node Matrix view to clipboard')}
                     onPrint={() => triggerAudit('printed', 'Sent current Node Matrix view to PDF/Print processor')}
-                    onExport={(format) => triggerAudit('exported', `Triggered automated Node list export in ${format} format`)} 
-                    
+                    onExport={(format) => triggerAudit('exported', `Triggered automated Node list export in ${format} format`)}
+
                     companySettings={companySettings ?? undefined} brandingSettings={brandingSettings ?? undefined}
                 />
             </div>
 
             {/* CREATE / EDIT DIALOG */}
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if(!open) triggerAudit('viewed', 'Closed Provisioning/Reconfiguration Matrix'); }}>
-                <DialogContent className="sm:max-w-[1180px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl max-h-[92vh] flex flex-col">
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) triggerAudit('viewed', 'Closed Provisioning/Reconfiguration Matrix'); }}>
+                <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[1180px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl max-h-[92vh] flex flex-col">
                     <div className="px-6 py-5 border-b border-border/40 bg-muted/20 shrink-0"><DialogHeader><DialogTitle className="text-xl font-space font-black">{isEdit ? t('tenants.reconfigure', "Reconfigure Node") : t('tenants.provision_new', "Provision New Node")}</DialogTitle></DialogHeader></div>
                     <div className="overflow-y-auto p-6 scrollbar-thin">
                         <form id="tenant-form" onSubmit={handleSubmit} className="space-y-6">
@@ -846,6 +997,7 @@ const { data: subscriptionCatalogData } = useQuery({
                                         </div>
                                     ) : null}
                                     <TenantLandingTemplateEditor
+                                        key={`tenant-template-editor-${landingTemplateRevision}`}
                                         businessTypeLabel={activeBusinessTypeDefinition.label}
                                         businessTypeDescription={activeBusinessTypeDefinition.description}
                                         templateVariants={templateVariants}
@@ -858,6 +1010,41 @@ const { data: subscriptionCatalogData } = useQuery({
                                         showPreview={showLandingPreview}
                                         setShowPreview={setShowLandingPreview}
                                         previewHtml={landingPreviewHtml}
+                                        selectedLibraryTemplate={selectedLibraryTemplate}
+                                        selectedTemplateName={parsedLandingTemplateState.template.meta?.template_label}
+                                        selectedTemplateDescription={parsedLandingTemplateState.template.meta?.template_description}
+                                        onOpenLibraryPicker={() => setLibraryPickerOpen(true)}
+                                        onLivePreview={() => {
+                                            if (selectedLibraryTemplate) {
+                                                setPreviewDialogTarget(selectedLibraryTemplate);
+                                            } else {
+                                                setPreviewDialogTarget({
+                                                    id: 0,
+                                                    name: selectedTemplateVariant.label,
+                                                    slug: selectedTemplateVariant.key,
+                                                    description: selectedTemplateVariant.description,
+                                                    business_types: [activeBusinessTypeDefinition.key],
+                                                    categories: [activeBusinessTypeDefinition.label],
+                                                    tags: [activeBusinessTypeDefinition.label],
+                                                    thumbnail: null,
+                                                    screenshots: [],
+                                                    source_framework: "nextjs",
+                                                    runtime_framework: "nextjs",
+                                                    import_status: "approved",
+                                                    conversion_status: "converted",
+                                                    compatibility_status: "compatible",
+                                                    compatibility_score: 100,
+                                                    current_version: "1.0.0",
+                                                    is_premium: false,
+                                                    is_published: true,
+                                                    is_archived: false,
+                                                    assignments: [],
+                                                    preview: parsedLandingTemplateState.template,
+                                                    created_at: new Date().toISOString(),
+                                                    updated_at: new Date().toISOString(),
+                                                });
+                                            }
+                                        }}
                                     />
                                 </div>
                                 <div className="col-span-2 space-y-4 pt-2">
@@ -895,8 +1082,31 @@ const { data: subscriptionCatalogData } = useQuery({
                 </DialogContent>
             </Dialog>
 
+            {/* TEMPLATE PICKER DIALOG FROM LANDING LIBRARY */}
+            <TemplatePickerDialog
+                open={libraryPickerOpen}
+                onOpenChange={setLibraryPickerOpen}
+                selectedTemplateSlug={selectedLibraryTemplate?.slug || selectedTemplateKey}
+                selectedTemplateKey={selectedTemplateKey}
+                businessType={formBusinessType}
+                onSelectTemplate={handleSelectLibraryTemplate}
+            />
+
+            {/* LIVE TEMPLATE PREVIEW DIALOG */}
+            {previewDialogTarget && (
+                <TemplatePreviewDialog
+                    template={previewDialogTarget}
+                    businessLabel={activeBusinessTypeDefinition.label}
+                    busy={false}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) setPreviewDialogTarget(null);
+                    }}
+                    onChoose={handleSelectLibraryTemplate}
+                />
+            )}
+
             {/* VIEW MODAL */}
-            <Dialog open={viewDialogOpen} onOpenChange={(open) => { setViewDialogOpen(open); if(!open) triggerAudit('viewed', 'Closed Deep Metric Inspection view'); }}>
+            <Dialog open={viewDialogOpen} onOpenChange={(open) => { setViewDialogOpen(open); if (!open) triggerAudit('viewed', 'Closed Deep Metric Inspection view'); }}>
                 <DialogContent className="sm:max-w-[860px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl max-h-[90vh] flex flex-col">
                     <div className="px-6 py-6 border-b border-border/40 bg-muted/20 flex items-center gap-4 shrink-0"><div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner shrink-0"><Server className="h-7 w-7 text-primary" /></div><div><DialogTitle className="text-2xl font-black font-space tracking-tight">{viewTenant?.name}</DialogTitle><DialogDescription className="font-mono text-[11px] uppercase tracking-widest mt-1">{t('tenants.view_identity', "Node Identity")}: <span className="font-bold">{viewTenant?.id}</span></DialogDescription></div></div>
                     <div className="px-6 py-6 space-y-6 overflow-y-auto scrollbar-thin">
@@ -940,6 +1150,34 @@ const { data: subscriptionCatalogData } = useQuery({
                                         maxVisible={8}
                                         emptyLabel="No modules enabled for this tenant."
                                     />
+                                </div>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1.5">Registered Landing Template</p>
+                                <div className="overflow-hidden rounded-2xl border border-border/60 bg-muted/20">
+                                    <div className="flex flex-col gap-2 border-b border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="text-sm font-semibold text-foreground">
+                                                {viewLandingTemplate?.meta?.template_label || "Default business template"}
+                                            </p>
+                                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                                {viewLandingTemplate?.meta?.template_description || "This is the landing design currently saved for the tenant."}
+                                            </p>
+                                        </div>
+                                        <Badge variant="outline" className="w-fit border-primary/30 bg-primary/5 text-primary">
+                                            {viewLandingTemplate?.meta?.template_key || "default"}
+                                        </Badge>
+                                    </div>
+                                    {viewLandingPreviewHtml ? (
+                                        <iframe
+                                            title={`${viewTenant?.name || "Tenant"} registered landing template preview`}
+                                            srcDoc={viewLandingPreviewHtml}
+                                            sandbox="allow-scripts"
+                                            className="h-[28rem] w-full border-0 bg-white"
+                                        />
+                                    ) : (
+                                        <div className="px-4 py-8 text-center text-sm text-muted-foreground">No landing template is registered.</div>
+                                    )}
                                 </div>
                             </div>
                             <div className="col-span-2">

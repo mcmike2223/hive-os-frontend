@@ -225,6 +225,13 @@ export function CodeEditor({
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const deferredPreviewHtml = useDeferredValue(previewHtml);
+  const previewDocumentKey = useMemo(() => {
+    let hash = 0;
+    for (let index = 0; index < deferredPreviewHtml.length; index += 1) {
+      hash = ((hash << 5) - hash + deferredPreviewHtml.charCodeAt(index)) | 0;
+    }
+    return `${deferredPreviewHtml.length}:${hash}`;
+  }, [deferredPreviewHtml]);
   
   const [activeFile, setActiveFile] = useState<string>(files[0]?.name || '');
   const [copied, setCopied] = useState(false);
@@ -1050,7 +1057,13 @@ export function CodeEditor({
                 ) : (
                   <div className="absolute inset-0 bg-[#e0e0e0] flex justify-center overflow-auto p-4 sm:p-8">
                       <div className="bg-white shadow-xl w-full max-w-[210mm] min-h-[297mm] mx-auto overflow-hidden relative">
-                        <iframe srcDoc={deferredPreviewHtml} className="w-full h-full border-none absolute inset-0" sandbox="allow-same-origin allow-scripts" />
+                        <iframe
+                          key={previewDocumentKey}
+                          title="Rendered template preview"
+                          srcDoc={deferredPreviewHtml}
+                          className="absolute inset-0 h-full w-full border-none"
+                          sandbox="allow-scripts"
+                        />
                       </div>
                   </div>
                 )

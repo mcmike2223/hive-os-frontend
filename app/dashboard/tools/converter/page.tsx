@@ -262,7 +262,7 @@ export default function FileConverterPage() {
             { target: '#tour-converter-generate', title: t('tools.tour_generate_title', 'Transpile & Generate'), content: t('tools.tour_generate_desc', 'Click this to package your HTML and assets, send them to the internal rendering engine, and generate the resulting PDF.'), placement: 'left' as const },
         ];
         const activeSteps = possibleSteps.filter(step => document.querySelector(step.target));
-        startTour(activeSteps.map(step => ({ ...step, disableBeacon: true })));
+        startTour(activeSteps.map(step => ({ ...step, skipBeacon: true })));
     };
 
     const handleHtmlDrop = (e: React.DragEvent) => {

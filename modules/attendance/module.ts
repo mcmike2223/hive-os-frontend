@@ -1,4 +1,4 @@
-import { BarChart3, Fingerprint, PlusCircle, Settings, UserRoundCog } from "lucide-react";
+import { BarChart3, Fingerprint, RadioTower, UserRoundCog } from "lucide-react";
 
 import type { FrontendModuleDefinition } from "@/modules/types";
 
@@ -38,36 +38,19 @@ export const attendanceModule: FrontendModuleDefinition = {
     {
       moduleId: "attendance",
       translationKey: "nav.attendance_people",
-      fallbackLabel: "People & Enrolment",
+      fallbackLabel: "User Linking & Enrolment",
       href: "/dashboard/attendance/user-linking",
       icon: UserRoundCog,
       subscriptionSlug: ["attendance_management", "human_resources"],
-      permissions: [
-        "manage_attendance",
-        "manage_employees",
-      ],
+      permissions: ["manage_attendance", "manage_employees"],
       placement: "primary",
     },
     {
       moduleId: "attendance",
       translationKey: "nav.attendance_devices_simple",
-      fallbackLabel: "Devices",
+      fallbackLabel: "Devices & Sync",
       href: "/dashboard/attendance/devices",
-      icon: Settings,
-      subscriptionSlug: ["attendance_management", "human_resources"],
-      permissions: [
-        "view_attendance_devices",
-        "manage_attendance_devices",
-        "manage_attendance",
-      ],
-      placement: "primary",
-    },
-    {
-      moduleId: "attendance",
-      translationKey: "nav.attendance_add_device",
-      fallbackLabel: "Add a Device",
-      href: "/dashboard/attendance/device-onboarding",
-      icon: PlusCircle,
+      icon: RadioTower,
       subscriptionSlug: ["attendance_management", "human_resources"],
       permissions: [
         "view_attendance_devices",
@@ -79,7 +62,7 @@ export const attendanceModule: FrontendModuleDefinition = {
     {
       moduleId: "attendance",
       translationKey: "nav.attendance_reports_simple",
-      fallbackLabel: "Reports",
+      fallbackLabel: "Reports & Exports",
       href: "/dashboard/attendance/reports",
       icon: BarChart3,
       subscriptionSlug: ["attendance_management", "human_resources"],

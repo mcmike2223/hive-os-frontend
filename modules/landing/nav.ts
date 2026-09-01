@@ -390,6 +390,8 @@ export function buildLandingNav(t: Translate): LandingNavItem[] {
 
 /** Section ids the scroll-spy observes, in document order. */
 export const LANDING_SECTION_IDS = [
+  "erp-workbench",
+  "solutions",
   "modules",
   "fintech",
   "mobility",

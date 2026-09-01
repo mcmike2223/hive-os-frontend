@@ -290,6 +290,7 @@ export default function CourseDetailPage() {
                   poster={undefined}
                   title={activeLesson?.title}
                   watermark={brandName}
+                  resumeKey={`lms-course:${course.id}:lesson:${activeLesson?.id ?? "preview"}`}
                   className="!rounded-3xl"
                 />
               ) : (

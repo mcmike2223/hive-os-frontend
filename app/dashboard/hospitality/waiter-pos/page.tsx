@@ -202,6 +202,7 @@ export default function WaiterPosPage() {
 
     try {
       const echo = initEcho(token);
+      if (!echo) return;
       const channel = echo.private(channelName);
       const onSubscribed = () => setRealtimeStatus("live");
       const onSubscriptionError = () => setRealtimeStatus("offline");

@@ -139,7 +139,7 @@ export default function LandingTemplatesPage() {
         <Breadcrumbs
           items={[
             { label: "Hive.OS", href: "/dashboard", icon: <Home className="h-4 w-4" /> },
-            { label: t("nav.tenants", "Tenant Nodes"), href: "/dashboard/tenants" },
+            { label: t("nav.tenants", "Tenant Accounts"), href: "/dashboard/tenants" },
             { label: t("nav.landing_templates", "Landing Templates") },
           ]}
         />

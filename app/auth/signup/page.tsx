@@ -23,6 +23,13 @@ import {
   startPublicSubscriptionCheckout,
   fetchPublicSubscriptionOrder,
 } from "@/modules/subscription/api";
+import {
+  SignupLandingTemplateSelection,
+  SignupModuleSelection,
+  type SignupCatalogModule,
+  type SignupLandingTemplate,
+} from "@/modules/subscription/components/signup-catalog-selector";
+import type { SubscriptionBillingPolicy } from "@/modules/subscription/types";
 import { FALLBACK_TENANT_BUSINESS_TYPES, resolveBusinessTypeCatalog } from "@/modules/tenancy/landing-template";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
@@ -47,10 +54,7 @@ type CatalogPlan = {
   is_disabled?: boolean;
 };
 
-type CatalogModule = {
-  slug: string;
-  name: string;
-};
+type CatalogModule = SignupCatalogModule;
 
 type DirectTransferBankAccount = {
   id: string;
@@ -99,28 +103,28 @@ const PLAN_META: Record<string, PlanMeta> = {
   },
   startup: {
     label: "Startup", tagline: "Launch your operations",
-    color: "text-sky-500", bg: "from-sky-500/10 to-cyan-400/5", ring: "ring-sky-500/30",
+    color: "text-sky-700 dark:text-sky-300", bg: "from-sky-500/10 to-cyan-400/5", ring: "ring-sky-700 dark:ring-sky-300",
     price: "Free", priceNote: "/month", storageMb: 2048, storageLabel: "2 GB",
     icon: Rocket,
     features: ["Mailbox + File Manager", "Image Editor", "Document Converter", "2 GB storage quota", "Isolated DB schema"],
   },
   business: {
     label: "Business", tagline: "Full productivity suite",
-    color: "text-indigo-500", bg: "from-indigo-500/10 to-violet-400/5", ring: "ring-indigo-500/30",
+    color: "text-indigo-700 dark:text-indigo-300", bg: "from-indigo-500/10 to-violet-400/5", ring: "ring-indigo-700 dark:ring-indigo-300",
     price: "ETB 3,499", priceNote: "/month", storageMb: 10240, storageLabel: "10 GB",
     icon: Layers, highlight: true,
     features: ["All Startup modules", "Media Library + Video Player", "Advanced Analytics", "Audit Logs + Alerts", "Invoice & Billing + Inventory", "Security Management", "10 GB storage quota"],
   },
   enterprise: {
     label: "Enterprise", tagline: "Large-scale operations",
-    color: "text-violet-500", bg: "from-violet-500/10 to-purple-400/5", ring: "ring-violet-500/30",
+    color: "text-violet-700 dark:text-violet-300", bg: "from-violet-500/10 to-purple-400/5", ring: "ring-violet-700 dark:ring-violet-300",
     price: "ETB 7,999", priceNote: "/month", storageMb: 51200, storageLabel: "50 GB",
     icon: Star,
     features: ["All Business modules", "Workflow Automation", "API Access + API Docs", "Fleet Management", "Developer tools", "50 GB storage quota", "Priority support"],
   },
   overlord: {
     label: "Overlord", tagline: "All-inclusive power",
-    color: "text-amber-500", bg: "from-amber-500/10 to-orange-400/5", ring: "ring-amber-500/30",
+    color: "text-amber-800 dark:text-amber-300", bg: "from-amber-500/10 to-orange-400/5", ring: "ring-amber-800 dark:ring-amber-300",
     price: "ETB 12,999", priceNote: "/month", storageMb: 204800, storageLabel: "200 GB",
     icon: Crown,
     features: ["Every module unlocked", "200 GB storage quota", "Custom integrations", "Dedicated SLA", "Techive engineering support"],
@@ -233,6 +237,18 @@ function buildPlanFeatures(planKey: string, fallback: PlanMeta, planDefaults: Re
   return features.length ? features : fallback.features;
 }
 
+function createClientRequestId() {
+  if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function TenantSignupPage() {
   const router = useRouter();
@@ -241,6 +257,8 @@ export default function TenantSignupPage() {
   const [step, setStep] = useState<Step>("plan");
   const [selectedPlan, setSelectedPlan] = useState<string>("business");
   const [businessType, setBusinessType] = useState<string>("general");
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [landingTemplateId, setLandingTemplateId] = useState<number | null>(null);
   const [orgName, setOrgName] = useState("");
   const [tenantId, setTenantId] = useState("");
   const [adminName, setAdminName] = useState("");
@@ -248,6 +266,9 @@ export default function TenantSignupPage() {
   const [adminPassword, setAdminPassword] = useState("");
   const [billingPhone, setBillingPhone] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [billingMode, setBillingMode] = useState<"standard" | "hybrid">("standard");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [couponCode, setCouponCode] = useState("");
   const [checkoutChannel, setCheckoutChannel] = useState<"gateway" | "direct_transfer">("gateway");
   const [paymentMethod, setPaymentMethod] = useState("TELEBIRR_USSD");
   const [manualBankAccountId, setManualBankAccountId] = useState("");
@@ -260,6 +281,9 @@ export default function TenantSignupPage() {
   const checkRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedCheckoutReturnRef = useRef(false);
   const appliedBusinessTypeFromQueryRef = useRef(false);
+  const appliedPlanFromQueryRef = useRef(false);
+  const checkoutRequestIdRef = useRef<string | null>(null);
+  const checkoutErrorRef = useRef<HTMLDivElement | null>(null);
 
   // Derive tenantId from orgName
   useEffect(() => {
@@ -282,7 +306,7 @@ export default function TenantSignupPage() {
   }, [tenantId]);
 
   // Public catalog (for plan pricing confirmation)
-  const { data: catalogData } = useQuery({
+  const { data: catalogData, isError: catalogError, isLoading: catalogLoading } = useQuery({
     queryKey: ["public-catalog"],
     queryFn: fetchPublicSubscriptionCatalog,
     staleTime: 0,
@@ -291,9 +315,17 @@ export default function TenantSignupPage() {
   });
 
   const catalogPayload = catalogData?.data ?? {};
-  const catalogModules = (catalogPayload.catalog ?? []) as CatalogModule[];
+  const catalogModules = useMemo(
+    () => (catalogPayload.catalog ?? []) as CatalogModule[],
+    [catalogPayload.catalog],
+  );
+  const landingTemplates = useMemo(
+    () => (catalogPayload.landing_templates ?? []) as SignupLandingTemplate[],
+    [catalogPayload.landing_templates],
+  );
   const planPricing = (catalogPayload.plan_pricing ?? {}) as Record<string, CatalogPlan>;
   const planDefaults = (catalogPayload.plan_defaults ?? {}) as Record<string, string[]>;
+  const billingPolicy = catalogPayload.billing_policy as SubscriptionBillingPolicy | undefined;
   const businessTypes = useMemo(
     () => resolveBusinessTypeCatalog(catalogPayload.business_types ?? FALLBACK_TENANT_BUSINESS_TYPES),
     [catalogPayload.business_types]
@@ -342,6 +374,27 @@ export default function TenantSignupPage() {
   const availablePlanKeys = useMemo(() => planOptions.map((plan) => plan.key), [planOptions]);
 
   useEffect(() => {
+    if (appliedPlanFromQueryRef.current || typeof window === "undefined" || availablePlanKeys.length === 0) {
+      return;
+    }
+
+    const requestedPlan = new URLSearchParams(window.location.search)
+      .get("plan")
+      ?.trim()
+      .toLowerCase();
+
+    if (!requestedPlan) {
+      appliedPlanFromQueryRef.current = true;
+      return;
+    }
+
+    if (availablePlanKeys.includes(requestedPlan)) {
+      setSelectedPlan(requestedPlan);
+      appliedPlanFromQueryRef.current = true;
+    }
+  }, [availablePlanKeys]);
+
+  useEffect(() => {
     if (availablePlanKeys.length > 0 && !availablePlanKeys.includes(selectedPlan)) {
       setSelectedPlan(availablePlanKeys[0]);
     }
@@ -374,8 +427,60 @@ export default function TenantSignupPage() {
     }
   }, [businessTypeMap, businessTypes.length]);
 
+  useEffect(() => {
+    const compatibleModuleSlugs = new Set(
+      catalogModules
+        .filter((module) => !module.business_types?.length || module.business_types.includes(businessType))
+        .map((module) => module.slug),
+    );
+
+    setSelectedModules((current) => {
+      const next = current.filter((slug) => compatibleModuleSlugs.has(slug));
+      return next.length === current.length && next.every((slug, index) => slug === current[index]) ? current : next;
+    });
+
+    setLandingTemplateId((current) => {
+      if (current === null) return current;
+      return landingTemplates.some((template) => template.id === current && template.business_types.includes(businessType))
+        ? current
+        : null;
+    });
+  }, [businessType, catalogModules, landingTemplates]);
+
   const planMeta = planMap[selectedPlan] ?? planOptions[0] ?? { ...PLAN_META.business, key: "business", monthlyPriceEtb: fallbackAmount(PLAN_META.business) };
-  const isFree = planMeta.monthlyPriceEtb <= 0;
+  const selectedTemplate = landingTemplates.find((template) => template.id === landingTemplateId) ?? null;
+  const includedModuleSlugs = useMemo(
+    () => new Set(planDefaults[selectedPlan] ?? []),
+    [planDefaults, selectedPlan],
+  );
+  const checkoutSelectedModules = useMemo(() => Array.from(new Set([
+    ...selectedModules,
+    ...(selectedTemplate?.required_module ? [selectedTemplate.required_module] : []),
+  ])), [selectedModules, selectedTemplate?.required_module]);
+  const addonAmountEtb = useMemo(() => {
+    const moduleMap = new Map(catalogModules.map((module) => [module.slug, module]));
+
+    return checkoutSelectedModules.reduce((total, slug) => {
+      if (includedModuleSlugs.has(slug)) return total;
+      return total + Number(moduleMap.get(slug)?.monthly_price_etb ?? 0);
+    }, 0);
+  }, [catalogModules, checkoutSelectedModules, includedModuleSlugs]);
+  const totalAmountEtb = planMeta.monthlyPriceEtb + addonAmountEtb;
+  const cycleMultiplier = billingCycle === "yearly"
+    ? 12 * (1 - Number(billingPolicy?.yearly_discount_percent ?? 0) / 100)
+    : 1;
+  const standardTotalAmountEtb = totalAmountEtb * cycleMultiplier;
+  const isFree = standardTotalAmountEtb <= 0;
+  const hybridAvailable = Boolean(
+    billingPolicy?.hybrid_enabled
+    && billingPolicy.hybrid_enabled_plans?.includes(selectedPlan)
+  );
+  const isHybrid = billingMode === "hybrid" && hybridAvailable;
+  const requiresSignupPayment = !isHybrid && !isFree;
+  const selectedAddonNames = checkoutSelectedModules
+    .filter((slug) => !includedModuleSlugs.has(slug))
+    .map((slug) => catalogModules.find((module) => module.slug === slug)?.name)
+    .filter((name): name is string => Boolean(name));
 
   const paymentProvider = catalogData?.data?.payment_provider;
   const directTransfer = catalogData?.data?.direct_transfer;
@@ -400,6 +505,12 @@ export default function TenantSignupPage() {
   const workspaceHost = buildTenantDomain(tenantId);
 
   useEffect(() => {
+    if (!hybridAvailable && billingMode === "hybrid") {
+      setBillingMode("standard");
+    }
+  }, [billingMode, hybridAvailable]);
+
+  useEffect(() => {
     if (!supportsPaymentMethods) {
       setPaymentMethod("");
       return;
@@ -417,10 +528,10 @@ export default function TenantSignupPage() {
   }, [checkoutChannel, directTransferEnabled]);
 
   useEffect(() => {
-    if (!isFree && !providerConfigured && directTransferEnabled && checkoutChannel === "gateway") {
+    if (requiresSignupPayment && !providerConfigured && directTransferEnabled && checkoutChannel === "gateway") {
       setCheckoutChannel("direct_transfer");
     }
-  }, [checkoutChannel, directTransferEnabled, isFree, providerConfigured]);
+  }, [checkoutChannel, directTransferEnabled, providerConfigured, requiresSignupPayment]);
 
   const clearReturnParams = useCallback(() => {
     if (typeof window === "undefined") {
@@ -462,6 +573,7 @@ export default function TenantSignupPage() {
       const order = res?.data?.order;
       const checkoutUrlRes = order?.provider_checkout_url || res?.data?.checkout_url;
       if (order?.public_token) setOrderToken(order.public_token);
+      if (order?.client_request_id) checkoutRequestIdRef.current = order.client_request_id;
       if (checkoutUrlRes) {
         window.location.assign(checkoutUrlRes);
       } else {
@@ -470,12 +582,16 @@ export default function TenantSignupPage() {
     },
     onError: (err: unknown) => {
       setError(getCheckoutErrorMessage(err));
+      window.requestAnimationFrame(() => {
+        checkoutErrorRef.current?.focus();
+      });
     },
   });
 
   const resetCheckoutForm = useCallback((message = "") => {
     clearStoredCheckoutReturnContext();
     setOrderToken(null);
+    checkoutRequestIdRef.current = null;
     setBillingPhone("");
     setCheckoutChannel("gateway");
     setPaymentMethod(defaultPaymentMethodCode);
@@ -494,7 +610,7 @@ export default function TenantSignupPage() {
     refetchInterval: (query) => {
       const status = query.state.data?.data?.order?.status;
 
-      if (!orderToken || step !== "confirm" || status === "provisioned" || status === "manual_payment_rejected") {
+      if (!orderToken || step !== "confirm" || status === "provisioned" || status === "manual_payment_rejected" || (query.state.data?.data?.order?.scope === "hybrid_activation" && query.state.data?.data?.order?.provisioned_at)) {
         return false;
       }
 
@@ -610,6 +726,11 @@ export default function TenantSignupPage() {
   }, [checkoutReturnContext?.graceEndsAt]);
 
   const order = orderData?.data?.order;
+  const hybridWorkspaceReady = Boolean(
+    order?.scope === "hybrid_activation"
+    && order?.provisioned_at
+    && order?.status !== "provisioned"
+  );
   const shouldHoldArifPayFailureState = Boolean(
     usesHostedArifPayPortal
     && orderToken
@@ -623,7 +744,7 @@ export default function TenantSignupPage() {
       return;
     }
 
-    if (order.status === "provisioned" || order.status === "pending_manual_review" || order.status === "manual_payment_rejected") {
+    if (order.status === "provisioned" || order.status === "pending_manual_review" || order.status === "manual_payment_rejected" || (order.scope === "hybrid_activation" && order.provisioned_at)) {
       clearStoredCheckoutReturnContext();
       return;
     }
@@ -640,10 +761,10 @@ export default function TenantSignupPage() {
   const canGoToWorkspace = availablePlanKeys.includes(selectedPlan);
   const canGoToCheckout = orgName.trim().length >= 2 && tenantId.length >= 3 && !tenantIdError
     && adminName.trim().length >= 2 && adminEmail.includes("@") && adminPassword.length >= 8;
-  const directTransferSelected = !isFree && checkoutChannel === "direct_transfer";
-  const gatewaySelected = !isFree && checkoutChannel !== "direct_transfer";
+  const directTransferSelected = requiresSignupPayment && checkoutChannel === "direct_transfer";
+  const gatewaySelected = requiresSignupPayment && checkoutChannel !== "direct_transfer";
   const canSubmitCheckout = canGoToCheckout
-    && (isFree || directTransferSelected || providerConfigured)
+    && (isHybrid || isFree || directTransferSelected || providerConfigured)
     && (!gatewaySelected || !requiresBillingPhone || isValidEthiopianMobileLocalPart(billingPhone))
     && (!gatewaySelected || !showPaymentMethodSelector || Boolean(paymentMethod))
     && (!directTransferSelected || Boolean(manualBankAccountId))
@@ -656,20 +777,25 @@ export default function TenantSignupPage() {
     const normalizedBillingPhone = buildEthiopianMobileNumber(billingPhone);
 
     checkoutMutation.mutate({
+      client_request_id: checkoutRequestIdRef.current ??= createClientRequestId(),
       id: tenantId,
       name: orgName.trim(),
       plan: selectedPlan,
       business_type: businessType,
+      landing_template_id: landingTemplateId,
       domain: workspaceHost,
       admin_name: adminName.trim(),
       admin_email: adminEmail.trim(),
       admin_password: adminPassword,
+      billing_mode: isHybrid ? "hybrid" : "standard",
+      billing_cycle: billingCycle,
+      coupon_code: !isHybrid ? couponCode.trim() || undefined : undefined,
       billing_phone: gatewaySelected ? normalizedBillingPhone || undefined : undefined,
       checkout_channel: directTransferSelected ? "direct_transfer" : "gateway",
-      payment_method: isFree || !gatewaySelected || !showPaymentMethodSelector ? undefined : paymentMethod || undefined,
+      payment_method: !requiresSignupPayment || !gatewaySelected || !showPaymentMethodSelector ? undefined : paymentMethod || undefined,
       manual_bank_account_id: directTransferSelected ? manualBankAccountId : undefined,
       manual_transaction_reference: directTransferSelected ? manualTransactionReference.trim() : undefined,
-      selected_modules: [],
+      selected_modules: checkoutSelectedModules,
       success_url_base: getAppOrigin(),
       cancel_url_base: getAppOrigin(),
     });
@@ -679,7 +805,7 @@ export default function TenantSignupPage() {
   const PlanIcon = planMeta.icon;
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 overflow-x-hidden">
+    <div className="signup-onboarding min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary/20">
 
       {/* Background decoration */}
       <div className="pointer-events-none fixed inset-0 z-0">
@@ -689,27 +815,27 @@ export default function TenantSignupPage() {
       </div>
 
       {/* Top nav */}
-      <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+      <nav aria-label="Public" className="fixed top-0 z-50 flex w-full items-center justify-between border-b border-border/50 bg-background/80 px-6 py-4 backdrop-blur-xl">
         <Link href="/" className="flex items-center gap-2.5 font-space text-xl font-black tracking-tight group">
           <Globe className="h-5 w-5 text-primary group-hover:rotate-180 transition-transform duration-700" />
           <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">HIVE.OS</span>
         </Link>
         <div className="flex items-center gap-4">
           <span className="text-xs text-muted-foreground hidden sm:block">Already have a workspace?</span>
-          <Link href="/request-demo">
-            <Button variant="ghost" size="sm" className="rounded-full font-bold text-xs gap-1.5">
+          <Button asChild variant="ghost" size="sm" className="rounded-full font-bold text-xs gap-1.5">
+            <Link href="/request-demo">
               Request Demo <ChevronRight className="h-3 w-3" />
-            </Button>
-          </Link>
-          <Link href="/sign-in">
-            <Button variant="outline" size="sm" className="rounded-full font-bold text-xs gap-1.5">
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="rounded-full font-bold text-xs gap-1.5">
+            <Link href="/sign-in">
               Sign In <ChevronRight className="h-3 w-3" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </nav>
 
-      <div className="relative z-10 pt-24 pb-20 px-4">
+      <main className="relative z-10 px-4 pb-20 pt-24">
         <div className="max-w-5xl mx-auto">
 
           {/* Header */}
@@ -744,7 +870,7 @@ export default function TenantSignupPage() {
                       )}>
                         <div className={cn(
                           "h-9 w-9 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all",
-                          done ? "bg-emerald-500 border-emerald-500 text-white" :
+                          done ? "bg-emerald-700 border-emerald-700 text-white dark:bg-emerald-300 dark:border-emerald-300 dark:text-background" :
                             active ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/30" :
                               "bg-background border-border text-muted-foreground"
                         )}>
@@ -755,7 +881,7 @@ export default function TenantSignupPage() {
                         )}>{s.label}</span>
                       </div>
                       {i < STEPS.length - 1 && (
-                        <div className={cn("flex-1 max-w-16 h-0.5 transition-all", i < stepIndex ? "bg-emerald-500" : "bg-border")} />
+                        <div className={cn("flex-1 max-w-16 h-0.5 transition-all", i < stepIndex ? "bg-emerald-700 dark:bg-emerald-300" : "bg-border")} />
                       )}
                     </React.Fragment>
                   );
@@ -768,18 +894,65 @@ export default function TenantSignupPage() {
           {/* ─── STEP 1: PLAN SELECTION ─────────────────────────────────── */}
           {step === "plan" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-8">
+              {catalogLoading ? (
+                <p role="status" className="mb-6 rounded-2xl border border-slate-500 bg-card p-4 text-sm text-foreground">
+                  Loading the live subscription and template catalog…
+                </p>
+              ) : null}
+              {catalogError ? (
+                <Alert variant="destructive" className="mb-6 border-destructive bg-destructive/10">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    The live catalog could not be loaded. Refresh before starting a paid registration so the price and template eligibility are current.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              <div className="mb-6 rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+                <Label htmlFor="signup-business-type" className="text-sm font-black text-foreground">
+                  What kind of business are you registering? <span aria-hidden="true">*</span>
+                </Label>
+                <p id="signup-business-type-help" className="mt-1 text-xs leading-5 text-muted-foreground">
+                  This filters compatible modules and templates. Central administrators manage these choices in Business Types.
+                </p>
+                <Select value={businessType} onValueChange={setBusinessType}>
+                  <SelectTrigger id="signup-business-type" aria-describedby="signup-business-type-help" className="mt-3 h-12 border-slate-500 bg-background focus:ring-2 focus:ring-primary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-slate-500 shadow-xl">
+                    {businessTypes.map((option) => (
+                      <SelectItem key={option.key} value={option.key}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{activeBusinessType.description}</p>
+              </div>
+
+              <fieldset className="mb-8">
+                <legend className="sr-only">Subscription plan</legend>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 {planOptions.map(meta => {
                   const planKey = meta.key;
                   const Icon = meta.icon;
                   const isSelected = selectedPlan === planKey;
+                  const inputId = `signup-plan-${planKey}`;
 
                   return (
-                    <button
-                      key={planKey}
-                      onClick={() => setSelectedPlan(planKey)}
+                    <div key={planKey} className="relative">
+                      <input
+                        id={inputId}
+                        type="radio"
+                        name="subscription-plan"
+                        value={planKey}
+                        checked={isSelected}
+                        onChange={() => setSelectedPlan(planKey)}
+                        className="peer sr-only"
+                      />
+                      <label
+                      htmlFor={inputId}
                       className={cn(
-                        "relative flex flex-col text-left rounded-[1.75rem] border p-5 transition-all duration-300 hover:shadow-lg focus:outline-none",
+                        "relative flex h-full min-h-11 cursor-pointer flex-col rounded-[1.75rem] border p-5 text-left transition-all duration-300 hover:shadow-lg",
+                        "peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2",
                         isSelected
                           ? `ring-2 ${meta.ring} border-transparent bg-gradient-to-br ${meta.bg} shadow-md`
                           : "border-border/50 bg-card/40 backdrop-blur-md hover:bg-card/60 hover:border-primary/30"
@@ -791,7 +964,7 @@ export default function TenantSignupPage() {
                         </div>
                       )}
                       {isSelected && (
-                        <div className="absolute top-4 right-4 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                        <div aria-hidden="true" className="absolute top-4 right-4 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                           <Check className="h-3 w-3 text-primary-foreground" />
                         </div>
                       )}
@@ -820,10 +993,12 @@ export default function TenantSignupPage() {
                           </li>
                         ))}
                       </ul>
-                    </button>
+                      </label>
+                    </div>
                   );
                 })}
-              </div>
+                </div>
+              </fieldset>
               {planOptions.length === 0 && (
                 <Alert variant="destructive" className="mb-8 bg-destructive/5 border-destructive/20">
                   <AlertCircle className="h-4 w-4" />
@@ -856,10 +1031,23 @@ export default function TenantSignupPage() {
                   <div className="text-right shrink-0">
                     <p className="text-2xl font-black text-foreground">{planMeta.price}</p>
                     <p className="text-xs text-muted-foreground">{planMeta.priceNote}</p>
-                    {isFree && <Badge className="mt-1 bg-emerald-500/10 text-emerald-500 border-none text-[11px]">No card required</Badge>}
+                    {isFree && <Badge className="mt-1 border-none bg-emerald-500/10 text-[11px] text-emerald-700 dark:text-emerald-300">No card required</Badge>}
                   </div>
                 </div>
               )}
+
+              {canGoToWorkspace ? (
+                <div className="mb-6">
+                  <SignupModuleSelection
+                    modules={catalogModules}
+                    plan={selectedPlan}
+                    businessType={businessType}
+                    planDefaults={planDefaults}
+                    selectedModules={selectedModules}
+                    onSelectedModulesChange={setSelectedModules}
+                  />
+                </div>
+              ) : null}
 
               <div className="flex justify-end">
                 <Button
@@ -891,7 +1079,7 @@ export default function TenantSignupPage() {
                 <div className="space-y-6">
                   {/* Org name */}
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Organization Name *</Label>
+                    <Label htmlFor="org-name" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Organization Name *</Label>
                     <div className="relative group">
                       <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
@@ -899,6 +1087,8 @@ export default function TenantSignupPage() {
                         value={orgName}
                         onChange={e => setOrgName(e.target.value)}
                         placeholder="Techive Technology Solutions"
+                        autoComplete="organization"
+                        required
                         className="pl-10 h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50"
                       />
                     </div>
@@ -906,7 +1096,7 @@ export default function TenantSignupPage() {
 
                   {/* Tenant ID (read-only derived) */}
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Workspace ID (auto-generated)</Label>
+                    <Label htmlFor="tenant-id" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Workspace ID (auto-generated)</Label>
                     <div className="relative group">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -914,54 +1104,60 @@ export default function TenantSignupPage() {
                         value={tenantId}
                         onChange={e => setTenantId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                         placeholder="techive-technology-solutions"
+                        required
+                        aria-invalid={Boolean(tenantIdError)}
+                        aria-describedby={tenantIdError ? "tenant-id-error" : "tenant-id-help"}
                         className={cn(
                           "pl-10 h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50 font-mono",
                           tenantIdError && "border-destructive/50 ring-1 ring-destructive/30"
                         )}
                       />
                       {tenantId && !tenantIdError && tenantId.length >= 3 && (
-                        <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                        <Check className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                       )}
                     </div>
                     {tenantIdError ? (
-                      <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <p id="tenant-id-error" className="text-xs text-destructive flex items-center gap-1.5">
                         <AlertCircle className="h-3 w-3 shrink-0" /> {tenantIdError}
                       </p>
                     ) : tenantId && (
-                      <p className="text-[11px] text-muted-foreground font-mono">
+                      <p id="tenant-id-help" className="text-[11px] text-muted-foreground font-mono">
                         Your portal will be at: <span className="text-primary">{workspaceHost}</span>
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Business Type *</Label>
-                    <Select value={businessType} onValueChange={setBusinessType}>
-                      <SelectTrigger className="h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-border/50 shadow-xl">
-                        {businessTypes.map((option) => (
-                          <SelectItem key={option.key} value={option.key}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Business Type</p>
                     <div className="rounded-[1.5rem] border border-border/50 bg-background/60 px-4 py-3">
-                      <p className="text-xs font-bold text-foreground">{activeBusinessType.label}</p>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs font-bold text-foreground">{activeBusinessType.label}</p>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setStep("plan")}>
+                          Change business type
+                        </Button>
+                      </div>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         {activeBusinessType.description}
                       </p>
                     </div>
                   </div>
 
+                  <SignupLandingTemplateSelection
+                    templates={landingTemplates}
+                    modules={catalogModules}
+                    businessType={businessType}
+                    plan={selectedPlan}
+                    planDefaults={planDefaults}
+                    selectedTemplateId={landingTemplateId}
+                    onSelectedTemplateChange={setLandingTemplateId}
+                  />
+
                   <div className="border-t border-border/50 pt-6">
                     <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">Administrator Account</p>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {/* Admin name */}
                       <div className="space-y-2">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Full Name *</Label>
+                        <Label htmlFor="admin-name" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Full Name *</Label>
                         <div className="relative group">
                           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                           <Input
@@ -969,13 +1165,15 @@ export default function TenantSignupPage() {
                             value={adminName}
                             onChange={e => setAdminName(e.target.value)}
                             placeholder="Abebe Kebede"
+                            autoComplete="name"
+                            required
                             className="pl-10 h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50"
                           />
                         </div>
                       </div>
                       {/* Admin email */}
                       <div className="space-y-2">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Work Email *</Label>
+                        <Label htmlFor="admin-email" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Work Email *</Label>
                         <div className="relative group">
                           <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                           <Input
@@ -984,6 +1182,8 @@ export default function TenantSignupPage() {
                             value={adminEmail}
                             onChange={e => setAdminEmail(e.target.value)}
                             placeholder="admin@techive.et"
+                            autoComplete="email"
+                            required
                             className="pl-10 h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50"
                           />
                         </div>
@@ -991,7 +1191,7 @@ export default function TenantSignupPage() {
                     </div>
                     {/* Password */}
                     <div className="space-y-2 mt-4">
-                      <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Password (min 8 characters) *</Label>
+                      <Label htmlFor="admin-password" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Password (min 8 characters) *</Label>
                       <div className="relative group">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
@@ -1000,12 +1200,16 @@ export default function TenantSignupPage() {
                           value={adminPassword}
                           onChange={e => setAdminPassword(e.target.value)}
                           placeholder="••••••••••"
+                          autoComplete="new-password"
+                          required
+                          minLength={8}
                           className="pl-10 pr-10 h-12 bg-muted/30 border-border focus:ring-1 focus:ring-primary/50 font-mono tracking-widest"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPass(v => !v)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showPass ? "Hide password" : "Show password"}
+                          className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                           {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -1014,7 +1218,7 @@ export default function TenantSignupPage() {
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex gap-1">
                             {[1, 2, 3, 4].map(i => (
-                              <div key={i} className={cn("h-1 w-8 rounded-full transition-all", adminPassword.length >= i * 2 ? (i <= 2 ? "bg-amber-500" : "bg-emerald-500") : "bg-border")} />
+                              <div key={i} className={cn("h-1 w-8 rounded-full transition-all", adminPassword.length >= i * 2 ? (i <= 2 ? "bg-amber-800 dark:bg-amber-300" : "bg-emerald-700 dark:bg-emerald-300") : "bg-border")} />
                             ))}
                           </div>
                           <span className="text-[11px] text-muted-foreground">
@@ -1037,7 +1241,7 @@ export default function TenantSignupPage() {
                   className="rounded-full px-8 font-bold gap-2 shadow-lg shadow-primary/20"
                   size="lg"
                 >
-                  Continue to Payment <ArrowRight className="h-4 w-4" />
+                  Continue to Billing <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -1047,11 +1251,52 @@ export default function TenantSignupPage() {
           {step === "checkout" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto">
               {error && (
-                <Alert variant="destructive" className="mb-6 bg-destructive/5 border-destructive/20">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs font-mono">{error}</AlertDescription>
-                </Alert>
+                <div ref={checkoutErrorRef} tabIndex={-1} className="mb-6 flex gap-3 rounded-lg border border-destructive bg-destructive/5 p-4 text-destructive outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs font-mono">{error}</p>
+                </div>
               )}
+
+              <div className="mb-5 space-y-4 rounded-[2rem] border border-border/50 bg-card/40 p-6 backdrop-blur-md">
+                {hybridAvailable ? (
+                  <fieldset className="space-y-3">
+                    <legend className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Subscription model</legend>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {([
+                        ["standard", "Subscription", "Pay now and activate immediately."],
+                        ["hybrid", "Hybrid activation", billingPolicy?.hybrid_signup_notice ?? "An activation payment is required after your first sign-in."],
+                      ] as const).map(([value, label, description]) => (
+                        <label key={value} className={cn("min-h-11 cursor-pointer rounded-2xl border p-4", billingMode === value ? "border-primary bg-primary/10" : "border-border bg-background")}>
+                          <input type="radio" name="billing-mode" value={value} checked={billingMode === value} onChange={() => setBillingMode(value)} className="mr-2" />
+                          <span className="font-bold">{label}</span>
+                          <span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ) : null}
+
+                <fieldset className="space-y-3">
+                  <legend className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Billing cycle</legend>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(["monthly", "yearly"] as const).map((cycle) => (
+                      <label key={cycle} className={cn("min-h-11 cursor-pointer rounded-xl border px-4 py-3 text-sm font-semibold capitalize", billingCycle === cycle ? "border-primary bg-primary/10" : "border-border bg-background")}>
+                        <input type="radio" name="billing-cycle" value={cycle} checked={billingCycle === cycle} onChange={() => setBillingCycle(cycle)} className="mr-2" />
+                        {cycle}
+                        {cycle === "yearly" && Number(billingPolicy?.yearly_discount_percent ?? 0) > 0 ? <span className="ml-2 text-xs text-emerald-700 dark:text-emerald-300">Save {billingPolicy?.yearly_discount_percent}%</span> : null}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                {!isHybrid ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-coupon" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Coupon code</Label>
+                    <Input id="signup-coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="Optional" autoComplete="off" />
+                    <p className="text-xs text-muted-foreground">A valid coupon is verified when you submit checkout.</p>
+                  </div>
+                ) : null}
+              </div>
 
               {/* Order summary */}
               <div className={cn(
@@ -1061,28 +1306,43 @@ export default function TenantSignupPage() {
                 <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">Order Summary</p>
                 <div className="space-y-3">
                   {[
-                    { label: "Plan", value: `${planMeta.label} — ${planMeta.price} ${planMeta.priceNote}` },
+                    { label: "Plan", value: isHybrid ? planMeta.label : `${planMeta.label} — ${planMeta.price} ${planMeta.priceNote}` },
+                    { label: "Subscription", value: isHybrid ? "Hybrid activation" : "Pay-now subscription" },
+                    { label: "Billing Cycle", value: billingCycle.replace(/^./, (letter) => letter.toUpperCase()) },
                     { label: "Business Type", value: activeBusinessType.label },
                     { label: "Workspace ID", value: tenantId, mono: true },
                     { label: "Organization", value: orgName },
                     { label: "Admin", value: `${adminName} <${adminEmail}>`, mono: true },
+                    { label: "Landing Template", value: selectedTemplate?.name ?? "Choose later" },
+                    { label: "Optional Modules", value: selectedAddonNames.length ? selectedAddonNames.join(", ") : "None" },
                     { label: "Storage Quota", value: planMeta.storageLabel },
                   ].map(row => (
                     <div key={row.label} className="flex justify-between items-center text-sm gap-4">
                       <span className="text-muted-foreground text-xs">{row.label}</span>
-                      <span className={cn("font-bold text-foreground truncate", row.mono && "font-mono text-xs")}>{row.value}</span>
+                      <span className={cn("max-w-[65%] text-right font-bold text-foreground", row.mono && "font-mono text-xs")}>{row.value}</span>
                     </div>
                   ))}
-                  <div className="border-t border-border/30 pt-3 flex justify-between items-center">
-                    <span className="font-black text-foreground">Total Today</span>
-                    <span className={cn("text-2xl font-black", planMeta.color)}>
-                      {isFree ? "Free" : planMeta.price}
-                    </span>
-                  </div>
+                  {!isHybrid && addonAmountEtb > 0 ? (
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="text-xs text-muted-foreground">Add-ons</span>
+                      <span className="font-bold text-foreground">ETB {addonAmountEtb.toLocaleString()}/month</span>
+                    </div>
+                  ) : null}
+                  {isHybrid ? (
+                    <div className="border-t border-border/30 pt-3">
+                      <p className="font-black text-foreground">Activation payment follows sign-in</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">The private amount is intentionally hidden here. It will appear securely in your tenant billing workspace before modules unlock.</p>
+                    </div>
+                  ) : (
+                    <div className="border-t border-border/30 pt-3 flex justify-between items-center">
+                      <span className="font-black text-foreground">Total Today</span>
+                      <span className={cn("text-2xl font-black", planMeta.color)}>{formatPlanPrice(standardTotalAmountEtb)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {!isFree && !providerConfigured && !directTransferEnabled && (
+              {requiresSignupPayment && !providerConfigured && !directTransferEnabled && (
                 <Alert variant="destructive" className="mb-5 bg-destructive/5 border-destructive/20">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-xs font-mono">
@@ -1091,7 +1351,7 @@ export default function TenantSignupPage() {
                 </Alert>
               )}
 
-              {!isFree && !providerConfigured && directTransferEnabled && (
+              {requiresSignupPayment && !providerConfigured && directTransferEnabled && (
                 <Alert className="mb-5 border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-xs font-mono">
@@ -1100,7 +1360,7 @@ export default function TenantSignupPage() {
                 </Alert>
               )}
 
-              {!isFree && (
+              {requiresSignupPayment && (
                 <div className="rounded-[2rem] border border-border/50 bg-card/40 backdrop-blur-md p-6 mb-5">
                   <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-4">
                     Checkout Details
@@ -1108,16 +1368,25 @@ export default function TenantSignupPage() {
 
                   <div className="space-y-4">
                     {directTransferEnabled && (
-                      <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                      <fieldset className="space-y-3">
+                        <legend className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                           Payment Path
-                        </Label>
+                        </legend>
                         <div className="grid gap-3 md:grid-cols-2">
-                          <button
-                            type="button"
-                            onClick={() => setCheckoutChannel("gateway")}
+                          <div>
+                            <input
+                              id="checkout-channel-gateway"
+                              type="radio"
+                              name="checkout-channel"
+                              value="gateway"
+                              checked={checkoutChannel === "gateway"}
+                              onChange={() => setCheckoutChannel("gateway")}
+                              className="peer sr-only"
+                            />
+                            <label
+                            htmlFor="checkout-channel-gateway"
                             className={cn(
-                              "rounded-2xl border p-4 text-left transition-all",
+                              "block min-h-11 cursor-pointer rounded-2xl border p-4 text-left transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2",
                               checkoutChannel === "gateway"
                                 ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                                 : "border-border/50 bg-background/50 hover:bg-muted/30"
@@ -1134,13 +1403,23 @@ export default function TenantSignupPage() {
                                 </p>
                               </div>
                             </div>
-                          </button>
+                            </label>
+                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setCheckoutChannel("direct_transfer")}
+                          <div>
+                            <input
+                              id="checkout-channel-transfer"
+                              type="radio"
+                              name="checkout-channel"
+                              value="direct_transfer"
+                              checked={checkoutChannel === "direct_transfer"}
+                              onChange={() => setCheckoutChannel("direct_transfer")}
+                              className="peer sr-only"
+                            />
+                            <label
+                            htmlFor="checkout-channel-transfer"
                             className={cn(
-                              "rounded-2xl border p-4 text-left transition-all",
+                              "block min-h-11 cursor-pointer rounded-2xl border p-4 text-left transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2",
                               checkoutChannel === "direct_transfer"
                                 ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                                 : "border-border/50 bg-background/50 hover:bg-muted/30"
@@ -1157,35 +1436,39 @@ export default function TenantSignupPage() {
                                 </p>
                               </div>
                             </div>
-                          </button>
+                            </label>
+                          </div>
                         </div>
-                      </div>
+                      </fieldset>
                     )}
 
                     {checkoutChannel === "gateway" ? (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                          <Label htmlFor="billing-phone" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                             {requiresBillingPhone ? "Billing Phone *" : "Contact Phone"}
                           </Label>
-                          <div className="overflow-hidden rounded-xl border border-border bg-muted/30 transition-colors focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50">
+                          <div className="overflow-hidden rounded-xl border border-slate-500 bg-muted/30 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
                             <div className="flex h-12 items-center">
                               <div className="flex h-full items-center gap-2 border-r border-border bg-background/60 px-3 text-sm font-semibold text-foreground">
                                 <Phone className="h-4 w-4 text-muted-foreground" />
                                 <span>+251</span>
                               </div>
                               <Input
+                                id="billing-phone"
                                 value={billingPhone}
                                 onChange={e => setBillingPhone(normalizeEthiopianMobileLocalPart(e.target.value))}
                                 placeholder={requiresBillingPhone ? "953912525" : "Optional"}
                                 inputMode="numeric"
                                 maxLength={9}
+                                required={requiresBillingPhone}
+                                aria-describedby={requiresBillingPhone ? "billing-phone-help" : undefined}
                                 className="h-12 border-0 bg-transparent shadow-none focus-visible:ring-0"
                               />
                             </div>
                           </div>
                           {requiresBillingPhone && (
-                            <p className="text-[11px] text-muted-foreground">
+                            <p id="billing-phone-help" className="text-[11px] text-muted-foreground">
                               Enter the 9-digit mobile number only, for example <span className="font-mono">953912525</span>.
                             </p>
                           )}
@@ -1193,9 +1476,9 @@ export default function TenantSignupPage() {
 
                         {usesHostedArifPayPortal ? (
                           <div className="space-y-3">
-                            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                               Payment Provider
-                            </Label>
+                            </p>
                             <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4 ring-1 ring-primary/20">
                               <div className="flex items-center gap-4">
                                 <span className="text-2xl">{PAYMENT_METHODS[0].icon}</span>
@@ -1210,41 +1493,52 @@ export default function TenantSignupPage() {
                             </div>
                           </div>
                         ) : showPaymentMethodSelector ? (
-                          <div className="space-y-3">
-                            <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                          <fieldset className="space-y-3">
+                            <legend className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                               Payment Method
-                            </Label>
+                            </legend>
                             {providerMethods.map((m: { code: string; label: string }) => {
                               const methodMeta = PAYMENT_METHODS.find(item => item.code === m.code);
+                              const inputId = `payment-method-${m.code.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
                               return (
-                                <button
-                                  key={m.code}
-                                  onClick={() => setPaymentMethod(m.code)}
+                                <div key={m.code}>
+                                  <input
+                                    id={inputId}
+                                    type="radio"
+                                    name="payment-method"
+                                    value={m.code}
+                                    checked={paymentMethod === m.code}
+                                    onChange={() => setPaymentMethod(m.code)}
+                                    className="peer sr-only"
+                                  />
+                                  <label
+                                  htmlFor={inputId}
                                   className={cn(
-                                    "w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all",
+                                    "flex min-h-11 w-full cursor-pointer items-center gap-4 rounded-2xl border p-4 text-left transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2",
                                     paymentMethod === m.code
                                       ? "border-primary/50 bg-primary/5 ring-1 ring-primary/30"
                                       : "border-border/50 bg-background/50 hover:bg-muted/30"
                                   )}
                                 >
-                                  <span className="text-2xl">{methodMeta?.icon ?? "?"}</span>
-                                  <div className="flex-1">
-                                    <p className="font-bold text-sm text-foreground">{m.label}</p>
-                                    <p className="text-xs text-muted-foreground">
+                                  <span aria-hidden="true" className="text-2xl">{methodMeta?.icon ?? "?"}</span>
+                                  <span className="flex-1">
+                                    <span className="block font-bold text-sm text-foreground">{m.label}</span>
+                                    <span className="block text-xs text-muted-foreground">
                                       {methodMeta?.desc ?? `Pay with ${m.label}`}
-                                    </p>
-                                  </div>
-                                  <div className={cn(
+                                    </span>
+                                  </span>
+                                  <span aria-hidden="true" className={cn(
                                     "h-4 w-4 rounded-full border-2 transition-all",
                                     paymentMethod === m.code ? "border-primary bg-primary" : "border-muted-foreground/30"
                                   )}>
-                                    {paymentMethod === m.code && <div className="w-full h-full flex items-center justify-center"><span className="w-1.5 h-1.5 rounded-full bg-white block" /></div>}
-                                  </div>
-                                </button>
+                                    {paymentMethod === m.code && <span className="flex h-full w-full items-center justify-center"><span className="block h-1.5 w-1.5 rounded-full bg-white" /></span>}
+                                  </span>
+                                  </label>
+                                </div>
                               );
                             })}
-                          </div>
+                          </fieldset>
                         ) : (
                           <div className="rounded-2xl border border-border/50 bg-background/50 px-4 py-3">
                             <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
@@ -1259,23 +1553,24 @@ export default function TenantSignupPage() {
                       </>
                     ) : (
                       <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                           Direct Transfer Details
-                        </Label>
+                        </p>
                         {directTransfer?.instructions && (
                           <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-muted-foreground">
                             {directTransfer.instructions}
                           </div>
                         )}
 
-                        <div className="space-y-3">
+                        <fieldset className="space-y-3">
+                          <legend className="sr-only">Bank account</legend>
                           {((directTransfer?.bank_accounts ?? []) as DirectTransferBankAccount[]).map((account) => (
-                            <button
-                              key={account.id}
-                              type="button"
-                              onClick={() => setManualBankAccountId(account.id)}
+                            <div key={account.id}>
+                              <input id={`bank-account-${account.id}`} type="radio" name="bank-account" value={account.id} checked={manualBankAccountId === account.id} onChange={() => setManualBankAccountId(account.id)} className="peer sr-only" />
+                              <label
+                              htmlFor={`bank-account-${account.id}`}
                               className={cn(
-                                "w-full rounded-2xl border p-4 text-left transition-all",
+                                "block min-h-11 w-full cursor-pointer rounded-2xl border p-4 text-left transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2",
                                 manualBankAccountId === account.id
                                   ? "border-primary/50 bg-primary/5 ring-1 ring-primary/30"
                                   : "border-border/50 bg-background/50 hover:bg-muted/30"
@@ -1287,7 +1582,7 @@ export default function TenantSignupPage() {
                                   <p className="mt-1 text-xs text-muted-foreground">
                                     {account.bank_name} - {account.account_name}
                                   </p>
-                                  <p className="mt-1 text-sm font-mono text-foreground">{account.account_number}</p>
+                                  <p className="mt-1 text-sm font-mono text-foreground">Account {account.account_number}</p>
                                   {account.branch ? (
                                     <p className="mt-1 text-[11px] text-muted-foreground">Branch: {account.branch}</p>
                                   ) : null}
@@ -1302,21 +1597,26 @@ export default function TenantSignupPage() {
                                   {manualBankAccountId === account.id && <div className="w-full h-full flex items-center justify-center"><span className="w-1.5 h-1.5 rounded-full bg-white block" /></div>}
                                 </div>
                               </div>
-                            </button>
+                              </label>
+                            </div>
                           ))}
-                        </div>
+                        </fieldset>
 
                         <div className="space-y-2">
-                          <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                          <Label htmlFor="manual-transaction-reference" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                             Transaction Reference *
                           </Label>
                           <Input
+                            id="manual-transaction-reference"
                             value={manualTransactionReference}
                             onChange={e => setManualTransactionReference(e.target.value)}
                             placeholder="Paste the bank transaction ID exactly as it appears on your receipt"
-                            className="h-12 bg-background"
+                            required
+                            minLength={4}
+                            aria-describedby="manual-transaction-reference-help"
+                            className="h-12 border-slate-500 bg-background"
                           />
-                          <p className="text-[11px] text-muted-foreground">
+                          <p id="manual-transaction-reference-help" className="text-[11px] text-muted-foreground">
                             We will send this reference to the central admin for verification before activating your workspace.
                           </p>
                         </div>
@@ -1325,7 +1625,7 @@ export default function TenantSignupPage() {
                   </div>
 
                   <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
                     {checkoutChannel === "gateway"
                       ? `Encrypted checkout powered by ${providerLabel}. You will be redirected to complete payment.`
                       : "Your submitted bank reference will be reviewed by the central admin before the workspace is activated."}
@@ -1333,11 +1633,21 @@ export default function TenantSignupPage() {
                 </div>
               )}
 
-              {isFree && (
+              {isHybrid ? (
+                <Alert className="mb-5 border-primary/25 bg-primary/5">
+                  <Lock aria-hidden="true" />
+                  <AlertDescription>
+                    <strong className="block text-foreground">No amount is displayed or charged during signup.</strong>
+                    <span className="mt-1 block text-xs">Your workspace will be created in a locked activation state. Sign in, review the private charge, then choose a gateway or direct transfer.</span>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {!isHybrid && isFree && (
                 <div className="rounded-[2rem] border border-emerald-500/30 bg-emerald-500/5 p-5 mb-5 flex items-center gap-3">
-                  <BadgeCheck className="h-6 w-6 text-emerald-500 shrink-0" />
+                  <BadgeCheck className="h-6 w-6 shrink-0 text-emerald-700 dark:text-emerald-300" />
                   <div>
-                    <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">No payment required</p>
+                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">No payment required</p>
                     <p className="text-xs text-muted-foreground">Your workspace will be provisioned instantly after clicking the button below.</p>
                   </div>
                 </div>
@@ -1355,6 +1665,8 @@ export default function TenantSignupPage() {
                 >
                   {checkoutMutation.isPending ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</>
+                  ) : isHybrid ? (
+                    <>Create Secure Workspace <Lock className="h-4 w-4" /></>
                   ) : isFree ? (
                     <>Deploy Workspace <Rocket className="h-4 w-4" /></>
                   ) : directTransferSelected ? (
@@ -1398,6 +1710,26 @@ export default function TenantSignupPage() {
                 />
               )}
 
+              {hybridWorkspaceReady && order ? (
+                <div className="flex flex-col items-center gap-6 py-12">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                    <Lock className="h-10 w-10 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="mb-2 text-2xl font-black tracking-tight">Workspace Ready for Activation</h2>
+                    <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                      Your tenant and selected landing template are ready. Sign in to see the private activation amount and pay through a gateway or submit a direct transfer for central approval.
+                    </p>
+                    <Badge variant="outline" className="mt-4">No signup amount was displayed or charged</Badge>
+                  </div>
+                  <Button asChild className="rounded-full px-8">
+                    <a href={buildWorkspaceSignInUrl(order.tenant_domain || workspaceHost)}>
+                      Sign in to activate <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
+              ) : null}
+
               {/* Paid plan — provisioned */}
               {order?.status === "provisioned" && (
                 <ConfirmSuccess
@@ -1413,14 +1745,14 @@ export default function TenantSignupPage() {
               {order?.status === "pending_manual_review" && (
                 <div className="flex flex-col items-center gap-6 py-12">
                   <div className="h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center">
-                    <Building2 className="h-10 w-10 text-amber-500" />
+                    <Building2 className="h-10 w-10 text-amber-800 dark:text-amber-300" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-black tracking-tight mb-2">Awaiting Transfer Verification</h2>
                     <p className="text-muted-foreground text-sm max-w-md mx-auto">
                       Your bank transfer reference has been submitted. A central admin will compare it against the selected bank account and activate your workspace as soon as it matches.
                     </p>
-                    <Badge className="mt-3 bg-amber-500/10 text-amber-600 border-none capitalize">
+                    <Badge className="mt-3 border-none bg-amber-500/10 capitalize text-amber-800 dark:text-amber-300">
                       Status: awaiting admin verification
                     </Badge>
                     {order.manual_payment_reference ? (
@@ -1458,14 +1790,14 @@ export default function TenantSignupPage() {
               )}
 
               {/* Paid — still pending */}
-              {order && order.status !== "provisioned" && (
+              {order && !hybridWorkspaceReady && order.status !== "provisioned" && (
                 order.status !== "pending_manual_review"
                 && order.status !== "manual_payment_rejected"
                 && (shouldHoldArifPayFailureState || (order.status !== "failed" && order.status !== "cancelled"))
               ) && (
                 <div className="flex flex-col items-center gap-6 py-12">
                   <div className="h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center">
-                    <Loader2 className="h-10 w-10 text-amber-500 animate-spin" />
+                    <Loader2 className="h-10 w-10 animate-spin text-amber-800 dark:text-amber-300" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-black tracking-tight mb-2">
@@ -1476,7 +1808,7 @@ export default function TenantSignupPage() {
                         ? "ArifPay sent you back before the session status fully settled. We are checking again now, and your workspace will unlock automatically once the gateway confirms it."
                         : "Your payment was received and is being verified. Your workspace will unlock automatically."}
                     </p>
-                    <Badge className="mt-3 bg-amber-500/10 text-amber-600 border-none capitalize">
+                    <Badge className="mt-3 border-none bg-amber-500/10 capitalize text-amber-800 dark:text-amber-300">
                       Status: {shouldHoldArifPayFailureState ? "awaiting final confirmation" : String(order.status).replaceAll("_", " ")}
                     </Badge>
                   </div>
@@ -1503,7 +1835,7 @@ export default function TenantSignupPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -1517,7 +1849,7 @@ function ConfirmSuccess({ tenantId, workspaceHost, orgName, planLabel, planColor
     <div className="py-10">
       <div className="relative inline-flex mb-8">
         <div className="h-24 w-24 rounded-full bg-emerald-500/10 flex items-center justify-center">
-          <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+          <CheckCircle2 className="h-12 w-12 text-emerald-700 dark:text-emerald-300" />
         </div>
         <div className="absolute inset-0 rounded-full border-2 border-emerald-500/30 animate-ping" />
         <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-primary flex items-center justify-center border-2 border-background">
@@ -1526,7 +1858,7 @@ function ConfirmSuccess({ tenantId, workspaceHost, orgName, planLabel, planColor
       </div>
 
       <h1 className="text-4xl font-black font-space tracking-tight mb-3">
-        Your Node is <span className="text-emerald-500">Live!</span>
+        Your Node is <span className="text-emerald-700 dark:text-emerald-300">Live!</span>
       </h1>
       <p className="text-muted-foreground max-w-md mx-auto mb-8">
         <strong className="text-foreground">{orgName || "Your workspace"}</strong> has been provisioned on
@@ -1543,7 +1875,7 @@ function ConfirmSuccess({ tenantId, workspaceHost, orgName, planLabel, planColor
           ].map(r => (
             <div key={r.label} className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground text-xs">{r.label}</span>
-              <span className={cn("font-bold", r.mono && "font-mono text-xs text-primary", r.green && "text-emerald-500")}>
+              <span className={cn("font-bold", r.mono && "font-mono text-xs text-primary", r.green && "text-emerald-700 dark:text-emerald-300")}>
                 {r.value}
               </span>
             </div>

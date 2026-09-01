@@ -1,0 +1,167 @@
+{
+  "checks": [
+    {
+      "id": "light-primary-text",
+      "foreground": "#020617",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 950 workspace text on white surfaces"
+    },
+    {
+      "id": "light-secondary-text",
+      "foreground": "#475569",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "default",
+      "notes": "Slate 600 helper text on white surfaces"
+    },
+    {
+      "id": "light-selected-tab",
+      "foreground": "#1E40AF",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "selected"
+    },
+    {
+      "id": "primary-button",
+      "foreground": "#FFFFFF",
+      "background": "#1D4ED8",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "primary-button-hover",
+      "foreground": "#FFFFFF",
+      "background": "#1E40AF",
+      "type": "text-normal",
+      "state": "hover"
+    },
+    {
+      "id": "published-badge",
+      "foreground": "#FFFFFF",
+      "background": "#065F46",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "published-status-light",
+      "foreground": "#166534",
+      "background": "#F0FDF4",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "draft-status-light",
+      "foreground": "#78350F",
+      "background": "#FFFBEB",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-primary-text",
+      "foreground": "#F8FAFC",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-secondary-text",
+      "foreground": "#CBD5E1",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "dark-selected-tab",
+      "foreground": "#BFDBFE",
+      "background": "#1E293B",
+      "type": "text-normal",
+      "state": "selected"
+    },
+    {
+      "id": "hero-secondary-text",
+      "foreground": "#CBD5E1",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "light-input-border",
+      "foreground": "#64748B",
+      "background": "#FFFFFF",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "dark-input-border",
+      "foreground": "#64748B",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "light-focus-ring",
+      "foreground": "#2563EB",
+      "background": "#FFFFFF",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "dark-focus-ring",
+      "foreground": "#60A5FA",
+      "background": "#020617",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "light-canvas-border",
+      "foreground": "#64748B",
+      "background": "#F1F5F9",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "dark-canvas-border",
+      "foreground": "#64748B",
+      "background": "#020617",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "light-secondary-icon",
+      "foreground": "#475569",
+      "background": "#FFFFFF",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "dark-diff-control-border",
+      "foreground": "#888888",
+      "background": "#333333",
+      "type": "ui",
+      "state": "default"
+    },
+    {
+      "id": "light-canvas-status-text",
+      "foreground": "#334155",
+      "background": "#FFFFFF",
+      "type": "text-normal",
+      "state": "loading-error"
+    },
+    {
+      "id": "dark-canvas-status-text",
+      "foreground": "#E2E8F0",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "loading-error"
+    },
+    {
+      "id": "light-canvas-region-focus",
+      "foreground": "#2563EB",
+      "background": "#F1F5F9",
+      "type": "ui",
+      "state": "focus"
+    }
+  ]
+}

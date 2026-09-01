@@ -59,6 +59,21 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      const isSubscriptionLock = status === 402 && [
+        "TENANT_SUBSCRIPTION_ACTIVATION_REQUIRED",
+        "TENANT_SUBSCRIPTION_NOT_ACTIVE",
+      ].includes(code);
+      const isBillingRequest = requestUrl.includes("/subscriptions");
+
+      if (isSubscriptionLock && !isBillingRequest && !window.location.pathname.startsWith("/dashboard/subscriptions")) {
+        sessionStorage.setItem(
+          "hive_billing_locked_from",
+          window.location.pathname + window.location.search,
+        );
+        window.location.href = "/dashboard/subscriptions";
+        return Promise.reject(error);
+      }
+
       if ((isUnauthorized && !isTelemetryRequest) || isEjected) {
         const ejectReason = code === "TENANT_CONTEXT_INVALID"
           || code === "TENANT_CONTEXT_SIGNATURE_INVALID"

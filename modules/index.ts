@@ -9,6 +9,7 @@ import { productionModule } from "@/modules/production/module";
 import { workflowModule } from "@/modules/workflow/module";
 import { projectManagementModule } from "@/modules/projectmanagement/module";
 import { humanResourcesModule } from "@/modules/humanresources/module";
+import { identityCardsModule } from "@/modules/identitycards/module";
 import { attendanceModule } from "@/modules/attendance/module";
 import { payrollModule } from "@/modules/payroll/module";
 import { financeModule } from "@/modules/finance/module";
@@ -26,6 +27,7 @@ import { agricultureModule } from "@/modules/agriculture/module";
 import { lmsModule } from "@/modules/Lms/module";
 import { b2bMarketplaceModule } from "@/modules/b2b-marketplace/module";
 import { landingTemplatesModule } from "@/modules/landing-templates/module";
+import { supportBotModule } from "@/modules/support-bot/module";
 import type {
   FrontendModuleDefinition,
   ModuleId,
@@ -46,6 +48,7 @@ export const FEATURE_MODULES: FrontendModuleDefinition[] = [
   workflowModule,
   projectManagementModule,
   humanResourcesModule,
+  identityCardsModule,
   attendanceModule,
   payrollModule,
   financeModule,
@@ -63,6 +66,7 @@ export const FEATURE_MODULES: FrontendModuleDefinition[] = [
   agricultureModule,
   b2bMarketplaceModule,
   landingTemplatesModule,
+  supportBotModule,
 ];
 
 const SYSTEM_MODULE_IDS = new Set<ModuleId>([

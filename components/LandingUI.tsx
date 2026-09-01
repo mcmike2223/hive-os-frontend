@@ -2,10 +2,10 @@
 "use client";
 
 import {
-  Activity, ArrowRight, BatteryCharging, Boxes, Building2, Calculator, 
-  Car, Check, CheckCircle2, ChevronRight, CloudLightning, Code2, 
-  Cpu, Database, FileText, Globe, Layers, LineChart, MapPin, Network, 
-  PieChart, Receipt, ShieldCheck, Signal, SmartphoneNfc, Truck, Users, 
+  Activity, ArrowRight, BatteryCharging, Boxes, Building2, Calculator,
+  Car, Check, CheckCircle2, ChevronRight, CloudLightning, Code2,
+  Cpu, Database, FileText, Globe, Layers, LineChart, MapPin, Network,
+  PieChart, Receipt, ShieldCheck, Signal, SmartphoneNfc, Truck, Users,
   Wallet, Zap
 } from "lucide-react";
 import { useEffect, useRef, useState } from 'react';
@@ -54,7 +54,7 @@ const PartnerSlider = ({ partners }: { partners: Partner[] }) => {
 
     const scrollStep = () => {
       if (!isHovered) {
-        scroller.scrollLeft += 0.5; 
+        scroller.scrollLeft += 0.5;
       }
 
       if (scroller.scrollLeft >= scroller.scrollWidth / 2) {
@@ -80,46 +80,46 @@ const PartnerSlider = ({ partners }: { partners: Partner[] }) => {
     <div className="w-full bg-background/50 backdrop-blur-sm border-y border-border py-12 overflow-hidden relative z-10 shadow-inner">
       <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent z-20 pointer-events-none"></div>
       <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none"></div>
-      
+
       <div className="text-center font-mono text-xs text-muted-foreground mb-10 tracking-widest uppercase">
         Ecosystem Integrations & Partners
       </div>
-      
-      <div 
+
+      <div
         ref={scrollerRef}
         className="flex overflow-x-auto no-scrollbar w-full cursor-grab active:cursor-grabbing"
       >
-         {[1, 2, 3, 4].map((arrayIndex) => (
-           <div key={arrayIndex} className="flex shrink-0 gap-6 items-center pr-6">
-             {partners.map((partner, i) => {
-               return (
-                 <div 
-                   key={`${arrayIndex}-${i}`} 
-                   className="flex items-center gap-4 px-8 py-4 bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl hover:border-primary/50 hover:bg-card/80 transition-all duration-300 group shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.02)]"
-                 >
-                   <div className="w-12 h-12 p-2 rounded-xl bg-background/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm overflow-hidden relative">
-                      {/* 🚀 FIXED: Safe image rendering that won't crash React hydration */}
-                      <img 
-                        src={partner.logo} 
-                        alt={`${partner.name} logo`} 
-                        className="max-w-full max-h-full object-contain"
-                        suppressHydrationWarning
-                        onError={(e) => {
-                          // 1. Nullify the handler immediately to prevent infinite loops
-                          e.currentTarget.onerror = null; 
-                          // 2. Hide the broken image icon so it looks clean even if the image fails
-                          e.currentTarget.style.display = 'none'; 
-                        }}
-                      />
-                   </div>
-                   <span className="text-lg font-bold font-space tracking-wider text-muted-foreground group-hover:text-foreground transition-colors duration-300 whitespace-nowrap">
-                     {partner.name}
-                   </span>
-                 </div>
-               );
-             })}
-           </div>
-         ))}
+        {[1, 2, 3, 4].map((arrayIndex) => (
+          <div key={arrayIndex} className="flex shrink-0 gap-6 items-center pr-6">
+            {partners.map((partner, i) => {
+              return (
+                <div
+                  key={`${arrayIndex}-${i}`}
+                  className="flex items-center gap-4 px-8 py-4 bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl hover:border-primary/50 hover:bg-card/80 transition-all duration-300 group shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.02)]"
+                >
+                  <div className="w-12 h-12 p-2 rounded-xl bg-background/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm overflow-hidden relative">
+                    {/* 🚀 FIXED: Safe image rendering that won't crash React hydration */}
+                    <img
+                      src={partner.logo}
+                      alt={`${partner.name} logo`}
+                      className="max-w-full max-h-full object-contain"
+                      suppressHydrationWarning
+                      onError={(e) => {
+                        // 1. Nullify the handler immediately to prevent infinite loops
+                        e.currentTarget.onerror = null;
+                        // 2. Hide the broken image icon so it looks clean even if the image fails
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold font-space tracking-wider text-muted-foreground group-hover:text-foreground transition-colors duration-300 whitespace-nowrap">
+                    {partner.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -135,7 +135,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const y = element.getBoundingClientRect().top + window.scrollY - 80; 
+      const y = element.getBoundingClientRect().top + window.scrollY - 80;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
@@ -185,10 +185,10 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
         const initHex = () => { for (let i = 0; i < 60; i++) hexagons.push(new Hex()); }
         const animateHex = () => {
-            if (!canvas || !ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            hexagons.forEach(hex => hex.update());
-            requestAnimationFrame(animateHex);
+          if (!canvas || !ctx) return;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          hexagons.forEach(hex => hex.update());
+          requestAnimationFrame(animateHex);
         }
 
         initHex();
@@ -206,7 +206,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         return () => window.removeEventListener('resize', handleResize);
       }
     }
-  }, [resolvedTheme]); 
+  }, [resolvedTheme]);
 
   const partners = [
     { name: "COMMERCIAL BANK", logo: "/logos/cbe.png" },
@@ -227,7 +227,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden">
-      
+
       {/* --- BACKGROUND --- */}
       <canvas id="hive-canvas" ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-30 z-0" />
       <div className="tech-grid fixed inset-0 z-0 pointer-events-none opacity-40" />
@@ -238,7 +238,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         <Link href="/" className="flex items-center gap-2 font-space text-xl font-bold tracking-tight hover:text-primary transition-colors group">
           <Globe className="text-primary h-5 w-5 group-hover:rotate-180 transition-transform duration-700" /> {initialPortalName}
         </Link>
-        
+
         {/* 🚀 FIXED: Switched <a> tags to <button> tags. This completely bypasses the Next.js router and stops the reload. */}
         <div className="hidden md:flex items-center gap-6 text-xs font-bold text-muted-foreground font-space uppercase">
           <button onClick={() => scrollToSection('modules')} className="hover:text-primary hover:-translate-y-0.5 transition-all duration-300 cursor-pointer">Modules</button>
@@ -263,7 +263,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             {!initialIsTenant && (
               <Link href="/auth/signup">
                 <Button className="font-space font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 border-none hover:scale-105 transition-all duration-300 [clip-path:polygon(10%_0,100%_0,100%_70%,90%_100%,0_100%,0_30%)]">
-                  Deploy Node
+                  Create Buisness Account
                 </Button>
               </Link>
             )}
@@ -277,103 +277,103 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
           <span className="mr-2 h-2 w-2 rounded-full bg-primary animate-pulse"></span>
           {initialIsTenant ? 'POWERED BY HIVE ERP' : 'DEVELOPED BY TECHIVE TECHNOLOGY SOLUTIONS'}
         </div>
-        
+
         <h1 className="max-w-5xl font-space text-5xl font-black leading-tight tracking-tighter md:text-7xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100 drop-shadow-2xl">
           {initialIsTenant ? (
             <>
-              Welcome to your <br /> 
+              Welcome to your <br />
               <span className="relative inline-block mt-2 mb-2 group">
                 <span className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/40 transition-all duration-700"></span>
                 <span className="relative bg-gradient-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent animate-text-shimmer uppercase">
                   {initialPortalName}
                 </span>
-              </span> <br/> Dashboard
+              </span> <br /> Dashboard
             </>
           ) : (
             <>Unify Your <br /> <span className="bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent animate-text-shimmer">Enterprise Operations</span></>
           )}
         </h1>
-        
+
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl font-inter animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-          {initialIsTenant 
-            ? 'Securely access your central management node. Oversee HR, track freight logistics, and manage financial ledgers in real-time.' 
+          {initialIsTenant
+            ? 'Securely access your central management node. Oversee HR, track freight logistics, and manage financial ledgers in real-time.'
             : 'Hive is the comprehensive ERP solution built for scalable businesses in Ethiopia. Connect your Finance, HR, and Supply Chain with local tax and banking integrations.'}
         </p>
 
         {/* --- 3D DASHBOARD PREVIEW --- */}
         <div className="mt-20 w-full max-w-6xl [perspective:2000px] relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/20 blur-[120px] rounded-full pointer-events-none animate-pulse-hex"></div>
-          
+
           <div className="relative grid grid-cols-[80px_250px_1fr] overflow-hidden rounded-xl border border-primary/30 bg-background/60 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] h-[500px] md:h-[650px] animate-float-deck group hover:border-primary/60 transition-colors duration-500">
-              <div className="absolute inset-0 w-full h-[2px] bg-primary/50 shadow-[0_0_15px_hsl(var(--primary))] z-50 animate-scan-beam pointer-events-none"></div>
-              
-              <div className="flex flex-col items-center gap-6 border-r border-border bg-muted/20 pt-8 z-10">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)_/_0.2)] hover:scale-110 transition-transform cursor-pointer"><LineChart className="h-6 w-6"/></div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"><Truck className="h-6 w-6"/></div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"><Users className="h-6 w-6"/></div>
-                <div className="mt-auto mb-5 text-muted-foreground"><Activity className="h-6 w-6 animate-pulse"/></div>
-              </div>
-              
-              <div className="hidden md:block border-r border-border bg-muted/5 p-8 font-mono text-sm text-left z-10 relative">
-                <div className="mb-6 text-xs text-muted-foreground uppercase tracking-widest">&gt; System Modules</div>
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center group/item cursor-pointer">
-                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">General Ledger</span> 
-                     <span className="text-green-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> SYNCED</span>
-                  </div>
-                  <div className="flex justify-between items-center group/item cursor-pointer">
-                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Freight & Fleet</span> 
-                     <span className="text-green-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> ACTIVE</span>
-                  </div>
-                  <div className="flex justify-between items-center group/item cursor-pointer">
-                     <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Payroll Proc.</span> 
-                     <span className="text-yellow-500 animate-pulse">PENDING</span>
-                  </div>
+            <div className="absolute inset-0 w-full h-[2px] bg-primary/50 shadow-[0_0_15px_hsl(var(--primary))] z-50 animate-scan-beam pointer-events-none"></div>
+
+            <div className="flex flex-col items-center gap-6 border-r border-border bg-muted/20 pt-8 z-10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)_/_0.2)] hover:scale-110 transition-transform cursor-pointer"><LineChart className="h-6 w-6" /></div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"><Truck className="h-6 w-6" /></div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"><Users className="h-6 w-6" /></div>
+              <div className="mt-auto mb-5 text-muted-foreground"><Activity className="h-6 w-6 animate-pulse" /></div>
+            </div>
+
+            <div className="hidden md:block border-r border-border bg-muted/5 p-8 font-mono text-sm text-left z-10 relative">
+              <div className="mb-6 text-xs text-muted-foreground uppercase tracking-widest">&gt; System Modules</div>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center group/item cursor-pointer">
+                  <span className="text-muted-foreground group-hover/item:text-primary transition-colors">General Ledger</span>
+                  <span className="text-green-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> SYNCED</span>
                 </div>
-                
-                <div className="absolute bottom-8 left-8 right-8 h-auto rounded border border-primary/20 bg-primary/5 p-4 text-primary text-xs shadow-inner overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent -translate-x-full animate-[shimmer-text_3s_infinite]"></div>
-                  SERVER STATUS: <br/> <span className="text-lg font-bold">OPTIMAL</span>
-                  <div className="mt-3 h-1 w-full bg-primary/20 rounded overflow-hidden">
-                     <div className="h-full bg-primary w-[98%] shadow-[0_0_10px_hsl(var(--primary))]"></div>
-                  </div>
+                <div className="flex justify-between items-center group/item cursor-pointer">
+                  <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Freight & Fleet</span>
+                  <span className="text-green-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> ACTIVE</span>
+                </div>
+                <div className="flex justify-between items-center group/item cursor-pointer">
+                  <span className="text-muted-foreground group-hover/item:text-primary transition-colors">Payroll Proc.</span>
+                  <span className="text-yellow-500 animate-pulse">PENDING</span>
                 </div>
               </div>
 
-              <div className="p-8 bg-card/10 text-left z-10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 animate-pulse-hex"></div>
-                
-                <div className="flex items-end justify-between border-b border-border pb-6">
-                  <div>
-                    <h2 className="font-space text-3xl font-bold">Executive Summary</h2>
-                    <div className="font-mono text-xs text-primary mt-1 flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div> REAL-TIME DATA</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-space text-4xl font-black tracking-tight drop-shadow-lg">24.5M ETB</div>
-                    <div className="font-mono text-xs text-muted-foreground">GROSS REVENUE (YTD)</div>
-                  </div>
+              <div className="absolute bottom-8 left-8 right-8 h-auto rounded border border-primary/20 bg-primary/5 p-4 text-primary text-xs shadow-inner overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent -translate-x-full animate-[shimmer-text_3s_infinite]"></div>
+                SERVER STATUS: <br /> <span className="text-lg font-bold">OPTIMAL</span>
+                <div className="mt-3 h-1 w-full bg-primary/20 rounded overflow-hidden">
+                  <div className="h-full bg-primary w-[98%] shadow-[0_0_10px_hsl(var(--primary))]"></div>
                 </div>
-                
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
-                    <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">ACTIVE LOADS</div>
-                    <div className="font-space text-3xl font-bold">142</div>
-                    <div className="text-xs text-green-500 mt-1 flex items-center gap-1"><ArrowRight className="rotate-[-45deg] h-3 w-3"/> 12 In Transit</div>
-                  </div>
-                  <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
-                    <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">EMPLOYEE HEADCOUNT</div>
-                    <div className="font-space text-3xl font-bold">420</div>
-                    <div className="text-xs text-muted-foreground mt-1">Across 4 Branches</div>
-                  </div>
-                  <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
-                    <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">SYSTEM LATENCY</div>
-                    <div className="font-space text-3xl font-bold">12ms</div>
-                    <div className="mt-4 h-1 w-full bg-muted rounded-full overflow-hidden relative">
-                      <div className="absolute top-0 left-0 h-full bg-primary w-[5%] shadow-[0_0_10px_hsl(var(--primary))]"></div>
-                    </div>
+              </div>
+            </div>
+
+            <div className="p-8 bg-card/10 text-left z-10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 animate-pulse-hex"></div>
+
+              <div className="flex items-end justify-between border-b border-border pb-6">
+                <div>
+                  <h2 className="font-space text-3xl font-bold">Executive Summary</h2>
+                  <div className="font-mono text-xs text-primary mt-1 flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div> REAL-TIME DATA</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-space text-4xl font-black tracking-tight drop-shadow-lg">24.5M ETB</div>
+                  <div className="font-mono text-xs text-muted-foreground">GROSS REVENUE (YTD)</div>
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
+                  <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">ACTIVE LOADS</div>
+                  <div className="font-space text-3xl font-bold">142</div>
+                  <div className="text-xs text-green-500 mt-1 flex items-center gap-1"><ArrowRight className="rotate-[-45deg] h-3 w-3" /> 12 In Transit</div>
+                </div>
+                <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
+                  <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">EMPLOYEE HEADCOUNT</div>
+                  <div className="font-space text-3xl font-bold">420</div>
+                  <div className="text-xs text-muted-foreground mt-1">Across 4 Branches</div>
+                </div>
+                <div className="rounded-lg border border-border bg-card/50 p-5 relative overflow-hidden shadow-sm hover:border-primary/50 hover:shadow-[0_0_20px_hsl(var(--primary)_/_0.15)] transition-all duration-300 group cursor-pointer hover:-translate-y-1">
+                  <div className="font-mono text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors">SYSTEM LATENCY</div>
+                  <div className="font-space text-3xl font-bold">12ms</div>
+                  <div className="mt-4 h-1 w-full bg-muted rounded-full overflow-hidden relative">
+                    <div className="absolute top-0 left-0 h-full bg-primary w-[5%] shadow-[0_0_10px_hsl(var(--primary))]"></div>
                   </div>
                 </div>
               </div>
+            </div>
           </div>
         </div>
       </section>
@@ -396,7 +396,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-700"></div>
             <div>
               <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 text-primary">
-                 <Wallet className="w-7 h-7" />
+                <Wallet className="w-7 h-7" />
               </div>
               <h3 className="text-3xl font-space font-bold mb-3">Intelligent Finance</h3>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
@@ -404,14 +404,14 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               </p>
             </div>
             <div className="mt-8 bg-background border border-border rounded-xl p-4 shadow-inner">
-               <div className="flex justify-between items-center text-sm font-mono border-b border-border pb-2 mb-2">
-                 <span className="text-muted-foreground">Telebirr Sync</span>
-                 <span className="text-green-500">SUCCESS</span>
-               </div>
-               <div className="flex justify-between items-center text-sm font-mono">
-                 <span className="text-muted-foreground">VAT Calculation</span>
-                 <span className="text-green-500">AUTOMATED</span>
-               </div>
+              <div className="flex justify-between items-center text-sm font-mono border-b border-border pb-2 mb-2">
+                <span className="text-muted-foreground">Telebirr Sync</span>
+                <span className="text-green-500">SUCCESS</span>
+              </div>
+              <div className="flex justify-between items-center text-sm font-mono">
+                <span className="text-muted-foreground">VAT Calculation</span>
+                <span className="text-green-500">AUTOMATED</span>
+              </div>
             </div>
           </div>
 
@@ -446,7 +446,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
       {/* --- FINTECH & PAYMENT GATEWAY INTEGRATION --- */}
       <section id="fintech" className="py-24 bg-card/20 relative overflow-hidden border-t border-border">
         <div className="absolute left-0 bottom-0 w-1/2 h-full bg-green-500/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
-        
+
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-green-500/10 text-green-500 border-none shadow-none">FINANCIAL ECOSYSTEM</Badge>
@@ -501,14 +501,14 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             </p>
             <div className="space-y-6">
               <div className="flex items-start gap-4">
-                <div className="mt-1 bg-blue-500/10 p-2 rounded-lg text-blue-500 shrink-0"><Car size={20}/></div>
+                <div className="mt-1 bg-blue-500/10 p-2 rounded-lg text-blue-500 shrink-0"><Car size={20} /></div>
                 <div>
                   <h4 className="font-bold mb-1">Smart Traffic & Toll Management</h4>
                   <p className="text-sm text-muted-foreground">Automate toll collection and traffic violation processing via direct API integration with Telebirr and local transit databases.</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="mt-1 bg-blue-500/10 p-2 rounded-lg text-blue-500 shrink-0"><BatteryCharging size={20}/></div>
+                <div className="mt-1 bg-blue-500/10 p-2 rounded-lg text-blue-500 shrink-0"><BatteryCharging size={20} /></div>
                 <div>
                   <h4 className="font-bold mb-1">EV Dashboard Integration</h4>
                   <p className="text-sm text-muted-foreground">Manage an Electric Vehicle fleet with specialized dashboard modules tracking battery health, charging node status, and route optimization.</p>
@@ -516,40 +516,40 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               </div>
             </div>
           </div>
-          
+
           <div className="flex-1 relative">
-             <div className="w-full h-[400px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden relative group">
-                <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
-                <div className="h-12 border-b border-border bg-muted/50 flex items-center px-4 justify-between">
-                  <div className="flex gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div><div className="w-3 h-3 rounded-full bg-yellow-500"></div><div className="w-3 h-3 rounded-full bg-green-500"></div></div>
-                  <span className="font-mono text-xs font-bold text-muted-foreground tracking-widest">HIVE.OS // MOBILITY</span>
-                </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="font-space font-bold text-xl">Active Tolls (A.A. Expressway)</h3>
-                      <p className="text-xs text-muted-foreground font-mono mt-1">TELEBIRR SYNC: ACTIVE</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-500">842</div>
-                      <div className="text-xs text-muted-foreground">Vehicles Processed/Hr</div>
-                    </div>
+            <div className="w-full h-[400px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden relative group">
+              <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
+              <div className="h-12 border-b border-border bg-muted/50 flex items-center px-4 justify-between">
+                <div className="flex gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div><div className="w-3 h-3 rounded-full bg-yellow-500"></div><div className="w-3 h-3 rounded-full bg-green-500"></div></div>
+                <span className="font-mono text-xs font-bold text-muted-foreground tracking-widest">HIVE.OS // MOBILITY</span>
+              </div>
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="font-space font-bold text-xl">Active Tolls (A.A. Expressway)</h3>
+                    <p className="text-xs text-muted-foreground font-mono mt-1">TELEBIRR SYNC: ACTIVE</p>
                   </div>
-                  <div className="space-y-3">
-                    {[
-                      { plate: "A 42315 AA", status: "CLEARED", amount: "45.00 ETB", time: "Just Now" },
-                      { plate: "B 19482 OR", status: "PENDING", amount: "120.00 ETB", time: "1 min ago" },
-                      { plate: "EV 00412 AA", status: "EXEMPT", amount: "0.00 ETB", time: "5 mins ago" }
-                    ].map((row, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 rounded bg-background border border-border">
-                        <div className="font-mono text-sm font-bold bg-muted px-2 py-1 rounded">{row.plate}</div>
-                        <div className={`text-xs font-bold ${row.status === 'CLEARED' ? 'text-green-500' : row.status === 'EXEMPT' ? 'text-blue-500' : 'text-yellow-500'}`}>{row.status}</div>
-                        <div className="font-mono text-sm">{row.amount}</div>
-                      </div>
-                    ))}
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-500">842</div>
+                    <div className="text-xs text-muted-foreground">Vehicles Processed/Hr</div>
                   </div>
                 </div>
-             </div>
+                <div className="space-y-3">
+                  {[
+                    { plate: "A 42315 AA", status: "CLEARED", amount: "45.00 ETB", time: "Just Now" },
+                    { plate: "B 19482 OR", status: "PENDING", amount: "120.00 ETB", time: "1 min ago" },
+                    { plate: "EV 00412 AA", status: "EXEMPT", amount: "0.00 ETB", time: "5 mins ago" }
+                  ].map((row, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 rounded bg-background border border-border">
+                      <div className="font-mono text-sm font-bold bg-muted px-2 py-1 rounded">{row.plate}</div>
+                      <div className={`text-xs font-bold ${row.status === 'CLEARED' ? 'text-green-500' : row.status === 'EXEMPT' ? 'text-blue-500' : 'text-yellow-500'}`}>{row.status}</div>
+                      <div className="font-mono text-sm">{row.amount}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -560,7 +560,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
           <div className="flex-1 order-2 md:order-1 relative">
             <div className="bg-background border border-border rounded-xl shadow-xl p-6 relative max-w-sm mx-auto transform -rotate-2 hover:rotate-0 transition-transform duration-500 z-10">
               <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-full flex items-center justify-center">
-                 <CheckCircle2 className="w-6 h-6 text-primary absolute top-3 right-3" />
+                <CheckCircle2 className="w-6 h-6 text-primary absolute top-3 right-3" />
               </div>
               <h3 className="font-space font-bold text-xl border-b border-border pb-4 mb-4">Payslip Generation</h3>
               <div className="space-y-4 font-mono text-sm">
@@ -622,26 +622,26 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-full bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
           <div className="flex-1 order-2 md:order-1">
-             <div className="relative w-full aspect-square max-w-md mx-auto">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-2xl transform rotate-3 animate-pulse-hex"></div>
-                <div className="absolute inset-0 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-                  <div className="bg-muted/50 border-b border-border p-3 flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  </div>
-                  <div className="p-6 font-mono text-sm text-muted-foreground flex-1 overflow-hidden relative">
-                    <p className="text-primary mb-2"># Docker Swarm Cluster Init</p>
-                    <p className="opacity-80">Deploying isolated tenant environments...</p>
-                    <p className="opacity-80 mt-2">&gt; docker-compose -f hive.yml up -d</p>
-                    <p className="text-green-500 mt-2">[+] Running 4/4</p>
-                    <p className="opacity-80 pl-4">✔ Network hive_mesh created</p>
-                    <p className="opacity-80 pl-4">✔ Container tenant_a_db Started</p>
-                    <p className="opacity-80 pl-4">✔ Container tenant_b_db Started</p>
-                    <p className="text-primary mt-4 animate-pulse">_</p>
-                  </div>
+            <div className="relative w-full aspect-square max-w-md mx-auto">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-2xl transform rotate-3 animate-pulse-hex"></div>
+              <div className="absolute inset-0 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                <div className="bg-muted/50 border-b border-border p-3 flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
-             </div>
+                <div className="p-6 font-mono text-sm text-muted-foreground flex-1 overflow-hidden relative">
+                  <p className="text-primary mb-2"># Docker Swarm Cluster Init</p>
+                  <p className="opacity-80">Deploying isolated tenant environments...</p>
+                  <p className="opacity-80 mt-2">&gt; docker-compose -f hive.yml up -d</p>
+                  <p className="text-green-500 mt-2">[+] Running 4/4</p>
+                  <p className="opacity-80 pl-4">✔ Network hive_mesh created</p>
+                  <p className="opacity-80 pl-4">✔ Container tenant_a_db Started</p>
+                  <p className="opacity-80 pl-4">✔ Container tenant_b_db Started</p>
+                  <p className="text-primary mt-4 animate-pulse">_</p>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex-1 order-1 md:order-2">
             <Badge className="mb-4 bg-primary/20 text-primary border-none shadow-none">TECHIVE ENGINEERING</Badge>
@@ -651,14 +651,14 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
             </p>
             <ul className="space-y-6">
               <li className="flex gap-4 group">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0"><Code2 size={20}/></div>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0"><Code2 size={20} /></div>
                 <div>
                   <h4 className="font-bold text-lg mb-1">Isolated Data Schemas</h4>
                   <p className="text-muted-foreground text-sm">Every corporate tenant operates within its own dedicated database schema, preventing catastrophic data bleed.</p>
                 </div>
               </li>
               <li className="flex gap-4 group">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0"><Database size={20}/></div>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0"><Database size={20} /></div>
                 <div>
                   <h4 className="font-bold text-lg mb-1">Hybrid Cloud & On-Prem</h4>
                   <p className="text-muted-foreground text-sm">Deploy seamlessly on AWS infrastructure or containerize the entire platform for strictly isolated On-Premise deployments.</p>
@@ -695,7 +695,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
               </div>
             </div>
           </div>
-          
+
           <div className="flex-1 relative flex justify-center">
             <div className="w-72 h-[600px] border-[8px] border-muted rounded-[3rem] bg-background shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-muted rounded-b-xl z-20"></div>
@@ -791,19 +791,19 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
 
         <div className="space-y-4">
           {faqs.map((faq, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className="border border-border bg-card/30 rounded-xl overflow-hidden transition-all duration-300"
             >
-              <button 
+              <button
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
                 className="w-full text-left px-6 py-5 flex justify-between items-center hover:bg-muted/20 transition-colors"
               >
                 <span className="font-bold font-space pr-4">{faq.q}</span>
                 <ChevronRight className={`w-5 h-5 text-primary transition-transform duration-300 shrink-0 ${openFaq === idx ? 'rotate-90' : ''}`} />
               </button>
-              
-              <div 
+
+              <div
                 className={`px-6 text-muted-foreground text-sm overflow-hidden transition-all duration-500 ease-in-out ${openFaq === idx ? 'max-h-40 pb-6 opacity-100' : 'max-h-0 py-0 opacity-0'}`}
               >
                 {faq.a}
@@ -818,7 +818,7 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         <section className="py-32 px-4 relative overflow-hidden">
           <div className="absolute inset-0 bg-primary/5"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-full bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
-          
+
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <h2 className="font-space text-5xl md:text-6xl font-black mb-6">Ready to upgrade your Ethiopian Enterprise?</h2>
             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
@@ -843,41 +843,41 @@ export default function LandingUI({ initialPortalName, initialTenantSlug, initia
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-primary/5 blur-[100px] pointer-events-none"></div>
 
         <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-4 gap-12 relative z-10">
-           <div className="md:col-span-2">
-             <h2 className={`font-space text-3xl font-bold mb-2 uppercase ${initialIsTenant ? 'text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400' : ''}`}>
-                {initialIsTenant ? initialPortalName : 'HIVE ERP'}
-             </h2>
-             <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-6">
-               The robust Enterprise Resource Planning system. Streamlining Finance, HR, Smart Mobility, and Logistics for the modern Ethiopian business.
-             </p>
-             <div className="flex items-center border-b border-border pb-2 max-w-xs mt-6 group">
-               <span className="text-primary font-mono mr-2">system@{initialTenantSlug}:~$</span>
-               <input type="text" placeholder="enter email for updates" className="bg-transparent border-none outline-none text-foreground w-full font-mono text-sm focus:ring-0 placeholder:text-muted-foreground/50"/>
-               <ArrowRight className="h-4 w-4 text-primary cursor-pointer group-hover:translate-x-2 transition-transform duration-300"/>
-             </div>
-           </div>
-           
-           <div>
-             <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">Modules</h4>
-             <ul className="space-y-3 text-sm text-muted-foreground font-medium">
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Financial Ledger</li>
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Smart Mobility</li>
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Human Resources</li>
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Asset Management</li>
-             </ul>
-           </div>
+          <div className="md:col-span-2">
+            <h2 className={`font-space text-3xl font-bold mb-2 uppercase ${initialIsTenant ? 'text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400' : ''}`}>
+              {initialIsTenant ? initialPortalName : 'HIVE ERP'}
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-6">
+              The robust Enterprise Resource Planning system. Streamlining Finance, HR, Smart Mobility, and Logistics for the modern Ethiopian business.
+            </p>
+            <div className="flex items-center border-b border-border pb-2 max-w-xs mt-6 group">
+              <span className="text-primary font-mono mr-2">system@{initialTenantSlug}:~$</span>
+              <input type="text" placeholder="enter email for updates" className="bg-transparent border-none outline-none text-foreground w-full font-mono text-sm focus:ring-0 placeholder:text-muted-foreground/50" />
+              <ArrowRight className="h-4 w-4 text-primary cursor-pointer group-hover:translate-x-2 transition-transform duration-300" />
+            </div>
+          </div>
 
-           <div>
-             <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">Company</h4>
-             <ul className="space-y-3 text-sm text-muted-foreground font-medium">
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Documentation</li>
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Contact Sales</li>
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Addis Ababa HQ</li>
-               <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>System Status</li>
-             </ul>
-           </div>
+          <div>
+            <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">Modules</h4>
+            <ul className="space-y-3 text-sm text-muted-foreground font-medium">
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Financial Ledger</li>
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Smart Mobility</li>
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Human Resources</li>
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Asset Management</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-space font-bold uppercase mb-6 text-foreground tracking-wider">Company</h4>
+            <ul className="space-y-3 text-sm text-muted-foreground font-medium">
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Documentation</li>
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Contact Sales</li>
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>Addis Ababa HQ</li>
+              <li className="hover:text-primary cursor-pointer transition-all hover:translate-x-1 duration-200 flex items-center gap-2"><div className="w-1 h-1 rounded-full bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>System Status</li>
+            </ul>
+          </div>
         </div>
-        
+
         <div className="mx-auto max-w-6xl mt-16 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border">

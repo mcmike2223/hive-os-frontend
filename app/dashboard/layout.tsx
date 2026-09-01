@@ -1,16 +1,17 @@
 import AuthGuard from "@/components/auth/auth-guard";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { SessionTimeoutProvider } from "@/components/providers/session-timeout-provider"; 
-import { TourProvider } from "@/components/providers/tour-provider"; 
-import { TranslationProvider } from "@/components/providers/translation-provider"; 
-import { BrandSyncProvider } from "@/components/providers/brand-sync-provider"; 
-import { GlobalAudioProvider } from "@/context/global-audio-context"; 
-import { FloatingPlayer } from "@/components/ui/floating-player"; 
+import { SessionTimeoutProvider } from "@/components/providers/session-timeout-provider";
+import { TourProvider } from "@/components/providers/tour-provider";
+import { TranslationProvider } from "@/components/providers/translation-provider";
+import { BrandSyncProvider } from "@/components/providers/brand-sync-provider";
+import { GlobalAudioProvider } from "@/context/global-audio-context";
+import { FloatingPlayer } from "@/components/ui/floating-player";
 import { ChatSyncProvider } from "@/components/providers/chat-sync-provider";
 import { MailSyncProvider } from "@/components/providers/mail-sync-provider";
 import { WorkflowSyncProvider } from "@/components/providers/workflow-sync-provider";
 import { ProjectManagementSyncProvider } from "@/modules/projectmanagement/providers/pm-sync-provider";
 import { TrialBannerWrapper } from "@/components/dashboard/trial-banner-wrapper";
+import { ErpCopilotPanel } from "@/components/support-bot/erp-copilot-panel";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
@@ -29,16 +30,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <WorkflowSyncProvider />
       <ProjectManagementSyncProvider />
       <GlobalAudioProvider>
-        <TranslationProvider> 
+        <TranslationProvider>
           {/* 🚀 THE FIX: Removed hardcoded prop. It now fetches dynamically! */}
           <SessionTimeoutProvider>
-            <TourProvider> 
+            <TourProvider>
                 <>
                   <TrialBannerWrapper />
                   <DashboardShell>
                     {children}
                   </DashboardShell>
                   <FloatingPlayer />
+                  {/* Signed-in staff get the ERP Copilot, which reasons and
+                      acts server-side under their own permissions. The public
+                      support widget stays on the marketing site. */}
+                  <ErpCopilotPanel />
                 </>
             </TourProvider>
           </SessionTimeoutProvider>

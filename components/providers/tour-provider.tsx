@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { Joyride, type EventData, type Step, STATUS, EVENTS, type TooltipRenderProps } from "react-joyride";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
@@ -10,6 +10,8 @@ interface TourContextType {
     startTour: (steps: Step[], type?: 'welcome' | 'system') => void;
     stopTour: () => void;
     currentStepTarget: string | null;
+    currentStep: Step | null;
+    stepIndex: number;
     isActive: boolean;
 }
 
@@ -23,9 +25,7 @@ export const useTour = () => {
 
 const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps & { totalSteps?: number }>(
     ({ index, step, backProps, closeProps, primaryProps, skipProps, tooltipProps, isLastStep, totalSteps }, ref) => {
-        // Every label below used to be hardcoded English, so an Amharic operator
-        // got a fully translated tour body with English controls.
-        const { t } = useTranslation();
+        const { t, locale } = useTranslation();
 
         if (!step) return null;
 
@@ -40,24 +40,25 @@ const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps & { to
             zIndex: 1000000,
             backgroundColor: 'hsl(var(--card))',
             borderRadius: '1.5rem',
-            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+            transition: 'opacity 0.2s ease-in-out',
         };
 
         return (
-            <div 
-                {...tooltipProps} 
-                ref={ref} 
+            <div
+                {...tooltipProps}
+                ref={ref}
                 style={combinedStyle}
-                className="w-[380px] p-6 border-2 border-primary/30 flex flex-col relative overflow-hidden"
+                className="w-[380px] p-6 border-2 border-primary/30 flex flex-col relative overflow-hidden bg-card text-card-foreground shadow-2xl"
             >
-                {/* 🚀 BRANDED GLOW EFFECT */}
+                {/* 🚀 BRANDED GLOW ACCENT */}
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60" />
                 <div className="absolute -top-24 -right-24 h-48 w-48 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
 
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-5 right-5 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-all border border-transparent hover:border-destructive/20" 
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-5 right-5 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors border border-transparent hover:border-destructive/20"
                     {...closeProps}
                 >
                     <X className="h-4 w-4" />
@@ -116,7 +117,7 @@ const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps & { to
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-9 rounded-xl text-xs font-bold px-4 border-border/60 hover:bg-muted/50 transition-all active:scale-95 flex items-center gap-1.5"
+                                className="h-9 rounded-xl text-xs font-bold px-4 border-border/60 hover:bg-muted/50 transition-colors active:scale-95 flex items-center gap-1.5"
                                 {...backProps}
                             >
                                 <ArrowLeft className="h-3.5 w-3.5" />
@@ -149,24 +150,75 @@ const CustomTooltip = React.forwardRef<HTMLDivElement, TooltipRenderProps & { to
 CustomTooltip.displayName = "CustomTooltip";
 
 export const TourProvider = ({ children }: { children: React.ReactNode }) => {
+    const { locale } = useTranslation();
     const [isMounted, setIsMounted] = useState(false);
     const [run, setRun] = useState(false);
     const [steps, setSteps] = useState<Step[]>([]);
     const [stepIndex, setStepIndex] = useState(0);
     const [tourType, setTourType] = useState<'welcome' | 'system'>('system');
+    const tabTransitionTimer = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => setIsMounted(true), []);
+    useEffect(() => {
+        setIsMounted(true);
+        return () => {
+            if (tabTransitionTimer.current) clearTimeout(tabTransitionTimer.current);
+        };
+    }, []);
+
+    const switchTabSync = useCallback((switchTab: string | undefined, tabSelector?: string): boolean => {
+        if (!switchTab && !tabSelector) return false;
+
+        const possibleTriggers = [
+            tabSelector,
+            `#tour-tab-${switchTab}`,
+            `#settings-tab-${switchTab}`,
+            `#tour-profile-tab-${switchTab}`,
+            `button[value="${switchTab}"]`,
+            `[data-tab="${switchTab}"]`,
+            `[data-value="${switchTab}"]`,
+            `button[role="tab"][id*="${switchTab}"]`
+        ].filter(Boolean) as string[];
+
+        for (const selector of possibleTriggers) {
+            const el = document.querySelector<HTMLElement>(selector);
+            if (el) {
+                const isSelected = el.getAttribute('aria-selected') === 'true' ||
+                                   el.getAttribute('data-state') === 'active' ||
+                                   el.classList.contains('active');
+                if (!isSelected) {
+                    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                    el.click();
+                    return true;
+                }
+                return false;
+            }
+        }
+        return false;
+    }, []);
 
     const startTour = useCallback((newSteps: Step[], type: 'welcome' | 'system' = 'system') => {
         setTourType(type);
         setSteps(newSteps.map(step => ({ ...step, skipBeacon: true })));
         setStepIndex(0);
-        setTimeout(() => setRun(true), 300); 
-    }, []);
+
+        if (newSteps.length > 0) {
+            const firstStep = newSteps[0];
+            const stepData = firstStep?.data as Record<string, any> | undefined;
+            const didSwitch = switchTabSync(stepData?.switchTab, stepData?.tabSelector);
+
+            if (didSwitch) {
+                setTimeout(() => setRun(true), 350);
+                return;
+            }
+        }
+
+        setTimeout(() => setRun(true), 200);
+    }, [switchTabSync]);
 
     const stopTour = useCallback(() => {
         setRun(false);
         setStepIndex(0);
+        if (tabTransitionTimer.current) clearTimeout(tabTransitionTimer.current);
     }, []);
 
     const syncTourCompletion = async () => {
@@ -193,38 +245,49 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const handleJoyrideEvent = (data: EventData) => {
-        const { status, type, action, index } = data;
+        const { status, type, action, index, step } = data;
 
-        if (type === EVENTS.TOOLTIP) {
-            // Sidebar steps carry live elements rather than selectors (nested nav
-            // rows have no id). Passing one to querySelector stringified it to its
-            // href and threw a SyntaxError, killing the tour on the first such step.
-            const stepTarget = steps[index]?.target;
-            const element =
-                stepTarget instanceof HTMLElement
-                    ? stepTarget
-                    : typeof stepTarget === 'string'
-                        ? document.querySelector(stepTarget)
-                        : null;
+        if (type === EVENTS.STEP_AFTER) {
+            const nextIndex = index + (action === 'prev' ? -1 : 1);
 
-            if (element) {
-                setTimeout(() => {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 50);
+            if (nextIndex >= 0 && nextIndex < steps.length) {
+                const nextStep = steps[nextIndex];
+                const nextStepData = nextStep?.data as Record<string, any> | undefined;
+                const didSwitch = switchTabSync(nextStepData?.switchTab, nextStepData?.tabSelector);
+
+                if (didSwitch) {
+                    if (tabTransitionTimer.current) clearTimeout(tabTransitionTimer.current);
+                    tabTransitionTimer.current = setTimeout(() => {
+                        setStepIndex(nextIndex);
+                    }, 300);
+                    return;
+                }
             }
-        }
 
+            setStepIndex(nextIndex);
+        } else if (type === EVENTS.TARGET_NOT_FOUND) {
+            const stepData = step?.data as Record<string, any> | undefined;
+            const didSwitch = switchTabSync(stepData?.switchTab, stepData?.tabSelector);
 
-        if (type === EVENTS.TARGET_NOT_FOUND) {
-            setStepIndex(index + (action === 'prev' ? -1 : 1));
-        } else if (type === EVENTS.STEP_AFTER) {
+            if (didSwitch) {
+                if (tabTransitionTimer.current) clearTimeout(tabTransitionTimer.current);
+                tabTransitionTimer.current = setTimeout(() => {
+                    const retryTarget = typeof step.target === 'string' ? document.querySelector(step.target) : step.target;
+                    if (retryTarget) {
+                        return;
+                    }
+                    setStepIndex(index + (action === 'prev' ? -1 : 1));
+                }, 300);
+                return;
+            }
+
             setStepIndex(index + (action === 'prev' ? -1 : 1));
         } else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
             const isFinished = status === STATUS.FINISHED;
             setRun(false);
             setStepIndex(0);
-            
-            // Persist locally for immediate feedback
+            if (tabTransitionTimer.current) clearTimeout(tabTransitionTimer.current);
+
             if (tourType === 'welcome') {
                 localStorage.setItem('hive_welcome_tour_completed', 'true');
                 if (isFinished) syncTourCompletion();
@@ -234,36 +297,40 @@ export const TourProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const currentStepTarget = steps[stepIndex]?.target as string | null;
+    const currentStep = steps[stepIndex] || null;
+    const currentStepTarget = currentStep?.target as string | null;
 
     return (
-        <TourContext.Provider value={{ startTour, stopTour, currentStepTarget, isActive: run }}>
+        <TourContext.Provider value={{ startTour, stopTour, currentStepTarget, currentStep, stepIndex, isActive: run }}>
             {children}
             {isMounted && (
                 <Joyride
+                    key={locale}
                     steps={steps}
                     run={run}
                     stepIndex={stepIndex}
                     onEvent={handleJoyrideEvent}
                     continuous={true}
+                    scrollToFirstStep={true}
                     options={{
                         buttons: ["skip", "back", "close", "primary"],
                         overlayClickAction: false,
-                        scrollOffset: 150,
+                        scrollOffset: 140,
                         showProgress: false,
                         zIndex: 999999,
-                        overlayColor: "rgba(0, 0, 0, 0.5)",
+                        overlayColor: "rgba(0, 0, 0, 0.65)",
                         primaryColor: "hsl(var(--primary))",
                         backgroundColor: "hsl(var(--card))",
                         textColor: "hsl(var(--foreground))",
-                        spotlightRadius: 32,
+                        spotlightRadius: 24,
+                        spotlightPadding: 14,
                     }}
                     tooltipComponent={(props: TooltipRenderProps) => (
                         <CustomTooltip {...props} totalSteps={steps.length} />
                     )}
-                    floatingOptions={{ 
-                        hideArrow: true,
-                        shiftOptions: { padding: 20 },
+                    floatingOptions={{
+                        hideArrow: false,
+                        shiftOptions: { padding: 16 },
                     }}
                 />
             )}

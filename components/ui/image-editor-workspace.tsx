@@ -418,11 +418,11 @@ export function ImageEditorWorkspace({
       const output = tool.transparency ? await trimTransparentBlob(result.blob) : result.blob;
       addHistoryEntry(output, tool.operation);
       if (tool.transparency) setExportFormat("image/png");
-      toast.success(`${tool.label} applied with OpenCV.`);
+      toast.success(`${tool.label} applied successfully.`);
     } catch (error) {
       if (controller.signal.aborted) return;
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "OpenCV processing failed.");
+      toast.error(error instanceof Error ? error.message : "Advanced image processing failed.");
     } finally {
       if (!controller.signal.aborted) {
         setIsProcessing(false);
@@ -823,8 +823,8 @@ export function ImageEditorWorkspace({
                 variant="outline"
                 size="icon"
                 className="size-11"
-                aria-label="Undo OpenCV operation"
-                title="Undo OpenCV operation"
+                aria-label="Undo advanced effect"
+                title="Undo advanced effect"
                 disabled={historyIndex <= 0 || isProcessing}
                 onClick={() => {
                   setHistoryIndex((index) => Math.max(0, index - 1));
@@ -838,8 +838,8 @@ export function ImageEditorWorkspace({
                 variant="outline"
                 size="icon"
                 className="size-11"
-                aria-label="Redo OpenCV operation"
-                title="Redo OpenCV operation"
+                aria-label="Redo advanced effect"
+                title="Redo advanced effect"
                 disabled={historyIndex >= history.length - 1 || isProcessing}
                 onClick={() => {
                   setHistoryIndex((index) => Math.min(history.length - 1, index + 1));
@@ -1068,18 +1068,33 @@ export function ImageEditorWorkspace({
           <Card className="min-h-0 rounded-none border-0 border-l border-muted-foreground py-0 shadow-none">
             <CardHeader className="border-b border-muted-foreground px-5 py-4">
               <CardTitle><h3 className="text-base">Image lab</h3></CardTitle>
-              <CardDescription>Non-destructive controls with server-side OpenCV processing.</CardDescription>
+              <CardDescription>Non-destructive controls with advanced server-side image processing.</CardDescription>
             </CardHeader>
             <CardContent className="min-h-0 flex-1 overflow-hidden px-0">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as EditTab)} className="h-full gap-0">
-                <TabsList variant="line" aria-label="Image editing tools" className="grid h-auto w-full grid-cols-4 gap-0 border-b px-2 py-1">
-                  <TabsTrigger value="geometry" className="min-h-11 px-1 text-xs"><Crop aria-hidden="true" />Frame</TabsTrigger>
-                  <TabsTrigger value="tone" className="min-h-11 px-1 text-xs"><Aperture aria-hidden="true" />Tone</TabsTrigger>
-                  <TabsTrigger value="opencv" className="min-h-11 px-1 text-xs"><ScanLine aria-hidden="true" />OpenCV</TabsTrigger>
-                  <TabsTrigger value="export" className="min-h-11 px-1 text-xs"><Download aria-hidden="true" />Export</TabsTrigger>
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as EditTab)} className="flex h-full min-h-0 flex-col gap-0">
+                <TabsList
+                  aria-label="Image editing tools"
+                  className="mx-3 mt-3 grid !h-auto w-auto shrink-0 auto-rows-[5rem] grid-cols-2 items-stretch gap-2 rounded-2xl border border-border bg-muted/50 p-2 shadow-sm min-[420px]:grid-cols-4"
+                >
+                  <TabsTrigger value="geometry" className="!h-20 min-h-20 flex-col gap-1.5 rounded-xl border border-transparent px-2 py-2.5 text-xs font-semibold leading-snug hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <Crop className="size-5 shrink-0" aria-hidden="true" />
+                    <span>Frame</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="tone" className="!h-20 min-h-20 flex-col gap-1.5 rounded-xl border border-transparent px-2 py-2.5 text-xs font-semibold leading-snug hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <Aperture className="size-5 shrink-0" aria-hidden="true" />
+                    <span>Tone</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="opencv" className="!h-20 min-h-20 flex-col gap-1.5 rounded-xl border border-transparent px-2 py-2.5 text-xs font-semibold leading-snug hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <ScanLine className="size-5 shrink-0" aria-hidden="true" />
+                    <span className="max-w-full whitespace-normal text-center leading-snug">Advanced Effects</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="export" className="!h-20 min-h-20 flex-col gap-1.5 rounded-xl border border-transparent px-2 py-2.5 text-xs font-semibold leading-snug hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <Download className="size-5 shrink-0" aria-hidden="true" />
+                    <span>Export</span>
+                  </TabsTrigger>
                 </TabsList>
 
-                <div className="h-[calc(100%_-_53px)] overflow-y-auto p-5">
+                <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-6">
                   <TabsContent value="geometry" className="m-0 flex flex-col gap-6">
                     <FieldSet>
                       <FieldLegend>Transform</FieldLegend>
@@ -1155,7 +1170,7 @@ export function ImageEditorWorkspace({
                       <Wand2 aria-hidden="true" />
                       <AlertTitle>Photo AI remains available</AlertTitle>
                       <AlertDescription>
-                        Use rembg for people and complex products; use OpenCV for deterministic cutouts, cleanup, focus and enhancement.
+                        Use Photo AI for people and complex products, or choose an advanced effect for precise cutouts, cleanup, focus and enhancement.
                         <Button type="button" variant="outline" className="mt-3 min-h-11 w-full" disabled={isProcessing} onClick={() => void runPhotoAi()}>
                           <Wand2 data-icon="inline-start" aria-hidden="true" />Photo AI cutout
                         </Button>

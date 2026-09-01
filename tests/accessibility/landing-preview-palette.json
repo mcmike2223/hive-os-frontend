@@ -1,0 +1,13 @@
+{
+  "checks": [
+    { "id": "heading-on-toolbar", "foreground": "#FFFFFF", "background": "#020617", "type": "text-normal" },
+    { "id": "secondary-text-on-toolbar", "foreground": "#CBD5E1", "background": "#020617", "type": "text-normal" },
+    { "id": "secondary-text-on-panel", "foreground": "#CBD5E1", "background": "#0F172A", "type": "text-normal" },
+    { "id": "primary-button-text", "foreground": "#FFFFFF", "background": "#2563EB", "type": "text-normal" },
+    { "id": "primary-button-hover-text", "foreground": "#FFFFFF", "background": "#1D4ED8", "type": "text-normal" },
+    { "id": "danger-icon-on-panel", "foreground": "#FCA5A5", "background": "#0F172A", "type": "graphic" },
+    { "id": "focus-ring-on-toolbar", "foreground": "#60A5FA", "background": "#020617", "type": "ui" },
+    { "id": "canvas-border-on-studio", "foreground": "#64748B", "background": "#0F172A", "type": "ui" },
+    { "id": "inactive-icon-on-control", "foreground": "#CBD5E1", "background": "#0F172A", "type": "graphic" }
+  ]
+}

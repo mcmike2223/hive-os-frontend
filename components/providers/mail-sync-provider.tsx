@@ -94,6 +94,7 @@ export function MailSyncProvider() {
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     const prefix = getTenantId() ? `tenant.${getTenantId()}.` : "";
     const channelName = `${prefix}user.${user.id}.mail`;
     const channel = echo.private(channelName);

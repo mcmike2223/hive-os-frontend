@@ -1,0 +1,12 @@
+{
+  "checks": [
+    { "id": "template-heading-light", "foreground": "#0F172A", "background": "#FFFFFF", "type": "text-normal" },
+    { "id": "template-description-light", "foreground": "#475569", "background": "#FFFFFF", "type": "text-normal" },
+    { "id": "selected-template-text", "foreground": "#FFFFFF", "background": "#2563EB", "type": "text-normal" },
+    { "id": "selected-template-border", "foreground": "#2563EB", "background": "#FFFFFF", "type": "ui" },
+    { "id": "template-heading-dark", "foreground": "#F8FAFC", "background": "#0F172A", "type": "text-normal" },
+    { "id": "template-description-dark", "foreground": "#CBD5E1", "background": "#0F172A", "type": "text-normal" },
+    { "id": "focus-ring-light", "foreground": "#2563EB", "background": "#FFFFFF", "type": "ui" },
+    { "id": "success-label-light", "foreground": "#047857", "background": "#ECFDF5", "type": "text-normal" }
+  ]
+}

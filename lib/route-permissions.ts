@@ -23,11 +23,29 @@ export const SUBSCRIPTIONS_ROUTE_PERMISSIONS = [
   "view_module_subscriptions",
   "manage_module_subscriptions",
 ] as const;
+export const TRASH_ROUTE_PERMISSIONS = [
+  "view_trash",
+  "manage_trash",
+  "restore_trash",
+  "view_security",
+  "manage_security",
+  "view_users",
+  "manage_users",
+  "view_roles",
+  "manage_roles",
+  "view_logs",
+] as const;
+
 export const STORAGE_ROUTE_PERMISSIONS = [
   "view_storage",
   "manage_storage",
 ] as const;
 export const CHAT_ROUTE_PERMISSIONS = ["view_chat", "manage_chat"] as const;
+export const SUPPORT_BOT_ROUTE_PERMISSIONS = [
+  "view_support_bots",
+  "manage_support_bots",
+  "live_chat_agent",
+] as const;
 export const SETTINGS_ROUTE_PERMISSIONS = [
   "manage_brand_settings",
   "manage_general_settings",
@@ -471,6 +489,10 @@ export function canAccessDashboardRoute(
     );
   }
 
+  if (matchesPrefix(path, "/dashboard/trash")) {
+    return access.hasAnyPermission([...TRASH_ROUTE_PERMISSIONS]);
+  }
+
   if (matchesPrefix(path, "/dashboard/storage")) {
     return (
       access.hasAnyPermission([...STORAGE_ROUTE_PERMISSIONS]) &&
@@ -741,6 +763,13 @@ export function canAccessDashboardRoute(
     );
   }
 
+  if (matchesPrefix(path, "/dashboard/vacancy-management")) {
+    return (
+      hasSubscribedModule(access, "vacancy_management") &&
+      access.hasAnyPermission(["view_recruitment", "manage_recruitment"])
+    );
+  }
+
   if (matchesPrefix(path, "/dashboard/human-resources")) {
     return (
       hasSubscribedModule(access, "human_resources") &&
@@ -775,6 +804,10 @@ export function canAccessDashboardRoute(
       ...LEARNING_MANAGEMENT_ROUTE_PERMISSIONS,
       "view_my_learning",
     ]);
+  }
+
+  if (matchesPrefix(path, "/dashboard/support-bot")) {
+    return true;
   }
 
   if (

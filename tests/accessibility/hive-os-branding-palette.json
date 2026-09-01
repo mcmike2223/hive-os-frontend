@@ -1,0 +1,48 @@
+{
+  "checks": [
+    {
+      "id": "preview-label-light",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "preview-label-dark",
+      "foreground": "#94a3b8",
+      "background": "#020617",
+      "type": "text-normal",
+      "state": "default"
+    },
+    {
+      "id": "asset-action-overlay-light",
+      "foreground": "#ffffff",
+      "background": "#4d4d4d",
+      "type": "text-normal",
+      "state": "hover-focus",
+      "notes": "70 percent black composited over white"
+    },
+    {
+      "id": "asset-action-overlay-dark",
+      "foreground": "#ffffff",
+      "background": "#010207",
+      "type": "text-normal",
+      "state": "hover-focus",
+      "notes": "70 percent black composited over slate-950"
+    },
+    {
+      "id": "asset-action-focus-light",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "ui",
+      "state": "focus"
+    },
+    {
+      "id": "asset-action-focus-dark",
+      "foreground": "#ffffff",
+      "background": "#020617",
+      "type": "ui",
+      "state": "focus"
+    }
+  ]
+}

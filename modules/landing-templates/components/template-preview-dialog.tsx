@@ -57,8 +57,9 @@ export function TemplatePreviewDialog({
   return (
     <Dialog open={template !== null} onOpenChange={(open) => onOpenChange(open)}>
       <DialogContent
+        overlayClassName="z-[70]"
         className={cn(
-          "gap-0 overflow-hidden rounded-[1.75rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl",
+          "gap-0 overflow-hidden rounded-[1.75rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl z-[70]",
           fullscreen
             ? "flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 sm:max-w-none"
             : "max-h-[92vh] w-[min(1120px,95vw)] sm:max-w-[1120px]",

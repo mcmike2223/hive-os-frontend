@@ -64,11 +64,7 @@ export function CustomLandingFrame({
       className="block h-screen min-h-screen w-full border-0"
       // Only full packages get to run their own scripts; hand-authored
       // custom_code stays script-less.
-      sandbox={
-        mode === "raw_package"
-          ? "allow-scripts allow-popups allow-top-navigation-by-user-activation"
-          : "allow-popups allow-top-navigation-by-user-activation"
-      }
+      sandbox="allow-scripts allow-popups allow-top-navigation-by-user-activation"
     />
   );
 }

@@ -1014,9 +1014,19 @@ export type AttendanceCaptureWorkspace = {
 };
 
 export type AttendanceDeviceAdapterOption = {
-  value: "generic_webhook" | "local_connector" | "suprema_biostar2" | "mock";
+  value:
+    | "generic_webhook"
+    | "hikvision_isapi"
+    | "local_connector"
+    | "suprema_biostar2"
+    | "suprema_device_sdk"
+    | "zkteco_edge"
+    | "anviz_edge"
+    | "mock";
   label: string;
   transport: "webhook" | "local_connector" | "polling" | "mock";
+  manufacturer?: string;
+  connection_mode?: "direct" | "middleware" | "edge";
   requires_api_credentials: boolean;
 };
 
@@ -1024,7 +1034,7 @@ export type AttendanceDeviceCredential = {
   id: number;
   attendance_device_id: number;
   key_id: string;
-  credential_type: "connector_hmac" | "biostar2_api";
+  credential_type: "connector_hmac" | "biostar2_api" | "hikvision_isapi";
   principal_hint: string | null;
   secret_hint: string;
   status: "active" | "revoked";
@@ -1053,6 +1063,10 @@ export type AttendanceDevice = {
     verify_tls?: boolean;
     allow_http?: boolean;
     event_limit?: number;
+    lookback_days?: number;
+    device_ip?: string;
+    device_port?: number;
+    driver?: "suprema_device_sdk" | "zkteco" | "anviz";
     tna_key_map?: Record<string, string>;
   } | null;
   credentials?: AttendanceDeviceCredential[];
@@ -1062,8 +1076,8 @@ export type AttendanceDevice = {
 
 export type AttendanceDeviceDiscovery = {
   device_code: string;
-  adapter_type: "suprema_biostar2";
-  source: "BioStar 2 New Local API";
+  adapter_type: "suprema_biostar2" | "hikvision_isapi";
+  source: "BioStar 2 New Local API" | "Hikvision ISAPI";
   devices: Array<{
     id: string;
     name: string;
@@ -1146,6 +1160,12 @@ export type AttendanceDeviceWorkspace = {
     configuration_path_template: string;
     signature_algorithm: string;
     canonical_request: string;
+  };
+  recovery: {
+    protected: boolean;
+    device_count: number;
+    last_saved_at: string | null;
+    storage: "encrypted_private_volume";
   };
 };
 

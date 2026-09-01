@@ -5,13 +5,13 @@ import Link from "next/link";
 import {
   Archive,
   ArchiveRestore,
-  ArrowUpRight,
   BadgeCheck,
   CheckCircle2,
   Copy,
+  Download,
   Eye,
   FileCode2,
-  Home,
+  FolderOpen,
   LayoutTemplate,
   Loader2,
   Lock,
@@ -27,12 +27,20 @@ import {
   Trash2,
   UploadCloud,
   XCircle,
+  Code2,
+  Layers,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -52,13 +60,17 @@ import { cn } from "@/lib/utils";
 import { getBackendOrigin } from "@/lib/runtime-context";
 import { AssignTemplateDialog } from "../components/assign-template-dialog";
 import { ImportTemplateDialog } from "../components/import-template-dialog";
+import { LandingWorkspaceNav } from "../components/landing-workspace-nav";
 import { TemplateEditDialog } from "../components/template-edit-dialog";
+import { AssetManagerModal } from "../builder/components/asset-manager-modal";
 import {
+  createTemplate,
   deleteTemplate,
   duplicateTemplate,
   ejectTemplate,
   fetchCategories,
   fetchLibrary,
+  getTemplateExportUrl,
   toggleArchive,
   togglePublish,
   type TemplateLibraryCard,
@@ -69,13 +81,15 @@ const frameworkLabel: Record<string, string> = {
   "html-css-js": "HTML + CSS + JS",
   react: "React",
   nextjs: "Next.js",
+  visual: "GrapesJS Visual",
 };
 
 const frameworkColor: Record<string, string> = {
   "static-html": "bg-slate-500/10 text-slate-600 dark:text-slate-300",
-  "html-css-js": "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  react: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
+  "html-css-js": "bg-amber-500/10 text-amber-800 dark:text-amber-300",
+  react: "bg-sky-500/10 text-sky-800 dark:text-sky-300",
   nextjs: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-200",
+  visual: "bg-teal-500/10 text-teal-800 dark:text-teal-300 border-teal-500/20",
 };
 
 type Filters = {
@@ -89,7 +103,9 @@ type Filters = {
 export default function LandingLibraryPage() {
   const [templates, setTemplates] = React.useState<TemplateLibraryCard[]>([]);
   const [total, setTotal] = React.useState(0);
-  const [businessTypes, setBusinessTypes] = React.useState<{ key: string; label: string }[]>([]);
+  const [businessTypes, setBusinessTypes] = React.useState<
+    { key: string; label: string }[]
+  >([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [filters, setFilters] = React.useState<Filters>({
@@ -101,124 +117,298 @@ export default function LandingLibraryPage() {
   });
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [importOpen, setImportOpen] = React.useState(false);
-  const [assignTarget, setAssignTarget] = React.useState<TemplateLibraryCard | null>(null);
-  const [editTarget, setEditTarget] = React.useState<TemplateLibraryCard | null>(null);
-  const [previewTarget, setPreviewTarget] = React.useState<TemplateLibraryCard | null>(null);
-  const [ejectTarget, setEjectTarget] = React.useState<TemplateLibraryCard | null>(null);
-  const [deleteTarget, setDeleteTarget] = React.useState<TemplateLibraryCard | null>(null);
+  const [assetManagerOpen, setAssetManagerOpen] = React.useState(false);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [assignTarget, setAssignTarget] =
+    React.useState<TemplateLibraryCard | null>(null);
+  const [editTarget, setEditTarget] =
+    React.useState<TemplateLibraryCard | null>(null);
+  const [ejectTarget, setEjectTarget] =
+    React.useState<TemplateLibraryCard | null>(null);
   const [busyId, setBusyId] = React.useState<number | null>(null);
+  const loadRequestRef = React.useRef(0);
+
+  // New Template form state
+  const [newTemplateName, setNewTemplateName] = React.useState("");
+  const [newTemplateBusinessType, setNewTemplateBusinessType] = React.useState("general");
+  const [newTemplateType, setNewTemplateType] = React.useState<"visual" | "html-css-js">("visual");
+  const [isCreating, setIsCreating] = React.useState(false);
 
   React.useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(filters.q), 350);
-    return () => clearTimeout(timer);
+    const handle = setTimeout(() => {
+      setDebouncedQuery(filters.q);
+    }, 300);
+    return () => clearTimeout(handle);
   }, [filters.q]);
 
-  const load = React.useCallback(async () => {
+  React.useEffect(() => {
+    let active = true;
+    fetchCategories()
+      .then((response) => {
+        if (!active) return;
+        setBusinessTypes(
+          response.data.business_types.map((businessType) => ({
+            key: businessType.key,
+            label: businessType.label,
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setBusinessTypes([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const loadData = React.useCallback(async () => {
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     setError(null);
     try {
-      const [library, categories] = await Promise.all([
-        fetchLibrary({
-          q: debouncedQuery || undefined,
-          business_type: filters.business_type || undefined,
-          framework: filters.framework || undefined,
-          status: filters.status || undefined,
-          archived: filters.archived || undefined,
-        }),
-        fetchCategories(),
-      ]);
-      setTemplates(library.data);
-      setTotal(library.meta.total);
-      setBusinessTypes(categories.data.business_types.map((b) => ({ key: b.key, label: b.label })));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load the template library.");
+      const libRes = await fetchLibrary({
+        q: debouncedQuery || undefined,
+        business_type: filters.business_type || undefined,
+        framework: filters.framework || undefined,
+        status: filters.status || undefined,
+        archived: filters.archived,
+      });
+      if (requestId === loadRequestRef.current) {
+        setTemplates(libRes.data);
+        setTotal(libRes.meta.total);
+      }
+    } catch (err: any) {
+      if (requestId === loadRequestRef.current) {
+        setError(err?.message ?? "Failed to load landing template library.");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestRef.current) setLoading(false);
     }
-  }, [debouncedQuery, filters.business_type, filters.framework, filters.status, filters.archived]);
+  }, [
+    debouncedQuery,
+    filters.business_type,
+    filters.framework,
+    filters.status,
+    filters.archived,
+  ]);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    loadData();
+  }, [loadData]);
 
-  const runAction = async (id: number, action: () => Promise<unknown>) => {
-    setBusyId(id);
-    setError(null);
+  const handleCreateTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTemplateName.trim()) return;
+
+    setIsCreating(true);
     try {
-      await action();
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Action failed.");
+      const res = await createTemplate({
+        name: newTemplateName.trim(),
+        business_types: [newTemplateBusinessType],
+        source_framework: newTemplateType === "visual" ? "visual" : "html-css-js",
+        template_type: newTemplateType,
+        body: {
+          theme: { accent: "#0f766e", surface: "#ffffff" },
+          hero: {
+            title: newTemplateName.trim(),
+            description: "Welcome to our official website.",
+            primary_label: "Get Started",
+            primary_href: "#get-started",
+          },
+          rendering: {
+            mode: "custom_code",
+            html: `<section class="py-20 text-center bg-slate-950 text-white"><div class="max-w-4xl mx-auto px-4"><h1 class="text-5xl font-bold tracking-tight mb-4">${newTemplateName.trim()}</h1><p class="text-slate-400 text-lg">Created with HIVE Live Builder</p></div></section>`,
+            css: "body { margin: 0; font-family: system-ui, sans-serif; }",
+            js: "console.log('Template initialized');",
+          },
+        },
+      });
+
+      setCreateOpen(false);
+      setNewTemplateName("");
+      await loadData();
+    } catch (err: any) {
+      alert("Failed to create template: " + (err.message || err));
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleTogglePublish = async (tpl: TemplateLibraryCard) => {
+    setBusyId(tpl.id);
+    try {
+      const res = await togglePublish(tpl.id, !tpl.is_published);
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === tpl.id ? res.data : t)),
+      );
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to toggle publish status.");
     } finally {
       setBusyId(null);
     }
   };
 
+  const handleToggleArchive = async (tpl: TemplateLibraryCard) => {
+    setBusyId(tpl.id);
+    try {
+      const res = await toggleArchive(tpl.id, !tpl.is_archived);
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === tpl.id ? res.data : t)),
+      );
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to toggle archive status.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDuplicate = async (tpl: TemplateLibraryCard) => {
+    setBusyId(tpl.id);
+    try {
+      await duplicateTemplate(tpl.id);
+      await loadData();
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to duplicate template.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDelete = async (tpl: TemplateLibraryCard) => {
+    if (!confirm(`Permanently delete template "${tpl.name}"? This cannot be undone.`)) {
+      return;
+    }
+    setBusyId(tpl.id);
+    try {
+      await deleteTemplate(tpl.id, true);
+      setTemplates((prev) => prev.filter((t) => t.id !== tpl.id));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to delete template.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleEject = async (tpl: TemplateLibraryCard) => {
+    setBusyId(tpl.id);
+    try {
+      const res = await ejectTemplate(tpl.id);
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === tpl.id ? res.data : t)),
+      );
+      setEjectTarget(null);
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to eject template.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const publishedCount = templates.filter((template) => template.is_published).length;
+  const visualCount = templates.filter((template) => (template.template_type || template.source_framework) === "visual").length;
+
   return (
-    <div className="space-y-6">
-      {/* header */}
-      <div className="mb-4 flex w-full items-center justify-end gap-3">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-        >
-          <Home className="h-3.5 w-3.5" /> Dashboard
-        </Link>
-        <span className="text-xs text-border">/</span>
-        <span className="text-xs font-semibold text-foreground">Landing Library</span>
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-8 px-1 pb-10 sm:px-2">
+      <LandingWorkspaceNav active="library" />
 
-      <div className="overflow-hidden rounded-[2rem] border border-border/50 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.16),transparent_32%),linear-gradient(145deg,rgba(15,23,42,0.02),rgba(15,23,42,0.09))] p-6 shadow-sm backdrop-blur-md">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div>
-            <h2 className="flex items-center gap-2 text-2xl font-space font-black tracking-tight text-foreground">
-              <LayoutTemplate className="h-6 w-6 text-primary" />
-              Universal Landing Template Library
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              The master template marketplace for the whole platform. Create, import, convert, validate, assign, version
-              and publish landing templates — HTML/CSS/JS, React or Next.js — all rendered by the Hive Next.js runtime.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-              Next.js canonical runtime
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-950 px-6 py-8 text-white shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:px-9 sm:py-10" aria-labelledby="landing-library-heading">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl" aria-hidden="true" />
+        <div className="relative flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl space-y-4">
+            <Badge variant="outline" className="border-blue-400/50 bg-blue-400/10 text-blue-100">
+              GrapesJS visual canvas + Monaco code workspace
             </Badge>
-            <Button onClick={() => setImportOpen(true)} className="gap-2 rounded-xl">
-              <UploadCloud className="h-4 w-4" />
-              Import Template
-            </Button>
-            <Button asChild variant="outline" className="rounded-xl border-border/60 bg-background/70">
-              <Link href="/dashboard/landing-templates">
-                Business Type Catalog
-                <ArrowUpRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="space-y-2">
+              <h1 id="landing-library-heading" className="text-3xl font-black tracking-[-0.035em] text-white sm:text-4xl">
+                Landing studio
+              </h1>
+              <p className="max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                Build, version, preview, and distribute secure multi-page websites from one production workspace.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5"><strong className="text-white">{total}</strong> templates</span>
+              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5"><strong className="text-emerald-300">{publishedCount}</strong> live</span>
+              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5"><strong className="text-blue-200">{visualCount}</strong> visual</span>
+            </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setAssetManagerOpen(true)}
+            className="h-11 gap-2 border-slate-600 bg-slate-900 text-white hover:bg-slate-800 hover:text-white"
+          >
+            <FolderOpen className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+            <span>Media Library</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="h-11 gap-2 border-slate-600 bg-slate-900 text-white hover:bg-slate-800 hover:text-white"
+          >
+            <UploadCloud className="h-4 w-4 text-blue-300" aria-hidden="true" />
+            <span>Import ZIP</span>
+          </Button>
+
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="h-11 gap-2 bg-blue-600 px-5 text-white shadow-lg shadow-blue-950/40 hover:bg-blue-500"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>New Template</span>
+          </Button>
         </div>
       </div>
+      </section>
 
-      {/* filters */}
-      <div className="flex flex-col gap-3 rounded-[1.5rem] border border-border/50 bg-card/40 p-4 md:flex-row md:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={filters.q}
-            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-            placeholder="Search templates by name, slug or description…"
-            className="h-10 rounded-xl bg-background/70 pl-9"
-          />
+      {/* Filter Bar */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950" aria-labelledby="template-filters-heading">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 id="template-filters-heading" className="text-sm font-bold text-slate-950 dark:text-white">Find a template</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300">Search and narrow the central library without losing your place.</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={loadData} disabled={loading} className="h-11 gap-2">
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
+            Refresh
+          </Button>
         </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="template-library-search">Search templates</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="template-library-search"
+                type="search"
+                value={filters.q}
+                onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+                placeholder="Name, slug, category, or tag"
+                className="h-11 pl-9"
+              />
+            </div>
+          </div>
+
+        <div className="space-y-1.5">
+          <Label id="business-type-filter-label">Business type</Label>
         <Select
-          value={filters.business_type || undefined}
-          onValueChange={(v) => setFilters((f) => ({ ...f, business_type: v === "all" ? "" : v }))}
+          value={filters.business_type || "__all"}
+          onValueChange={(val) =>
+            setFilters({
+              ...filters,
+              business_type: val === "__all" ? "" : val,
+            })
+          }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl bg-background/70 md:w-52">
-            <SelectValue placeholder="All business types" />
+          <SelectTrigger className="h-11" aria-labelledby="business-type-filter-label">
+            <SelectValue placeholder="All Business Types" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl border-border/60">
-            <SelectItem value="all">All business types</SelectItem>
+          <SelectContent>
+            <SelectItem value="__all">All Business Types</SelectItem>
             {businessTypes.map((bt) => (
               <SelectItem key={bt.key} value={bt.key}>
                 {bt.label}
@@ -226,586 +416,462 @@ export default function LandingLibraryPage() {
             ))}
           </SelectContent>
         </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label id="framework-filter-label">Editing engine</Label>
         <Select
-          value={filters.framework || undefined}
-          onValueChange={(v) => setFilters((f) => ({ ...f, framework: v === "all" ? "" : v }))}
+          value={filters.framework || "__all"}
+          onValueChange={(val) =>
+            setFilters({
+              ...filters,
+              framework: val === "__all" ? "" : val,
+            })
+          }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl bg-background/70 md:w-44">
-            <SelectValue placeholder="All frameworks" />
+          <SelectTrigger className="h-11" aria-labelledby="framework-filter-label">
+            <SelectValue placeholder="All Frameworks" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl border-border/60">
-            <SelectItem value="all">All frameworks</SelectItem>
-            {Object.entries(frameworkLabel).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {label}
-              </SelectItem>
-            ))}
+          <SelectContent>
+            <SelectItem value="__all">All Frameworks</SelectItem>
+            <SelectItem value="visual">GrapesJS Visual</SelectItem>
+            <SelectItem value="static-html">Static HTML</SelectItem>
+            <SelectItem value="html-css-js">HTML + CSS + JS</SelectItem>
+            <SelectItem value="react">React</SelectItem>
+            <SelectItem value="nextjs">Next.js</SelectItem>
           </SelectContent>
         </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label id="status-filter-label">Publication status</Label>
         <Select
-          value={filters.status || undefined}
-          onValueChange={(v) => setFilters((f) => ({ ...f, status: v === "all" ? "" : v }))}
+          value={filters.status || "__all"}
+          onValueChange={(val) =>
+            setFilters({
+              ...filters,
+              status: val === "__all" ? "" : val,
+            })
+          }
         >
-          <SelectTrigger className="h-10 w-full rounded-xl bg-background/70 md:w-44">
-            <SelectValue placeholder="Any status" />
+          <SelectTrigger className="h-11" aria-labelledby="status-filter-label">
+            <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl border-border/60">
-            <SelectItem value="all">Any status</SelectItem>
+          <SelectContent>
+            <SelectItem value="__all">All Statuses</SelectItem>
             <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="premium">Premium</SelectItem>
-            <SelectItem value="free">Free</SelectItem>
-            <SelectItem value="pending_approval">Pending approval</SelectItem>
+            <SelectItem value="draft">Drafts</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>
-        <Button
-          variant="ghost"
-          onClick={() => setFilters((f) => ({ ...f, archived: !f.archived }))}
-          className={cn("h-10 gap-2 rounded-xl", filters.archived && "bg-amber-500/10 text-amber-600 dark:text-amber-300")}
-        >
-          <Archive className="h-4 w-4" />
-          Archived
-        </Button>
-        <Button variant="ghost" size="icon" onClick={() => void load()} className="h-10 w-10 rounded-xl">
-          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-        </Button>
+        </div>
+      </div>
+      </section>
+
+      {/* Results Header */}
+      <div className="flex items-center justify-between px-1 text-sm text-slate-600 dark:text-slate-300" role="status">
+        <span>
+          Showing {templates.length} of {total} templates
+        </span>
       </div>
 
-      {error && (
-        <div className="flex items-center justify-between rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={() => void load()}>
-            Retry
-          </Button>
-        </div>
-      )}
-
-      {/* grid */}
-      {loading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-72 rounded-[1.75rem]" />
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="overflow-hidden rounded-2xl border-border/60">
+              <Skeleton className="aspect-video w-full" />
+              <div className="p-5 space-y-3">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            </Card>
           ))}
         </div>
-      ) : templates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border border-dashed border-border/60 py-20 text-center">
-          <PackageOpen className="h-10 w-10 text-muted-foreground/50" />
-          <p className="text-sm font-semibold text-foreground">No templates match these filters</p>
-          <p className="max-w-sm text-xs text-muted-foreground">
-            Import a template ZIP, or create one from the business-type catalog, to grow the master library.
-          </p>
-          <Button onClick={() => setImportOpen(true)} variant="outline" className="mt-2 gap-2 rounded-xl">
-            <UploadCloud className="h-4 w-4" /> Import a template
-          </Button>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-muted-foreground">{total} template{total === 1 ? "" : "s"} in the library</p>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {templates.map((template) => (
-              <TemplateCard
-                key={template.id}
-                template={template}
-                busy={busyId === template.id}
-                onPreview={() => setPreviewTarget(template)}
-                onAssign={() => setAssignTarget(template)}
-                onEdit={() => setEditTarget(template)}
-                onPublish={() => runAction(template.id, () => togglePublish(template.id, !template.is_published))}
-                onArchive={() => runAction(template.id, () => toggleArchive(template.id, !template.is_archived))}
-                onDuplicate={() => runAction(template.id, () => duplicateTemplate(template.id))}
-                onEject={() => setEjectTarget(template)}
-                onDelete={() => setDeleteTarget(template)}
-              />
-            ))}
-          </div>
-        </>
       )}
 
-      <ImportTemplateDialog open={importOpen} onOpenChange={setImportOpen} onImported={() => void load()} />
+      {/* Error state */}
+      {!loading && error && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-3">
+          <XCircle className="mx-auto h-8 w-8 text-destructive" />
+          <p className="text-sm font-semibold text-destructive">{error}</p>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && templates.length === 0 && (
+        <div className="rounded-3xl border-2 border-dashed border-border/60 bg-muted/20 p-12 text-center space-y-4">
+          <LayoutTemplate className="mx-auto h-12 w-12 text-muted-foreground/60" />
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold">No landing templates found</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Create a new template using the visual builder or import an existing static site archive.
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)} className="gap-1.5 shadow-sm">
+            <Plus className="h-4 w-4" />
+            <span>Create First Template</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Template Cards Grid */}
+      {!loading && !error && templates.length > 0 && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {templates.map((tpl) => {
+            const isBusy = busyId === tpl.id;
+            const backendOrigin = getBackendOrigin();
+            const thumbUrl = tpl.thumbnail
+              ? tpl.thumbnail.startsWith("http")
+                ? tpl.thumbnail
+                : `${backendOrigin}${tpl.thumbnail}`
+              : null;
+
+            return (
+              <Card
+                key={tpl.id}
+                className={cn(
+                  "group overflow-hidden rounded-2xl border-border/60 bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col justify-between",
+                  tpl.is_archived && "opacity-60 bg-muted/30",
+                )}
+              >
+                <div>
+                  {/* Thumbnail / Visual Preview banner */}
+                  <div className="relative aspect-video w-full overflow-hidden bg-slate-950/90 border-b border-border/40 flex items-center justify-center">
+                    {thumbUrl ? (
+                      <img
+                        src={thumbUrl}
+                        alt={`Preview of ${tpl.name}`}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex flex-col items-center justify-center p-6 text-center text-slate-400 space-y-2 bg-gradient-to-br from-slate-900 to-slate-950">
+                        <Sparkles className="h-8 w-8 text-primary/80" />
+                        <span className="text-xs font-semibold text-slate-200 tracking-tight">{tpl.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">v{tpl.current_version} • {tpl.pages_count || 1} {tpl.pages_count === 1 ? "Page" : "Pages"}</span>
+                      </div>
+                    )}
+
+                    {/* Status Badges Overlay */}
+                    <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+                      <Badge className={cn("text-[10px] font-mono uppercase px-2 py-0.5", frameworkColor[tpl.template_type || tpl.source_framework] || "bg-primary/10 text-primary")}>
+                        {frameworkLabel[tpl.template_type || tpl.source_framework] || tpl.template_type || tpl.source_framework}
+                      </Badge>
+                      {tpl.is_published ? (
+                        <Badge className="bg-emerald-800 text-white text-[10px] px-2 py-0.5 shadow-sm">
+                          Live
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-black/60 text-white backdrop-blur">
+                          Draft
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="absolute top-3 right-3 flex items-center gap-1">
+                      <Badge variant="outline" className="text-[10px] font-mono bg-black/60 text-white border-white/20 backdrop-blur">
+                        <Layers className="h-2.5 w-2.5 mr-1" />
+                        {tpl.pages_count || 1}P
+                      </Badge>
+                    </div>
+
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent px-3 pb-3 pt-12">
+                      <Button
+                        size="sm"
+                        asChild
+                        className="h-11 gap-2 bg-blue-600 px-4 font-semibold text-white shadow-md hover:bg-blue-500"
+                      >
+                        <Link href={`/dashboard/landing-library/${tpl.id}/builder`} aria-label={`Open ${tpl.name} in visual builder`}>
+                          <Sparkles className="h-4 w-4" aria-hidden="true" />
+                          <span>Open Builder</span>
+                        </Link>
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        asChild
+                        className="h-11 gap-2 bg-white px-4 text-slate-950 shadow-md hover:bg-slate-100"
+                      >
+                        <Link href={`/dashboard/landing-library/${tpl.id}/preview`} aria-label={`Preview ${tpl.name} on a full page`}>
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                          <span>Preview</span>
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Body Content */}
+                  <CardHeader className="p-5 pb-2 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-base tracking-tight leading-snug group-hover:text-primary transition-colors">
+                        {tpl.name}
+                      </h3>
+                      {tpl.is_premium && (
+                        <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-500/30 shrink-0">
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {tpl.description || "Production-grade multi-tenant website landing template."}
+                    </p>
+                  </CardHeader>
+
+                  <CardContent className="p-5 pt-0 space-y-3">
+                    {/* Business Types Tags */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                      {(tpl.business_types || []).map((bt) => (
+                        <span
+                          key={bt}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] capitalize font-medium"
+                        >
+                          <Tag className="h-2.5 w-2.5" />
+                          {bt.replace("_", " ")}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Assignment count indicator */}
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <div>
+                        <span className="block">Assignment</span>
+                        <span className="font-semibold text-foreground">{tpl.assignments?.length ? `${tpl.assignments.length} tenants / types` : "Global default"}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="block">Last edited</span>
+                        <span className="font-semibold text-foreground">{tpl.updated_at ? new Date(tpl.updated_at).toLocaleDateString() : "Not available"}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </div>
+
+                {/* Footer Toolbar */}
+                <CardFooter className="flex items-center justify-between gap-2 border-t border-border/50 bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 rounded-lg"
+                      aria-label={`Edit ${tpl.name} metadata`}
+                      onClick={() => setEditTarget(tpl)}
+                    >
+                      <FileCode2 className="h-4 w-4 text-slate-700 dark:text-slate-200" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 rounded-lg"
+                      aria-label={`Assign ${tpl.name}`}
+                      onClick={() => setAssignTarget(tpl)}
+                    >
+                      <BadgeCheck className="h-4 w-4 text-primary" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 rounded-lg"
+                      aria-label={`Duplicate ${tpl.name}`}
+                      onClick={() => handleDuplicate(tpl)}
+                      disabled={isBusy}
+                    >
+                      <Copy className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="h-11 w-11 rounded-lg"
+                    >
+                      <a href={getTemplateExportUrl(tpl.id)} download aria-label={`Export ${tpl.name} ZIP package`}>
+                        <Download className="h-4 w-4 text-muted-foreground" />
+                      </a>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 rounded-lg"
+                      aria-label={`${tpl.is_archived ? "Restore" : "Archive"} ${tpl.name}`}
+                      onClick={() => handleToggleArchive(tpl)}
+                      disabled={isBusy}
+                    >
+                      {tpl.is_archived ? <ArchiveRestore className="h-4 w-4" aria-hidden="true" /> : <Archive className="h-4 w-4" aria-hidden="true" />}
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 rounded-lg text-destructive hover:bg-destructive/10"
+                      aria-label={`Delete ${tpl.name}`}
+                      onClick={() => handleDelete(tpl)}
+                      disabled={isBusy}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant={tpl.is_published ? "outline" : "default"}
+                    className="h-11 shrink-0 text-xs font-semibold"
+                    onClick={() => handleTogglePublish(tpl)}
+                    disabled={isBusy}
+                  >
+                    {isBusy ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : tpl.is_published ? (
+                      "Unpublish"
+                    ) : (
+                      "Publish Live"
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create Template Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreateTemplate}>
+            <DialogHeader>
+              <DialogTitle>Create New Landing Template</DialogTitle>
+              <DialogDescription>
+                Start with a blank visual builder workspace or custom HTML/CSS/JS template.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-template-name">Template name</Label>
+                <Input
+                  id="new-template-name"
+                  placeholder="e.g. Modern Bottling Plant, Apex Hotel Luxury"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label id="new-template-business-type-label">Target industry / business type</Label>
+                <Select value={newTemplateBusinessType} onValueChange={setNewTemplateBusinessType}>
+                  <SelectTrigger className="h-11" aria-labelledby="new-template-business-type-label">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">Universal / General Business</SelectItem>
+                    <SelectItem value="restaurant">Restaurant & Lounge</SelectItem>
+                    <SelectItem value="hotel">Hotel & Hospitality</SelectItem>
+                    <SelectItem value="manufacturing">Manufacturing & Factory</SelectItem>
+                    <SelectItem value="water_bottling">Water Bottling & Plant</SelectItem>
+                    <SelectItem value="retail">Retail & Commerce</SelectItem>
+                    <SelectItem value="services">Professional Services</SelectItem>
+                    <SelectItem value="healthcare">Healthcare & Clinics</SelectItem>
+                    <SelectItem value="education">Education & LMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <span id="new-template-engine-label" className="text-sm font-medium">Editing engine mode</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    aria-pressed={newTemplateType === "visual"}
+                    aria-describedby="new-template-engine-label"
+                    onClick={() => setNewTemplateType("visual")}
+                    className={cn(
+                      "min-h-24 space-y-1 rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
+                      newTemplateType === "visual"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border/60 hover:bg-muted/40",
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 font-semibold text-xs text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>Visual Canvas</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Drag & drop blocks with GrapesJS</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    aria-pressed={newTemplateType === "html-css-js"}
+                    aria-describedby="new-template-engine-label"
+                    onClick={() => setNewTemplateType("html-css-js")}
+                    className={cn(
+                      "min-h-24 space-y-1 rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
+                      newTemplateType === "html-css-js"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border/60 hover:bg-muted/40",
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 font-semibold text-xs text-blue-500">
+                      <Code2 className="h-3.5 w-3.5" />
+                      <span>Monaco Code</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Raw HTML, CSS, and JS editor</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={isCreating}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreating} className="gap-1.5">
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                <span>Create & Launch</span>
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modals */}
+      <ImportTemplateDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={loadData}
+      />
+
+      <AssetManagerModal
+        open={assetManagerOpen}
+        onOpenChange={setAssetManagerOpen}
+      />
+
       {assignTarget && (
         <AssignTemplateDialog
           template={assignTarget}
           businessTypes={businessTypes}
           open={!!assignTarget}
           onOpenChange={(open) => !open && setAssignTarget(null)}
-          onAssigned={() => void load()}
+          onAssigned={loadData}
         />
       )}
-      <TemplateEditDialog
-        template={editTarget}
-        open={!!editTarget}
-        onOpenChange={(open) => !open && setEditTarget(null)}
-        onSaved={() => void load()}
-      />
-      {previewTarget && <PreviewDialog template={previewTarget} onClose={() => setPreviewTarget(null)} />}
-      {deleteTarget && (
-        <DeleteDialog
-          template={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-          onDeleted={() => {
-            setDeleteTarget(null);
-            void load();
-          }}
+
+      {editTarget && (
+        <TemplateEditDialog
+          template={editTarget}
+          open={!!editTarget}
+          onOpenChange={(open) => !open && setEditTarget(null)}
+          onSaved={loadData}
         />
       )}
-      {ejectTarget && (
-        <EjectDialog
-          template={ejectTarget}
-          busy={busyId === ejectTarget.id}
-          onClose={() => setEjectTarget(null)}
-          onConfirm={async () => {
-            const target = ejectTarget;
-            setEjectTarget(null);
-            await runAction(target.id, () => ejectTemplate(target.id));
-          }}
-        />
-      )}
-    </div>
-  );
-}
 
-/**
- * Delete is the one irreversible action here — versions and assignments
- * cascade with the row. The API refuses first when a tenant is live on the
- * template; that refusal is surfaced here so the operator sees who is affected
- * before choosing to force it.
- */
-function DeleteDialog({
-  template,
-  onClose,
-  onDeleted,
-}: {
-  template: TemplateLibraryCard;
-  onClose: () => void;
-  onDeleted: () => void;
-}) {
-  const [busy, setBusy] = React.useState(false);
-  const [blockedBy, setBlockedBy] = React.useState<string | null>(null);
-
-  const run = async (force: boolean) => {
-    setBusy(true);
-    try {
-      await deleteTemplate(template.id, force);
-      onDeleted();
-    } catch (e) {
-      setBlockedBy(e instanceof Error ? e.message : "Delete failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[min(560px,95vw)] rounded-[1.5rem] border-border/60">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 font-space text-lg font-black tracking-tight">
-            <Trash2 className="h-5 w-5 text-destructive" />
-            Delete “{template.name}”?
-          </DialogTitle>
-          <DialogDescription>
-            This removes the template and every one of its versions and assignments. It cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-
-        {blockedBy ? (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {blockedBy}
-          </div>
-        ) : (
-          <p className="text-xs leading-5 text-muted-foreground">
-            Tenants already running this template keep their published page — their content lives on the tenant, not
-            here — but they lose the link back to the library.
-          </p>
-        )}
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose} className="rounded-xl border-border/60">
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => void run(!!blockedBy)}
-            disabled={busy}
-            className="gap-2 rounded-xl"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            {blockedBy ? "Delete anyway" : "Delete template"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/**
- * Eject is additive and reversible, but it does change what the template is —
- * so the dialog states the cost plainly rather than just asking "are you sure".
- */
-function EjectDialog({
-  template,
-  busy,
-  onClose,
-  onConfirm,
-}: {
-  template: TemplateLibraryCard;
-  busy: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[min(560px,95vw)] rounded-[1.5rem] border-border/60">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 font-space text-lg font-black tracking-tight">
-            <FileCode2 className="h-5 w-5 text-primary" />
-            Eject “{template.name}” to code?
-          </DialogTitle>
-          <DialogDescription>
-            This snapshots the design into editable HTML and CSS that the template owns, saved as a new version.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3 text-sm">
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-700 dark:text-amber-300">
-            <p className="font-semibold">The rendered page loses its React behaviour.</p>
-            <p className="mt-1 text-xs leading-5">
-              Hero carousels, scroll animations and ambient effects come from the shared component, not from the
-              template. The ejected copy keeps the layout and styling but renders as flat markup, and it stops picking
-              up future improvements to that component.
-            </p>
-          </div>
-          <p className="text-xs leading-5 text-muted-foreground">
-            Version{" "}
-            <span className="font-semibold text-foreground">v{template.current_version}</span> stays in the history, so
-            you can roll back if the result is worse.
-          </p>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose} className="rounded-xl border-border/60">
-            Cancel
-          </Button>
-          <Button onClick={onConfirm} disabled={busy} className="gap-2 rounded-xl">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCode2 className="h-4 w-4" />}
-            Eject to code
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TemplateCard({
-  template,
-  busy,
-  onPreview,
-  onAssign,
-  onEdit,
-  onPublish,
-  onArchive,
-  onDuplicate,
-  onEject,
-  onDelete,
-}: {
-  template: TemplateLibraryCard;
-  busy: boolean;
-  onPreview: () => void;
-  onAssign: () => void;
-  onEdit: () => void;
-  onPublish: () => void;
-  onArchive: () => void;
-  onDuplicate: () => void;
-  onEject: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <Card className="group relative overflow-hidden rounded-[1.75rem] border-border/50 bg-card/50 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-lg">
-      {/* visual header — real rendered screenshot when available */}
-      <div className="relative h-28 overflow-hidden border-b border-border/40">
-        {template.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`${getBackendOrigin()}${template.thumbnail}`}
-            alt={template.name}
-            className="absolute inset-0 h-full w-full object-cover object-top"
-            loading="lazy"
-          />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(circle at 20% 20%, ${template.preview?.theme?.accent_soft ?? "#ccfbf1"}55, transparent 60%), linear-gradient(135deg, ${
-                template.preview?.theme?.surface ?? "#0f172a"
-              }, ${template.preview?.theme?.accent ?? "#0f766e"}22)`,
-            }}
-          />
-        )}
-        <div className="absolute inset-0 flex items-end p-3">
-          <div className="rounded-xl border border-white/20 bg-black/25 px-2.5 py-1.5 backdrop-blur-sm">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">
-              {template.preview?.hero?.title ? String(template.preview.hero.title).slice(0, 34) : template.name}
-            </p>
-          </div>
-        </div>
-        <div className="absolute right-2 top-2 flex gap-1.5">
-          {template.is_published ? (
-            <Badge className="border-transparent bg-emerald-500/90 text-white">Live</Badge>
-          ) : (
-            <Badge variant="outline" className="border-white/25 bg-black/30 text-white">Draft</Badge>
-          )}
-        </div>
-      </div>
-
-      <CardHeader className="space-y-1.5 p-4 pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate font-space text-base font-black tracking-tight text-foreground">{template.name}</h3>
-          {template.is_premium && <Lock className="h-4 w-4 shrink-0 text-amber-500" />}
-        </div>
-        <p className="line-clamp-2 min-h-[2.2rem] text-xs leading-5 text-muted-foreground">
-          {template.description ?? "No description provided."}
-        </p>
-      </CardHeader>
-
-      <CardContent className="space-y-3 p-4 pt-1">
-        <div className="flex flex-wrap gap-1.5">
-          <Badge
-            variant="outline"
-            className={cn("border-transparent font-semibold", frameworkColor[template.source_framework] ?? "bg-zinc-500/10")}
-          >
-            {frameworkLabel[template.source_framework] ?? template.source_framework}
-          </Badge>
-          {(template.business_types ?? []).slice(0, 2).map((bt) => (
-            <Badge key={bt} variant="outline" className="border-border/60 bg-background/60 text-muted-foreground">
-              <Tag className="mr-1 h-3 w-3" />
-              {bt}
-            </Badge>
-          ))}
-          <Badge variant="outline" className="border-border/60 bg-background/60 text-muted-foreground">
-            v{template.current_version}
-          </Badge>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            {template.compatibility_score >= 90 ? (
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-            ) : template.compatibility_score >= 60 ? (
-              <Sparkles className="h-4 w-4 text-amber-500" />
-            ) : (
-              <XCircle className="h-4 w-4 text-rose-500" />
-            )}
-            <span className="text-xs font-bold text-foreground">{template.compatibility_score}%</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">compat</span>
-          </div>
-          {template.import_status !== "none" && (
-            <span className="ml-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-              {template.import_status === "approved" ? (
-                <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
-              ) : template.import_status === "pending_approval" ? (
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              ) : (
-                <XCircle className="h-3.5 w-3.5 text-rose-500" />
-              )}
-              {template.import_status.replace(/_/g, " ")}
-            </span>
-          )}
-        </div>
-      </CardContent>
-
-      <CardFooter className="flex flex-wrap items-center gap-1.5 p-4 pt-0">
-        <Button variant="outline" size="sm" onClick={onPreview} className="h-8 gap-1 rounded-lg text-xs">
-          <Eye className="h-3.5 w-3.5" /> Preview
-        </Button>
-        <Button variant="outline" size="sm" onClick={onEdit} className="h-8 gap-1 rounded-lg text-xs">
-          <Sparkles className="h-3.5 w-3.5" /> Edit
-        </Button>
-        <Button variant="outline" size="sm" onClick={onAssign} className="h-8 gap-1 rounded-lg text-xs">
-          <Tag className="h-3.5 w-3.5" /> Assign
-        </Button>
-        <Button
-          variant={template.is_published ? "ghost" : "default"}
-          size="sm"
-          onClick={onPublish}
-          disabled={busy}
-          className="h-8 gap-1 rounded-lg text-xs"
-        >
-          {template.is_published ? "Unpublish" : "Publish"}
-        </Button>
-        <div className="ml-auto flex gap-1">
-          {(template.preview?.rendering?.mode ?? "structured") === "structured" && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-lg"
-              title="Eject to editable code"
-              onClick={onEject}
-              disabled={busy}
-            >
-              <FileCode2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Duplicate" onClick={onDuplicate} disabled={busy}>
-            <Copy className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-            title="Delete template"
-            onClick={onDelete}
-            disabled={busy}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title={template.is_archived ? "Restore" : "Archive"} onClick={onArchive} disabled={busy}>
-            {template.is_archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-}
-
-function PreviewDialog({ template, onClose }: { template: TemplateLibraryCard; onClose: () => void }) {
-  const [fullscreen, setFullscreen] = React.useState(true);
-  const rendering = template.preview?.rendering as { mode?: string; html?: string; css?: string; js?: string } | undefined;
-  const isRaw = rendering?.mode === "raw_package" || rendering?.mode === "custom_code";
-  const srcDoc = React.useMemo(() => {
-    if (!isRaw) return null;
-    return `<!doctype html><html><head><meta charset="utf-8"/><style>html,body{margin:0;min-height:100%}body{font-family:Inter,system-ui,sans-serif}${rendering?.css ?? ""}</style></head><body>${rendering?.html ?? ""}${rendering?.js ? `<script>${rendering.js}</script>` : ""}</body></html>`;
-  }, [isRaw, rendering]);
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        className={cn(
-          "overflow-hidden rounded-[1.75rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl",
-          fullscreen
-            ? "flex h-[100dvh] w-screen max-w-none flex-col rounded-none border-0 sm:max-w-none"
-            : "max-h-[92vh] w-[min(1300px,97vw)] sm:max-w-[1300px]",
-        )}
-      >
-        <DialogHeader className="shrink-0 border-b border-border/40 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 font-space text-lg font-black uppercase tracking-tight">
-              <Eye className="h-5 w-5 text-primary" />
-              {template.name}
-              <span className="text-xs font-semibold normal-case tracking-normal text-muted-foreground">v{template.current_version}</span>
-            </DialogTitle>
-            <div className="flex shrink-0 items-center gap-2">
-              {isRaw && <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">Sandboxed {rendering?.mode}</Badge>}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setFullscreen((value) => !value)}
-                className="h-8 w-8 rounded-lg border border-border/50 bg-background/70"
-                title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-              >
-                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-          <DialogDescription>{template.description ?? "Template preview"}</DialogDescription>
-        </DialogHeader>
-
-        <div className={cn("overflow-y-auto", fullscreen ? "min-h-0 flex-1" : "h-[62vh]")}>
-          {srcDoc ? (
-            <iframe title={`${template.name} preview`} srcDoc={srcDoc} sandbox="allow-scripts allow-popups" className="h-full w-full border-0" />
-          ) : template.is_published ? (
-            // Render through the real Next.js template component rather than
-            // the JSON approximation: StructuredPreview draws a generic
-            // hero/stats/cards page that looks nothing like the live site,
-            // which made every structured template preview look identical.
-            <iframe
-              title={`${template.name} preview`}
-              src={`/landing-preview/${template.slug}`}
-              className="h-full w-full border-0"
-            />
-          ) : (
-            <StructuredPreview template={template} />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function StructuredPreview({ template }: { template: TemplateLibraryCard }) {
-  const p = template.preview as {
-    hero?: { eyebrow?: string; title?: string; description?: string; primary_label?: string; primary_href?: string; secondary_label?: string };
-    stats?: { value: string; label: string }[];
-    highlights?: { kicker?: string; title?: string; description?: string }[];
-    testimonials?: { quote?: string; author?: string; role?: string }[];
-    final_cta?: { title?: string; description?: string; primary_label?: string };
-    theme?: { accent?: string; accent_soft?: string; surface?: string; text?: string; muted?: string };
-  } | null;
-
-  const theme = p?.theme ?? {};
-  const accent = theme.accent ?? "#0f766e";
-  const surface = theme.surface ?? "#f8fafc";
-
-  return (
-    <div className="min-h-full" style={{ background: surface, color: theme.text ?? "#0f172a" }}>
-      {p?.hero && (
-        <div className="px-8 py-12 text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.24em]" style={{ color: accent }}>{p.hero.eyebrow}</p>
-          <h2 className="mx-auto mt-3 max-w-2xl text-3xl font-black leading-tight tracking-tight">{p.hero.title}</h2>
-          {p.hero.description && <p className="mx-auto mt-3 max-w-xl text-sm leading-6 opacity-80">{p.hero.description}</p>}
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <span className="rounded-full px-5 py-2.5 text-sm font-bold text-white" style={{ background: accent }}>{p.hero.primary_label ?? "Get Started"}</span>
-            {p.hero.secondary_label && <span className="rounded-full border px-5 py-2.5 text-sm font-semibold opacity-80">{p.hero.secondary_label}</span>}
-          </div>
-        </div>
-      )}
-
-      {p?.stats && (
-        <div className="grid grid-cols-3 gap-4 px-8 pb-10">
-          {p.stats.map((s, i) => (
-            <div key={i} className="rounded-2xl border p-4 text-center" style={{ borderColor: `${accent}33`, background: "#ffffff66" }}>
-              <p className="text-2xl font-black" style={{ color: accent }}>{s.value}</p>
-              <p className="mt-1 text-[11px] uppercase tracking-wider opacity-70">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {p?.highlights && (
-        <div className="grid gap-4 px-8 pb-10 sm:grid-cols-3">
-          {p.highlights.map((h, i) => (
-            <div key={i} className="rounded-2xl border p-5" style={{ borderColor: `${accent}22`, background: "#ffffff88" }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: accent }}>{h.kicker}</p>
-              <h3 className="mt-2 text-sm font-bold leading-snug">{h.title}</h3>
-              <p className="mt-1.5 text-xs leading-5 opacity-70">{h.description}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {p?.testimonials && (
-        <div className="px-8 pb-10">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {p.testimonials.map((t, i) => (
-              <figure key={i} className="rounded-2xl border p-5" style={{ borderColor: `${accent}22`, background: "#ffffff88" }}>
-                <blockquote className="text-sm italic leading-6 opacity-85">“{t.quote}”</blockquote>
-                <figcaption className="mt-3 text-xs font-bold">{t.author} <span className="font-normal opacity-60">— {t.role}</span></figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {p?.final_cta && (
-        <div className="px-8 pb-12">
-          <div className="rounded-3xl px-8 py-10 text-center text-white" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}>
-            <h3 className="text-2xl font-black tracking-tight">{p.final_cta.title}</h3>
-            <p className="mx-auto mt-2 max-w-lg text-sm opacity-90">{p.final_cta.description}</p>
-            <span className="mt-5 inline-block rounded-full bg-white px-6 py-2.5 text-sm font-bold" style={{ color: accent }}>
-              {p.final_cta.primary_label ?? "Get Started"}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

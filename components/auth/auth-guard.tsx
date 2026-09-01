@@ -63,6 +63,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           const freshUser = await response.json();
           localStorage.setItem("hive_user", JSON.stringify(freshUser));
           window.dispatchEvent(new Event("hive_security_cleared"));
+          window.dispatchEvent(new Event("hive_session_changed"));
+
+          const subscriptionStatus = String(freshUser?.module_access?.subscription_status ?? "active");
+          const subscriptionAllowsAccess = ["active", "trial", "grace_period"].includes(subscriptionStatus);
+          const isBillingWorkspace = pathname.startsWith("/dashboard/subscriptions");
+
+          if (isTenantSession() && !subscriptionAllowsAccess && !isBillingWorkspace) {
+            sessionStorage.setItem("hive_billing_locked_from", pathname);
+            router.replace("/dashboard/subscriptions");
+            if (isMounted) {
+              setIsAuthorized(false);
+              setCheckingAuth(false);
+            }
+            return;
+          }
 
           if (
             pathname.startsWith("/dashboard") &&

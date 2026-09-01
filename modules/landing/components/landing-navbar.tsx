@@ -228,14 +228,16 @@ export function LandingNavbar({ brand, isTenant, onNavigateSection }: Props) {
             <LanguageSwitcher />
             <ThemeToggle />
             <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
-            <Link href="/sign-in" className="hidden sm:block">
-              <Button
-                variant="ghost"
-                className="h-9 rounded-full px-4 font-space text-sm font-bold uppercase tracking-wider transition-all hover:bg-primary/10 hover:text-primary"
-              >
-                {t("landing.nav.signin", "Sign In")}
-              </Button>
-            </Link>
+            {isTenant && (
+              <Link href="/sign-in" className="hidden sm:block">
+                <Button
+                  variant="ghost"
+                  className="h-9 rounded-full px-4 font-space text-sm font-bold uppercase tracking-wider transition-all hover:bg-primary/10 hover:text-primary"
+                >
+                  {t("landing.nav.signin", "Sign In")}
+                </Button>
+              </Link>
+            )}
             {!isTenant && (
               <Link href="/auth/signup" className="hidden sm:block">
                 <motion.span
@@ -247,7 +249,7 @@ export function LandingNavbar({ brand, isTenant, onNavigateSection }: Props) {
                   <Button className="group relative h-9 overflow-hidden rounded-full border-none bg-primary px-5 font-space text-sm font-bold uppercase tracking-wider text-primary-foreground shadow-lg shadow-primary/25">
                     {/* Specular sweep on hover */}
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                    <span className="relative">{t("landing.nav.deploy", "Deploy Node")}</span>
+                    <span className="relative">{t("landing.nav.deploy", "Get Started Free")}</span>
                   </Button>
                 </motion.span>
               </Link>
@@ -591,14 +593,16 @@ function MobileNav({
                   </Button>
                 </Link>
               )}
-              <Link href="/sign-in" onClick={onClose} className="block">
-                <Button
-                  variant="outline"
-                  className="h-12 w-full rounded-xl font-space font-bold uppercase tracking-wider"
-                >
-                  {t("landing.nav.signin", "Sign In")}
-                </Button>
-              </Link>
+              {isTenant && (
+                <Link href="/sign-in" onClick={onClose} className="block">
+                  <Button
+                    variant="outline"
+                    className="h-12 w-full rounded-xl font-space font-bold uppercase tracking-wider"
+                  >
+                    {t("landing.nav.signin", "Sign In")}
+                  </Button>
+                </Link>
+              )}
               <div className="flex items-center justify-center gap-3 pt-2">
                 <LanguageSwitcher />
                 <ThemeToggle />

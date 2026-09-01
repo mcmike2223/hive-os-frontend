@@ -4,9 +4,12 @@ import React, { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-import { syncUserSession } from "@/lib/auth-sync";
+import { syncUserSession, isImpersonatingSession, stopImpersonation } from "@/lib/auth-sync";
+import { Button } from "@/components/ui/button";
+import { VenetianMask } from "lucide-react";
 import { DashboardFooter } from "./footer";
 import { DashboardSidebarDesktop } from "./sidebar-desktop";
+import { TenantSubscriptionBillingGuard } from "./tenant-subscription-billing-guard";
 import { DashboardTopbar } from "./topbar";
 import { useTour } from "@/components/providers/tour-provider";
 import { useTranslation } from "@/store/use-translation";
@@ -15,21 +18,30 @@ const SIDEBAR_KEY = "hive_sidebar_collapsed";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
   const pathname = usePathname();
   const mainRef = React.useRef<HTMLElement>(null);
 
   useEffect(() => {
+    setIsImpersonating(isImpersonatingSession());
+    const handleSessionChange = () => {
+      setIsImpersonating(isImpersonatingSession());
+    };
+    window.addEventListener("hive_session_changed", handleSessionChange);
     try {
       const raw = window.localStorage.getItem(SIDEBAR_KEY);
       setCollapsed(raw === "1");
     } catch {
       // Ignore sidebar preference read errors.
     }
+    return () => {
+      window.removeEventListener("hive_session_changed", handleSessionChange);
+    };
   }, []);
 
   useEffect(() => {
     syncUserSession();
-    
+
     // 🚀 RESET SCROLL POSITION ON NAVIGATION
     if (mainRef.current) {
       mainRef.current.scrollTop = 0;
@@ -38,6 +50,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const { startTour, isActive } = useTour();
   const { t } = useTranslation();
+  const isLandingStudioRoute = /^\/dashboard\/landing-library\/[^/]+\/(builder|preview)\/?$/.test(
+    pathname,
+  );
 
   useEffect(() => {
     // 🚀 DELAYED TRIGGER TO ENSURE DOM IS READY AND BRANDING IS APPLIED
@@ -116,6 +131,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     });
   };
 
+  // The visual builder is an application workspace, not a dashboard card.
+  // Keeping it inside the dashboard sidebar, topbar, padded card and footer
+  // leaves too little room for the canvas and creates nested scroll regions.
+  if (isLandingStudioRoute) {
+    return (
+      <div className="h-dvh min-h-[640px] w-screen overflow-hidden bg-background">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="hive-noise relative h-screen w-screen overflow-hidden bg-background">
       <div className="fixed inset-0 -z-10 pointer-events-none">
@@ -128,13 +154,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col h-full relative">
           <DashboardTopbar />
 
-          <main 
+          <main
             ref={mainRef}
             className="mt-2 md:mt-4 flex-1 min-w-0 overflow-y-auto pr-0 sm:pr-1 scroll-smooth no-scrollbar"
           >
             <div className="min-h-full w-full rounded-2xl md:rounded-[2.5rem] border border-border/40 bg-card/60 p-3 sm:p-5 md:p-6 lg:p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-500 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
               <div className="relative z-10">
+                <TenantSubscriptionBillingGuard />
                 {children}
               </div>
             </div>

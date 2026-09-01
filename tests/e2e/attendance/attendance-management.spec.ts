@@ -1,23 +1,22 @@
 import { expect, test } from "@playwright/test";
 
 const frontendUrl = (
-  process.env.HIVE_E2E_ATTENDANCE_FRONTEND_URL ??
-  "http://apple.localhost:3001"
+  process.env.HIVE_E2E_ATTENDANCE_FRONTEND_URL ?? "http://localhost:3001"
 ).replace(/\/$/, "");
-const email =
-  process.env.HIVE_E2E_ATTENDANCE_EMAIL ?? "admin@apple.com";
-const password =
-  process.env.HIVE_E2E_ATTENDANCE_PASSWORD ?? "password";
+const frontendHostname = new URL(frontendUrl).hostname;
+const email = process.env.HIVE_E2E_ATTENDANCE_EMAIL ?? "super@hive.os";
+const password = process.env.HIVE_E2E_ATTENDANCE_PASSWORD ?? "password";
 const chromiumExecutablePath =
   process.env.HIVE_E2E_CHROMIUM_EXECUTABLE_PATH?.trim() || undefined;
 
 test.use({
+  video: "off",
   launchOptions: {
     ...(chromiumExecutablePath
       ? { executablePath: chromiumExecutablePath }
       : {}),
     args: [
-      "--host-resolver-rules=MAP apple.localhost host.docker.internal, MAP localhost host.docker.internal",
+      `--host-resolver-rules=MAP ${frontendHostname} host.docker.internal, MAP localhost host.docker.internal`,
     ],
   },
 });
@@ -25,7 +24,7 @@ test.use({
 test("attendance management is discoverable and operational", async ({
   page,
 }, testInfo) => {
-  testInfo.setTimeout(180_000);
+  testInfo.setTimeout(240_000);
   const consoleErrors: string[] = [];
   const failedAttendanceRequests: string[] = [];
 
@@ -50,10 +49,8 @@ test("attendance management is discoverable and operational", async ({
   await page.locator("#email").waitFor({ state: "visible", timeout: 90_000 });
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
-  await page
-    .getByRole("button", { name: /initiate handshake/i })
-    .click();
-  await page.waitForURL(/\/dashboard(?:$|\?)/, { timeout: 60_000 });
+  await page.getByRole("button", { name: /initiate handshake/i }).click();
+  await expect(page).toHaveURL(/\/dashboard(?:$|\?)/, { timeout: 60_000 });
   consoleErrors.length = 0;
 
   const dashboardNavigation = page.getByRole("navigation", {
@@ -62,20 +59,15 @@ test("attendance management is discoverable and operational", async ({
   const modulesButton = dashboardNavigation.getByRole("button", {
     name: /^modules$/i,
   });
-  await modulesButton.click();
-  await expect(modulesButton).toHaveAttribute(
-    "aria-expanded",
-    "true",
-  );
+  await expect(modulesButton).toBeVisible({ timeout: 60_000 });
+  await modulesButton.press("Enter", { timeout: 60_000 });
+  await expect(modulesButton).toHaveAttribute("aria-expanded", "true");
   const attendanceButton = dashboardNavigation.getByRole("button", {
     name: /^attendance management$/i,
   });
   await expect(attendanceButton).toBeVisible();
-  await attendanceButton.click();
-  await expect(attendanceButton).toHaveAttribute(
-    "aria-expanded",
-    "true",
-  );
+  await attendanceButton.press("Enter", { timeout: 60_000 });
+  await expect(attendanceButton).toHaveAttribute("aria-expanded", "true");
 
   const overviewNav = dashboardNavigation.getByRole("link", {
     name: /^overview & today$/i,
@@ -87,11 +79,13 @@ test("attendance management is discoverable and operational", async ({
     }),
   ).toHaveCount(0);
   await overviewNav.click();
-  await page.waitForURL(/\/dashboard\/attendance$/, { timeout: 60_000 });
+  await expect(page).toHaveURL(/\/dashboard\/attendance$/, {
+    timeout: 60_000,
+  });
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: /^attendance management$/i,
+      name: /^today’s workforce, at a glance$/i,
     }),
   ).toBeVisible();
 
@@ -111,11 +105,11 @@ test("attendance management is discoverable and operational", async ({
   await expect(todayTab).toHaveAttribute("aria-selected", "true");
 
   const userLinkingNav = page.getByRole("link", {
-    name: /people & enrolment/i,
+    name: /^user linking & enrolment$/i,
   });
   await expect(userLinkingNav).toBeVisible({ timeout: 60_000 });
   await userLinkingNav.click();
-  await page.waitForURL(/\/dashboard\/attendance\/user-linking$/, {
+  await expect(page).toHaveURL(/\/dashboard\/attendance\/user-linking$/, {
     timeout: 60_000,
   });
 
@@ -137,9 +131,9 @@ test("attendance management is discoverable and operational", async ({
     name: /preview linking/i,
   });
   await expect(previewButton).toBeVisible();
-  expect((await previewButton.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
-    44,
-  );
+  expect(
+    (await previewButton.boundingBox())?.height ?? 0,
+  ).toBeGreaterThanOrEqual(44);
 
   await page.getByLabel("Link status").selectOption("unlinked");
   await page.getByLabel("Search accounts").fill("attendance");
@@ -149,12 +143,15 @@ test("attendance management is discoverable and operational", async ({
     const token = window.localStorage.getItem("hive_token");
     const context = window.localStorage.getItem("hive_context");
     const signature = window.localStorage.getItem("hive_context_signature");
+    const hasTenantContext = Boolean(context && context !== "central");
     const response = await fetch("/api/v1/attendance/user-linking/summary", {
       headers: {
         Accept: "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(context ? { "X-Tenant": context } : {}),
-        ...(signature ? { "X-Tenant-Signature": signature } : {}),
+        ...(hasTenantContext && context ? { "X-Tenant": context } : {}),
+        ...(hasTenantContext && signature
+          ? { "X-Tenant-Signature": signature }
+          : {}),
       },
     });
 

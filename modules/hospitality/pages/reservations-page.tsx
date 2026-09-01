@@ -68,6 +68,7 @@ export default function ReservationsPage() {
 
     try {
       const echo = initEcho(token);
+      if (!echo) return;
       const channelName = `dashboard.${tenantId.toLowerCase()}`;
       const channel = echo.private(channelName);
       

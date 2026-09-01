@@ -1,19 +1,18 @@
-import { ClipboardCheck, LayoutDashboard, Package, PackageSearch, Shapes, Tags, Truck } from "lucide-react";
+import { ClipboardCheck, LayoutDashboard, PackageSearch, Shapes, Tags, Truck } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const inventoryModule: FrontendModuleDefinition = {
   id: "inventory",
   name: "Inventory",
-  description: "Digitized inventory catalog and stock operations for lounge, club, and upcoming modules.",
+  description: "Enterprise product catalog, stock operations, supplier management, and QA batches.",
   backendModule: "Modules\\Inventory",
   routePrefixes: [
     "/dashboard/inventory",
-    "/dashboard/inventory/inventory",
-    "/dashboard/inventory/qa",
+    "/dashboard/inventory/catalog/products",
     "/dashboard/inventory/catalog/categories",
     "/dashboard/inventory/catalog/tags",
-    "/dashboard/inventory/catalog/products",
     "/dashboard/inventory/catalog/suppliers",
+    "/dashboard/inventory/qa",
     "/dashboard/inventory/documents",
   ],
   navItems: [
@@ -30,20 +29,10 @@ export const inventoryModule: FrontendModuleDefinition = {
     },
     {
       moduleId: "inventory",
-      translationKey: "nav.inventory_items",
-      fallbackLabel: "Inventory Items",
-      href: "/dashboard/inventory/inventory",
-      icon: Package,
-      permissions: ["view_inventory", "manage_inventory"],
-      subscriptionSlug: "inventory_control",
-      placement: "primary",
-    },
-    {
-      moduleId: "inventory",
-      translationKey: "nav.inventory_item_categories",
-      fallbackLabel: "Item Categories",
-      href: "/dashboard/inventory/inventory/categories",
-      icon: Shapes,
+      translationKey: "nav.inventory_products",
+      fallbackLabel: "Products",
+      href: "/dashboard/inventory/catalog/products",
+      icon: PackageSearch,
       permissions: ["view_inventory", "manage_inventory"],
       subscriptionSlug: "inventory_control",
       placement: "primary",
@@ -64,16 +53,6 @@ export const inventoryModule: FrontendModuleDefinition = {
       fallbackLabel: "Product Tags",
       href: "/dashboard/inventory/catalog/tags",
       icon: Tags,
-      permissions: ["view_inventory", "manage_inventory"],
-      subscriptionSlug: "inventory_control",
-      placement: "primary",
-    },
-    {
-      moduleId: "inventory",
-      translationKey: "nav.inventory_products",
-      fallbackLabel: "Products",
-      href: "/dashboard/inventory/catalog/products",
-      icon: PackageSearch,
       permissions: ["view_inventory", "manage_inventory"],
       subscriptionSlug: "inventory_control",
       placement: "primary",
@@ -104,7 +83,7 @@ export const inventoryModule: FrontendModuleDefinition = {
       translationKey: "nav.inventory_documents",
       fallbackLabel: "Inventory Documents",
       href: "/dashboard/inventory/documents",
-      icon: LayoutDashboard, // Will use a better icon if found, for now LayoutDashboard
+      icon: LayoutDashboard,
       permissions: ["view_inventory", "manage_inventory"],
       subscriptionSlug: "inventory_control",
       placement: "primary",

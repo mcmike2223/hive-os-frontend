@@ -19,6 +19,7 @@ import {
   Warehouse,
   MessageCircle,
   LayoutTemplate,
+  Bot,
   RefreshCcw,
   ListTodo,
   CheckCircle,
@@ -28,6 +29,7 @@ import {
   Utensils,
   GraduationCap,
   UsersRound,
+  CreditCard,
   Fingerprint,
   WalletCards,
   BadgeDollarSign,
@@ -100,6 +102,7 @@ const SecureSidebarLogo = ({
       return;
     }
 
+    let objectUrl: string | null = null;
     const fetchLogo = async () => {
       try {
         const res = await fetch(fullUrl, { headers: getAuthHeaders() });
@@ -112,7 +115,8 @@ const SecureSidebarLogo = ({
         if (!contentType?.startsWith("image/")) throw new Error("Not an image");
 
         const blob = await res.blob();
-        if (isMounted) setBlobUrl(URL.createObjectURL(blob));
+        objectUrl = URL.createObjectURL(blob);
+        if (isMounted) setBlobUrl(objectUrl);
       } catch {
         if (isMounted) setBlobUrl(fullUrl);
       }
@@ -121,6 +125,7 @@ const SecureSidebarLogo = ({
     fetchLogo();
     return () => {
       isMounted = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [path]);
 
@@ -132,11 +137,19 @@ const SecureSidebarLogo = ({
       )}
     >
       {blobUrl ? (
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-card/60 p-1 shadow-md transition-transform group-hover:scale-105">
+        <div className={cn(
+          "relative flex shrink-0 items-center justify-center overflow-hidden transition-transform group-hover:scale-[1.02]",
+          collapsed
+            ? "h-12 w-12 rounded-xl border border-border/50 bg-card/60 p-1 shadow-md"
+            : "h-14 min-w-0 max-w-[168px]",
+        )}>
           <img
             src={blobUrl}
-            alt="Brand Logo"
-            className="h-full w-auto object-contain"
+            alt={`${fallbackTitle || "HIVE.OS"} logo`}
+            className={cn(
+              "object-contain",
+              collapsed ? "h-11 w-11" : "max-h-14 w-auto max-w-[168px]",
+            )}
           />
         </div>
       ) : (
@@ -144,7 +157,7 @@ const SecureSidebarLogo = ({
           <Command className="h-5 w-5" />
         </div>
       )}
-      {!collapsed && (
+      {!collapsed && !blobUrl && (
         <div className="leading-tight min-w-0 flex-1">
           <div className="text-base font-black tracking-tighter font-space truncate max-w-[160px]" title={fallbackTitle || "HIVE.OS"}>
             {fallbackTitle || "HIVE.OS"}
@@ -212,6 +225,8 @@ function SidebarInner({
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isLandingTemplatesOpen, setIsLandingTemplatesOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
+  const [isEmployeeIdManagementOpen, setIsEmployeeIdManagementOpen] =
+    useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
@@ -227,16 +242,13 @@ function SidebarInner({
   const [isVantageOpen, setIsVantageOpen] = useState(false);
   const [isAgricultureOpen, setIsAgricultureOpen] = useState(false);
   const [isProductionOpen, setIsProductionOpen] = useState(false);
+  const [isSupportBotOpen, setIsSupportBotOpen] = useState(false);
   // 🚀 Apps dropdown state
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const canAccessConverter =
     hasAnyPermission(["use_document_converter", "manage_storage"]) &&
     (!isTenantNode || hasModule("document_converter"));
   const canAccessMail = !isTenantNode || hasMailboxModule;
-  const canAccessLandingTemplates = hasAnyPermission([
-    "manage_tenants",
-    "provision_tenants",
-  ]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -260,6 +272,7 @@ function SidebarInner({
       setIsB2BMarketplaceOpen(true);
       setIsLandingTemplatesOpen(true);
       setIsHumanResourcesOpen(true);
+      setIsEmployeeIdManagementOpen(true);
       setIsAttendanceOpen(true);
       setIsPayrollOpen(true);
       setIsFinanceOpen(true);
@@ -309,6 +322,8 @@ function SidebarInner({
 
   const hasAccess = useCallback(
     (item: NavItem) => {
+      if (item.audience === "central" && isTenantNode) return false;
+      if (item.audience === "tenant" && !isTenantNode) return false;
       if (!isTenantNode && item.moduleId === "subscription")
         return hasAnyPermission(["manage_tenants", "provision_tenants"]);
       if (isTenantNode && item.href === "/dashboard/tenants") return false;
@@ -369,9 +384,7 @@ function SidebarInner({
     ),
   ];
   const standardNavItems = filteredNav.filter(
-    (item) =>
-      !DASHBOARD_MODULE_IDS.has(item.moduleId) &&
-      item.href !== "/dashboard/landing-library",
+    (item) => !DASHBOARD_MODULE_IDS.has(item.moduleId),
   );
   const inventoryModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "inventory",
@@ -399,6 +412,9 @@ function SidebarInner({
   );
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
+  );
+  const identityCardsModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "identitycards",
   );
   const attendanceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "attendance",
@@ -445,6 +461,9 @@ function SidebarInner({
   const productionModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "production",
   );
+  const supportBotModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "support_bot",
+  );
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard/inventory")) {
@@ -475,13 +494,25 @@ function SidebarInner({
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
-    if (pathname.startsWith("/dashboard/landing-pages")) {
+    if (pathname.startsWith("/dashboard/support-bot")) {
+      setIsModulesOpen(true);
+      setIsSupportBotOpen(true);
+    }
+    if (
+      pathname.startsWith("/dashboard/landing-pages") ||
+      pathname.startsWith("/dashboard/landing-library") ||
+      pathname.startsWith("/dashboard/settings/business-types")
+    ) {
       setIsModulesOpen(true);
       setIsLandingTemplatesOpen(true);
     }
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/identity-cards")) {
+      setIsModulesOpen(true);
+      setIsEmployeeIdManagementOpen(true);
     }
     if (pathname.startsWith("/dashboard/attendance")) {
       setIsModulesOpen(true);
@@ -547,8 +578,7 @@ function SidebarInner({
       pathname.startsWith("/dashboard/tools/converter") ||
       pathname.startsWith("/dashboard/tools/converters") ||
       pathname.startsWith("/dashboard/mail") ||
-      pathname.startsWith("/dashboard/chat") ||
-      pathname.startsWith("/dashboard/landing-library")
+      pathname.startsWith("/dashboard/chat")
     ) {
       setIsAppsOpen(true);
     }
@@ -688,6 +718,7 @@ function SidebarInner({
         >
           <Link
             href="/dashboard"
+            aria-label={`${brandSettings?.app_title || "HIVE.OS"} dashboard`}
             className={cn(
               "group flex items-center gap-3 min-w-0 flex-1",
               collapsed ? "justify-center" : "",
@@ -1143,6 +1174,18 @@ function SidebarInner({
                     )}
 
                     {renderModuleSection({
+                      items: identityCardsModuleItems,
+                      label: t(
+                        "nav.employee_id_management",
+                        "Employee ID Management",
+                      ),
+                      icon: CreditCard,
+                      openState: isEmployeeIdManagementOpen,
+                      onToggle: () =>
+                        setIsEmployeeIdManagementOpen((value) => !value),
+                    })}
+
+                    {renderModuleSection({
                       items: attendanceModuleItems,
                       label: t("nav.attendance", "Attendance Management"),
                       icon: Fingerprint,
@@ -1545,67 +1588,22 @@ function SidebarInner({
                       </div>
                     )}
 
-                    {isTenantNode && landingTemplatesModuleItems.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setIsLandingTemplatesOpen(!isLandingTemplatesOpen)
-                          }
-                          className={cn(
-                            "group flex min-h-11 items-center justify-between rounded-xl px-2.5 py-1.5 text-[13px] font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                            pathname.startsWith("/dashboard/landing-pages")
-                              ? "bg-primary/15 text-primary font-extrabold border border-primary/30 shadow-sm"
-                              : "hive-sidebar-subsection-idle"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <LayoutTemplate className={cn("h-4 w-4 shrink-0", pathname.startsWith("/dashboard/landing-pages") ? "text-primary font-bold" : "")} />
-                            <span className="truncate">
-                              {t("nav.landing_templates", "Landing Templates")}
-                            </span>
-                          </div>
-                          {isLandingTemplatesOpen ? (
-                            <ChevronDown className="h-4 w-4 opacity-50" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 opacity-50" />
-                          )}
-                        </button>
-                        {isLandingTemplatesOpen && (
-                          <div className="flex flex-col gap-1 pl-4">
-                            {landingTemplatesModuleItems.map((item) => {
-                              const active =
-                                item.href === "/dashboard"
-                                  ? pathname === "/dashboard"
-                                  : pathname === item.href ||
-                                    pathname.startsWith(item.href + "/");
-                              const Icon = item.icon;
-                              const label = t(
-                                item.translationKey,
-                                item.fallbackLabel,
-                              );
+                    {renderModuleSection({
+                      items: landingTemplatesModuleItems,
+                      label: t("nav.landing_pages", "Landing Pages"),
+                      icon: LayoutTemplate,
+                      openState: isLandingTemplatesOpen,
+                      onToggle: () =>
+                        setIsLandingTemplatesOpen((value) => !value),
+                    })}
 
-                              return (
-                                <Link
-                                  key={item.href}
-                                  id={item.tourId}
-                                  href={item.href}
-                                  className={cn(
-                                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
-                                    active
-                                      ? "hive-sidebar-nested-active"
-                                      : "hive-sidebar-nested-idle",
-                                  )}
-                                >
-                                  <Icon className="h-4 w-4 shrink-0" />
-                                  <span className="truncate">{label}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {renderModuleSection({
+                      items: supportBotModuleItems,
+                      label: t("nav.support_bot", "AI Support Bot"),
+                      icon: Bot,
+                      openState: isSupportBotOpen,
+                      onToggle: () => setIsSupportBotOpen((value) => !value),
+                    })}
                   </div>
                 )}
               </div>
@@ -1671,10 +1669,7 @@ function SidebarInner({
 
         {/* 🚀 THE NEW APPS DROPDOWN */}
         {isMounted &&
-          (canAccessConverter ||
-            canAccessMail ||
-            hasChatWorkspace ||
-            canAccessLandingTemplates) &&
+          (canAccessConverter || canAccessMail || hasChatWorkspace) &&
           !searchQuery && (
             <div className="mt-2 flex flex-col gap-1">
               <button
@@ -1777,23 +1772,6 @@ function SidebarInner({
                       </span>
                     </Link>
                   )}
-                  {canAccessLandingTemplates && !isTenantNode && (
-                    <Link
-                      href="/dashboard/landing-library"
-                      id="tour-nav-landing-templates"
-                      className={cn(
-                        "group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] transition-all duration-200",
-                        pathname.includes("/dashboard/landing-library")
-                          ? "hive-sidebar-nested-active"
-                          : "hive-sidebar-nested-idle",
-                      )}
-                    >
-                      <LayoutTemplate className="h-4 w-4 shrink-0" />
-                      <span className="truncate">
-                        {t("nav.landing_library", "Landing Library")}
-                      </span>
-                    </Link>
-                  )}
                 </div>
               )}
 
@@ -1854,20 +1832,6 @@ function SidebarInner({
                       )}
                     >
                       <MessageCircle className="h-4 w-4 shrink-0" />
-                    </Link>
-                  )}
-                  {canAccessLandingTemplates && !isTenantNode && (
-                    <Link
-                      href="/dashboard/landing-library"
-                      title="Landing Library"
-                      className={cn(
-                        "group flex items-center justify-center rounded-xl px-0 py-2.5 text-[13px] transition-all duration-200 mt-1",
-                        pathname.includes("/dashboard/landing-library")
-                          ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25"
-                          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground font-semibold",
-                      )}
-                    >
-                      <LayoutTemplate className="h-4 w-4 shrink-0" />
                     </Link>
                   )}
                 </>

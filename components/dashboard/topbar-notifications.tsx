@@ -171,6 +171,7 @@ export function TopbarNotificationsIcon({
 
     try {
       const echo = initEcho(token);
+      if (!echo) return;
       const channelNames = getUserNotificationChannelNames(activeUser.id);
       const seenNotificationIds = new Set<string>();
       channelNames.forEach((channelName) => echo.leave(channelName));

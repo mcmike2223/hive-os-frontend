@@ -1,0 +1,70 @@
+{
+  "checks": [
+    {
+      "id": "billing-ink-on-mist",
+      "foreground": "#172033",
+      "background": "#F4F7FB",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-navy-on-white",
+      "foreground": "#1E3A5F",
+      "background": "#FFFFFF",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-teal-on-white",
+      "foreground": "#0F766E",
+      "background": "#FFFFFF",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-white-on-teal",
+      "foreground": "#FFFFFF",
+      "background": "#0F766E",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-amber-on-white",
+      "foreground": "#92400E",
+      "background": "#FFFFFF",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-navy-control-border",
+      "foreground": "#1E3A5F",
+      "background": "#FFFFFF",
+      "type": "ui"
+    },
+    {
+      "id": "billing-teal-focus-ring",
+      "foreground": "#0F766E",
+      "background": "#FFFFFF",
+      "type": "ui"
+    },
+    {
+      "id": "billing-dark-body",
+      "foreground": "#F4F7FB",
+      "background": "#172033",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-dark-teal-accent",
+      "foreground": "#5EEAD4",
+      "background": "#172033",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-dark-amber-warning",
+      "foreground": "#FCD34D",
+      "background": "#172033",
+      "type": "text-normal"
+    },
+    {
+      "id": "billing-dark-focus-ring",
+      "foreground": "#5EEAD4",
+      "background": "#172033",
+      "type": "ui"
+    }
+  ]
+}

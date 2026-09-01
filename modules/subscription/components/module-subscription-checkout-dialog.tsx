@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { CreditCard, Landmark, Loader2, LockKeyhole, Phone, ShieldAlert } from "lucide-react";
+import { BadgePercent, CreditCard, Landmark, Loader2, LockKeyhole, Phone, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,8 @@ import { syncUserSession } from "@/lib/auth-sync";
 import { getAppOrigin } from "@/lib/runtime-context";
 import { cn } from "@/lib/utils";
 import {
+  previewCurrentTenantSubscriptionCoupon,
+  startCurrentTenantSubscriptionActivation,
   startCurrentTenantSubscriptionCheckout,
   startCurrentTenantSubscriptionRenewal,
 } from "@/modules/subscription/api";
@@ -41,8 +43,10 @@ type Props = {
   paymentMethods?: TenantPaymentMethod[];
   paymentProvider?: TenantPaymentProvider | null;
   directTransfer?: TenantDirectTransferSettings | null;
-  mode?: "upgrade" | "renewal";
+  mode?: "upgrade" | "renewal" | "activation";
+  initialBillingCycle?: "monthly" | "yearly";
   estimatedTotalOverride?: number;
+  estimatedTotalsByCycle?: Partial<Record<"monthly" | "yearly", number>>;
   title?: string;
   description?: string;
   onOrderCreated?: (order: TenantSubscriptionOrder) => void;
@@ -68,7 +72,9 @@ export function ModuleSubscriptionCheckoutDialog({
   paymentProvider,
   directTransfer,
   mode = "upgrade",
+  initialBillingCycle = "monthly",
   estimatedTotalOverride,
+  estimatedTotalsByCycle,
   title = "Unlock Module Access",
   description = "Complete checkout to activate the selected tenant modules.",
   onOrderCreated,
@@ -91,6 +97,13 @@ export function ModuleSubscriptionCheckoutDialog({
   const [checkoutChannel, setCheckoutChannel] = React.useState<"gateway" | "direct_transfer">("gateway");
   const [manualBankAccountId, setManualBankAccountId] = React.useState("");
   const [manualTransactionReference, setManualTransactionReference] = React.useState("");
+  const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">(initialBillingCycle);
+  const [couponCode, setCouponCode] = React.useState("");
+  const [couponQuote, setCouponQuote] = React.useState<null | {
+    subtotal_amount_etb: number;
+    discount_amount_etb: number;
+    total_amount_etb: number;
+  }>(null);
 
   React.useEffect(() => {
     if (!open) {
@@ -99,8 +112,11 @@ export function ModuleSubscriptionCheckoutDialog({
       setCheckoutChannel("gateway");
       setManualBankAccountId("");
       setManualTransactionReference("");
+      setBillingCycle(initialBillingCycle);
+      setCouponCode("");
+      setCouponQuote(null);
     }
-  }, [open, providerMethods]);
+  }, [initialBillingCycle, open, providerMethods]);
 
   React.useEffect(() => {
     if (!supportsPaymentMethods) {
@@ -120,15 +136,16 @@ export function ModuleSubscriptionCheckoutDialog({
   }, [checkoutChannel, directTransferEnabled]);
 
   const estimatedTotal = React.useMemo(
-    () => estimatedTotalOverride ?? modules.reduce((sum, module) => {
+    () => estimatedTotalsByCycle?.[billingCycle] ?? estimatedTotalOverride ?? modules.reduce((sum, module) => {
       if (module.included_in_plan) {
         return sum;
       }
 
       return sum + Number(module.monthly_price_etb ?? 0);
     }, 0),
-    [estimatedTotalOverride, modules]
+    [billingCycle, estimatedTotalOverride, estimatedTotalsByCycle, modules]
   );
+  const payableTotal = couponQuote?.total_amount_etb ?? estimatedTotal;
 
   const gatewaySelected = checkoutChannel === "gateway";
   const directTransferSelected = checkoutChannel === "direct_transfer";
@@ -141,12 +158,18 @@ export function ModuleSubscriptionCheckoutDialog({
         checkout_channel: directTransferSelected ? "direct_transfer" : "gateway",
         manual_bank_account_id: directTransferSelected ? manualBankAccountId || undefined : undefined,
         manual_transaction_reference: directTransferSelected ? manualTransactionReference.trim() || undefined : undefined,
+        billing_cycle: billingCycle,
+        coupon_code: couponCode.trim() || undefined,
         success_url_base: getAppOrigin(),
         cancel_url_base: getAppOrigin(),
       };
 
       if (mode === "renewal") {
         return startCurrentTenantSubscriptionRenewal(payload);
+      }
+
+      if (mode === "activation") {
+        return startCurrentTenantSubscriptionActivation(payload);
       }
 
       return startCurrentTenantSubscriptionCheckout({
@@ -173,14 +196,20 @@ export function ModuleSubscriptionCheckoutDialog({
         toast.success(
           mode === "renewal"
             ? "Direct transfer submitted. The renewal will activate after admin verification."
-            : "Direct transfer submitted. The selected modules will activate after admin verification."
+            : mode === "activation"
+              ? "Direct transfer submitted. Your workspace will activate after central verification."
+              : "Direct transfer submitted. The selected modules will activate after admin verification."
         );
         onOpenChange(false);
         return;
       }
 
       await syncUserSession();
-      toast.success(mode === "renewal" ? "The tenant subscription has been renewed." : "The requested modules are active now.");
+      toast.success(
+        mode === "renewal"
+          ? "The tenant subscription has been renewed."
+          : mode === "activation" ? "Your workspace is active." : "The requested modules are active now."
+      );
       onOpenChange(false);
     },
     onError: (error: CheckoutError) => {
@@ -193,6 +222,27 @@ export function ModuleSubscriptionCheckoutDialog({
     || (gatewaySelected && supportsPaymentMethods && !paymentMethod)
     || (directTransferSelected && !manualBankAccountId)
     || (directTransferSelected && manualTransactionReference.trim().length < 4);
+
+  const couponMutation = useMutation({
+    mutationFn: () => previewCurrentTenantSubscriptionCoupon({
+      scope: mode === "activation" ? "hybrid_activation" : mode === "renewal" ? "tenant_renewal" : "tenant_upgrade",
+      billing_cycle: billingCycle,
+      coupon_code: couponCode.trim(),
+      modules: modules.map((module) => module.slug),
+    }),
+    onSuccess: (response) => {
+      setCouponQuote(response?.data ?? null);
+      toast.success("Coupon applied.");
+    },
+    onError: (error: CheckoutError) => {
+      setCouponQuote(null);
+      toast.error(error?.response?.data?.message || "This coupon could not be applied.");
+    },
+  });
+
+  React.useEffect(() => {
+    setCouponQuote(null);
+  }, [billingCycle]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,6 +289,39 @@ export function ModuleSubscriptionCheckoutDialog({
             </div>
           </div>
 
+          {mode !== "upgrade" ? (
+            <fieldset className="space-y-2 rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+              <legend className="px-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing cycle</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {(["monthly", "yearly"] as const).map((cycle) => (
+                  <button
+                    key={cycle}
+                    type="button"
+                    aria-pressed={billingCycle === cycle}
+                    onClick={() => setBillingCycle(cycle)}
+                    className={cn("min-h-11 rounded-xl border px-4 text-sm font-semibold capitalize", billingCycle === cycle ? "border-primary bg-primary/10 text-primary" : "border-border bg-background")}
+                  >
+                    {cycle}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
+
+          <div className="space-y-2 rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+            <Label htmlFor="subscription-coupon" className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+              <BadgePercent aria-hidden="true" /> Coupon
+            </Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input id="subscription-coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="Optional coupon code" autoComplete="off" />
+              <Button type="button" variant="outline" onClick={() => couponMutation.mutate()} disabled={couponMutation.isPending || !couponCode.trim()}>
+                {couponMutation.isPending ? <Loader2 aria-hidden="true" className="animate-spin" /> : null}
+                Apply
+              </Button>
+            </div>
+            {couponQuote ? <p className="text-sm text-emerald-700 dark:text-emerald-300">Discount applied: ETB {couponQuote.discount_amount_etb.toFixed(0)}</p> : null}
+          </div>
+
           {!canManageSubscriptions ? (
             <div className="rounded-[1.5rem] border border-amber-300/40 bg-amber-50/60 px-4 py-5 text-sm text-amber-800">
               <div className="flex items-start gap-3">
@@ -252,13 +335,14 @@ export function ModuleSubscriptionCheckoutDialog({
           ) : (
             <>
               {directTransferEnabled ? (
-                <div className="space-y-3">
-                  <Label className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Payment Path
-                  </Label>
+                <fieldset className="space-y-3">
+                  <legend className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Payment path
+                  </legend>
                   <div className="grid gap-3 md:grid-cols-2">
                     <button
                       type="button"
+                      aria-pressed={gatewaySelected}
                       onClick={() => setCheckoutChannel("gateway")}
                       className={cn(
                         "rounded-[1.5rem] border p-4 text-left transition-all",
@@ -269,7 +353,7 @@ export function ModuleSubscriptionCheckoutDialog({
                     >
                       <div className="flex items-start gap-3">
                         <div className="rounded-2xl border border-primary/20 bg-primary/10 p-3">
-                          <CreditCard className="h-5 w-5 text-primary" />
+                          <CreditCard aria-hidden="true" className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <p className="font-bold text-foreground">{providerLabel}</p>
@@ -281,6 +365,7 @@ export function ModuleSubscriptionCheckoutDialog({
                     </button>
                     <button
                       type="button"
+                      aria-pressed={directTransferSelected}
                       onClick={() => setCheckoutChannel("direct_transfer")}
                       className={cn(
                         "rounded-[1.5rem] border p-4 text-left transition-all",
@@ -291,7 +376,7 @@ export function ModuleSubscriptionCheckoutDialog({
                     >
                       <div className="flex items-start gap-3">
                         <div className="rounded-2xl border border-primary/20 bg-primary/10 p-3">
-                          <Landmark className="h-5 w-5 text-primary" />
+                          <Landmark aria-hidden="true" className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <p className="font-bold text-foreground">Direct Bank Transfer</p>
@@ -302,19 +387,22 @@ export function ModuleSubscriptionCheckoutDialog({
                       </div>
                     </button>
                   </div>
-                </div>
+                </fieldset>
               ) : null}
 
               {gatewaySelected ? (
                 <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+                      <Label htmlFor="subscription-billing-phone" className="text-xs uppercase tracking-widest text-muted-foreground">
                         {requiresBillingPhone ? "Billing Phone" : "Contact Phone"}
                       </Label>
                       <div className="relative">
-                        <Phone className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                        <Phone aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="subscription-billing-phone"
+                          inputMode="tel"
+                          autoComplete="tel"
                           value={billingPhone}
                           onChange={(event) => setBillingPhone(event.target.value)}
                           placeholder={requiresBillingPhone ? "2519XXXXXXXX" : "Optional"}
@@ -325,11 +413,11 @@ export function ModuleSubscriptionCheckoutDialog({
 
                     {supportsPaymentMethods ? (
                       <div className="space-y-1.5">
-                        <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+                        <Label htmlFor="subscription-payment-method" className="text-xs uppercase tracking-widest text-muted-foreground">
                           Payment Method
                         </Label>
                         <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                          <SelectTrigger className="h-11 bg-background">
+                          <SelectTrigger id="subscription-payment-method" className="h-11 bg-background">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-border/60">
@@ -362,11 +450,11 @@ export function ModuleSubscriptionCheckoutDialog({
                   ) : null}
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <Label htmlFor="subscription-bank-account" className="text-xs uppercase tracking-widest text-muted-foreground">
                       Bank Account
                     </Label>
                     <Select value={manualBankAccountId} onValueChange={setManualBankAccountId}>
-                      <SelectTrigger className="h-11 bg-background">
+                      <SelectTrigger id="subscription-bank-account" className="h-11 bg-background">
                         <SelectValue placeholder="Choose the account the customer used" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-border/60">
@@ -406,10 +494,11 @@ export function ModuleSubscriptionCheckoutDialog({
                   ) : null}
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <Label htmlFor="subscription-transaction-reference" className="text-xs uppercase tracking-widest text-muted-foreground">
                       Transaction Reference
                     </Label>
                     <Input
+                      id="subscription-transaction-reference"
                       value={manualTransactionReference}
                       onChange={(event) => setManualTransactionReference(event.target.value)}
                       placeholder="Paste the bank transfer ID exactly as it appears on the receipt"
@@ -430,10 +519,10 @@ export function ModuleSubscriptionCheckoutDialog({
                   </div>
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.24em] text-muted-foreground">
-                      {mode === "renewal" ? "Estimated Renewal Charge" : "Estimated Monthly Charge"}
+                      {mode === "activation" ? "Activation charge" : mode === "renewal" ? "Renewal charge" : "Estimated monthly charge"}
                     </p>
                     <p className="mt-1 text-lg font-black tracking-tight text-foreground">
-                      ETB {estimatedTotal.toFixed(0)}
+                      ETB {payableTotal.toFixed(0)}
                     </p>
                   </div>
                 </div>
@@ -446,19 +535,20 @@ export function ModuleSubscriptionCheckoutDialog({
         </div>
 
         <DialogFooter className="shrink-0 border-t border-border/50 px-6 py-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Close
           </Button>
           {canManageSubscriptions ? (
             <Button
+              type="button"
               onClick={() => checkoutMutation.mutate()}
               disabled={checkoutDisabled}
               className="rounded-xl px-6 font-semibold"
             >
               {checkoutMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {directTransferSelected
-                ? (mode === "renewal" ? "Submit Renewal Transfer" : "Submit Transfer Reference")
-                : (mode === "renewal" ? `Renew with ${providerLabel}` : `Continue to ${providerLabel}`)}
+                ? (mode === "renewal" ? "Submit Renewal Transfer" : mode === "activation" ? "Submit Activation Transfer" : "Submit Transfer Reference")
+                : (mode === "renewal" ? `Renew with ${providerLabel}` : mode === "activation" ? `Activate with ${providerLabel}` : `Continue to ${providerLabel}`)}
             </Button>
           ) : null}
         </DialogFooter>

@@ -44,3 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local merge and verification artifacts
+*.orig
+/verify_role_dashboard.mjs

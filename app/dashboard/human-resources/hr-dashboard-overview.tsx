@@ -497,6 +497,7 @@ export function HrDashboardOverview() {
     if (!token) return;
 
     const echo = initEcho(token);
+    if (!echo) return;
     const tenantId = getTenantId();
     const channelName = tenantId ? `tenant.${tenantId}.hr` : "hr";
     const channel = echo.private(channelName) as unknown as EchoPrivateChannel;

@@ -1,5 +1,53 @@
 import type { TenantBusinessTypeDefinition } from "@/modules/tenancy/landing-template";
 
+export type SubscriptionBillingMode = "standard" | "hybrid";
+export type SubscriptionBillingCycle = "monthly" | "yearly";
+
+export type SubscriptionBillingPolicy = {
+  monthly_term_days: number;
+  yearly_term_days: number;
+  yearly_discount_percent: number;
+  grace_period_days: number;
+  renewal_warning_days: number;
+  reminder_interval_hours: number;
+  reminder_max_displays: number;
+  hybrid_enabled: boolean;
+  hybrid_signup_notice: string;
+  billing_cycles?: SubscriptionBillingCycle[];
+  hybrid_enabled_plans?: string[];
+  hybrid_activation_amounts_etb?: Record<string, Record<SubscriptionBillingCycle, number>>;
+};
+
+export type SubscriptionReminder = {
+  should_show: boolean;
+  reason: "activation_required" | "renewal_due" | "expired";
+  warning_days: number;
+  interval_hours: number;
+  max_displays: number;
+  display_count: number;
+  remaining_displays: number;
+  last_displayed_at?: string | null;
+  cycle_key: string;
+};
+
+export type SubscriptionCoupon = {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  discount_type: "percent" | "fixed";
+  discount_value: number;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  max_redemptions?: number | null;
+  max_redemptions_per_tenant: number;
+  applicable_scopes: Array<"public_signup" | "hybrid_activation" | "tenant_upgrade" | "tenant_renewal">;
+  applicable_plans: string[];
+  applicable_billing_cycles: SubscriptionBillingCycle[];
+  is_active: boolean;
+  redemptions_count: number;
+};
+
 export type TenantCatalogModule = {
   slug: string;
   name: string;
@@ -171,6 +219,7 @@ export type TenantSubscriptionCatalogPayload = {
   plan_defaults: Record<string, string[]>;
   plan_pricing: Record<string, TenantPlanPricing>;
   business_types: TenantBusinessTypeDefinition[];
+  billing_policy?: SubscriptionBillingPolicy;
 };
 
 export type TenantWorkspaceSubscription = {
@@ -178,13 +227,18 @@ export type TenantWorkspaceSubscription = {
   tenant_id: string;
   plan: string;
   status: "active" | "trial" | "grace_period" | "expired" | "inactive" | "cancelled" | "suspended" | "pending_activation";
-  billing_cycle: string;
+  billing_cycle: SubscriptionBillingCycle;
+  billing_mode: SubscriptionBillingMode;
   renewal_mode: string;
   started_at?: string | null;
   renewal_window_starts_at?: string | null;
   expires_at?: string | null;
   grace_ends_at?: string | null;
   last_renewed_at?: string | null;
+  activation_paid_at?: string | null;
+  next_payment_at?: string | null;
+  seconds_until_expiration?: number | null;
+  reminder?: SubscriptionReminder;
   days_until_expiration?: number | null;
   is_expiring_soon?: boolean;
   needs_renewal?: boolean;
@@ -220,7 +274,7 @@ export type SubscriptionAdminTenant = {
 export type TenantSubscriptionOrder = {
   id: string;
   public_token: string;
-  scope: "public_signup" | "tenant_upgrade" | "tenant_renewal";
+  scope: "public_signup" | "hybrid_activation" | "tenant_upgrade" | "tenant_renewal";
   status: string;
   provider?: string | null;
   payment_channel?: string | null;
@@ -231,6 +285,8 @@ export type TenantSubscriptionOrder = {
   admin_name?: string | null;
   admin_email?: string | null;
   plan: string;
+  billing_mode?: SubscriptionBillingMode;
+  billing_cycle?: SubscriptionBillingCycle;
   business_type?: string | null;
   billing_phone?: string | null;
   line_items: Array<{
@@ -240,6 +296,11 @@ export type TenantSubscriptionOrder = {
     description?: string | null;
     amount_etb: number;
   }>;
+  plan_amount_etb?: number;
+  addon_amount_etb?: number;
+  subtotal_amount_etb?: number;
+  discount_amount_etb?: number;
+  coupon_code?: string | null;
   total_amount_etb: number;
   provider_session_id?: string | null;
   provider_transaction_id?: string | null;

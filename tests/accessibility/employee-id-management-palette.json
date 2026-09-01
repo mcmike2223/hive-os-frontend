@@ -1,0 +1,64 @@
+{
+  "checks": [
+    {
+      "id": "page-primary-text",
+      "foreground": "#0F172A",
+      "background": "#FFFFFF",
+      "type": "text-normal"
+    },
+    {
+      "id": "page-muted-text",
+      "foreground": "#475569",
+      "background": "#FFFFFF",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-heading",
+      "foreground": "#FFFFFF",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-description",
+      "foreground": "#CBD5E1",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-eyebrow",
+      "foreground": "#FBBF24",
+      "background": "#020617",
+      "type": "text-normal"
+    },
+    {
+      "id": "hero-primary-action",
+      "foreground": "#FFFFFF",
+      "background": "#B45309",
+      "type": "text-normal"
+    },
+    {
+      "id": "active-status",
+      "foreground": "#065F46",
+      "background": "#ECFDF5",
+      "type": "text-normal"
+    },
+    {
+      "id": "expiring-status",
+      "foreground": "#78350F",
+      "background": "#FFFBEB",
+      "type": "text-normal"
+    },
+    {
+      "id": "revoked-status",
+      "foreground": "#991B1B",
+      "background": "#FEF2F2",
+      "type": "text-normal"
+    },
+    {
+      "id": "default-card-template",
+      "foreground": "#FFFFFF",
+      "background": "#0F172A",
+      "type": "text-normal"
+    }
+  ]
+}

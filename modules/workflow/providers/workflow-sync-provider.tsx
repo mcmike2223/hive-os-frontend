@@ -19,6 +19,7 @@ export function WorkflowSyncProvider() {
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     const channelName = getUserNotificationChannelName(user.id);
     const channel = echo.private(channelName);
 

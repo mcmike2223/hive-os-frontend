@@ -66,7 +66,7 @@ const checkboxClass =
   "h-5 w-5 shrink-0 rounded border-slate-600 text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-300 dark:focus-visible:ring-cyan-300";
 const today = () => new Date().toISOString().slice(0, 10);
 
-type ActionMode = "rotation" | "roster" | "temporary" | "swap";
+type ActionMode = "shift" | "rotation" | "roster" | "temporary" | "swap";
 
 type EchoPrivateChannel = {
   listen: (
@@ -165,6 +165,7 @@ function SchedulingActionDialog({
   const [errorField, setErrorField] = useState("");
   const availableModes = useMemo<ActionMode[]>(() => {
     const modes: ActionMode[] = [];
+    if (workspace.permissions.can_manage_shifts) modes.push("shift");
     if (workspace.permissions.can_manage_templates) modes.push("rotation");
     if (workspace.permissions.can_manage_rosters) modes.push("roster");
     if (workspace.permissions.can_create_temporary) modes.push("temporary");
@@ -172,6 +173,20 @@ function SchedulingActionDialog({
     return modes;
   }, [workspace.permissions]);
   const [mode, setMode] = useState<ActionMode>("rotation");
+  const [shift, setShift] = useState({
+    code: "",
+    name: "",
+    category: "production",
+    shift_type: "fixed",
+    starts_at: "08:00",
+    ends_at: "17:00",
+    break_minutes: "60",
+    grace_minutes: "10",
+    weekly_hours: "48",
+    required_headcount: "1",
+    working_days: [1, 2, 3, 4, 5] as number[],
+    is_night_shift: false,
+  });
   const [rotation, setRotation] = useState({
     code: "",
     name: "",
@@ -213,6 +228,20 @@ function SchedulingActionDialog({
     setMode(firstMode);
     setError("");
     setErrorField("");
+    setShift({
+      code: `SHIFT-${today().replaceAll("-", "")}`,
+      name: "",
+      category: "production",
+      shift_type: "fixed",
+      starts_at: "08:00",
+      ends_at: "17:00",
+      break_minutes: "60",
+      grace_minutes: "10",
+      weekly_hours: "48",
+      required_headcount: "1",
+      working_days: [1, 2, 3, 4, 5],
+      is_night_shift: false,
+    });
     setRotation({
       code: `ROT-${today().replaceAll("-", "")}`,
       name: "",
@@ -265,6 +294,41 @@ function SchedulingActionDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (mode === "shift") {
+        await attendanceFetch<{ data: WorkSchedule }>("/work-schedules", {
+          method: "POST",
+          body: JSON.stringify({
+            code: shift.code,
+            name: shift.name,
+            category: shift.category,
+            color: shift.is_night_shift ? "#334155" : "#1D4ED8",
+            shift_type: shift.shift_type,
+            timezone: "Africa/Addis_Ababa",
+            working_days: shift.working_days,
+            starts_at: shift.starts_at,
+            ends_at: shift.ends_at,
+            break_minutes: Number(shift.break_minutes),
+            grace_minutes: Number(shift.grace_minutes),
+            rules: {
+              minimum_rest_minutes: 660,
+              maximum_weekly_minutes: Number(shift.weekly_hours) * 60,
+              check_in_window_minutes: 60,
+              check_out_window_minutes: 120,
+              auto_checkout: false,
+              overtime_eligible: true,
+              night_classification: shift.is_night_shift
+                ? "night_differential"
+                : undefined,
+            },
+            required_headcount: Number(shift.required_headcount),
+            weekly_hours: Number(shift.weekly_hours),
+            is_night_shift: shift.is_night_shift,
+            is_active: true,
+          }),
+        });
+        return "Reusable shift created.";
+      }
+
       if (mode === "rotation") {
         const created = await attendanceFetch<{ data: ScheduleTemplate }>(
           "/schedule-templates",
@@ -296,15 +360,18 @@ function SchedulingActionDialog({
           },
         );
         if (rotation.employee_id) {
-          await attendanceFetch(`/schedule-templates/${created.data.id}/assign`, {
-            method: "POST",
-            body: JSON.stringify({
-              scope_type: "employee",
-              employee_ids: [Number(rotation.employee_id)],
-              priority: 200,
-              effective_from: rotation.anchor_date,
-            }),
-          });
+          await attendanceFetch(
+            `/schedule-templates/${created.data.id}/assign`,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                scope_type: "employee",
+                employee_ids: [Number(rotation.employee_id)],
+                priority: 200,
+                effective_from: rotation.anchor_date,
+              }),
+            },
+          );
         }
         return "Rotation created and assigned.";
       }
@@ -325,22 +392,25 @@ function SchedulingActionDialog({
       }
 
       if (mode === "temporary") {
-        await attendanceFetch<{ data: TemporarySchedule }>("/temporary-schedules", {
-          method: "POST",
-          body: JSON.stringify({
-            employee_id: Number(temporary.employee_id),
-            work_schedule_id: temporary.is_rest_day
-              ? null
-              : Number(temporary.work_schedule_id),
-            starts_on: temporary.starts_on,
-            ends_on: temporary.ends_on,
-            is_rest_day: temporary.is_rest_day,
-            reason_type: temporary.reason_type,
-            reason: temporary.reason,
-            idempotency_key: idempotencyKey("temporary-schedule"),
-            submit: true,
-          }),
-        });
+        await attendanceFetch<{ data: TemporarySchedule }>(
+          "/temporary-schedules",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              employee_id: Number(temporary.employee_id),
+              work_schedule_id: temporary.is_rest_day
+                ? null
+                : Number(temporary.work_schedule_id),
+              starts_on: temporary.starts_on,
+              ends_on: temporary.ends_on,
+              is_rest_day: temporary.is_rest_day,
+              reason_type: temporary.reason_type,
+              reason: temporary.reason,
+              idempotency_key: idempotencyKey("temporary-schedule"),
+              submit: true,
+            }),
+          },
+        );
         return "Temporary schedule sent for Workflow approval.";
       }
 
@@ -376,6 +446,21 @@ function SchedulingActionDialog({
   });
 
   function validationError(): [string, string] | null {
+    if (mode === "shift") {
+      if (!shift.code.trim()) {
+        return ["shift-code", "Shift code: enter a unique code."];
+      }
+      if (!shift.name.trim()) {
+        return ["shift-name", "Shift name: enter a descriptive name."];
+      }
+      if (!shift.working_days.length) {
+        return ["shift-days", "Working days: select at least one day."];
+      }
+      if (shift.starts_at === shift.ends_at) {
+        return ["shift-end", "Shift end: choose a different time."];
+      }
+    }
+
     if (mode === "rotation") {
       if (!rotation.name.trim()) {
         return ["rotation-name", "Rotation name: enter a descriptive name."];
@@ -491,6 +576,9 @@ function SchedulingActionDialog({
                 }}
                 className={selectClass}
               >
+                {availableModes.includes("shift") && (
+                  <option value="shift">Create reusable shift</option>
+                )}
                 {availableModes.includes("rotation") && (
                   <option value="rotation">Create and assign rotation</option>
                 )}
@@ -505,6 +593,202 @@ function SchedulingActionDialog({
                 )}
               </select>
             </div>
+
+            {mode === "shift" && (
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="shift-code">Shift code (required)</Label>
+                    <Input
+                      id="shift-code"
+                      value={shift.code}
+                      onChange={(event) =>
+                        setShift((current) => ({
+                          ...current,
+                          code: event.target.value,
+                        }))
+                      }
+                      className={controlClass}
+                      aria-invalid={errorField === "shift-code" || undefined}
+                      aria-describedby={describedBy("shift-code")}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shift-name">Shift name (required)</Label>
+                    <Input
+                      id="shift-name"
+                      value={shift.name}
+                      onChange={(event) =>
+                        setShift((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      className={controlClass}
+                      aria-invalid={errorField === "shift-name" || undefined}
+                      aria-describedby={describedBy("shift-name")}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shift-category">Business area</Label>
+                    <Input
+                      id="shift-category"
+                      value={shift.category}
+                      onChange={(event) =>
+                        setShift((current) => ({
+                          ...current,
+                          category: event.target.value,
+                        }))
+                      }
+                      className={controlClass}
+                      placeholder="production, warehouse, office"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shift-type">Shift type</Label>
+                    <select
+                      id="shift-type"
+                      value={shift.shift_type}
+                      onChange={(event) =>
+                        setShift((current) => ({
+                          ...current,
+                          shift_type: event.target.value,
+                        }))
+                      }
+                      className={selectClass}
+                    >
+                      <option value="fixed">Fixed</option>
+                      <option value="flexible">Flexible</option>
+                      <option value="on_call">On call</option>
+                      <option value="relief">Relief</option>
+                      <option value="seasonal">Seasonal</option>
+                      <option value="variable">Variable</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shift-start">Starts</Label>
+                    <Input
+                      id="shift-start"
+                      type="time"
+                      value={shift.starts_at}
+                      onChange={(event) =>
+                        setShift((current) => ({
+                          ...current,
+                          starts_at: event.target.value,
+                        }))
+                      }
+                      className={controlClass}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shift-end">Ends</Label>
+                    <Input
+                      id="shift-end"
+                      type="time"
+                      value={shift.ends_at}
+                      onChange={(event) =>
+                        setShift((current) => ({
+                          ...current,
+                          ends_at: event.target.value,
+                        }))
+                      }
+                      className={controlClass}
+                      aria-invalid={errorField === "shift-end" || undefined}
+                      aria-describedby={describedBy("shift-end")}
+                      required
+                    />
+                  </div>
+                  {[
+                    ["shift-break", "Break minutes", "break_minutes", 0, 240],
+                    ["shift-grace", "Grace minutes", "grace_minutes", 0, 120],
+                    ["shift-weekly", "Weekly hours", "weekly_hours", 1, 168],
+                    [
+                      "shift-headcount",
+                      "Required people",
+                      "required_headcount",
+                      1,
+                      10000,
+                    ],
+                  ].map(([id, label, field, min, max]) => (
+                    <div className="space-y-2" key={String(id)}>
+                      <Label htmlFor={String(id)}>{String(label)}</Label>
+                      <Input
+                        id={String(id)}
+                        type="number"
+                        min={Number(min)}
+                        max={Number(max)}
+                        value={String(shift[field as keyof typeof shift])}
+                        onChange={(event) =>
+                          setShift((current) => ({
+                            ...current,
+                            [String(field)]: event.target.value,
+                          }))
+                        }
+                        className={controlClass}
+                        required
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <fieldset
+                  className="rounded-xl border border-slate-500 p-4 dark:border-slate-400"
+                  aria-describedby={describedBy("shift-days")}
+                >
+                  <legend className="px-2 font-black">Working days</legend>
+                  <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                      (label, index) => {
+                        const day = index + 1;
+                        return (
+                          <label
+                            key={label}
+                            className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-500 px-3"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={shift.working_days.includes(day)}
+                              onChange={(event) =>
+                                setShift((current) => ({
+                                  ...current,
+                                  working_days: event.target.checked
+                                    ? [...current.working_days, day].sort()
+                                    : current.working_days.filter(
+                                        (value) => value !== day,
+                                      ),
+                                }))
+                              }
+                              className={checkboxClass}
+                            />
+                            <span className="font-semibold">{label}</span>
+                          </label>
+                        );
+                      },
+                    )}
+                  </div>
+                </fieldset>
+
+                <label className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-500 px-3">
+                  <input
+                    type="checkbox"
+                    checked={shift.is_night_shift}
+                    onChange={(event) =>
+                      setShift((current) => ({
+                        ...current,
+                        is_night_shift: event.target.checked,
+                      }))
+                    }
+                    className={checkboxClass}
+                  />
+                  <span className="font-semibold">
+                    Overnight or night-differential shift
+                  </span>
+                </label>
+              </div>
+            )}
 
             {mode === "rotation" && (
               <>
@@ -1147,7 +1431,8 @@ export function ScheduleWorkspace() {
   });
   const employees = useQuery({
     queryKey: ["hr-scheduling", scope, "employees"],
-    queryFn: () => attendanceFetch<Paginated<Employee>>("/employees?per_page=200"),
+    queryFn: () =>
+      attendanceFetch<Paginated<Employee>>("/employees?per_page=200"),
     enabled: isLoaded && canFetchEmployees,
   });
   const data = workspace.data?.data;
@@ -1166,6 +1451,7 @@ export function ScheduleWorkspace() {
     if (!token || !canOpen) return;
 
     const echo = initEcho(token);
+    if (!echo) return;
     const tenantId = getTenantId();
     const channelName = tenantId ? `tenant.${tenantId}.hr` : "hr";
     const channel = echo.private(channelName) as unknown as EchoPrivateChannel;
@@ -1225,6 +1511,34 @@ export function ScheduleWorkspace() {
           : "Roster publication failed.",
       ),
   });
+  const applyWaterBottlingPreset = useMutation({
+    mutationFn: () =>
+      attendanceFetch<{
+        data: {
+          created_shift_count: number;
+          existing_shift_count: number;
+          created_rotation: boolean;
+        };
+      }>("/attendance/setup/presets/water_bottling_24x7/apply", {
+        method: "POST",
+      }),
+    onSuccess: async (response) => {
+      toast.success(
+        response.data.created_shift_count
+          ? "Water-bottling shifts and rotation added."
+          : "Water-bottling starter setup is already installed.",
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["hr-scheduling", scope],
+      });
+    },
+    onError: (failure) =>
+      toast.error(
+        failure instanceof Error
+          ? failure.message
+          : "Water-bottling starter setup failed.",
+      ),
+  });
 
   if (isLoaded && !canOpen) return null;
 
@@ -1249,9 +1563,13 @@ export function ScheduleWorkspace() {
     data?.timeline.filter(
       (day) => day.work_schedule && !day.resolution?.is_rest_day,
     ).length ?? 0;
+  const hasWaterBottlingPreset =
+    data?.work_schedules.some((schedule) => schedule.code === "WB-PROD-DAY") ??
+    false;
   const hasActions =
     data &&
-    (data.permissions.can_manage_templates ||
+    (data.permissions.can_manage_shifts ||
+      data.permissions.can_manage_templates ||
       data.permissions.can_manage_rosters ||
       data.permissions.can_create_temporary ||
       data.permissions.can_request_swap);
@@ -1324,6 +1642,25 @@ export function ScheduleWorkspace() {
                   />
                   Refresh schedule
                 </Button>
+                {data?.permissions.can_manage_shifts && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 border-amber-200 bg-amber-100 text-slate-950 hover:bg-amber-50"
+                    onClick={() => applyWaterBottlingPreset.mutate()}
+                    disabled={
+                      applyWaterBottlingPreset.isPending ||
+                      hasWaterBottlingPreset
+                    }
+                  >
+                    <Factory aria-hidden="true" className="h-4 w-4" />
+                    {hasWaterBottlingPreset
+                      ? "Water-bottling starter installed"
+                      : applyWaterBottlingPreset.isPending
+                        ? "Adding starter shift{�u���f"
+                        : "Add water-bottling starter shifts"}
+                  </Button>
+                )}
                 {hasActions && (
                   <Button
                     type="button"

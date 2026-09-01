@@ -379,6 +379,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     const channelName = getConversationPresenceChannelName(activeConversationId);
     const channel = echo.join(channelName);
     conversationChannelRef.current = channel;

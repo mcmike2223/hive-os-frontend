@@ -15,6 +15,7 @@ import {
   Layers,
   LayoutDashboard,
   LayoutTemplate,
+  Bot,
   ListTodo,
   LogOut,
   Mail,
@@ -28,6 +29,7 @@ import {
   X,
   GraduationCap,
   UsersRound,
+  CreditCard,
   Fingerprint,
   WalletCards,
   BadgeDollarSign,
@@ -86,7 +88,6 @@ const APP_PATH_PREFIXES = [
   "/dashboard/tools/converter",
   "/dashboard/mail",
   "/dashboard/chat",
-  "/dashboard/landing-library",
 ];
 
 const isAppPath = (href: string) =>
@@ -163,11 +164,11 @@ const SecureMobileLogo = ({
   return (
     <div className="group flex min-w-0 items-center gap-3">
       {blobUrl ? (
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-card/60 p-1 shadow-md transition-transform group-hover:scale-105">
+        <div className="relative flex h-12 min-w-0 max-w-[190px] shrink items-center justify-start overflow-hidden transition-transform group-hover:scale-[1.02]">
           <img
             src={blobUrl}
-            alt="Brand Logo"
-            className="h-full w-auto object-contain"
+            alt={`${fallbackTitle || "HIVE.OS"} logo`}
+            className="max-h-12 w-auto max-w-[190px] object-contain"
           />
         </div>
       ) : (
@@ -175,14 +176,14 @@ const SecureMobileLogo = ({
           <Command className="h-5 w-5" />
         </div>
       )}
-      <div className="min-w-0 leading-tight">
+      {!blobUrl && <div className="min-w-0 leading-tight">
         <div className="max-w-[170px] truncate font-space text-base font-black tracking-tighter" title={fallbackTitle || "HIVE.OS"}>
           {fallbackTitle || "HIVE.OS"}
         </div>
         <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           {t("nav.control_hub", "Control Hub")}
         </div>
-      </div>
+      </div>}
     </div>
   );
 };
@@ -214,6 +215,8 @@ export function MobileSidebar() {
   const [isB2BMarketplaceOpen, setIsB2BMarketplaceOpen] = useState(false);
   const [isLandingTemplatesOpen, setIsLandingTemplatesOpen] = useState(false);
   const [isHumanResourcesOpen, setIsHumanResourcesOpen] = useState(false);
+  const [isEmployeeIdManagementOpen, setIsEmployeeIdManagementOpen] =
+    useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
@@ -229,16 +232,13 @@ export function MobileSidebar() {
   const [isVantageOpen, setIsVantageOpen] = useState(false);
   const [isAgricultureOpen, setIsAgricultureOpen] = useState(false);
   const [isProductionOpen, setIsProductionOpen] = useState(false);
+  const [isSupportBotOpen, setIsSupportBotOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
 
   const canAccessConverter =
     hasAnyPermission(["use_document_converter", "manage_storage"]) &&
     (!isTenantNode || hasModule("document_converter"));
   const canAccessMail = !isTenantNode || hasMailboxModule;
-  const canAccessLandingTemplates = hasAnyPermission([
-    "manage_tenants",
-    "provision_tenants",
-  ]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -284,6 +284,8 @@ export function MobileSidebar() {
 
   const hasAccess = useCallback(
     (item: NavItem) => {
+      if (item.audience === "central" && isTenantNode) return false;
+      if (item.audience === "tenant" && !isTenantNode) return false;
       if (!isTenantNode && item.moduleId === "subscription") {
         return hasAnyPermission(["manage_tenants", "provision_tenants"]);
       }
@@ -414,6 +416,9 @@ export function MobileSidebar() {
   const humanResourcesModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "humanresources",
   );
+  const identityCardsModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "identitycards",
+  );
   const attendanceModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "attendance",
   );
@@ -459,6 +464,9 @@ export function MobileSidebar() {
   const productionModuleItems = moduleNavItems.filter(
     (item) => item.moduleId === "production",
   );
+  const supportBotModuleItems = moduleNavItems.filter(
+    (item) => item.moduleId === "support_bot",
+  );
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard/inventory")) {
@@ -495,13 +503,25 @@ export function MobileSidebar() {
       setIsModulesOpen(true);
       setIsB2BMarketplaceOpen(true);
     }
-    if (pathname.startsWith("/dashboard/landing-pages")) {
+    if (pathname.startsWith("/dashboard/support-bot")) {
+      setIsModulesOpen(true);
+      setIsSupportBotOpen(true);
+    }
+    if (
+      pathname.startsWith("/dashboard/landing-pages") ||
+      pathname.startsWith("/dashboard/landing-library") ||
+      pathname.startsWith("/dashboard/settings/business-types")
+    ) {
       setIsModulesOpen(true);
       setIsLandingTemplatesOpen(true);
     }
     if (pathname.startsWith("/dashboard/human-resources")) {
       setIsModulesOpen(true);
       setIsHumanResourcesOpen(true);
+    }
+    if (pathname.startsWith("/dashboard/identity-cards")) {
+      setIsModulesOpen(true);
+      setIsEmployeeIdManagementOpen(true);
     }
     if (pathname.startsWith("/dashboard/attendance")) {
       setIsModulesOpen(true);
@@ -649,9 +669,20 @@ export function MobileSidebar() {
     );
   };
 
-  const renderNestedItem = (item: NavItem) => {
+  const renderNestedItem = (item: NavItem, siblingItems: NavItem[] = []) => {
     const Icon = item.icon as SidebarIcon;
-    const active = isActive(item.href);
+    const itemPath = item.href.split("?")[0];
+    const hasMoreSpecificMatch = siblingItems.some((candidate) => {
+      const candidatePath = candidate.href.split("?")[0];
+      return (
+        candidatePath !== itemPath &&
+        candidatePath.startsWith(`${itemPath}/`) &&
+        (pathname === candidatePath || pathname.startsWith(`${candidatePath}/`))
+      );
+    });
+    const active =
+      pathname === itemPath ||
+      (!hasMoreSpecificMatch && pathname.startsWith(`${itemPath}/`));
     const label = t(item.translationKey, item.fallbackLabel);
 
     return (
@@ -711,7 +742,7 @@ export function MobileSidebar() {
             id={sectionId}
             className="flex flex-col gap-1 pl-4 animate-in slide-in-from-top-1 duration-200"
           >
-            {items.map(renderNestedItem)}
+            {items.map((item) => renderNestedItem(item, items))}
           </div>
         )}
       </div>
@@ -860,6 +891,7 @@ export function MobileSidebar() {
               <SheetClose asChild>
                 <Link
                   href="/dashboard"
+                  aria-label={`${brandSettings?.app_title || "HIVE.OS"} dashboard`}
                   className="group flex min-w-0 flex-1 items-center gap-3"
                 >
                   <SecureMobileLogo
@@ -990,6 +1022,18 @@ export function MobileSidebar() {
                           openState: isHumanResourcesOpen,
                           onToggle: () =>
                             setIsHumanResourcesOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: identityCardsModuleItems,
+                          label: t(
+                            "nav.employee_id_management",
+                            "Employee ID Management",
+                          ),
+                          icon: CreditCard,
+                          openState: isEmployeeIdManagementOpen,
+                          onToggle: () =>
+                            setIsEmployeeIdManagementOpen((value) => !value),
                         })}
 
                         {renderModuleSection({
@@ -1141,25 +1185,29 @@ export function MobileSidebar() {
                             setIsB2BMarketplaceOpen((value) => !value),
                         })}
 
-                        {isTenantNode &&
-                          renderModuleSection({
-                            items: landingTemplatesModuleItems,
-                            label: t("nav.landing_templates", "Landing Templates"),
-                            icon: LayoutTemplate,
-                            openState: isLandingTemplatesOpen,
-                            onToggle: () =>
-                              setIsLandingTemplatesOpen((value) => !value),
-                          })}
+                        {renderModuleSection({
+                          items: landingTemplatesModuleItems,
+                          label: t("nav.landing_pages", "Landing Pages"),
+                          icon: LayoutTemplate,
+                          openState: isLandingTemplatesOpen,
+                          onToggle: () =>
+                            setIsLandingTemplatesOpen((value) => !value),
+                        })}
+
+                        {renderModuleSection({
+                          items: supportBotModuleItems,
+                          label: t("nav.support_bot", "AI Support Bot"),
+                          icon: Bot,
+                          openState: isSupportBotOpen,
+                          onToggle: () => setIsSupportBotOpen((value) => !value),
+                        })}
                       </div>
                     )}
                   </div>
                 )}
 
                 {isMounted &&
-                  (canAccessConverter ||
-                    canAccessMail ||
-                    hasChatWorkspace ||
-                    canAccessLandingTemplates) && (
+                  (canAccessConverter || canAccessMail || hasChatWorkspace) && (
                     <div className="mt-2 flex flex-col gap-1">
                       <button
                         id="tour-nav-apps"
@@ -1217,16 +1265,6 @@ export function MobileSidebar() {
                               MessageCircle,
                               pathname.includes("/dashboard/chat"),
                               "tour-nav-chat",
-                            )}
-
-                          {canAccessLandingTemplates &&
-                            !isTenantNode &&
-                            renderAppLink(
-                              "/dashboard/landing-library",
-                              t("nav.landing_library", "Landing Library"),
-                              LayoutTemplate,
-                              pathname.includes("/dashboard/landing-library"),
-                              "tour-nav-landing-library",
                             )}
                         </div>
                       )}

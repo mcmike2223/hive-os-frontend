@@ -96,6 +96,14 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     keywords: seo.keywords ? seo.keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
     applicationName: siteName,
+    icons: {
+      icon: [
+        { url: "/branding/favicon.ico" },
+        { url: "/branding/hive-os-favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/branding/hive-os-favicon-48.png", sizes: "48x48", type: "image/png" },
+      ],
+      apple: [{ url: "/branding/hive-os-favicon-180.png", sizes: "180x180", type: "image/png" }],
+    },
     robots: indexable
       ? { index: true, follow: true }
       : { index: false, follow: false, googleBot: { index: false, follow: false } },
@@ -150,6 +158,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
     >

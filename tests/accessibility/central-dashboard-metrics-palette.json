@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "id": "module-subscribed-bars-light",
+      "foreground": "#047857",
+      "background": "#ffffff",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "module-subscribed-bars-dark",
+      "foreground": "#047857",
+      "background": "#020817",
+      "type": "graphic",
+      "state": "dark"
+    },
+    {
+      "id": "module-actions-bars-light",
+      "foreground": "#0369a1",
+      "background": "#ffffff",
+      "type": "graphic",
+      "state": "default"
+    },
+    {
+      "id": "module-actions-bars-dark",
+      "foreground": "#0369a1",
+      "background": "#020817",
+      "type": "graphic",
+      "state": "dark"
+    }
+  ]
+}

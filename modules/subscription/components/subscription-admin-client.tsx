@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   assignTenantSubscription,
@@ -16,11 +17,14 @@ import {
   updateSubscriptionAdminPlans,
   updateSubscriptionAdminPricing,
 } from "@/modules/subscription/api";
+import { SubscriptionBillingControls } from "@/modules/subscription/components/subscription-billing-controls";
 import type {
   SubscriptionAdminFeature,
   SubscriptionAdminModule,
   SubscriptionAdminPlan,
   SubscriptionAdminTenant,
+  SubscriptionBillingPolicy,
+  SubscriptionCoupon,
   TenantCatalogModule,
 } from "@/modules/subscription/types";
 
@@ -43,6 +47,8 @@ type PlanUpdatePayload = {
 type TenantAssignmentPayload = {
   plan: string;
   status: string;
+  billing_mode: "standard" | "hybrid";
+  billing_cycle: "monthly" | "yearly";
   reset_billing_window: boolean;
   module_subscriptions: {
     enabled_modules: string[];
@@ -103,6 +109,8 @@ export function SubscriptionAdminClient() {
     }));
   }, [catalog, registryModules]);
   const planDefaults: Record<string, string[]> = React.useMemo(() => data?.data?.plan_defaults ?? {}, [data]);
+  const billingPolicy: SubscriptionBillingPolicy | undefined = data?.data?.billing_policy;
+  const coupons: SubscriptionCoupon[] = data?.data?.coupons ?? [];
   const selectedTenant = tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0];
 
   React.useEffect(() => {
@@ -221,29 +229,34 @@ export function SubscriptionAdminClient() {
         </div>
       </section>
 
-      <PlanMatrix
-        plans={plans}
-        modules={matrixModules}
-        planDefaults={planDefaults}
-        saving={planMutation.isPending}
-        onSave={(payload) => planMutation.mutate(payload)}
-      />
-
-      <PricingMatrix
-        modules={matrixModules}
-        saving={pricingMutation.isPending}
-        onSave={(payload) => pricingMutation.mutate(payload)}
-      />
-
-      <TenantAssignment
-        tenants={tenants}
-        selectedTenant={selectedTenant}
-        modules={matrixModules}
-        plans={plans}
-        onSelectTenant={setSelectedTenantId}
-        saving={tenantMutation.isPending}
-        onSave={(tenantId, payload) => tenantMutation.mutate({ tenantId, payload })}
-      />
+      <Tabs defaultValue="billing" className="gap-5">
+        <TabsList className="h-auto max-w-full justify-start overflow-x-auto" aria-label="Subscription administration sections">
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="plans">Plans</TabsTrigger>
+          <TabsTrigger value="pricing">Module pricing</TabsTrigger>
+          <TabsTrigger value="tenants">Tenants</TabsTrigger>
+        </TabsList>
+        <TabsContent value="billing">
+          {billingPolicy ? <SubscriptionBillingControls policy={billingPolicy} coupons={coupons} plans={plans} /> : null}
+        </TabsContent>
+        <TabsContent value="plans">
+          <PlanMatrix plans={plans} modules={matrixModules} planDefaults={planDefaults} saving={planMutation.isPending} onSave={(payload) => planMutation.mutate(payload)} />
+        </TabsContent>
+        <TabsContent value="pricing">
+          <PricingMatrix modules={matrixModules} saving={pricingMutation.isPending} onSave={(payload) => pricingMutation.mutate(payload)} />
+        </TabsContent>
+        <TabsContent value="tenants">
+          <TenantAssignment
+            tenants={tenants}
+            selectedTenant={selectedTenant}
+            modules={matrixModules}
+            plans={plans}
+            onSelectTenant={setSelectedTenantId}
+            saving={tenantMutation.isPending}
+            onSave={(tenantId, payload) => tenantMutation.mutate({ tenantId, payload })}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -581,12 +594,16 @@ function TenantAssignment({
 }) {
   const [plan, setPlan] = React.useState("business");
   const [status, setStatus] = React.useState("active");
+  const [billingMode, setBillingMode] = React.useState<"standard" | "hybrid">("standard");
+  const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
   const [enabledModules, setEnabledModules] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (!selectedTenant) return;
     setPlan(selectedTenant.subscription?.plan ?? selectedTenant.plan ?? "business");
     setStatus(selectedTenant.subscription?.status ?? "active");
+    setBillingMode(selectedTenant.subscription?.billing_mode ?? "standard");
+    setBillingCycle(selectedTenant.subscription?.billing_cycle ?? "monthly");
     setEnabledModules(selectedTenant.subscription?.module_subscriptions?.enabled_modules ?? []);
   }, [selectedTenant]);
 
@@ -630,7 +647,7 @@ function TenantAssignment({
           <Badge variant="outline" className="w-fit rounded-full px-3 py-1">{selectedTenant.id}</Badge>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="space-y-2 text-sm font-medium">
             Plan
             <select value={plan} onChange={(event) => setPlan(event.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3">
@@ -641,6 +658,20 @@ function TenantAssignment({
             Status
             <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3">
               {STATUSES.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
+            </select>
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            Billing model
+            <select value={billingMode} onChange={(event) => setBillingMode(event.target.value as "standard" | "hybrid")} className="h-10 w-full rounded-lg border border-input bg-background px-3">
+              <option value="standard">Standard subscription</option>
+              <option value="hybrid">Hybrid activation</option>
+            </select>
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            Billing cycle
+            <select value={billingCycle} onChange={(event) => setBillingCycle(event.target.value as "monthly" | "yearly")} className="h-10 w-full rounded-lg border border-input bg-background px-3">
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
             </select>
           </label>
         </div>
@@ -677,6 +708,8 @@ function TenantAssignment({
             onClick={() => onSave(selectedTenant.id, {
               plan,
               status,
+              billing_mode: billingMode,
+              billing_cycle: billingCycle,
               reset_billing_window: false,
               module_subscriptions: { enabled_modules: enabledModules, custom_modules: [] },
             })}

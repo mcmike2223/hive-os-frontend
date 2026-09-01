@@ -61,10 +61,9 @@ function deviceLabel(device: AttendanceDevice) {
   return `${device.name} · ${device.device_code}`;
 }
 
-const deviceTypeDefaults: Record<
-  AttendanceDevice["adapter_type"],
-  { code: string; name: string }
-> = {
+type QuickAddAdapter = string;
+
+const deviceTypeDefaults: Record<string, { code: string; name: string }> = {
   suprema_biostar2: {
     code: "SUPREMA-BIOSTATION-2",
     name: "Suprema BioStation 2",
@@ -108,8 +107,7 @@ export function AttendanceDeviceConnectors({
   const [deviceForm, setDeviceForm] = useState({
     device_code: "SUPREMA-BIOSTATION-2",
     name: "Suprema BioStation 2",
-    adapter_type: "suprema_biostar2" as
-      "suprema_biostar2" | "generic_webhook" | "local_connector" | "mock",
+    adapter_type: "suprema_biostar2" as QuickAddAdapter,
     timezone: "Africa/Addis_Ababa",
     base_url: "",
     biostar_device_id: "",
@@ -390,9 +388,12 @@ export function AttendanceDeviceConnectors({
 
   const testDevice = useMutation({
     mutationFn: (deviceCode: string) =>
-      attendanceFetch(`/attendance/devices/${encodeURIComponent(deviceCode)}/test`, {
-        method: "POST",
-      }),
+      attendanceFetch(
+        `/attendance/devices/${encodeURIComponent(deviceCode)}/test`,
+        {
+          method: "POST",
+        },
+      ),
     onSuccess: () => {
       toast.success("Device connection test passed.");
       void refresh();
@@ -403,10 +404,13 @@ export function AttendanceDeviceConnectors({
 
   const syncDevice = useMutation({
     mutationFn: (deviceCode: string) =>
-      attendanceFetch(`/attendance/devices/${encodeURIComponent(deviceCode)}/sync`, {
-        method: "POST",
-        body: JSON.stringify({ limit: 100 }),
-      }),
+      attendanceFetch(
+        `/attendance/devices/${encodeURIComponent(deviceCode)}/sync`,
+        {
+          method: "POST",
+          body: JSON.stringify({ limit: 100 }),
+        },
+      ),
     onSuccess: () => {
       toast.success("Device sync queued.");
       void refresh();
@@ -473,15 +477,15 @@ export function AttendanceDeviceConnectors({
       aria-labelledby="attendance-connectors-heading"
       className="mt-6 space-y-5"
     >
-      <Card className="overflow-hidden border-slate-500 bg-slate-950 text-white shadow-[0_22px_70px_-38px_rgba(15,23,42,0.9)] dark:border-slate-300">
+      <Card className="overflow-hidden rounded-3xl border-border/60 bg-card/60 shadow-sm">
         <CardContent className="relative p-0">
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(34,211,238,0.18),transparent_32%),linear-gradient(120deg,transparent_48%,rgba(37,99,235,0.15)_49%,transparent_50%)]"
+            className="absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,hsl(var(--primary)/0.12),transparent_32%),linear-gradient(120deg,transparent_48%,hsl(var(--primary)/0.08)_49%,transparent_50%)]"
           />
           <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-slate-900 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-primary">
                 <Cable aria-hidden="true" className="h-4 w-4" />
                 Connector bay
               </div>
@@ -489,12 +493,12 @@ export function AttendanceDeviceConnectors({
                 id="attendance-connectors-heading"
                 className="max-w-3xl text-2xl font-black tracking-tight"
               >
-                Devices, BioStar 2, imports, and local connectors
+                Vendor devices, imports, and secure local connectors
               </h4>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-200">
-                Every source enters the same tenant-safe attendance ledger.
-                Credentials are encrypted, webhook requests are signed, and
-                repeated offline events are acknowledged without duplication.
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                Hikvision, Suprema, ZKTeco, Anviz, CSV, and signed connector
+                events enter the same tenant-safe attendance ledger without
+                duplication.
               </p>
             </div>
             <Button
@@ -502,7 +506,7 @@ export function AttendanceDeviceConnectors({
               variant="outline"
               onClick={() => void refresh()}
               disabled={workspace.isFetching}
-              className="min-h-11 border-cyan-300 bg-slate-950 text-cyan-100 hover:bg-slate-800 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300"
+              className="min-h-11 bg-background/70 focus-visible:ring-2 focus-visible:ring-ring"
             >
               <RefreshCw
                 aria-hidden="true"
@@ -511,7 +515,7 @@ export function AttendanceDeviceConnectors({
               Refresh connector status
             </Button>
           </div>
-          <ol className="relative grid border-t border-slate-500 bg-slate-900/90 sm:grid-cols-5">
+          <ol className="relative grid border-t border-border/60 bg-muted/50 sm:grid-cols-5">
             {[
               ["1", "Source"],
               ["2", "Authenticate"],
@@ -521,12 +525,14 @@ export function AttendanceDeviceConnectors({
             ].map(([number, label]) => (
               <li
                 key={number}
-                className="flex min-h-14 items-center gap-3 border-b border-slate-400 px-4 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                className="flex min-h-14 items-center gap-3 border-b border-border/60 px-4 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-cyan-300 bg-cyan-950 font-black text-cyan-100">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-primary/30 bg-primary/10 font-black text-primary">
                   {number}
                 </span>
-                <span className="text-sm font-bold text-white">{label}</span>
+                <span className="text-sm font-bold text-foreground">
+                  {label}
+                </span>
               </li>
             ))}
           </ol>
@@ -609,7 +615,7 @@ export function AttendanceDeviceConnectors({
                     </div>
                     <div>
                       <h5 className="text-lg font-black">
-                        Add a device source
+                        Quick add an API source
                       </h5>
                       <p
                         id={deviceHintId}
@@ -617,7 +623,7 @@ export function AttendanceDeviceConnectors({
                       >
                         BioStation 2 uses the BioStar 2 server API. Generic
                         sources receive signed pushes through the local
-                        connector endpoint.
+                        connector endpoint. Use guided Device Onboarding for
                       </p>
                     </div>
                   </div>
@@ -639,7 +645,13 @@ export function AttendanceDeviceConnectors({
                         onChange={(event) => {
                           const adapter = event.target
                             .value as typeof deviceForm.adapter_type;
-                          const defaults = deviceTypeDefaults[adapter];
+                          const catalogEntry = data.adapters.find(
+                            (item) => item.value === adapter,
+                          );
+                          const defaults = deviceTypeDefaults[adapter] ?? {
+                            code: adapter.replaceAll("_", "-").toUpperCase(),
+                            name: catalogEntry?.label ?? "Attendance device",
+                          };
                           setDeviceForm((current) => ({
                             ...current,
                             adapter_type: adapter,
@@ -1228,8 +1240,8 @@ export function AttendanceDeviceConnectors({
                         id={mappingHintId}
                         className="mt-1 text-sm text-slate-600 dark:text-slate-300"
                       >
-                        Match the BioStar user ID or connector employee ID to
-                        one registered ERP employee.
+                        Match a terminal user ID or connector employee ID to one
+                        registered ERP employee.
                       </p>
                     </div>
                   </div>
@@ -1455,9 +1467,9 @@ export function AttendanceDeviceConnectors({
               <div className="flex flex-col gap-2 border-b border-slate-500 p-5 dark:border-slate-400">
                 <h5 className="text-lg font-black">Connected device health</h5>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Connection tests never expose stored credentials. BioStar 2
-                  syncs are queued and normalized before they reach daily
-                  attendance calculations.
+                  Connection tests never expose stored credentials. Vendor API
+                  and connector syncs are queued and normalized before they
+                  reach daily attendance calculations.
                 </p>
               </div>
               <div className="overflow-x-auto">

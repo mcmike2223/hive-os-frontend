@@ -35,6 +35,7 @@ export function ProjectManagementSyncProvider() {
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     const channelNames = getUserNotificationChannelNames(user.id);
     const channels = channelNames.map((channelName) => echo.private(channelName));
 

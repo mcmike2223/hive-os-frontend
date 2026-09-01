@@ -63,6 +63,7 @@ export function ChatSyncProvider() {
     }
 
     const echo = initEcho(token);
+    if (!echo) return;
     const channelName = getChatUserChannelName(user.id);
     const presenceChannelName = getChatPresenceChannelName();
     const channel = echo.private(channelName);

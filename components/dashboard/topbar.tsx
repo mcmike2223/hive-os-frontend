@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, LogOut, Maximize, Minimize, HelpCircle } from "lucide-react";
+import { Search, LogOut, Maximize, Minimize, HelpCircle, VenetianMask, Bell, UserCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,7 @@ import {
   getTenantHeaders,
   getWorkspaceScopeKey,
 } from "@/lib/runtime-context";
-import { clearHiveSession, handleAuthFailureResponse } from "@/lib/auth-sync";
+import { clearHiveSession, handleAuthFailureResponse, isImpersonatingSession, stopImpersonation } from "@/lib/auth-sync";
 import { prepareNavForTour } from "@/lib/tour-events";
 import { buildSidebarTourSteps } from "@/lib/tour-steps";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -91,20 +91,27 @@ export function DashboardTopbar() {
   const queryClient = useQueryClient();
   const [localUser, setLocalUser] = useState<TopbarUser | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
   const { startTour } = useTour();
   const { t } = useTranslation();
   const { hasAnyPermission } = usePermissions();
   const canViewProfile = hasAnyPermission([...PROFILE_ROUTE_PERMISSIONS]);
   const scopeKey = getWorkspaceScopeKey();
+  const [tokenFingerprint, setTokenFingerprint] = useState<string>(() => {
+    if (typeof window === "undefined") return "none";
+    const t = localStorage.getItem("hive_token");
+    return t ? t.slice(-12) : "none";
+  });
+
   const { data: serverUser } = useQuery({
-    queryKey: ["authUserProfile", scopeKey],
+    queryKey: ["authUserProfile", scopeKey, tokenFingerprint],
     queryFn: async () => {
-      const token = getAccessToken();
-      if (!token) throw new Error("No token");
+      const activeToken = getAccessToken();
+      if (!activeToken) throw new Error("No token");
       const res = await fetch(getTenantAwareEndpoint("/user"), {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${activeToken}`,
           Accept: "application/json",
           ...getTenantHeaders(),
         },
@@ -115,22 +122,49 @@ export function DashboardTopbar() {
       if (!res.ok) throw new Error("Failed to fetch user data");
       return res.json();
     },
-    staleTime: 300000,
-    enabled: canViewProfile,
+    staleTime: 60000,
+    enabled: canViewProfile && tokenFingerprint !== "none",
   });
 
   const activeUser = serverUser || localUser;
 
   useEffect(() => {
+    setIsImpersonating(isImpersonatingSession());
     const storedUser = localStorage.getItem("hive_user");
-    if (storedUser) setLocalUser(JSON.parse(storedUser));
+    if (storedUser) {
+      try {
+        setLocalUser(JSON.parse(storedUser));
+      } catch {}
+    }
 
+    const handleSessionChange = () => {
+      setIsImpersonating(isImpersonatingSession());
+      const t = localStorage.getItem("hive_token");
+      setTokenFingerprint(t ? t.slice(-12) : "none");
+      const u = localStorage.getItem("hive_user");
+      if (u) {
+        try {
+          setLocalUser(JSON.parse(u));
+        } catch {
+          setLocalUser(null);
+        }
+      } else {
+        setLocalUser(null);
+      }
+      queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
+    };
+
+    window.addEventListener("hive_session_changed", handleSessionChange);
+    window.addEventListener("hive_security_cleared", handleSessionChange);
     const handleFullscreenChange = () =>
       setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
+    return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
+      window.removeEventListener("hive_session_changed", handleSessionChange);
+      window.removeEventListener("hive_security_cleared", handleSessionChange);
+    };
+  }, [queryClient]);
 
   const handleLogout = () => {
     clearHiveSession();
@@ -314,7 +348,7 @@ export function DashboardTopbar() {
       return target instanceof HTMLElement && target.isConnected;
     });
 
-    startTour(activeSteps.map((step) => ({ ...step, disableBeacon: true })));
+    startTour(activeSteps.map((step) => ({ ...step, skipBeacon: true })));
   };
 
   const userInitials = activeUser?.name
@@ -390,6 +424,18 @@ export function DashboardTopbar() {
                 </span>
               </div>
 
+              {isImpersonating && (
+                <Button
+                  size="sm"
+                  onClick={() => stopImpersonation('/dashboard/security')}
+                  className="h-9 px-3 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black shrink-0 hidden sm:inline-flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                  title={t("users.return_to_central", "Return to Central Account")}
+                >
+                  <VenetianMask className="h-4 w-4 animate-pulse text-amber-500" />
+                  <span>{t("users.return_to_central", "Return to Central")}</span>
+                </Button>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -425,10 +471,18 @@ export function DashboardTopbar() {
                   {canViewProfile && (
                     <>
                       <DropdownMenuItem
-                        onClick={() => router.push("/dashboard/profile")}
+                        onClick={() => router.push("/dashboard/profile?tab=account")}
                         className="cursor-pointer font-medium rounded-xl mb-1"
                       >
+                        <UserCircle className="mr-2 h-4 w-4 text-primary" />
                         {t("topbar.profile_settings", "Profile Settings")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => router.push("/dashboard/profile?tab=notifications")}
+                        className="cursor-pointer font-medium rounded-xl mb-1"
+                      >
+                        <Bell className="mr-2 h-4 w-4 text-sky-500" />
+                        {t("topbar.notification_channels", "Notification Channels")}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>

@@ -1,22 +1,60 @@
-import { Store } from "lucide-react";
+import { Building2, Library, Palette, Store } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const landingTemplatesModule: FrontendModuleDefinition = {
   id: "landing-templates",
-  name: "Landing Templates",
-  description: "Tenant template marketplace.",
+  name: "Landing Pages",
+  description: "Import, assign, customize, and publish tenant landing pages.",
   backendModule: "Modules\\LandingTemplates",
-  routePrefixes: ["/dashboard/landing-pages"],
+  routePrefixes: [
+    "/dashboard/landing-pages",
+    "/dashboard/landing-library",
+    "/dashboard/landing-templates",
+    "/dashboard/settings/business-types",
+  ],
   navItems: [
     {
       moduleId: "landing-templates",
+      translationKey: "nav.landing_template_library",
+      fallbackLabel: "Template Library",
+      href: "/dashboard/landing-library",
+      icon: Library,
+      permissions: ["manage_tenants", "provision_tenants"],
+      audience: "central",
+      tourId: "tour-nav-landing-library",
+      placement: "primary",
+    },
+    {
+      moduleId: "landing-templates",
+      translationKey: "nav.landing_business_types",
+      fallbackLabel: "Business Types",
+      href: "/dashboard/settings/business-types",
+      icon: Building2,
+      permissions: ["manage_tenants", "provision_tenants"],
+      audience: "central",
+      tourId: "tour-nav-landing-business-types",
+      placement: "primary",
+    },
+    {
+      moduleId: "landing-templates",
       translationKey: "nav.template_marketplace",
-      fallbackLabel: "Template Marketplace",
+      fallbackLabel: "Browse Templates",
       href: "/dashboard/landing-pages",
       icon: Store,
-      // Visible to every tenant (and admins, who get routed to the library).
       permissions: [],
+      audience: "tenant",
       tourId: "tour-nav-template-marketplace",
+      placement: "primary",
+    },
+    {
+      moduleId: "landing-templates",
+      translationKey: "nav.landing_edit_publish",
+      fallbackLabel: "Edit & Publish",
+      href: "/dashboard/settings?tab=landing",
+      icon: Palette,
+      permissions: ["manage_brand_settings"],
+      audience: "tenant",
+      tourId: "tour-nav-landing-publish",
       placement: "primary",
     },
   ],

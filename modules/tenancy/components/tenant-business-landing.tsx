@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { TenantVacanciesLink } from "@/modules/tenancy/components/tenant-vacancies-link";
 import { cn } from "@/lib/utils";
 import { getBackendStorageUrl } from "@/lib/runtime-context";
 import {
@@ -41,6 +40,8 @@ type TenantBusinessLandingProps = {
   businessLabel: string;
   template: TenantLandingTemplate;
   tenantName: string;
+  tenantData?: Record<string, any> | null;
+  collections?: Record<string, any[]> | null;
 };
 
 type LandingPalette = {
@@ -107,6 +108,13 @@ const toRgba = (hex: string, alpha: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${Math.min(1, Math.max(0, alpha))})`;
 };
 
+const isDarkTemplateTheme = (surface?: string | null): boolean => {
+  const normalized = normalizeHexColor(surface, "#0F172A");
+  const { r, g, b } = hexToRgb(normalized);
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance < 0.5;
+};
+
 const blendHex = (fromHex: string, toHex: string, ratio: number): string => {
   const from = hexToRgb(fromHex);
   const to = hexToRgb(toHex);
@@ -137,10 +145,9 @@ const resolveBrandFontFamily = (fontFamily?: string | null): string => {
 
 const resolveLandingPalette = (
   theme: TenantLandingTheme,
-  brandSettings: BrandSettings | null | undefined,
   isDark: boolean,
 ): LandingPalette => {
-  const accent = normalizeHexColor(brandSettings?.primary_color ?? theme.accent, "#0F766E");
+  const accent = normalizeHexColor(theme.accent, "#0F766E");
   const accentSoft = normalizeHexColor(
     theme.accent_soft,
     isDark ? blendHex(accent, "#0F172A", 0.72) : blendHex(accent, "#FFFFFF", 0.84),
@@ -223,7 +230,7 @@ function BrandLogo({
   }
 
   return (
-     
+
     <img
       src={logoUrl}
       alt={fallback}
@@ -238,19 +245,14 @@ export function TenantBusinessLanding({
   businessLabel,
   template,
   tenantName,
+  tenantData,
+  collections,
 }: TenantBusinessLandingProps) {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isDark = mounted ? resolvedTheme === "dark" : true;
+  const isDark = isDarkTemplateTheme(template.theme.surface);
   const brandName = brandSettings?.app_title || tenantName;
   const palette = React.useMemo(
-    () => resolveLandingPalette(template.theme, brandSettings, isDark),
-    [brandSettings, isDark, template.theme],
+    () => resolveLandingPalette(template.theme, isDark),
+    [isDark, template.theme],
   );
   const fontFamily = React.useMemo(
     () => resolveBrandFontFamily(brandSettings?.font_family),
@@ -267,8 +269,10 @@ export function TenantBusinessLanding({
     return buildTenantLandingPreviewHtml(template, brandName, businessLabel, {
       colorMode: isDark ? "dark" : "light",
       branding: brandSettings,
+      tenantData,
+      collections,
     });
-  }, [brandName, brandSettings, businessLabel, isDark, template]);
+  }, [brandName, brandSettings, businessLabel, isDark, template, tenantData, collections]);
 
   if (customLandingHtml) {
     return (
@@ -276,11 +280,7 @@ export function TenantBusinessLanding({
         title={`${brandName} landing page`}
         srcDoc={customLandingHtml}
         className="block h-screen min-h-screen w-full border-0"
-        sandbox={
-          template.rendering.mode === "raw_package"
-            ? "allow-scripts allow-popups allow-top-navigation-by-user-activation"
-            : "allow-popups allow-top-navigation-by-user-activation"
-        }
+        sandbox="allow-scripts allow-popups allow-top-navigation-by-user-activation"
       />
     );
   }
@@ -323,7 +323,7 @@ export function TenantBusinessLanding({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <ThemeToggle />
+                  <TenantVacanciesLink color={palette.textStrong} borderColor={palette.border} />
                   <a href={sanitizeHref(template.hero.primary_href)}>
                     <Button
                       className="rounded-full border-0 px-6 py-5 text-xs font-black uppercase tracking-[0.2em] text-white shadow-lg"

@@ -4,30 +4,30 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { 
-    Activity, Users, Server, Home, HelpCircle, ShieldCheck, 
+import {
+    Activity, Users, Server, Home, HelpCircle, ShieldCheck,
     Key, User as UserIcon, Plus, UserPlus, ShieldAlert,
-    ActivitySquare, Layers, Clock, AlertOctagon,
+    ActivitySquare, Layers, Clock,
     CreditCard, HardDrive, Globe, Zap, BellRing, Database, RefreshCw, VenetianMask, ChevronRight,
-    LineChart as LineChartIcon, Settings, FileText
-} from "lucide-react"; 
-import { 
+    LineChart as LineChartIcon, Settings, FileText, CheckCircle2
+} from "lucide-react";
+import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, PieChart, Pie, Cell, LineChart, Line
+    BarChart, Bar, Cell, LineChart, Line
 } from 'recharts';
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button"; 
+import { Button } from "@/components/ui/button";
 import RetryButton from '@/components/RetryButton';
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; 
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { useTour } from "@/components/providers/tour-provider";
-import { useTranslation } from "@/store/use-translation"; 
+import { useTranslation } from "@/store/use-translation";
 import { cn } from '@/lib/utils';
 import { initEcho } from '@/lib/echo';
 import { getAccessToken, getBackendApiRoot, getTenantHeaders, getTenantId, isTenantSession } from '@/lib/runtime-context';
 import { DashboardOverviewPlaceholder } from "@/components/ui/loading-states";
 import { usePermissions } from "@/hooks/use-permissions";
-import { handleAuthFailureResponse } from "@/lib/auth-sync";
+import { handleAuthFailureResponse, isImpersonatingSession, stopImpersonation } from "@/lib/auth-sync";
 import {
     ALERTS_ROUTE_PERMISSIONS,
     AUDIT_LOG_ROUTE_PERMISSIONS,
@@ -49,6 +49,18 @@ interface DashboardActivity {
 }
 
 interface DashboardData {
+    success?: boolean;
+    generated_at?: string;
+    refresh_interval_seconds?: number;
+    dashboard_scope?: 'platform' | 'tenant' | 'personal';
+    is_super_admin?: boolean;
+    role_title?: string;
+    user?: {
+        id: number | null;
+        name: string;
+        email: string;
+        role: string;
+    };
     company: string;
     plan: string;
     stats: {
@@ -58,44 +70,56 @@ interface DashboardData {
         total_permissions: number;
         total_tenants?: number;
         active_tenants?: number;
+        assigned_tasks?: number;
+        my_actions_today?: number;
+        role_capabilities?: number;
+        operational_score?: number;
     };
     recent_activity: DashboardActivity[];
     business?: {
-        mrr: number;
-        enterprise_pct: number;
-        business_pct: number;
+        currency: string;
+        monthly_recurring_revenue: number;
+        collected_this_month: number;
+        lifetime_collected: number;
+        outstanding: number;
+        active_subscriptions: number;
+        paying_subscriptions: number;
+        plan_mix: { plan: string; name: string; count: number; percent: number }[];
     };
     cluster?: {
         db_size: string;
         redis_hits: number;
         ws_connections: number;
+        cpu_load?: number;
+        memory_usage?: number;
     };
-    alerts?: { title: string; description: string; level: string; time_ago: string }[];
-    traffic_origins?: { city: string; flag: string; percent: number }[];
+    alerts?: { id?: number; title: string; description: string; level: string; time_ago: string }[];
+    traffic_origins?: { city: string; code?: string; flag?: string; percent: number }[];
+    hourly_activity?: { hour: string; actions: number; logins: number }[];
+    resource_allocation?: { name: string; value: number; unit: string; fill: string }[];
+    task_distribution?: { status: string; count: number; fill: string }[];
+    module_traffic?: {
+        slug: string;
+        name: string;
+        category: string;
+        actions: number;
+        subscribed_tenants: number | null;
+        monthly_price_etb: number;
+        registry_enabled: boolean;
+        is_subscription_catalog: boolean;
+        fill: string;
+    }[];
 }
-
-// Identity used to be hsl(var(--primary)) and tenancy a hardcoded #10b981 — the same
-// emerald, so two of the four module series rendered identically. These now come from
-// the validated categorical tokens in globals.css.
-const COLORS = {
-    identity: 'var(--chart-1)',
-    tenancy: 'var(--chart-2)',
-    billing: 'var(--chart-3)',
-    core: 'var(--chart-4)',
-};
 
 export default function DashboardHome() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { t } = useTranslation(); 
-    const { startTour } = useTour(); 
+    const { t } = useTranslation();
+    const { startTour } = useTour();
     const { hasPermission, hasAnyPermission, isLoaded } = usePermissions();
-    
+
     const [tenantName, setTenantName] = useState<string | null>(null);
     const [isMounted, setIsMounted] = useState(false);
-    const [timeFilter, setTimeFilter] = useState<'live' | '1h' | '24h'>('live');
-    const [moduleTab, setModuleTab] = useState<'traffic' | 'latency' | 'errors'>('traffic');
-
     const [isImpersonating, setIsImpersonating] = useState(false);
     const canViewDashboard = hasPermission("view_system_dashboard");
     const canProvisionTenants = hasAnyPermission(["manage_tenants", "provision_tenants"]);
@@ -110,25 +134,7 @@ export default function DashboardHome() {
     const canViewLogs = hasAnyPermission([...AUDIT_LOG_ROUTE_PERMISSIONS]);
     const canViewTenants = hasAnyPermission([...TENANTS_ROUTE_PERMISSIONS]);
 
-    // Central Telemetry State
-    const [telemetry, setTelemetry] = useState(Array.from({ length: 10 }).map((_, i) => ({ time: `-${10 - i}s`, requests: Math.floor(Math.random() * 500) + 500 })));
-    const [moduleTraffic, setModuleTraffic] = useState([{ name: 'Identity', value: 85, fill: COLORS.identity }, { name: 'Tenancy', value: 45, fill: COLORS.tenancy }, { name: 'Billing', value: 25, fill: COLORS.billing }, { name: 'Core', value: 60, fill: COLORS.core }]);
-    const [moduleLatency, setModuleLatency] = useState([{ name: 'Identity', ms: 24, fill: COLORS.identity }, { name: 'Tenancy', ms: 45, fill: COLORS.tenancy }, { name: 'Billing', ms: 120, fill: COLORS.billing }, { name: 'Core', ms: 18, fill: COLORS.core }]);
-    const [moduleErrors, setModuleErrors] = useState([{ name: 'Identity', count: 2, fill: COLORS.identity }, { name: 'Tenancy', count: 1, fill: COLORS.tenancy }, { name: 'Billing', count: 5, fill: COLORS.billing }, { name: 'Core', count: 0, fill: COLORS.core }]);
-
-    // Tenant-Specific Chart State
-    const [tenantActivity, setTenantActivity] = useState([
-        { day: 'Mon', logins: 45, actions: 120 },
-        { day: 'Tue', logins: 52, actions: 150 },
-        { day: 'Wed', logins: 48, actions: 180 },
-        { day: 'Thu', logins: 61, actions: 210 },
-        { day: 'Fri', logins: 59, actions: 195 },
-        { day: 'Sat', logins: 20, actions: 45 },
-        { day: 'Sun', logins: 15, actions: 30 },
-    ]);
-
     useEffect(() => {
-        const host = window.location.hostname;
         const tenantId = getTenantId();
 
         if (tenantId) {
@@ -137,28 +143,23 @@ export default function DashboardHome() {
             setTenantName('CENTRAL');
         }
 
-        if (typeof window !== 'undefined' && localStorage.getItem('hive_original_token')) {
+        if (isImpersonatingSession()) {
             setIsImpersonating(true);
         }
-        
+
         setIsMounted(true);
     }, []);
 
     const handleLeaveImpersonation = () => {
-        const originalToken = localStorage.getItem('hive_original_token');
-        if (originalToken) {
-            localStorage.setItem('hive_token', originalToken);
-            localStorage.removeItem('hive_original_token');
-            window.location.href = '/dashboard';
-        }
+        stopImpersonation('/dashboard');
     };
 
-    const { data: dashboardPayload, error, isLoading } = useQuery({
+    const { data: dashboardPayload, error, isLoading, isFetching } = useQuery({
         queryKey: ['dashboardMetrics', tenantName],
         queryFn: async () => {
             const token = getAccessToken();
             const endpoint = `${getBackendApiRoot()}${isTenantSession() ? '/tenant/dashboard' : '/dashboard'}`;
-            
+
             const res = await fetch(endpoint, {
                 headers: {
                     'Accept': 'application/json',
@@ -173,165 +174,63 @@ export default function DashboardHome() {
             return res.json();
         },
         enabled: isMounted && tenantName !== null && isLoaded && canViewDashboard,
-        staleTime: Infinity, 
+        staleTime: 10_000,
+        refetchInterval: 15_000,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
     });
 
     const data: DashboardData = dashboardPayload;
 
+    // WebSocket Real-time Echo Listener
     useEffect(() => {
-        if (!isMounted || timeFilter !== 'live' || tenantName !== 'CENTRAL') return;
-        const pulse = setInterval(() => {
-            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            setTelemetry(prev => [...prev.slice(1), { time: now, requests: Math.floor(Math.random() * 800) + 400 }]);
-            setModuleTraffic(prev => prev.map(m => ({ ...m, value: Math.max(10, m.value + Math.floor(Math.random() * 15 - 7)) })));
-            setModuleLatency(prev => prev.map(m => ({ ...m, ms: Math.max(10, m.ms + Math.floor(Math.random() * 6 - 3)) })));
-        }, 3000);
-        return () => clearInterval(pulse);
-    }, [isMounted, timeFilter, tenantName]);
+        if (!isMounted) return;
+        const token = getAccessToken(); if (!token) return; const echo = initEcho(token);
+        if (!echo) return;
 
-    useEffect(() => {
-        if (!isMounted || !data || !tenantName) return;
-        const token = getAccessToken(); 
-        if (!token) return;
+        const channel = echo.channel('admin-metrics');
+        channel.listen('.metric.updated', (event: any) => {
+            queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+        });
 
-        try {
-            const echo = initEcho(token);
-            const channelName = `dashboard.${tenantName.toLowerCase()}`;
-            const channel = echo.private(channelName);
-            
-            channel.listen('.activity.logged', (e: { activity: DashboardActivity }) => {
-                const activity = { ...e.activity };
-                
-                // Set the correct operator name dynamically
-                activity.causer = activity.properties?.causer_name || (typeof activity.causer === 'object' ? activity.causer?.name : activity.causer) || 'System';
+        return () => {
+            echo.leaveChannel('admin-metrics');
+        };
+    }, [isMounted, queryClient]);
 
-                const eventType = activity.event?.toLowerCase() || '';
-                const description = activity.description?.toLowerCase() || '';
-                const subjectType = activity.subject_type?.toLowerCase() || '';
-
-                // REAL-TIME: Update Tenant Chart
-                if (tenantName !== 'CENTRAL') {
-                    setTenantActivity(prev => {
-                        const updated = [...prev];
-                        const lastIdx = updated.length - 1;
-                        const isLogin = eventType.includes('login') || description.includes('logged in');
-
-                        updated[lastIdx] = {
-                            ...updated[lastIdx],
-                            logins: updated[lastIdx].logins + (isLogin ? 1 : 0),
-                            actions: updated[lastIdx].actions + (!isLogin ? 1 : 0)
-                        };
-                        return updated;
-                    });
-                }
-
-                queryClient.setQueryData(['dashboardMetrics', tenantName], (oldData: DashboardData | undefined) => {
-                    if (!oldData) return oldData;
-
-                    const newStats = { ...oldData.stats };
-                    const newBusiness = oldData.business ? { ...oldData.business } : undefined;
-
-                    // ISOLATED: Only process these calculations if on Central
-                    if (tenantName === 'CENTRAL') {
-                        const isTenantAction = subjectType.includes('tenant') || description.includes('tenant') || description.includes('node');
-                        const isUserAction = subjectType.includes('user') || description.includes('operator') || description.includes('admin');
-                        const isRoleAction = subjectType.includes('role') || description.includes('role');
-                        const isPermAction = subjectType.includes('permission') || description.includes('permission');
-
-                        if (eventType === 'created' || description.includes('provisioned')) {
-                            if (isTenantAction) { 
-                                newStats.total_tenants = (newStats.total_tenants ?? 0) + 1;
-                                newStats.active_tenants = (newStats.active_tenants ?? 0) + 1;
-                                if (newBusiness) newBusiness.mrr += 199; 
-                            }
-                            if (isUserAction) { newStats.total_users++; newStats.active_users++; }
-                            if (isRoleAction) { newStats.total_roles++; }
-                            if (isPermAction) { newStats.total_permissions++; }
-                        } 
-                        else if (eventType === 'deleted' || description.includes('purged')) {
-                            if (isTenantAction) { 
-                                newStats.total_tenants = (newStats.total_tenants ?? 0) - 1;
-                                newStats.active_tenants = (newStats.active_tenants ?? 0) - 1;
-                                if (newBusiness) newBusiness.mrr -= 199; 
-                            }
-                            if (isUserAction) { newStats.total_users--; newStats.active_users--; }
-                            if (isRoleAction) { newStats.total_roles--; }
-                            if (isPermAction) { newStats.total_permissions--; }
-                        } 
-                        else if (eventType === 'updated') {
-                            if (isTenantAction) {
-                                if (description.includes('online')) newStats.active_tenants = (newStats.active_tenants ?? 0) + 1;
-                                if (description.includes('suspended')) newStats.active_tenants = (newStats.active_tenants ?? 0) - 1;
-                            }
-                            if (isUserAction) {
-                                if (description.includes('active')) newStats.active_users++;
-                                if (description.includes('suspended') || description.includes('locked')) newStats.active_users--;
-                            }
-                        }
-
-                        newStats.total_tenants = Math.max(0, newStats.total_tenants || 0);
-                        newStats.active_tenants = Math.max(0, newStats.active_tenants || 0);
-                        newStats.total_roles = Math.max(0, newStats.total_roles || 0);
-                        if (newBusiness) newBusiness.mrr = Math.max(0, newBusiness.mrr);
-                    }
-
-                    newStats.total_users = Math.max(0, newStats.total_users || 0);
-                    newStats.active_users = Math.max(0, newStats.active_users || 0);
-                    
-                    return {
-                        ...oldData,
-                        stats: newStats,
-                        business: newBusiness,
-                        recent_activity: [activity, ...(oldData.recent_activity || [])].slice(0, 6)
-                    };
-                });
-            });
-
-            return () => { echo.leaveChannel(channelName); };
-        } catch (err) {
-            console.error("WS-DEBUG: [ERROR] Echo crashed:", err);
-        }
-    }, [isMounted, !!data, tenantName, queryClient]);
-
-    if (!isLoaded || !isMounted) {
-        return <DashboardOverviewPlaceholder />;
-    }
-
-    if (!canViewDashboard) {
-        return (
-            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 rounded-[2rem] border border-border/50 bg-card/40 p-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10">
-                    <ShieldAlert className="h-8 w-8 text-destructive" />
-                </div>
-                <div className="space-y-2">
-                    <h2 className="text-2xl font-black tracking-tight">{t('global.access_denied', 'Access Denied')}</h2>
-                    <p className="max-w-md text-sm text-muted-foreground">
-                        {t('global.lacks_permission', 'Your current access token lacks the required')} <strong className="text-destructive">view_system_dashboard</strong> {t('global.capability', 'capability.')}
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!isMounted || isLoading || !tenantName) return <DashboardLoader />;
+    if (!isMounted || !isLoaded || isLoading) return <DashboardLoader />;
     if (error || !data) return <DashboardError message={(error as Error)?.message} />;
 
-    const isCentral = data.stats.total_tenants !== undefined;
+    const isCentral = tenantName === 'CENTRAL';
+    const isSuperAdmin = isCentral && (data.is_super_admin !== false);
 
-
-    const tooltipStyle = { 
-        borderRadius: '12px', 
-        backgroundColor: 'hsl(var(--background))', 
+    const tooltipStyle = {
+        backgroundColor: 'hsl(var(--card))',
         border: '1px solid hsl(var(--border))',
-        color: 'hsl(var(--foreground))' 
+        borderRadius: '1rem',
+        fontSize: '12px',
+        color: 'hsl(var(--foreground))',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(12px)',
     };
 
-    return (
-        <div className="space-y-6 relative pb-10">
+    const hourlyActivityData = data.hourly_activity ?? [];
+    const telemetry = hourlyActivityData.map((point) => ({
+        time: point.hour,
+        requests: point.actions + point.logins,
+    }));
+    const tenantActivity = hourlyActivityData;
+    const moduleTraffic = data.module_traffic ?? [];
+    const resourceData = data.resource_allocation ?? [];
+    const taskDistributionData = data.task_distribution ?? [];
+    const taskDistributionMax = Math.max(1, ...taskDistributionData.map((item) => item.count));
 
+    return (
+        <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Impersonation Banner */}
             {isImpersonating && (
-                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-500 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md animate-in slide-in-from-top-4 shadow-lg shadow-amber-500/5">
-                    <div className="flex items-center gap-3">
+                <div className="bg-amber-500/10 border-2 border-amber-500/30 text-amber-600 dark:text-amber-400 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-lg animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
                         <div className="h-10 w-10 bg-amber-500/20 rounded-full flex items-center justify-center shrink-0">
                             <VenetianMask className="h-5 w-5" />
                         </div>
@@ -346,13 +245,15 @@ export default function DashboardHome() {
                 </div>
             )}
 
+            {/* Breadcrumbs Row */}
             <div className="flex w-full justify-end items-center gap-3 mb-4">
                 <Button variant="outline" size="sm" onClick={() => startTour([])} className="h-8 rounded-lg border-border/50 bg-background/50 backdrop-blur-md">
                     <HelpCircle className="w-4 h-4 mr-2" /> {t('topbar.system_tour', 'System Tour')}
                 </Button>
                 <Breadcrumbs items={[{ label: "Hive.OS", href: "/", icon: <Home className="h-4 w-4" /> }, { label: t('nav.dashboard', 'Dashboard') }]} />
             </div>
-            
+
+            {/* Header Title & System Actions */}
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-4 mt-2">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -361,14 +262,13 @@ export default function DashboardHome() {
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-space font-extrabold tracking-tighter break-words max-w-full">{data.company}</h1>
 
-                    
                     <div className="flex flex-wrap items-center gap-3 mt-6">
-                        {isCentral && canProvisionTenants && (
+                        {isCentral && isSuperAdmin && canProvisionTenants && (
                             <Button onClick={() => router.push('/dashboard/tenants')} size="sm" className="rounded-full shadow-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50" disabled={isImpersonating}>
                                 <Plus className="w-4 h-4 mr-2" /> Provision Node
                             </Button>
                         )}
-                        {isCentral && canProvisionTenants && (
+                        {isCentral && (
                             <a href="https://hive-monitor.gulfingot.com" target="_blank" rel="noopener noreferrer">
                                 <Button variant="outline" size="sm" className="rounded-full bg-background/50 backdrop-blur-md text-muted-foreground hover:text-foreground">
                                     <Activity className="w-4 h-4 mr-2 text-rose-500" /> {t('dashboard.system_monitor', 'System Monitor')}
@@ -388,7 +288,7 @@ export default function DashboardHome() {
                                 <RefreshCw className="w-4 h-4 mr-2" /> {t('dashboard.flush_cache', 'Flush Cache')}
                             </Button>
                         )}
-                        {isCentral && canManageBackups && (
+                        {isCentral && isSuperAdmin && canManageBackups && (
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -410,96 +310,187 @@ export default function DashboardHome() {
                 </div>
             </div>
 
-            {/* STAT CARDS */}
+            {/* STAT CARDS (Role Differentiated) */}
             <div id="tour-body-stats" className={cn("grid gap-4 mt-8", isCentral ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3")}>
-                {isCentral && (
+                {isCentral && isSuperAdmin && (
                     <StatCard title={t('dashboard.active_nodes', 'Active Nodes')} value={data.stats.active_tenants || 0} subtext={`${t('dashboard.provisioned', 'Provisioned')}: ${data.stats.total_tenants}`} icon={<Server className="text-indigo-500" />} bgClass="bg-indigo-500/10" href={canViewTenants ? "/dashboard/tenants" : undefined} trend="up" />
                 )}
-                <StatCard title={t('dashboard.active_users', 'Active Users')} value={data.stats.active_users} subtext={`${t('dashboard.total', 'Total')}: ${data.stats.total_users}`} icon={<Users className="text-emerald-500" />} bgClass="bg-emerald-500/10" href={canAccessSecurity ? (canViewUsers ? "/dashboard/security?tab=users" : "/dashboard/security") : undefined} trend="up" />
-                <StatCard title={t('dashboard.security_roles', 'Security Roles')} value={data.stats.total_roles} subtext={t('dashboard.access_matrices', 'Access Matrices')} icon={<ShieldCheck className="text-amber-500" />} bgClass="bg-amber-500/10" href={canViewRoles ? "/dashboard/security?tab=roles" : undefined} trend="up" />
-                <StatCard title={t('dashboard.permissions', 'Permissions')} value={data.stats.total_permissions} subtext={t('dashboard.permission_nodes', 'Permission Nodes')} icon={<Key className="text-blue-500" />} bgClass="bg-blue-500/10" href={canViewPermissions ? "/dashboard/security?tab=permissions" : undefined} />
+                {isCentral && !isSuperAdmin && (
+                    <StatCard title={t('dashboard.assigned_tasks', 'Assigned Tasks')} value={data.stats.assigned_tasks ?? 0} subtext={t('dashboard.pending_queues', 'Active Task Queue')} icon={<Clock className="text-amber-500" />} bgClass="bg-amber-500/10" trend="up" />
+                )}
+                <StatCard
+                    title={isCentral && !isSuperAdmin ? t('dashboard.my_actions', 'Actions Today') : t('dashboard.active_users', 'Active Users')}
+                    value={isCentral && !isSuperAdmin ? (data.stats.my_actions_today ?? 0) : data.stats.active_users}
+                    subtext={isCentral && !isSuperAdmin ? t('dashboard.executed_ops', 'Executed Operations') : `${t('dashboard.total', 'Total')}: ${data.stats.total_users}`}
+                    icon={isCentral && !isSuperAdmin ? <ActivitySquare className="text-emerald-500" /> : <Users className="text-emerald-500" />}
+                    bgClass="bg-emerald-500/10"
+                    href={canAccessSecurity && isSuperAdmin ? (canViewUsers ? "/dashboard/security?tab=users" : "/dashboard/security") : undefined}
+                    trend="up"
+                />
+                <StatCard
+                    title={isCentral && !isSuperAdmin ? t('dashboard.clearance_caps', 'Capabilities') : t('dashboard.security_roles', 'Security Roles')}
+                    value={isCentral && !isSuperAdmin ? (data.stats.role_capabilities ?? 0) : data.stats.total_roles}
+                    subtext={isCentral && !isSuperAdmin ? t('dashboard.active_caps', 'Assigned Capabilities') : t('dashboard.access_matrices', 'Access Matrices')}
+                    icon={<ShieldCheck className="text-amber-500" />}
+                    bgClass="bg-amber-500/10"
+                    href={canViewRoles && isSuperAdmin ? "/dashboard/security?tab=roles" : undefined}
+                    trend="up"
+                />
+                <StatCard
+                    title={isCentral && !isSuperAdmin ? t('dashboard.sla_compliance', 'SLA Compliance') : t('dashboard.permissions', 'Permissions')}
+                    value={isCentral && !isSuperAdmin ? `${data.stats.operational_score ?? 0}%` : data.stats.total_permissions}
+                    subtext={isCentral && !isSuperAdmin ? t('dashboard.on_time_perf', 'On-Time Performance') : t('dashboard.permission_nodes', 'Permission Nodes')}
+                    icon={<Key className="text-blue-500" />}
+                    bgClass="bg-blue-500/10"
+                    href={canViewPermissions && isSuperAdmin ? "/dashboard/security?tab=permissions" : undefined}
+                />
             </div>
 
-            {/* CENTRAL ONLY: Telemetry & Modules */}
+            {/* CENTRAL CHART ROW 1: Telemetry & Modules */}
             {isCentral && (
                 <div className="grid gap-4 lg:grid-cols-12">
                     <div id="tour-body-telemetry" className="lg:col-span-7 xl:col-span-8 rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md min-h-[300px] md:h-[400px] flex flex-col transition-all">
                         <div className="flex items-center justify-between mb-6">
                             <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
-                                <ActivitySquare className="h-4 w-4 text-primary" /> {t('dashboard.system_telemetry', 'System Telemetry')}
+                                <ActivitySquare aria-hidden="true" className="h-4 w-4 text-primary" /> {isSuperAdmin ? t('dashboard.system_telemetry', 'Live platform activity') : t('dashboard.operator_velocity', 'My live activity')}
                             </div>
-                            <div className="flex items-center gap-2 bg-background/50 rounded-full p-1 border border-border/50">
-                                <Button variant={timeFilter === 'live' ? 'default' : 'ghost'} size="sm" className="h-6 text-[11px] rounded-full" onClick={() => setTimeFilter('live')}>Live</Button>
-                                <Button variant={timeFilter === '1h' ? 'default' : 'ghost'} size="sm" className="h-6 text-[11px] rounded-full" onClick={() => setTimeFilter('1h')}>1H</Button>
-                                <Button variant={timeFilter === '24h' ? 'default' : 'ghost'} size="sm" className="h-6 text-[11px] rounded-full" onClick={() => setTimeFilter('24h')}>24H</Button>
-                            </div>
+                            <span role="status" className="font-mono text-[11px] text-muted-foreground">
+                                {isFetching ? 'Updating…' : `Updated ${data.generated_at ? new Date(data.generated_at).toLocaleTimeString() : 'now'} · every ${data.refresh_interval_seconds ?? 15}s`}
+                            </span>
                         </div>
-                        <div className="flex-1 w-full">
+                        <div role="img" aria-label={isSuperAdmin ? 'Platform activity during the last 24 hours' : 'Your account activity during the last 24 hours'} aria-describedby="telemetry-chart-description" className="flex-1 w-full min-h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={telemetry}>
-                                    <defs><linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/><stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/></linearGradient></defs>
+                                <AreaChart data={telemetry} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
                                     <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fontSize: 11}} minTickGap={20} />
                                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11}} width={40} />
-                                    <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
-                                    <Area type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2} isAnimationActive={true} fillOpacity={1} fill="url(#colorRequests)" />
+                                    <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: number | string) => [`${val} ${t('dashboard.requests', 'Requests')}`, t('dashboard.throughput', 'Throughput')]} />
+                                    <Area type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" isAnimationActive={false} />
                                 </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <p id="telemetry-chart-description" className="sr-only">
+                            {telemetry.length > 0
+                                ? `${telemetry.map((point) => `${point.time}: ${point.requests} recorded events`).join('; ')}.`
+                                : 'No activity has been recorded in the current 24-hour window.'}
+                        </p>
+                    </div>
+
+                    <div id="tour-body-modules" className="lg:col-span-5 xl:col-span-4 rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md min-h-[430px] md:h-[520px] flex flex-col transition-all">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                                    <Layers aria-hidden="true" className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> {t('dashboard.modules_matrix', 'Modules Matrix')}
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">Every registered module · entitlement and 30-day activity</p>
+                            </div>
+                            <Badge variant="outline" className="font-mono text-[11px]">{moduleTraffic.length} MODULES</Badge>
+                        </div>
+                        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground" aria-hidden="true">
+                            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#047857]" />Subscribed tenants (catalog modules)</span>
+                            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#0369a1]" />Actions (30 days)</span>
+                        </div>
+                        <div role="img" tabIndex={0} aria-label="Subscribed tenants and recorded activity for every registered Hive module. Scroll to review all modules." aria-describedby="module-chart-description" className="flex-1 min-h-0 w-full overflow-y-auto pr-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                            <div style={{ height: Math.max(360, moduleTraffic.length * 42) }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={moduleTraffic} layout="vertical" margin={{ top: 0, right: 12, left: 8, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" width={132} axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 700, fill: 'hsl(var(--foreground))'}} />
+                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
+                                        <Bar name="Subscribed tenants" dataKey="subscribed_tenants" fill="#047857" radius={[0, 4, 4, 0]} barSize={8} isAnimationActive={false} />
+                                        <Bar name="Actions (30 days)" dataKey="actions" fill="#0369a1" radius={[0, 4, 4, 0]} barSize={8} isAnimationActive={false} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        <p id="module-chart-description" className="sr-only">
+                            {moduleTraffic.length > 0
+                                ? `${moduleTraffic.map((item) => `${item.name}: ${item.subscribed_tenants === null ? 'platform module, not subscription-gated' : `${item.subscribed_tenants} subscribed tenants`}, ${item.actions} recorded actions in 30 days, registry ${item.registry_enabled ? 'enabled' : 'catalog only'}`).join('; ')}.`
+                                : 'No modules are registered in the subscription catalog.'}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* NEW CENTRAL CHART ROW 2: Rich Activity Curves & Allocation / Task Status */}
+            {isCentral && (
+                <div className="grid gap-4 lg:grid-cols-12">
+                    {/* Left: 24h Hourly Activity Flow */}
+                    <div className="lg:col-span-7 xl:col-span-8 rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md min-h-[300px] md:h-[360px] flex flex-col transition-all">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                                <LineChartIcon className="h-4 w-4 text-sky-500" /> {isSuperAdmin ? t('dashboard.hourly_throughput', '24H Activity & Throughput Flow') : t('dashboard.operator_hourly_flow', 'Daily Operational Activity Rate')}
+                            </div>
+                            <Badge variant="outline" className="font-mono text-[11px] bg-background">
+                                {isSuperAdmin ? 'CLUSTER ACTIONS VS LOGINS' : 'MY OPS ACTIONS'}
+                            </Badge>
+                        </div>
+                        <div className="flex-1 w-full min-h-[220px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={hourlyActivityData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                                    <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                                    <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
+                                    <Line type="monotone" dataKey="actions" name={isSuperAdmin ? "System Actions" : "My Executions"} stroke="hsl(var(--primary))" strokeWidth={2.5} activeDot={{ r: 6 }} isAnimationActive={false} />
+                                    <Line type="monotone" dataKey="logins" name="Operator Sessions" stroke="#0284c7" strokeWidth={2} isAnimationActive={false} />
+                                </LineChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    <div id="tour-body-modules" className="lg:col-span-5 xl:col-span-4 rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md h-[350px] md:h-[400px] flex flex-col transition-all">
-                        <div className="flex items-center justify-between mb-6">
+                    {/* Right: Storage Allocation (Superadmin) OR Task Status Distribution (Operator) */}
+                    <div className="lg:col-span-5 xl:col-span-4 rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md min-h-[300px] md:h-[360px] flex flex-col transition-all">
+                        <div className="flex items-center justify-between mb-4">
                             <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
-                                <Layers className="h-4 w-4 text-emerald-500" /> {t('dashboard.modules.title', 'Modules')}
-                            </div>
-                            <div className="flex items-center gap-1 bg-background/50 rounded-full p-1 border border-border/50">
-                                <Button variant={moduleTab === 'traffic' ? 'default' : 'ghost'} size="icon" className="h-6 w-6 rounded-full" onClick={() => setModuleTab('traffic')} title={t('dashboard.modules.traffic_volume', 'Traffic Volume')}><Activity className="h-3 w-3"/></Button>
-                                <Button variant={moduleTab === 'latency' ? 'default' : 'ghost'} size="icon" className="h-6 w-6 rounded-full" onClick={() => setModuleTab('latency')} title={t('dashboard.modules.response_latency', 'Response Latency')}><Clock className="h-3 w-3"/></Button>
-                                <Button variant={moduleTab === 'errors' ? 'default' : 'ghost'} size="icon" className="h-6 w-6 rounded-full" onClick={() => setModuleTab('errors')} title={t('dashboard.modules.anomalies', 'Anomalies')}><AlertOctagon className="h-3 w-3"/></Button>
+                                {isSuperAdmin ? <HardDrive className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                                <span>{isSuperAdmin ? t('dashboard.resource_distribution', 'Storage & Cache Allocation') : t('dashboard.task_distribution', 'Task Queue Distribution')}</span>
                             </div>
                         </div>
+
                         <div className="flex-1 w-full relative">
-                            {moduleTab === 'traffic' && (
+                            {isSuperAdmin ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={moduleTraffic.map(m => ({ ...m, name: t(`dashboard.modules.${m.name.toLowerCase()}`, m.name) }))} layout="vertical" margin={{ top: 0, right: 20, left: 50, bottom: 0 }}>
+                                    <BarChart data={resourceData} layout="vertical" margin={{ top: 0, right: 20, left: 60, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
                                         <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold'}} />
-                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: number | string) => [`${val} ${t('dashboard.modules.req_per_sec', 'Req/s')}`, t('dashboard.modules.volume_label', 'Volume')]} />
-                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} isAnimationActive={false}>
-                                            {moduleTraffic.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: number | string) => [`${val} MB`, 'Allocated']} />
+                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20} isAnimationActive={false}>
+                                            {resourceData.map((entry, index) => <Cell key={`res-${index}`} fill={entry.fill} />)}
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
-                            )}
-                            {moduleTab === 'latency' && (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={moduleLatency.map(m => ({ ...m, name: t(`dashboard.modules.${m.name.toLowerCase()}`, m.name) }))} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 'bold'}} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11}} />
-                                        <Tooltip cursor={{fill: 'hsl(var(--muted))', opacity: 0.4}} contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} formatter={(val: number | string) => [`${val}${t('dashboard.modules.ms', 'ms')}`, t('dashboard.modules.latency_label', 'Latency')]} />
-                                        <Bar dataKey="ms" radius={[4, 4, 0, 0]} barSize={32} isAnimationActive={false}>
-                                            {moduleLatency.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} opacity={0.8} />)}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            )}
-                            {moduleTab === 'errors' && (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} formatter={(val: number | string) => [`${val} ${t('dashboard.modules.events', 'Events')}`, t('dashboard.modules.anomalies', 'Anomalies')]} />
-                                        <Pie data={moduleErrors.map(m => ({ ...m, name: t(`dashboard.modules.${m.name.toLowerCase()}`, m.name) }))} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="count" stroke="none" isAnimationActive={false}>
-                                            {moduleErrors.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                                        </Pie>
-                                    </PieChart>
-                                </ResponsiveContainer>
+                            ) : (
+                                <div className="space-y-3 pt-2">
+                                    {taskDistributionData.map((item, index) => (
+                                        <div key={index} className="space-y-1.5">
+                                            <div className="flex justify-between text-xs font-mono font-bold">
+                                                <span className="text-foreground">{item.status}</span>
+                                                <span className="text-muted-foreground">{item.count} Items</span>
+                                            </div>
+                                            <div className="h-2.5 bg-muted/60 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-700"
+                                                    style={{ width: `${(item.count / taskDistributionMax) * 100}%`, backgroundColor: item.fill }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
             )}
+
             {/* TENANT ONLY: Engagement Chart & Traffic */}
             {!isCentral && (
                 <div className="grid gap-4 lg:grid-cols-12 mt-4">
@@ -508,13 +499,13 @@ export default function DashboardHome() {
                             <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
                                 <LineChartIcon className="h-4 w-4 text-emerald-500" /> {t('dashboard.weekly_engagement', 'Weekly Engagement')}
                             </div>
-                            <Badge variant="outline" className="font-mono text-[11px] bg-background">{t('dashboard.last_7_days', 'LAST 7 DAYS')}</Badge>
+                            <Badge variant="outline" className="font-mono text-[11px] bg-background">LAST 24 HOURS</Badge>
                         </div>
                         <div className="flex-1 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={tenantActivity} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                                    <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
                                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11}} />
                                     <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
                                     <Line type="monotone" dataKey="actions" name="User Actions" stroke="var(--chart-1)" strokeWidth={2} activeDot={{ r: 6 }} />
@@ -533,48 +524,74 @@ export default function DashboardHome() {
                         <div className="space-y-4 flex-1">
                             {(data.traffic_origins || []).slice(0, 5).map((origin, i) => (
                                 <div key={i} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2"><span className="text-lg">{origin.flag}</span> <span className="font-bold">{origin.city}</span></div>
+                                    <div className="flex items-center gap-2"><span className="font-mono text-xs">{origin.code ?? origin.flag ?? '—'}</span> <span className="font-bold">{origin.city}</span></div>
                                     <span className="font-mono text-xs text-muted-foreground">{origin.percent}%</span>
                                 </div>
                             ))}
-                            {(!data.traffic_origins || data.traffic_origins.length === 0) && (
-                                <div className="text-xs text-muted-foreground text-center py-4 flex flex-col items-center justify-center h-full">
-                                    <Globe className="w-8 h-8 text-muted/30 mb-2" />
-                                    {t('dashboard.no_external_data', 'No external origin data available')}
-                                </div>
+                            {(data.traffic_origins ?? []).length === 0 && (
+                                <p className="text-sm text-muted-foreground">No location data has been recorded in the last 30 days.</p>
                             )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* CENTRAL ONLY: Revenue, Cluster & Origin Data Row */}
+            {/* CENTRAL ROW 3: Financial Intel / Operational Intel, Cluster Health, Traffic Origins */}
             {isCentral && (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md flex flex-col justify-between transition-all">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
-                                <CreditCard className="h-4 w-4 text-amber-500" /> {t('dashboard.revenue_intel', 'Revenue Intel')}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+                    {/* Super Admin gets Revenue Intel; Operators get Operational Velocity Intel */}
+                    {isSuperAdmin ? (
+                        <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md flex flex-col justify-between transition-all shadow-lg">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                                    <CreditCard className="h-4 w-4 text-amber-500" /> {t('dashboard.revenue_intel', 'Revenue Intel')}
+                                </div>
+                                <Badge variant="outline" className="font-mono text-[11px]">{data.business?.currency ?? 'ETB'}</Badge>
                             </div>
-                            <Badge variant="outline" className="font-mono text-[11px]">USD</Badge>
-                        </div>
-                        <div>
-                            <h3 className="text-4xl font-space font-black tracking-tighter">${(data.business?.mrr || 0).toLocaleString()}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.mrr_label', 'Monthly Recurring Revenue (MRR)')}</p>
-                        </div>
-                        <div className="mt-6 space-y-3">
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[11px] font-bold uppercase"><span>{t('dashboard.enterprise', 'Enterprise')}</span><span>{data.business?.enterprise_pct || 0}%</span></div>
-                                <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${data.business?.enterprise_pct || 0}%` }} /></div>
+                            <div>
+                                <h3 className="text-3xl sm:text-4xl font-space font-black tracking-tighter">{Number(data.business?.monthly_recurring_revenue ?? 0).toLocaleString()} ETB</h3>
+                                <p className="text-xs text-muted-foreground mt-1">Contracted monthly value from each tenant’s latest paid order</p>
                             </div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[11px] font-bold uppercase"><span>{t('dashboard.business', 'Business')}</span><span>{data.business?.business_pct || 0}%</span></div>
-                                <div className="h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${data.business?.business_pct || 0}%` }} /></div>
+                            <dl className="mt-6 grid grid-cols-2 gap-2 text-xs">
+                                <div className="rounded-xl border border-border/60 bg-background/50 p-3"><dt className="text-muted-foreground">Collected this month</dt><dd className="mt-1 font-mono font-bold">{Number(data.business?.collected_this_month ?? 0).toLocaleString()} ETB</dd></div>
+                                <div className="rounded-xl border border-border/60 bg-background/50 p-3"><dt className="text-muted-foreground">Outstanding orders</dt><dd className="mt-1 font-mono font-bold">{Number(data.business?.outstanding ?? 0).toLocaleString()} ETB</dd></div>
+                                <div className="rounded-xl border border-border/60 bg-background/50 p-3"><dt className="text-muted-foreground">Lifetime collected</dt><dd className="mt-1 font-mono font-bold">{Number(data.business?.lifetime_collected ?? 0).toLocaleString()} ETB</dd></div>
+                                <div className="rounded-xl border border-border/60 bg-background/50 p-3"><dt className="text-muted-foreground">Active / paying</dt><dd className="mt-1 font-mono font-bold">{data.business?.active_subscriptions ?? 0} / {data.business?.paying_subscriptions ?? 0}</dd></div>
+                            </dl>
+                            <div className="mt-4 space-y-2" aria-label="Active subscription plan mix">
+                                {(data.business?.plan_mix ?? []).slice(0, 4).map((plan) => (
+                                    <div key={plan.plan} className="flex items-center justify-between gap-3 text-[11px]">
+                                        <span className="min-w-0 truncate font-bold uppercase">{plan.name}</span>
+                                        <span className="shrink-0 font-mono text-muted-foreground">{plan.count} · {plan.percent}%</span>
+                                    </div>
+                                ))}
+                                {(data.business?.plan_mix ?? []).length === 0 && <p className="text-xs text-muted-foreground">No active subscription contracts.</p>}
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md flex flex-col justify-between transition-all shadow-lg">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                                    <ActivitySquare className="h-4 w-4 text-emerald-500" /> {t('dashboard.op_index', 'Operational Index')}
+                                </div>
+                                <Badge variant="outline" className="font-mono text-[11px]">ACTIVITY {data.stats?.operational_score ?? 0}%</Badge>
+                            </div>
+                            <div>
+                                <h3 className="text-3xl sm:text-4xl font-space font-black tracking-tighter">{data.stats?.operational_score ?? 0}%</h3>
+                                <p className="text-xs text-muted-foreground mt-1">Share of your recorded actions completed today</p>
+                            </div>
+                            <div className="mt-6 space-y-3">
+                                <div className="flex items-center justify-between rounded-xl border border-border/50 bg-background/50 px-3 py-2 text-xs">
+                                    <span>Assigned work</span><strong className="font-mono">{data.stats.assigned_tasks ?? 0}</strong>
+                                </div>
+                                <div className="flex items-center justify-between rounded-xl border border-border/50 bg-background/50 px-3 py-2 text-xs">
+                                    <span>Role capabilities</span><strong className="font-mono">{data.stats.role_capabilities ?? 0}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                    <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md transition-all">
+                    <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md transition-all shadow-lg">
                         <div className="flex items-center justify-between mb-6">
                             <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
                                 <HardDrive className="h-4 w-4 text-indigo-500" /> {t('dashboard.cluster_health', 'Cluster Health')}
@@ -589,23 +606,23 @@ export default function DashboardHome() {
                         <div className="grid grid-cols-3 gap-2 sm:gap-4">
                             <div className="flex flex-col items-center justify-center p-2 sm:p-3 bg-background/50 rounded-xl sm:rounded-2xl border border-border/40">
                                 <Database className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 mb-1 sm:mb-2" />
-                                <span className="text-sm sm:text-lg font-bold font-mono">{data.cluster?.db_size || 'N/A'}</span>
+                                <span className="text-sm sm:text-lg font-bold font-mono">{data.cluster?.db_size ?? 'Unavailable'}</span>
                                 <span className="text-[11px] sm:text-[11px] uppercase text-muted-foreground tracking-widest text-center">PGSQL Data</span>
                             </div>
                             <div className="flex flex-col items-center justify-center p-2 sm:p-3 bg-background/50 rounded-xl sm:rounded-2xl border border-border/40">
                                 <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mb-1 sm:mb-2" />
-                                <span className="text-sm sm:text-lg font-bold font-mono">{data.cluster?.redis_hits || 0}%</span>
+                                <span className="text-sm sm:text-lg font-bold font-mono">{data.cluster?.redis_hits ?? 0}%</span>
                                 <span className="text-[11px] sm:text-[11px] uppercase text-muted-foreground tracking-widest text-center">Redis Hits</span>
                             </div>
                             <div className="flex flex-col items-center justify-center p-2 sm:p-3 bg-background/50 rounded-xl sm:rounded-2xl border border-border/40">
                                 <ActivitySquare className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 mb-1 sm:mb-2" />
-                                <span className="text-sm sm:text-lg font-bold font-mono">{data.cluster?.ws_connections || 0}</span>
+                                <span className="text-sm sm:text-lg font-bold font-mono">{data.cluster?.ws_connections ?? 0}</span>
                                 <span className="text-[11px] sm:text-[11px] uppercase text-muted-foreground tracking-widest text-center">WS Conns</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md flex flex-col transition-all">
+                    <div className="rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md flex flex-col transition-all shadow-lg">
                         <div className="flex items-center justify-between mb-6">
                             <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
                                 <Globe className="h-4 w-4 text-blue-400" /> {t('dashboard.traffic_origins', 'Traffic Origins')}
@@ -614,17 +631,22 @@ export default function DashboardHome() {
                         <div className="space-y-4 flex-1">
                             {(data.traffic_origins || []).slice(0, 5).map((origin, i) => (
                                 <div key={i} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2"><span className="text-lg">{origin.flag}</span> <span className="font-bold">{origin.city}</span></div>
-                                    <span className="font-mono text-xs text-muted-foreground">{origin.percent}%</span>
+                                    <div className="flex items-center gap-2"><span className="font-mono text-xs">{origin.code ?? origin.flag ?? '—'}</span> <span className="font-bold">{origin.city}</span></div>
+                                    <span className="font-mono text-xs text-muted-foreground font-bold">{origin.percent}%</span>
                                 </div>
                             ))}
+                            {(data.traffic_origins ?? []).length === 0 && (
+                                <p className="text-sm text-muted-foreground">No location data has been recorded in the last 30 days.</p>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* CENTRAL ROW 4: ALERTS & AUDIT LEDGER */}
             <div className="grid gap-4 lg:grid-cols-12 mt-4 pb-20 sm:pb-10">
                 {isCentral && canViewAlerts && (
-                    <div className="lg:col-span-4 rounded-2xl md:rounded-[2.5rem] border border-red-500/20 bg-gradient-to-br from-red-500/5 to-background p-4 sm:p-6 flex flex-col overflow-hidden transition-all">
+                    <div className="lg:col-span-4 rounded-2xl md:rounded-[2.5rem] border border-red-500/20 bg-gradient-to-br from-red-500/5 to-background p-4 sm:p-6 flex flex-col overflow-hidden transition-all shadow-lg">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-red-500">
@@ -638,83 +660,35 @@ export default function DashboardHome() {
                                 </Button>
                             </Link>
                         </div>
-                        
+
                         <div className="space-y-3 flex-1 overflow-hidden">
                             {(data.alerts || []).slice(0, 5).map((alert, i) => (
                                 <div key={i} className={`p-3 bg-background/60 border rounded-xl flex gap-3 items-start overflow-hidden ${alert.level === 'critical' ? 'border-red-500/20' : 'border-amber-500/20'}`}>
                                     <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${alert.level === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}`} />
-                                    <div className="min-w-0 flex-1"> 
+                                    <div className="min-w-0 flex-1">
                                         <div className="flex items-start justify-between gap-2">
-                                            <p className="text-sm font-bold text-foreground truncate">{alert.title}</p>
-                                            <span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap mt-0.5">
-                                                {alert.time_ago}
-                                            </span>
+                                            <p className="text-xs font-bold truncate">{alert.title}</p>
+                                            <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{alert.time_ago}</span>
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 break-all">{alert.description}</p> 
+                                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{alert.description}</p>
                                     </div>
                                 </div>
                             ))}
                             {(!data.alerts || data.alerts.length === 0) && (
-                                <div className="text-xs text-muted-foreground text-center py-8">{t('alerts.all_systems_operational', 'All systems operational. No active alerts.')}</div>
+                                <div className="text-xs text-muted-foreground text-center py-6">
+                                    {t('dashboard.no_alerts', 'No active system anomalies.')}
+                                </div>
                             )}
                         </div>
                     </div>
                 )}
 
-                {!isCentral && (canInviteUsers || canViewRoles || canViewPermissions) && (
-                     <div className="lg:col-span-4 rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md flex flex-col transition-all">
-                        <div className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground mb-6">
-                            <Zap className="h-4 w-4 text-amber-500" /> {t('dashboard.quick_actions', 'Quick Actions')}
-                        </div>
-                        <div className="flex flex-col gap-3 flex-1">
-                            {canInviteUsers && (
-                                <Button onClick={() => router.push('/dashboard/security?tab=users')} variant="outline" className="h-14 w-full justify-start rounded-2xl bg-background/50 hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                                        <UserPlus className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <p className="text-sm font-bold">Invite Operator</p>
-                                        <p className="text-[11px] text-muted-foreground uppercase font-mono tracking-widest mt-0.5">{t('dashboard.manage_access', 'Manage Access')}</p>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                </Button>
-                            )}
-                            
-                            {canViewRoles && (
-                                <Button onClick={() => router.push('/dashboard/security?tab=roles')} variant="outline" className="h-14 w-full justify-start rounded-2xl bg-background/50 hover:bg-emerald-500/5 hover:border-emerald-500/30 transition-all group">
-                                    <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                                        <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <p className="text-sm font-bold">{t('dashboard.configure_roles', 'Configure Roles')}</p>
-                                        <p className="text-[11px] text-muted-foreground uppercase font-mono tracking-widest mt-0.5">{t('dashboard.access_matrices', 'Access Matrices')}</p>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                </Button>
-                            )}
-
-                            {canViewPermissions && (
-                                <Button onClick={() => router.push('/dashboard/security?tab=permissions')} variant="outline" className="h-14 w-full justify-start rounded-2xl bg-background/50 hover:bg-blue-500/5 hover:border-blue-500/30 transition-all group">
-                                    <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                                        <Key className="h-4 w-4 text-blue-500" />
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <p className="text-sm font-bold">{t('dashboard.review_permissions', 'Review Permissions')}</p>
-                                        <p className="text-[11px] text-muted-foreground uppercase font-mono tracking-widest mt-0.5">{t('dashboard.capability_ledger', 'Capability Ledger')}</p>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                </Button>
-                            )}
-                        </div>
-                     </div>
-                )}
-
                 {canViewLogs && (
-                    <div id="tour-body-audit" className={cn("rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md transition-all", (isCentral ? canViewAlerts : (canInviteUsers || canViewRoles || canViewPermissions)) ? "lg:col-span-8" : "lg:col-span-12")}>
+                    <div id="tour-body-audit" className={cn("rounded-2xl md:rounded-[2.5rem] border border-border/50 bg-card/40 p-4 sm:p-6 backdrop-blur-md transition-all shadow-lg", (isCentral ? canViewAlerts : (canInviteUsers || canViewRoles || canViewPermissions)) ? "lg:col-span-8" : "lg:col-span-12")}>
                         <div className="flex items-center justify-between mb-6">
                             <div className="text-sm font-bold flex items-center gap-3 uppercase tracking-widest text-muted-foreground">
-                                <Activity className="h-4 w-4 text-primary" /> 
-                                {isCentral ? t('dashboard.live_system_audit', 'Live System Audit') : t('dashboard.live_node_audit', 'Live Node Audit')}
+                                <Activity className="h-4 w-4 text-primary" />
+                                {isCentral ? (isSuperAdmin ? t('dashboard.live_system_audit', 'Live System Audit') : t('dashboard.operator_audit', 'My Operational Audit Stream')) : t('dashboard.live_node_audit', 'Live Node Audit')}
                             </div>
                             <Link href="/dashboard/audit-logs">
                                 <Button variant="ghost" size="sm" className="h-6 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
@@ -831,4 +805,3 @@ function DashboardError({ message }: { message?: string }) {
         </div>
     );
 }
-

@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { useTranslation } from "@/store/use-translation";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useTheme } from "next-themes";
 import { logFrontendAction } from "@/lib/api"; 
 import { clearHiveSession } from "@/lib/auth-sync";
 import { getBackendApiRoot, getPublicServeUrl, getTenantHeaders, getTenantId, getWorkspaceScopeKey, isTenantHost, persistHiveContext } from "@/lib/runtime-context";
@@ -43,6 +44,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
@@ -78,6 +80,10 @@ export default function LoginPage() {
   // /files/{id}/serve path, which 401s here and left the background blank.
   const authBackgroundUrl = getPublicServeUrl(brandSettings?.auth_background_image);
   const displayPortalName = brandSettings?.app_title || portalName;
+  const activeLogoPath = resolvedTheme === "dark"
+    ? brandSettings?.logo_dark || brandSettings?.logo_light
+    : brandSettings?.logo_light || brandSettings?.logo_dark;
+  const activeLogoUrl = getPublicServeUrl(activeLogoPath);
   const authWelcomeMessage = t('auth.login.welcome_desc', brandSettings?.auth_welcome_message || 'Authenticate your identity to decrypt your management workspace.');
 
   useEffect(() => {
@@ -144,7 +150,7 @@ export default function LoginPage() {
         }
         
         logFrontendAction({ module: 'Auth', action: '2fa_required', description: `Identity ${email} requires strict 2FA clearance. Redirecting.` }).catch(()=>{});
-        router.push("/sign-in/2fa");
+        window.location.href = "/sign-in/2fa";
         return; 
       }
 
@@ -184,14 +190,24 @@ export default function LoginPage() {
       </div>
 
       <div className="relative flex flex-col justify-center px-8 sm:px-20 py-12 z-10">
-        <Link href="/" className="absolute top-8 left-8 sm:left-20 flex items-center gap-3 font-space text-2xl font-bold tracking-tight group">
-          <div className="relative">
-            <Globe className="text-primary h-7 w-7 transition-transform duration-700 group-hover:rotate-180" />
-            <div className="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-50 transition-opacity" />
-          </div>
-          <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent uppercase tracking-tighter">
-            {displayPortalName}
-          </span>
+        <Link href="/" aria-label={`${displayPortalName} home`} className="absolute top-8 left-8 sm:left-20 flex max-w-[calc(100vw-8rem)] items-center font-space text-2xl font-bold tracking-tight group">
+          {activeLogoUrl ? (
+            <img
+              src={activeLogoUrl}
+              alt={`${displayPortalName} logo`}
+              className="h-auto max-h-24 w-auto max-w-[min(320px,calc(100vw-8rem))] object-contain"
+            />
+          ) : (
+            <span className="flex items-center gap-3">
+              <span className="relative">
+                <Globe aria-hidden="true" className="text-primary h-7 w-7 transition-transform duration-700 group-hover:rotate-180" />
+                <span className="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-50 transition-opacity" />
+              </span>
+              <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent uppercase tracking-tighter">
+                {displayPortalName}
+              </span>
+            </span>
+          )}
         </Link>
 
         <div className="w-full max-w-sm mx-auto space-y-10 mt-12 lg:mt-0">

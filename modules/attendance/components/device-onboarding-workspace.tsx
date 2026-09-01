@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useId, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,17 +9,13 @@ import {
   Building2,
   Cable,
   CheckCircle2,
-  Copy,
   Cpu,
-  DatabaseZap,
-  Fingerprint,
   KeyRound,
   Layers,
   Network,
   RefreshCw,
-  RotateCcw,
+  Search,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,12 +32,15 @@ import {
   Employee,
   Paginated,
 } from "@/modules/humanresources/api";
-import { attendanceFetch, formatEmployeeNumber } from "@/modules/attendance/api";
+import {
+  attendanceFetch,
+  formatEmployeeNumber,
+} from "@/modules/attendance/api";
 
 const controlClass =
-  "h-11 border-slate-500 focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
+  "h-11 border-border bg-background/70 focus-visible:ring-2 focus-visible:ring-ring";
 const selectClass =
-  "h-11 w-full rounded-md border border-slate-500 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-700 dark:border-slate-400 dark:focus-visible:ring-cyan-300";
+  "h-11 w-full rounded-md border border-border bg-background/70 px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const deviceTypeDefaults: Record<
   AttendanceDevice["adapter_type"],
@@ -51,6 +50,14 @@ const deviceTypeDefaults: Record<
     code: "SUPREMA-BIOSTATION-2",
     name: "Suprema BioStation 2",
   },
+  hikvision_isapi: {
+    code: "HIKVISION-TERMINAL",
+    name: "Hikvision attendance terminal",
+  },
+  suprema_device_sdk: {
+    code: "SUPREMA-DIRECT",
+    name: "Suprema direct terminal",
+  },
   generic_webhook: {
     code: "ATTENDANCE-WEBHOOK",
     name: "Generic attendance webhook",
@@ -58,6 +65,14 @@ const deviceTypeDefaults: Record<
   local_connector: {
     code: "ATTENDANCE-CONNECTOR",
     name: "Local attendance connector",
+  },
+  zkteco_edge: {
+    code: "ZKTECO-TERMINAL",
+    name: "ZKTeco attendance terminal",
+  },
+  anviz_edge: {
+    code: "ANVIZ-TERMINAL",
+    name: "Anviz attendance terminal",
   },
   mock: {
     code: "ATTENDANCE-MOCK",
@@ -70,7 +85,7 @@ const STEPS = [
   { id: 2, label: "Connection", icon: Network },
   { id: 3, label: "Authentication", icon: KeyRound },
   { id: 4, label: "Test Connection", icon: Cable },
-  { id: 5, label: "Branch Assignment", icon: Building2 },
+  { id: 5, label: "Organization Scope", icon: Building2 },
   { id: 6, label: "Employee Mapping", icon: Users },
   { id: 7, label: "Initial Sync", icon: RefreshCw },
   { id: 8, label: "Review", icon: Layers },
@@ -83,9 +98,8 @@ export function DeviceOnboardingWorkspace() {
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form state
-  const [adapterType, setAdapterType] = useState<
-    "suprema_biostar2" | "generic_webhook" | "local_connector" | "mock"
-  >("suprema_biostar2");
+  const [adapterType, setAdapterType] =
+    useState<AttendanceDevice["adapter_type"]>("suprema_biostar2");
   const [deviceCode, setDeviceCode] = useState(
     deviceTypeDefaults.suprema_biostar2.code,
   );
@@ -93,9 +107,21 @@ export function DeviceOnboardingWorkspace() {
   const [timezone, setTimezone] = useState("Africa/Addis_Ababa");
   const [baseUrl, setBaseUrl] = useState("");
   const [biostarDeviceId, setBiostarDeviceId] = useState("");
+  const [deviceIp, setDeviceIp] = useState("");
+  const [devicePort, setDevicePort] = useState("");
   const [verifyTls, setVerifyTls] = useState("true");
   const [principal, setPrincipal] = useState("");
   const [secret, setSecret] = useState("");
+
+  const isBioStar = adapterType === "suprema_biostar2";
+  const isHikvision = adapterType === "hikvision_isapi";
+  const isDirectAdapter = isBioStar || isHikvision;
+  const isEdgeAdapter = [
+    "suprema_device_sdk",
+    "zkteco_edge",
+    "anviz_edge",
+  ].includes(adapterType);
+  const canPoll = isDirectAdapter || adapterType === "mock";
 
   // Result state
   const [createdDevice, setCreatedDevice] = useState<AttendanceDevice | null>(
@@ -109,6 +135,10 @@ export function DeviceOnboardingWorkspace() {
     ok: boolean;
     message?: string;
   } | null>(null);
+  const [syncQueued, setSyncQueued] = useState(false);
+  const [discovery, setDiscovery] = useState<AttendanceDeviceDiscovery | null>(
+    null,
+  );
 
   // Mapping state
   const [mappingEmployeeId, setMappingEmployeeId] = useState("");
@@ -120,6 +150,7 @@ export function DeviceOnboardingWorkspace() {
       attendanceFetch<{ data: AttendanceDeviceWorkspace }>(
         "/attendance/devices/workspace",
       ),
+    refetchInterval: syncQueued ? 3_000 : false,
   });
 
   const employeesQuery = useQuery({
@@ -129,6 +160,9 @@ export function DeviceOnboardingWorkspace() {
   });
 
   const employees = employeesQuery.data?.data ?? [];
+  const latestSyncJob = workspace.data?.data.sync_jobs.find(
+    (job) => job.attendance_device_id === createdDevice?.id,
+  );
 
   const createDeviceMutation = useMutation({
     mutationFn: () =>
@@ -146,23 +180,45 @@ export function DeviceOnboardingWorkspace() {
           name,
           adapter_type: adapterType,
           timezone,
-          manufacturer: adapterType === "suprema_biostar2" ? "Suprema" : null,
-          model: adapterType === "suprema_biostar2" ? "BioStation 2" : null,
-          configuration:
-            adapterType === "suprema_biostar2"
+          manufacturer:
+            adapterType === "hikvision_isapi"
+              ? "Hikvision"
+              : adapterType.startsWith("suprema")
+                ? "Suprema"
+                : adapterType === "zkteco_edge"
+                  ? "ZKTeco"
+                  : adapterType === "anviz_edge"
+                    ? "Anviz"
+                    : null,
+          model: isBioStar ? "BioStation 2" : null,
+          configuration: isDirectAdapter
+            ? {
+                base_url: baseUrl,
+                biostar_device_id: isBioStar
+                  ? biostarDeviceId || undefined
+                  : undefined,
+                verify_tls: verifyTls === "true",
+                allow_http:
+                  verifyTls === "false" && baseUrl.startsWith("http://"),
+                event_limit: 100,
+                lookback_days: isHikvision ? 2 : undefined,
+                tna_key_map: {
+                  "1": "clock_in",
+                  "2": "clock_out",
+                  "3": "break_start",
+                  "4": "break_end",
+                },
+              }
+            : isEdgeAdapter
               ? {
-                  base_url: baseUrl,
-                  biostar_device_id: biostarDeviceId || undefined,
-                  verify_tls: verifyTls === "true",
-                  allow_http:
-                    verifyTls === "false" && baseUrl.startsWith("http://"),
-                  event_limit: 100,
-                  tna_key_map: {
-                    "1": "clock_in",
-                    "2": "clock_out",
-                    "3": "break_start",
-                    "4": "break_end",
-                  },
+                  device_ip: deviceIp || undefined,
+                  device_port: devicePort ? Number(devicePort) : undefined,
+                  driver:
+                    adapterType === "suprema_device_sdk"
+                      ? "suprema_device_sdk"
+                      : adapterType === "zkteco_edge"
+                        ? "zkteco"
+                        : "anviz",
                 }
               : {},
         }),
@@ -183,6 +239,9 @@ export function DeviceOnboardingWorkspace() {
       void queryClient.invalidateQueries({
         queryKey: ["hr-attendance-devices", scope],
       });
+      void queryClient.invalidateQueries({
+        queryKey: ["hr-attendance-devices-onboarding", scope],
+      });
     },
     onError: (err: unknown) => {
       const msg =
@@ -196,8 +255,6 @@ export function DeviceOnboardingWorkspace() {
       if (!createdDevice && !deviceCode)
         throw new Error("No device code available.");
       const code = createdDevice?.device_code || deviceCode;
-      const isBioStar = adapterType === "suprema_biostar2";
-
       return attendanceFetch<{
         data: unknown;
         meta: {
@@ -208,14 +265,24 @@ export function DeviceOnboardingWorkspace() {
       }>(`/attendance/devices/${encodeURIComponent(code)}/credentials/rotate`, {
         method: "POST",
         body: JSON.stringify({
-          credential_type: isBioStar ? "biostar2_api" : "connector_hmac",
-          principal: isBioStar ? principal : null,
-          secret: isBioStar ? secret : null,
-          configuration: isBioStar
+          credential_type: isBioStar
+            ? "biostar2_api"
+            : isHikvision
+              ? "hikvision_isapi"
+              : "connector_hmac",
+          principal: isDirectAdapter ? principal : null,
+          secret: isDirectAdapter ? secret : null,
+          configuration: isDirectAdapter
             ? {
                 base_url: baseUrl,
-                biostar_device_id: biostarDeviceId || undefined,
+                biostar_device_id: isBioStar
+                  ? biostarDeviceId || undefined
+                  : undefined,
                 verify_tls: verifyTls === "true",
+                allow_http:
+                  verifyTls === "false" && baseUrl.startsWith("http://"),
+                event_limit: 100,
+                lookback_days: isHikvision ? 2 : undefined,
                 tna_key_map: {
                   "1": "clock_in",
                   "2": "clock_out",
@@ -233,6 +300,8 @@ export function DeviceOnboardingWorkspace() {
         });
       }
       toast.success("Device credential authenticated.");
+      setSecret("");
+      void workspace.refetch();
     },
     onError: (err: unknown) => {
       toast.error(
@@ -291,6 +360,30 @@ export function DeviceOnboardingWorkspace() {
     },
   });
 
+  const discoverMutation = useMutation({
+    mutationFn: () => {
+      const code = createdDevice?.device_code || deviceCode;
+      return attendanceFetch<{ data: AttendanceDeviceDiscovery }>(
+        `/attendance/devices/${encodeURIComponent(code)}/discover`,
+        {
+          method: "POST",
+          body: JSON.stringify({ user_limit: 200 }),
+        },
+      );
+    },
+    onSuccess: (response) => {
+      setDiscovery(response.data);
+      toast.success(
+        `Found ${response.data.user_count} device user${response.data.user_count === 1 ? "" : "s"}.`,
+      );
+    },
+    onError: (err: unknown) => {
+      toast.error(
+        err instanceof Error ? err.message : "Could not read device users.",
+      );
+    },
+  });
+
   const syncMutation = useMutation({
     mutationFn: () => {
       const code = createdDevice?.device_code || deviceCode;
@@ -303,12 +396,14 @@ export function DeviceOnboardingWorkspace() {
       );
     },
     onSuccess: () => {
+      setSyncQueued(true);
       toast.success("Initial device synchronization queued.");
+      void queryClient.invalidateQueries({
+        queryKey: ["hr-attendance-devices-onboarding", scope],
+      });
     },
     onError: (err: unknown) => {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to queue sync.",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to queue sync.");
     },
   });
 
@@ -340,76 +435,79 @@ export function DeviceOnboardingWorkspace() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-6 text-white dark:border-slate-800 dark:bg-slate-950 shadow-lg">
+      <header className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/60 p-6 shadow-sm backdrop-blur-md">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+          <div className="relative">
             <div className="flex items-center gap-2">
               <Button
                 asChild
                 variant="ghost"
                 size="sm"
-                className="text-slate-300 hover:text-white"
+                className="-ml-3 text-muted-foreground hover:text-foreground"
               >
                 <Link href="/dashboard/attendance">
                   <ArrowLeft className="mr-1 h-4 w-4" /> Back to Attendance
                 </Link>
               </Button>
             </div>
-            <h1 className="mt-2 text-3xl font-black tracking-tight">
-              Attendance Device Onboarding Wizard
+            <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-primary">
+              Attendance Management
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">
+              Add an attendance device
             </h1>
-            <p className="mt-1 text-sm text-slate-300">
-              Register, configure, authenticate, and test attendance terminals
-              with tenant isolation
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Follow one guided path to register, authenticate, test, map, and
+              synchronize a terminal in the active tenant.
             </p>
           </div>
-          <Button
-            asChild
-            variant="outline"
-            className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700"
-          >
-            <Link href="/dashboard/attendance/devices">
-              View All Devices
-            </Link>
+          <Button asChild variant="outline" className="bg-background/70">
+            <Link href="/dashboard/attendance/devices">View All Devices</Link>
           </Button>
         </div>
 
         {/* Step Stepper */}
         <div className="mt-6 overflow-x-auto pb-2">
-          <ol className="flex min-w-[700px] items-center justify-between border-t border-slate-800 pt-4">
+          <ol className="flex min-w-[700px] items-center justify-between border-t border-border/60 pt-4">
             {STEPS.map((step) => {
-              const Icon = step.icon;
               const isActive = currentStep === step.id;
               const isDone = currentStep > step.id;
 
               return (
-                <li
-                  key={step.id}
-                  onClick={() => {
-                    if (isDone || isActive) setCurrentStep(step.id);
-                  }}
-                  className={`flex flex-col items-center gap-1.5 cursor-pointer transition-colors ${
-                    isActive
-                      ? "text-cyan-300"
-                      : isDone
-                        ? "text-teal-400"
-                        : "text-slate-500"
-                  }`}
-                >
-                  <span
-                    className={`grid h-9 w-9 place-items-center rounded-full text-xs font-bold transition-all ${
+                <li key={step.id}>
+                  <button
+                    type="button"
+                    aria-current={isActive ? "step" : undefined}
+                    disabled={!isDone && !isActive}
+                    onClick={() => setCurrentStep(step.id)}
+                    className={`flex min-h-11 flex-col items-center gap-1.5 rounded-md px-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default ${
                       isActive
-                        ? "bg-cyan-500/20 text-cyan-300 ring-2 ring-cyan-400"
+                        ? "text-primary"
                         : isDone
-                          ? "bg-teal-500/20 text-teal-300 border border-teal-500/40"
-                          : "bg-slate-800 text-slate-400 border border-slate-700"
+                          ? "text-emerald-700 dark:text-emerald-300"
+                          : "text-muted-foreground"
                     }`}
                   >
-                    {isDone ? <CheckCircle2 className="h-4 w-4" /> : step.id}
-                  </span>
-                  <span className="text-xs font-semibold whitespace-nowrap">
-                    {step.label}
-                  </span>
+                    <span
+                      className={`grid h-9 w-9 place-items-center rounded-full border text-xs font-bold transition-all ${
+                        isActive
+                          ? "border-primary/50 bg-primary/10 text-primary ring-2 ring-primary/30"
+                          : isDone
+                            ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "border-border bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isDone ? (
+                        <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                      ) : (
+                        step.id
+                      )}
+                    </span>
+                    <span className="whitespace-nowrap text-xs font-semibold">
+                      {step.label}
+                    </span>
+                  </button>
                 </li>
               );
             })}
@@ -417,70 +515,125 @@ export function DeviceOnboardingWorkspace() {
         </div>
       </header>
 
+      <section
+        aria-labelledby="database-refresh-protection-title"
+        className="rounded-2xl border border-primary/30 bg-primary/10 p-4"
+      >
+        <div className="flex items-start gap-3">
+          <ShieldCheck aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <h2 id="database-refresh-protection-title" className="font-black text-foreground">
+              Database refresh protection
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {workspace.data?.data.recovery.protected
+                ? `${workspace.data.data.recovery.device_count} device profile(s) are encrypted in Hive private storage and will be restored by the database seeder.`
+                : "Complete authentication once. Hive will encrypt the device profile in private persistent storage so the seeder can restore it after a database refresh."}
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Step Content */}
-      <Card className="border-slate-700 bg-slate-900 text-white dark:border-slate-800 dark:bg-slate-950">
+      <Card className="rounded-3xl border-border/60 bg-card/60">
         <CardContent className="p-6">
           {/* STEP 1: DEVICE TYPE */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Step 1: Select Device Type</h3>
-                <p className="text-sm text-slate-400">
-                  Choose the integration adapter supported by your attendance hardware or software service.
+                <h3 className="text-xl font-bold">
+                  Step 1: Select Device Type
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose the integration adapter supported by your attendance
+                  hardware or software service.
                 </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   {
+                    id: "hikvision_isapi",
+                    title: "Hikvision ISAPI",
+                    desc: "Connect directly to a Hikvision terminal for user discovery and attendance polling.",
+                    badge: "Direct terminal",
+                  },
+                  {
                     id: "suprema_biostar2",
-                    title: "Suprema BioStation 2",
-                    desc: "Connect to BioStar 2 server API for automatic event polling and user directory discovery.",
+                    title: "Suprema BioStar 2",
+                    desc: "Use the BioStar 2 Open API for directory discovery and automatic event polling.",
                     badge: "BioStar 2 API",
                   },
                   {
+                    id: "suprema_device_sdk",
+                    title: "Suprema Device SDK",
+                    desc: "Use Hive Edge on the site network to connect directly to Suprema readers.",
+                    badge: "Hive Edge",
+                  },
+                  {
+                    id: "zkteco_edge",
+                    title: "ZKTeco",
+                    desc: "Use Hive Edge to read ZKTeco terminals and forward signed offline-safe events.",
+                    badge: "Hive Edge",
+                  },
+                  {
+                    id: "anviz_edge",
+                    title: "Anviz",
+                    desc: "Use Hive Edge to read Anviz terminals and forward signed offline-safe events.",
+                    badge: "Hive Edge",
+                  },
+                  {
                     id: "generic_webhook",
-                    title: "Generic Attendance Webhook",
-                    desc: "Receive signed JSON event payloads over HTTPS webhook with HMAC authentication.",
-                    badge: "Webhook / HTTP",
+                    title: "Generic signed webhook",
+                    desc: "Receive normalized JSON events from another attendance source.",
+                    badge: "Webhook",
                   },
                   {
                     id: "local_connector",
-                    title: "Local Attendance Connector",
-                    desc: "Connect local LAN biometric readers using Hive Agent or Local Bridge.",
-                    badge: "LAN Bridge",
+                    title: "Custom local connector",
+                    desc: "Connect another LAN reader through the signed Hive Edge contract.",
+                    badge: "Hive Edge",
                   },
                   {
                     id: "mock",
-                    title: "Mock Attendance Device",
-                    desc: "Simulate attendance event generation for development and sandbox testing.",
-                    badge: "Sandbox / Mock",
+                    title: "Mock device",
+                    desc: "Generate safe sandbox events for development and acceptance testing.",
+                    badge: "Testing",
                   },
                 ].map((item) => (
-                  <div
+                  <button
                     key={item.id}
+                    type="button"
+                    aria-pressed={adapterType === item.id}
                     onClick={() =>
-                      handleAdapterChange(item.id as typeof adapterType)
+                      handleAdapterChange(
+                        item.id as AttendanceDevice["adapter_type"],
+                      )
                     }
-                    className={`cursor-pointer rounded-xl border p-5 transition-all ${
+                    className={`min-h-11 rounded-2xl border p-5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       adapterType === item.id
-                        ? "border-cyan-400 bg-cyan-950/30 ring-1 ring-cyan-400"
-                        : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
+                        ? "border-primary/50 bg-primary/10 ring-1 ring-primary/40"
+                        : "border-border/70 bg-background/50 hover:border-primary/40 hover:bg-muted/50"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                    <span className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary">
                         {item.badge}
                       </span>
                       {adapterType === item.id && (
-                        <CheckCircle2 className="h-5 w-5 text-cyan-400" />
+                        <CheckCircle2
+                          aria-hidden="true"
+                          className="h-5 w-5 text-primary"
+                        />
                       )}
-                    </div>
-                    <h4 className="mt-2 text-lg font-bold">{item.title}</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-300">
+                    </span>
+                    <span className="mt-2 block text-lg font-bold">
+                      {item.title}
+                    </span>
+                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                       {item.desc}
-                    </p>
-                  </div>
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -490,9 +643,12 @@ export function DeviceOnboardingWorkspace() {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Step 2: Connection Settings</h3>
-                <p className="text-sm text-slate-400">
-                  Configure identifier codes, names, timezones, and network server endpoint.
+                <h3 className="text-xl font-bold">
+                  Step 2: Connection Settings
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure identifier codes, names, timezones, and network
+                  server endpoint.
                 </p>
               </div>
 
@@ -530,46 +686,93 @@ export function DeviceOnboardingWorkspace() {
                   />
                 </div>
 
-                {adapterType === "suprema_biostar2" && (
+                {isDirectAdapter && (
                   <>
                     <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="onboard-url">BioStar 2 Server URL</Label>
+                      <Label htmlFor="onboard-url">
+                        {isHikvision
+                          ? "Hikvision terminal URL"
+                          : "BioStar 2 server URL"}
+                      </Label>
                       <Input
                         id="onboard-url"
                         type="url"
-                        placeholder="https://biostar.company.internal"
+                        placeholder={
+                          isHikvision
+                            ? "http://192.168.100.230"
+                            : "https://biostar.company.internal"
+                        }
                         value={baseUrl}
                         onChange={(e) => setBaseUrl(e.target.value)}
                         className={controlClass}
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="onboard-biostar-id">
-                        BioStar Device ID (Optional)
-                      </Label>
-                      <Input
-                        id="onboard-biostar-id"
-                        value={biostarDeviceId}
-                        onChange={(e) => setBiostarDeviceId(e.target.value)}
-                        className={controlClass}
-                      />
-                    </div>
+                    {isBioStar && (
+                      <div className="space-y-2">
+                        <Label htmlFor="onboard-biostar-id">
+                          BioStar device ID (optional)
+                        </Label>
+                        <Input
+                          id="onboard-biostar-id"
+                          value={biostarDeviceId}
+                          onChange={(e) => setBiostarDeviceId(e.target.value)}
+                          className={controlClass}
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-2">
-                      <Label htmlFor="onboard-tls">TLS Verification</Label>
+                      <Label htmlFor="onboard-tls">TLS verification</Label>
                       <select
                         id="onboard-tls"
                         className={selectClass}
                         value={verifyTls}
                         onChange={(e) => setVerifyTls(e.target.value)}
                       >
-                        <option value="true">Required (Production)</option>
+                        <option value="true">Required (production)</option>
                         <option value="false">
-                          Disabled (Internal LAN test)
+                          Disabled (isolated LAN only)
                         </option>
                       </select>
                     </div>
+                  </>
+                )}
+
+                {isEdgeAdapter && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="onboard-device-ip">
+                        Terminal IP address
+                      </Label>
+                      <Input
+                        id="onboard-device-ip"
+                        inputMode="decimal"
+                        placeholder="192.168.1.50"
+                        value={deviceIp}
+                        onChange={(event) => setDeviceIp(event.target.value)}
+                        className={controlClass}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="onboard-device-port">
+                        Vendor service port (optional)
+                      </Label>
+                      <Input
+                        id="onboard-device-port"
+                        type="number"
+                        min={1}
+                        max={65535}
+                        value={devicePort}
+                        onChange={(event) => setDevicePort(event.target.value)}
+                        className={controlClass}
+                      />
+                    </div>
+                    <p className="sm:col-span-2 text-sm text-muted-foreground">
+                      Hive Edge runs on this site network, discovers the
+                      terminal, buffers outages, and sends signed normalized
+                      events to Hive.
+                    </p>
                   </>
                 )}
               </div>
@@ -580,27 +783,36 @@ export function DeviceOnboardingWorkspace() {
           {currentStep === 3 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Step 3: Device Authentication</h3>
-                <p className="text-sm text-slate-400">
-                  Configure API credentials or inspect the generated HMAC signing secret.
+                <h3 className="text-xl font-bold">
+                  Step 3: Device Authentication
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure API credentials or inspect the generated HMAC
+                  signing secret.
                 </p>
               </div>
 
-              {adapterType === "suprema_biostar2" ? (
+              {isDirectAdapter ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="onboard-principal">BioStar User / API Principal</Label>
+                    <Label htmlFor="onboard-principal">
+                      {isHikvision
+                        ? "Device user name"
+                        : "BioStar API principal"}
+                    </Label>
                     <Input
                       id="onboard-principal"
                       value={principal}
                       onChange={(e) => setPrincipal(e.target.value)}
-                      placeholder="api-admin"
+                      placeholder={isHikvision ? "admin" : "api-admin"}
                       className={controlClass}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="onboard-secret">BioStar Password / Secret</Label>
+                    <Label htmlFor="onboard-secret">
+                      {isHikvision ? "Device password" : "BioStar password"}
+                    </Label>
                     <Input
                       id="onboard-secret"
                       type="password"
@@ -609,27 +821,33 @@ export function DeviceOnboardingWorkspace() {
                       className={controlClass}
                     />
                   </div>
+                  <p className="sm:col-span-2 text-sm leading-6 text-muted-foreground">
+                    The password is encrypted in the database and in Hive's
+                    private recovery vault. It is never returned by this API or
+                    written to source control.
+                  </p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-amber-900/50 bg-amber-950/20 p-4">
-                  <div className="flex items-center gap-2 text-amber-300 font-bold">
+                <div className="rounded-2xl border border-amber-600/30 bg-amber-500/10 p-4">
+                  <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-200">
                     <KeyRound className="h-5 w-5" />
                     <span>Inbound Webhook HMAC Secret Issued</span>
                   </div>
-                  <p className="mt-2 text-xs text-amber-200">
-                    Use the generated device key and HMAC secret to sign webhook request bodies:
+                  <p className="mt-2 text-xs text-amber-950 dark:text-amber-100">
+                    Use the generated device key and HMAC secret to sign webhook
+                    request bodies:
                   </p>
                   {credentialSecret && (
                     <dl className="mt-3 grid gap-2 font-mono text-xs">
                       <div>
-                        <dt className="text-slate-400">Device Key:</dt>
-                        <dd className="break-all font-bold text-white">
+                        <dt className="text-muted-foreground">Device Key:</dt>
+                        <dd className="break-all font-bold text-foreground">
                           {credentialSecret.keyId}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-slate-400">HMAC Secret:</dt>
-                        <dd className="break-all font-bold text-white">
+                        <dt className="text-muted-foreground">HMAC Secret:</dt>
+                        <dd className="break-all font-bold text-foreground">
                           {credentialSecret.secret}
                         </dd>
                       </div>
@@ -645,18 +863,21 @@ export function DeviceOnboardingWorkspace() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-bold">Step 4: Test Connection</h3>
-                <p className="text-sm text-slate-400">
-                  Verify network reachability and response from the attendance terminal backend.
+                <p className="text-sm text-muted-foreground">
+                  Verify network reachability and response from the attendance
+                  terminal backend.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-center">
+              <div className="rounded-2xl border border-border/60 bg-muted/35 p-6 text-center">
                 <Button
                   onClick={() => testConnectionMutation.mutate()}
                   disabled={testConnectionMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-500 font-bold min-h-11"
+                  className="min-h-11 font-bold"
                 >
-                  <Cable className={`mr-2 h-4 w-4 ${testConnectionMutation.isPending ? "animate-spin" : ""}`} />
+                  <Cable
+                    className={`mr-2 h-4 w-4 ${testConnectionMutation.isPending ? "animate-spin" : ""}`}
+                  />
                   {testConnectionMutation.isPending
                     ? "Testing Connection…"
                     : "Run Connection Test"}
@@ -666,8 +887,8 @@ export function DeviceOnboardingWorkspace() {
                   <div
                     className={`mt-4 rounded-xl border p-4 text-sm font-semibold ${
                       testResult.ok
-                        ? "border-teal-900 bg-teal-950/40 text-teal-300"
-                        : "border-rose-900 bg-rose-950/40 text-rose-300"
+                        ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100"
+                        : "border-rose-600/30 bg-rose-500/10 text-rose-900 dark:text-rose-100"
                     }`}
                   >
                     {testResult.message}
@@ -677,23 +898,27 @@ export function DeviceOnboardingWorkspace() {
             </div>
           )}
 
-          {/* STEP 5: BRANCH ASSIGNMENT */}
+          {/* STEP 5: ORGANIZATION SCOPE */}
           {currentStep === 5 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Step 5: Branch Assignment</h3>
-                <p className="text-sm text-slate-400">
-                  Assign this device to a physical location or organization unit within your tenant.
+                <h3 className="text-xl font-bold">
+                  Step 5: Organization Scope
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Confirm the tenant boundary that owns this device and its
+                  attendance data.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-4">
+              <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/35 p-5">
                 <div className="flex items-center gap-3">
-                  <Building2 className="h-6 w-6 text-cyan-300" />
+                  <Building2 className="h-6 w-6 text-primary" />
                   <div>
-                    <h4 className="font-bold">Tenant Organization Scope</h4>
-                    <p className="text-xs text-slate-400">
-                      Devices are scoped to your active tenant organization.
+                    <h4 className="font-bold">Active tenant scope</h4>
+                    <p className="text-xs text-muted-foreground">
+                      This device, credentials, mappings, and events stay inside
+                      the tenant selected for this onboarding session.
                     </p>
                   </div>
                 </div>
@@ -706,10 +931,56 @@ export function DeviceOnboardingWorkspace() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-bold">Step 6: Employee Mapping</h3>
-                <p className="text-sm text-slate-400">
-                  Map external biometric IDs / card numbers to tenant employee records.
+                <p className="text-sm text-muted-foreground">
+                  Map external biometric IDs / card numbers to tenant employee
+                  records.
                 </p>
               </div>
+
+              {isDirectAdapter && (
+                <div className="rounded-2xl border border-border/60 bg-muted/35 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="font-bold">Read users from the device</h4>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Hive reads user IDs and names only. Face templates and
+                        biometric images are not imported.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 shrink-0 bg-background/70"
+                      onClick={() => discoverMutation.mutate()}
+                      disabled={discoverMutation.isPending}
+                    >
+                      <Search aria-hidden="true" className="mr-2 h-4 w-4" />
+                      {discoverMutation.isPending ? "Reading users…" : "Discover device users"}
+                    </Button>
+                  </div>
+                  {discovery && (
+                    <div className="mt-4 space-y-2">
+                      <Label htmlFor="discovered-device-user">Discovered device user</Label>
+                      <select
+                        id="discovered-device-user"
+                        className={selectClass}
+                        value={mappingExternalId}
+                        onChange={(event) => setMappingExternalId(event.target.value)}
+                      >
+                        <option value="">Choose a device user</option>
+                        {discovery.users.map((user) => (
+                          <option key={user.user_id} value={user.user_id}>
+                            {user.name || "Unnamed user"} ({user.user_id})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground" role="status">
+                        {discovery.user_count} users read from {discovery.source}.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -723,7 +994,8 @@ export function DeviceOnboardingWorkspace() {
                     <option value="">Choose Employee</option>
                     {employees.map((emp) => (
                       <option key={emp.id} value={emp.id}>
-                        {emp.primary_name} ({formatEmployeeNumber(emp.employee_number)})
+                        {emp.primary_name} (
+                        {formatEmployeeNumber(emp.employee_number)})
                       </option>
                     ))}
                   </select>
@@ -737,7 +1009,11 @@ export function DeviceOnboardingWorkspace() {
                     value={mappingExternalId}
                     onChange={(e) => setMappingExternalId(e.target.value)}
                     className={controlClass}
+                    aria-describedby="map-ext-help"
                   />
+                  <p id="map-ext-help" className="text-xs leading-5 text-muted-foreground">
+                    Select a discovered user above or enter the terminal user ID/card number exactly.
+                  </p>
                 </div>
               </div>
 
@@ -749,10 +1025,26 @@ export function DeviceOnboardingWorkspace() {
                   !mappingExternalId
                 }
                 variant="outline"
-                className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700"
+                className="bg-background/70"
               >
                 <Users className="mr-2 h-4 w-4" /> Save Mapping
               </Button>
+
+              {employees.length === 0 && (
+                <div
+                  role="status"
+                  className="rounded-2xl border border-amber-600/30 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-100"
+                >
+                  <p className="font-black">
+                    No employees are available in this tenant.
+                  </p>
+                  <p className="mt-1 leading-6">
+                    The terminal can be registered and tested now, but punch
+                    events cannot be imported until HR creates employees and
+                    links their terminal user IDs here.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -760,23 +1052,68 @@ export function DeviceOnboardingWorkspace() {
           {currentStep === 7 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Step 7: Initial Synchronization</h3>
-                <p className="text-sm text-slate-400">
-                  Trigger initial historical attendance sync or user directory discovery.
+                <h3 className="text-xl font-bold">
+                  Step 7: Initial Synchronization
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Pull recent punch events from the terminal. Only events whose
+                  device user IDs are mapped to employees can enter attendance.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-6 text-center">
-                <Button
-                  onClick={() => syncMutation.mutate()}
-                  disabled={syncMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-500 font-bold min-h-11"
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-                  {syncMutation.isPending
-                    ? "Queuing Sync…"
-                    : "Queue Initial Attendance Sync"}
-                </Button>
+              <div className="rounded-2xl border border-border/60 bg-muted/35 p-6 text-center">
+                {canPoll ? (
+                  <Button
+                    onClick={() => syncMutation.mutate()}
+                    disabled={syncMutation.isPending}
+                    className="min-h-11 font-bold"
+                  >
+                    <RefreshCw
+                      className={`mr-2 h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`}
+                    />
+                    {syncMutation.isPending
+                      ? "Queuing Sync…"
+                      : "Queue Initial Attendance Sync"}
+                  </Button>
+                ) : (
+                  <div className="text-left text-sm text-foreground">
+                    <p className="font-bold">This device uses Hive Edge push mode.</p>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 leading-6 text-muted-foreground">
+                      <li>Install Hive Edge on a computer on the same LAN as the terminal.</li>
+                      <li>Enter the displayed device key, secret, IP address, and vendor driver.</li>
+                      <li>Start the connector; buffered signed events appear in Devices &amp; Sync.</li>
+                    </ol>
+                  </div>
+                )}
+                {latestSyncJob && (
+                  <div
+                    role="status"
+                    className={`mt-4 rounded-xl border p-4 text-left text-sm ${
+                      latestSyncJob.status === "completed"
+                        ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
+                        : latestSyncJob.status === "partial" ||
+                            latestSyncJob.status === "failed"
+                          ? "border-amber-600/30 bg-amber-500/10 text-amber-950 dark:text-amber-100"
+                          : "border-primary/30 bg-primary/10 text-foreground"
+                    }`}
+                  >
+                    <p className="font-black capitalize">
+                      Sync {latestSyncJob.status.replace("_", " ")}
+                    </p>
+                    <p className="mt-1 leading-6">
+                      Received {latestSyncJob.received_count}, accepted{" "}
+                      {latestSyncJob.accepted_count}, duplicates{" "}
+                      {latestSyncJob.duplicate_count}, rejected{" "}
+                      {latestSyncJob.rejected_count}.
+                    </p>
+                    {latestSyncJob.rejected_count > 0 && (
+                      <p className="mt-1 leading-6">
+                        Link each terminal user ID to a tenant employee, then
+                        run Sync again from Devices &amp; Sync.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -785,27 +1122,34 @@ export function DeviceOnboardingWorkspace() {
           {currentStep === 8 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-bold">Step 8: Review Device Details</h3>
-                <p className="text-sm text-slate-400">
-                  Confirm all configuration details before completing registration.
+                <h3 className="text-xl font-bold">
+                  Step 8: Review Device Details
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Confirm all configuration details before completing
+                  registration.
                 </p>
               </div>
 
-              <dl className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-5 text-sm">
-                <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <dt className="text-slate-400">Device Name:</dt>
+              <dl className="grid gap-3 rounded-2xl border border-border/60 bg-muted/35 p-5 text-sm">
+                <div className="flex justify-between border-b border-border/60 pb-2">
+                  <dt className="text-muted-foreground">Device Name:</dt>
                   <dd className="font-bold">{name}</dd>
                 </div>
-                <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <dt className="text-slate-400">Device Code:</dt>
-                  <dd className="font-mono font-bold text-cyan-300">{deviceCode}</dd>
+                <div className="flex justify-between border-b border-border/60 pb-2">
+                  <dt className="text-muted-foreground">Device Code:</dt>
+                  <dd className="font-mono font-bold text-primary">
+                    {deviceCode}
+                  </dd>
                 </div>
-                <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <dt className="text-slate-400">Adapter Type:</dt>
-                  <dd className="font-bold capitalize">{adapterType.replace("_", " ")}</dd>
+                <div className="flex justify-between border-b border-border/60 pb-2">
+                  <dt className="text-muted-foreground">Adapter Type:</dt>
+                  <dd className="font-bold capitalize">
+                    {adapterType.replace("_", " ")}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Timezone:</dt>
+                  <dt className="text-muted-foreground">Timezone:</dt>
                   <dd className="font-bold">{timezone}</dd>
                 </div>
               </dl>
@@ -820,26 +1164,22 @@ export function DeviceOnboardingWorkspace() {
               </div>
 
               <div>
-                <h3 className="text-2xl font-black">Device Onboarding Complete!</h3>
-                <p className="mt-1 text-sm text-slate-300">
-                  {name} ({deviceCode}) is now onboarded and active in your tenant context.
+                <h3 className="text-2xl font-black">
+                  Device Onboarding Complete!
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {name} ({deviceCode}) is now onboarded and active in your
+                  tenant context.
                 </p>
               </div>
 
               <div className="flex justify-center gap-3 pt-4">
-                <Button
-                  asChild
-                  className="bg-blue-600 hover:bg-blue-500 font-bold"
-                >
+                <Button asChild className="font-bold">
                   <Link href="/dashboard/attendance/devices">
                     View Device Management
                   </Link>
                 </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700"
-                >
+                <Button asChild variant="outline" className="bg-background/70">
                   <Link href="/dashboard/attendance">
                     Return to Attendance Dashboard
                   </Link>
@@ -850,12 +1190,12 @@ export function DeviceOnboardingWorkspace() {
 
           {/* Stepper Buttons */}
           {currentStep < 9 && (
-            <div className="mt-8 flex items-center justify-between border-t border-slate-800 pt-5">
+            <div className="mt-8 flex items-center justify-between border-t border-border/60 pt-5">
               <Button
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                className="bg-background/70"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Previous Step
               </Button>
@@ -863,7 +1203,7 @@ export function DeviceOnboardingWorkspace() {
               <Button
                 onClick={nextStep}
                 disabled={createDeviceMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-500 font-bold"
+                className="font-bold"
               >
                 {currentStep === 8 ? "Finish Onboarding" : "Next Step"}
                 <ArrowRight className="ml-2 h-4 w-4" />

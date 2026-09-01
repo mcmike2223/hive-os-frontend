@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Camera,
   Upload,
   Loader2,
   Shield,
   Image as ImageIcon,
-  CheckCircle2,
+  Trash2,
+  FolderOpen,
+  User,
+  Sparkles,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,6 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
 import { ProfileWorkspaceSkeleton } from "@/components/ui/loading-states";
-import { Skeleton } from "@/components/ui/skeleton";
 import { usePermissions } from "@/hooks/use-permissions";
 import { logFrontendAction } from "@/lib/api";
 import {
@@ -33,12 +34,18 @@ import {
   getWorkspaceScopeKey,
 } from "@/lib/runtime-context";
 import { getErrorMessage } from "@/lib/errors";
+import { useAvatarUrl } from "@/hooks/use-avatar-url";
+import { useTranslation } from "@/store/use-translation";
 import { cn } from "@/lib/utils";
 
 type UserProfile = {
+  id?: number;
   name?: string;
   email?: string;
   avatar_path?: string | null;
+  avatar_url?: string | null;
+  avatar_revision?: number;
+  updated_at?: string;
 };
 
 type PickerFile = {
@@ -53,154 +60,13 @@ type PickerFile = {
   mime_type?: string;
 };
 
-const extractPathFromUrl = (url: string) => {
-  if (!url) return null;
-
-  const storageIndex = url.indexOf("/storage/");
-  if (storageIndex !== -1) {
-    return url.substring(storageIndex + 9);
-  }
-
-  return url.replace(/^\/+/, "");
-};
-
-function SecureBlobAvatar({
-  user,
-  previewUrl,
-  lastSaved,
-  canFetch,
-  className,
-}: {
-  user: UserProfile | undefined;
-  previewUrl: string | null;
-  lastSaved: number;
-  canFetch: boolean;
-  className?: string;
-}) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    let objectUrl: string | null = null;
-
-    const fetchAvatar = async () => {
-      setIsFetching(true);
-
-      // Data or blob URLs don't need network fetching
-      if (
-        previewUrl &&
-        (previewUrl.startsWith("data:") || previewUrl.startsWith("blob:"))
-      ) {
-        setBlobUrl(previewUrl);
-        setIsFetching(false);
-        return;
-      }
-
-      // Determine fetch URL
-      let targetUrl: string | null = null;
-      if (previewUrl) {
-        if (previewUrl.startsWith("http")) {
-          targetUrl = previewUrl;
-        } else {
-          targetUrl = `${getBackendApiRoot()}${previewUrl.startsWith("/") ? "" : "/"}${previewUrl}`;
-        }
-      } else if (canFetch) {
-        targetUrl = `${getBackendApiRoot()}/profile/avatar?cb=${lastSaved}`;
-      }
-
-      if (!targetUrl) {
-        setBlobUrl(null);
-        setIsFetching(false);
-        return;
-      }
-
-      try {
-        const res = await fetch(targetUrl, {
-          headers: getAuthHeaders(),
-        });
-
-        if (!res.ok) {
-          throw new Error(`Avatar fetch returned ${res.status}`);
-        }
-
-        const blob = await res.blob();
-        objectUrl = URL.createObjectURL(blob);
-
-        if (isMounted) {
-          setBlobUrl(objectUrl);
-        }
-      } catch {
-        if (isMounted) {
-          // If fetch with headers failed, fallback to direct previewUrl if it's http
-          if (previewUrl && previewUrl.startsWith("http")) {
-            setBlobUrl(previewUrl);
-          } else {
-            setBlobUrl(null);
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setIsFetching(false);
-        }
-      }
-    };
-
-    fetchAvatar();
-
-    return () => {
-      isMounted = false;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [canFetch, lastSaved, previewUrl]);
-
-  if (isFetching && !blobUrl) {
-    return (
-      <div className={cn("bg-muted/50", className)}>
-        <Skeleton className="h-full w-full rounded-full bg-muted/70" />
-      </div>
-    );
-  }
-
-  if (!blobUrl) {
-    const name = user?.name || "Operator";
-    const initials = name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("") || "OP";
-
-    return (
-      <div
-        role="img"
-        aria-label={`${name} profile picture`}
-        className={cn(
-          "flex items-center justify-center bg-primary text-3xl font-black tracking-widest text-primary-foreground",
-          className,
-        )}
-      >
-        <span aria-hidden="true">{initials}</span>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={blobUrl}
-      alt={`${user?.name || "Operator"} profile picture`}
-      className={cn("object-cover bg-muted", className)}
-    />
-  );
-}
-
 export function GeneralTabClient() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const scopeKey = getWorkspaceScopeKey();
-  const { hasAnyPermission, hasPermission } = usePermissions();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const { hasAnyPermission, hasPermission } = usePermissions();
   const canViewProfile = hasAnyPermission(["view_profile", "edit_profile"]);
   const canEditProfile = hasPermission("edit_profile");
   const canManageStorage = hasPermission("manage_storage");
@@ -210,9 +76,8 @@ export function GeneralTabClient() {
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [avatarPath, setAvatarPath] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [lastSaved, setLastSaved] = useState<number>(Date.now());
+  const [avatarRevision, setAvatarRevision] = useState<number>(Date.now());
+  const [isDragging, setIsDragging] = useState(false);
 
   const { data: user, isLoading: isFetchingUser } = useQuery({
     queryKey: ["authUserProfile", scopeKey],
@@ -225,20 +90,93 @@ export function GeneralTabClient() {
         throw new Error("Failed to fetch user data");
       }
 
-      return res.json();
+      return res.json() as Promise<UserProfile>;
     },
     enabled: canViewProfile,
   });
 
+  const avatarUrl = useAvatarUrl(
+    canViewProfile ? user || null : null,
+    avatarRevision
+  );
+
   useEffect(() => {
     if (!user) return;
-
     setName(user.name || "");
     setEmail(user.email || "");
-    setAvatarPath(user.avatar_path || null);
-    setPreviewUrl(null);
   }, [user]);
 
+  // 1. Direct Avatar File Upload Mutation
+  const uploadAvatarMut = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const authHeaders = getAuthHeaders();
+      const headers: Record<string, string> = { ...authHeaders };
+      delete headers["Content-Type"];
+
+      const res = await fetch(`${getBackendApiRoot()}/profile/avatar`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to upload avatar image.");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success(t("profile.avatar_uploaded", "Profile photo updated successfully!"));
+      setAvatarRevision(Date.now());
+      queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
+      logFrontendAction({
+        module: "Profile Settings",
+        action: "updated",
+        description: "Operator uploaded a new profile picture.",
+      }).catch(() => {});
+    },
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, t("profile.avatar_update_failed", "Failed to upload photo")));
+    },
+  });
+
+  // 2. Remove / Delete Avatar Mutation
+  const deleteAvatarMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${getBackendApiRoot()}/profile/avatar`, {
+        method: "DELETE",
+        headers: getAuthHeaders({
+          Accept: "application/json",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to remove avatar.");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success(t("profile.avatar_removed", "Profile photo removed."));
+      setAvatarRevision(Date.now());
+      queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
+      logFrontendAction({
+        module: "Profile Settings",
+        action: "updated",
+        description: "Operator removed profile picture.",
+      }).catch(() => {});
+    },
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, t("profile.avatar_update_failed", "Failed to remove avatar")));
+    },
+  });
+
+  // 3. Update Basic Information Mutation
   const updateProfileMut = useMutation({
     mutationFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/profile/update`, {
@@ -248,161 +186,293 @@ export function GeneralTabClient() {
           Accept: "application/json",
         }),
         body: JSON.stringify({
-          name,
-          email,
-          ...(avatarPath && { avatar_path: avatarPath }),
+          name: name.trim(),
+          email: email.trim(),
         }),
       });
 
       if (!res.ok) {
-        throw new Error("Failed to update profile");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to update profile information.");
       }
 
       return res.json();
     },
-    onSuccess: (data) => {
-      toast.success("Profile saved successfully!");
-      setPreviewUrl(null);
-      if (data.user?.avatar_path) {
-        setAvatarPath(data.user.avatar_path);
-      }
-      queryClient.setQueryData(["authUserProfile", scopeKey], {
-        ...data.user,
-        avatar_revision: Date.now(),
-      });
+    onSuccess: () => {
+      toast.success(t("profile.saved_success", "Profile details saved successfully!"));
       queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
-      setLastSaved(Date.now());
       logFrontendAction({
-        module: "Profile Update",
+        module: "Profile Settings",
         action: "updated",
-        description: "Updated basic profile.",
+        description: `Updated profile details: ${name} (${email})`,
       }).catch(() => {});
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, "Failed to update profile"));
+      toast.error(getErrorMessage(err, t("global.error", "Failed to update profile details")));
     },
   });
 
-  const handleUpdateProfile = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!canEditProfile) return;
-    updateProfileMut.mutate();
+  // Handle direct native file input
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t("profile.file_too_large", "Image must be smaller than 5MB"));
+      return;
+    }
+    uploadAvatarMut.mutate(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleFileSelect = (file: PickerFile) => {
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (canEditProfile) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
     if (!canEditProfile) return;
 
-    const rawUrl = file?.media_details?.url || file?.url || file?.path;
-    const relativePath = file?.media_details?.relative_path;
-    if (!rawUrl) {
-      toast.error("Error: Could not extract image path from selection.");
-      return;
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (!file.type.startsWith("image/")) {
+        toast.error(t("profile.invalid_image_type", "Please drop an image file (PNG, JPG, WebP)"));
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(t("profile.file_too_large", "Image must be smaller than 5MB"));
+        return;
+      }
+      uploadAvatarMut.mutate(file);
+    }
+  };
+
+  // Handle media library selection
+  const handleMediaPickerSelect = async (file: PickerFile) => {
+    const rawUrl = file.url || file.media_details?.url || "";
+    const relativePath = file.media_details?.relative_path || file.path;
+    const cleanPath = relativePath || (rawUrl.includes("/storage/") ? rawUrl.substring(rawUrl.indexOf("/storage/") + 9) : rawUrl.replace(/^\/+/, ""));
+
+    if (cleanPath) {
+      try {
+        const res = await fetch(`${getBackendApiRoot()}/profile/update`, {
+          method: "POST",
+          headers: getAuthHeaders({
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          }),
+          body: JSON.stringify({
+            avatar_path: cleanPath,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Failed to assign avatar from media library");
+
+        toast.success(t("profile.media_avatar_success", "Profile photo updated from media library!"));
+        setAvatarRevision(Date.now());
+        queryClient.invalidateQueries({ queryKey: ["authUserProfile"] });
+      } catch (err) {
+        toast.error(getErrorMessage(err, t("profile.avatar_update_failed", "Failed to update avatar")));
+      }
     }
 
-    if (!file.media_details?.mime_type?.startsWith("image/")) {
-      toast.error("Select an image file for your profile picture.");
-      return;
-    }
-
-    setAvatarPath(relativePath || extractPathFromUrl(rawUrl));
-    setPreviewUrl(rawUrl);
     setIsFileManagerOpen(false);
-    toast.success("Avatar selected! Click 'Save Protocol' to apply.");
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canEditProfile) return;
+    updateProfileMut.mutate();
   };
 
   if (isFetchingUser) {
     return <ProfileWorkspaceSkeleton />;
   }
 
+  const initials = (name || user?.name || "Operator")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
+  const hasAvatar = Boolean(user?.avatar_path || avatarUrl);
+
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* Hidden native file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+        className="hidden"
+        aria-hidden="true"
+      />
+
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-3 animate-in fade-in duration-300">
+
+        {/* AVATAR UPLOAD CARD */}
         <Card
           id="tour-profile-avatar"
-          className="relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            "relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl transition-all duration-300",
+            isDragging && "ring-2 ring-primary border-primary bg-primary/5"
+          )}
         >
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-          <CardHeader className="text-center">
-            <CardTitle className="text-lg">Operator Avatar</CardTitle>
-            <CardDescription>Update your visual identifier.</CardDescription>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <CardTitle className="text-lg font-bold">
+                {t("profile.photo_title", "Operator Avatar")}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              {t("profile.photo_desc", "Visual identity displayed across topbar, sidebar, and ledgers.")}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6">
-            <div className="group relative rounded-full bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent p-1 transition-colors duration-500 hover:from-primary/40">
-              <div className="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border-4 border-background bg-muted shadow-2xl">
-                <SecureBlobAvatar
-                  user={user}
-                  previewUrl={previewUrl}
-                  lastSaved={lastSaved}
-                  canFetch={canViewProfile}
-                  className="h-full w-full transition-transform duration-500 group-hover:scale-105"
-                />
 
+          <CardContent className="flex flex-col items-center justify-center space-y-5 pb-6">
+            <div className="relative group">
+              <div className="relative h-32 w-32 overflow-hidden rounded-[2.5rem] border-2 border-dashed border-border/80 bg-muted/40 shadow-inner flex items-center justify-center transition-all duration-300 group-hover:border-primary/50">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={name || "Operator"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="font-space text-3xl font-black text-muted-foreground/70 tracking-wider">
+                    {initials}
+                  </span>
+                )}
+
+                {/* Upload Overlay on Hover */}
                 {canEditProfile && (
-                  <button
-                    type="button"
-                    onClick={() => setIsFileManagerOpen(true)}
-                    className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center bg-black/60 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 cursor-pointer text-primary"
                   >
-                    <Upload className="mb-1 h-8 w-8 animate-bounce" />
-                    <span className="text-xs font-bold uppercase tracking-widest">
-                      Change
+                    <Upload className="h-6 w-6 animate-bounce" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                      {t("profile.upload_photo_btn", "Upload New Photo")}
                     </span>
-                  </button>
+                  </div>
                 )}
               </div>
-
-              {previewUrl && (
-                <div className="absolute bottom-2 right-2 rounded-full bg-emerald-500 p-1 text-white shadow-lg ring-4 ring-background animate-in zoom-in">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-              )}
             </div>
 
-            {previewUrl && (
-              <p className="text-center text-xs font-bold text-amber-500 animate-pulse">
-                Unsaved changes! Click Save Protocol.
-              </p>
+            {/* Quick Action Buttons */}
+            {canEditProfile && (
+              <div className="flex flex-col w-full gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadAvatarMut.isPending}
+                  className="w-full h-10 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-2" />
+                  {t("profile.upload_photo_btn", "Upload New Photo")}
+                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsFileManagerOpen(true)}
+                    disabled={uploadAvatarMut.isPending || !canBrowseAvatarLibrary}
+                    className="flex-1 h-9 rounded-xl text-xs font-bold border-border/60 hover:bg-muted/80 cursor-pointer"
+                  >
+                    <FolderOpen className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    {t("profile.browse_media_btn", "Library")}
+                  </Button>
+
+                  {hasAvatar && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => deleteAvatarMut.mutate()}
+                      disabled={deleteAvatarMut.isPending || uploadAvatarMut.isPending}
+                      className="h-9 px-3 rounded-xl text-xs font-bold border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 cursor-pointer"
+                    >
+                      {deleteAvatarMut.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
             )}
+
+            <p className="text-center text-[11px] text-muted-foreground">
+              {t("profile.avatar_tip", "Supports PNG, JPG, or WebP up to 5MB. Drag & drop supported.")}
+            </p>
           </CardContent>
         </Card>
 
+        {/* BASIC INFORMATION CARD */}
         <Card
           id="tour-profile-info"
           className="relative col-span-1 overflow-hidden border-border/50 bg-card/40 shadow-sm backdrop-blur-xl md:col-span-2"
         >
           <CardHeader>
-            <CardTitle className="text-lg">Basic Information</CardTitle>
-            <CardDescription>
-              Update your contact details and registered name.
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-primary" />
+              <CardTitle className="text-lg font-bold">
+                {t("profile.basic_info_title", "Basic Information")}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              {t("profile.basic_info_desc", "Update your registered operator name and identity address.")}
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
+            <form onSubmit={handleFormSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+
+                {/* Full Name */}
                 <div className="space-y-2.5">
                   <Label
                     htmlFor="name"
                     className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
                   >
-                    Full Name
+                    {t("profile.full_name_label", "Full Name")}
                   </Label>
                   <Input
                     id="name"
                     autoComplete="name"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder="E.g. Sarah Connor"
+                    placeholder={t("profile.name_placeholder", "E.g. Sarah Connor")}
                     required
                     disabled={!canEditProfile}
-                    className="h-12 rounded-xl bg-muted/30 focus-visible:ring-primary"
+                    className="h-12 rounded-xl bg-muted/30 focus-visible:ring-primary font-medium"
                   />
                 </div>
+
+                {/* Email Address */}
                 <div className="space-y-2.5">
                   <Label
                     htmlFor="email"
                     className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
                   >
-                    Encrypted Email
+                    {t("profile.email_label", "Encrypted Email Address")}
                   </Label>
                   <Input
                     id="email"
@@ -413,32 +483,30 @@ export function GeneralTabClient() {
                     placeholder="operator@system.os"
                     required
                     disabled={!canEditProfile}
-                    className="h-12 rounded-xl bg-muted/30 focus-visible:ring-primary"
+                    className="h-12 rounded-xl bg-muted/30 focus-visible:ring-primary font-medium"
                   />
                 </div>
               </div>
 
               {!canEditProfile && (
                 <p className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                  Profile editing is locked for your current role. You can
-                  review your details here, but changes require the{" "}
-                  <strong className="text-foreground">edit_profile</strong>{" "}
-                  permission.
+                  {t("profile.role_locked_desc", "Profile editing is locked for your current role. Changes require the edit_profile permission.")}
                 </p>
               )}
 
+              {/* Form Action Button */}
               <div className="flex justify-end border-t border-border/40 pt-4">
                 <Button
                   type="submit"
                   disabled={updateProfileMut.isPending || !canEditProfile}
-                  className="h-12 rounded-xl bg-primary px-8 font-bold text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)_/_0.3)] transition-all hover:scale-[1.02] hover:bg-primary/90"
+                  className="h-12 rounded-xl bg-primary px-8 font-bold text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)_/_0.3)] transition-all hover:scale-[1.02] hover:bg-primary/90 cursor-pointer"
                 >
                   {updateProfileMut.isPending ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   ) : (
                     <Shield className="mr-2 h-5 w-5" />
                   )}
-                  Save Protocol
+                  {t("profile.save_btn", "Save Details")}
                 </Button>
               </div>
             </form>
@@ -446,19 +514,22 @@ export function GeneralTabClient() {
         </Card>
       </div>
 
+      {/* Media Library Dialog */}
       <Dialog open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen}>
         <DialogContent className="flex h-[85vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden rounded-[2.5rem] border-border/50 bg-background p-0 shadow-2xl">
-          <DialogTitle className="sr-only">Select Profile Picture</DialogTitle>
+          <DialogTitle className="sr-only">
+            {t("profile.select_picture_title", "Select Profile Picture")}
+          </DialogTitle>
           <div className="z-10 flex shrink-0 items-center gap-4 border-b border-border/50 bg-card/60 px-8 py-5 backdrop-blur-xl">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 shadow-inner">
               <ImageIcon className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h2 className="text-xl font-black tracking-tight text-foreground">
-                Select Profile Picture
+                {t("profile.select_picture_title", "Select Profile Picture")}
               </h2>
               <p className="mt-0.5 text-xs font-medium text-muted-foreground">
-                Browse existing media or upload if your storage role allows it.
+                {t("profile.select_picture_desc", "Browse existing media or select from your storage repository.")}
               </p>
             </div>
           </div>
@@ -473,7 +544,7 @@ export function GeneralTabClient() {
             />
             <FileManagerClient
               isPickerMode={true}
-              onFileSelect={handleFileSelect}
+              onFileSelect={handleMediaPickerSelect}
               acceptedFileTypes="image/*"
               acceptedFileDescription="an image file"
               access={{

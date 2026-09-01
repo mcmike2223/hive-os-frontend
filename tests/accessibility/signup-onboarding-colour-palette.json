@@ -1,0 +1,154 @@
+{
+  "checks": [
+    {
+      "id": "light-body-text",
+      "foreground": "hsl(240, 10%, 3.9%)",
+      "background": "hsl(40, 20%, 99%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-muted-text",
+      "foreground": "hsl(240, 3.8%, 46.1%)",
+      "background": "hsl(40, 20%, 99%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-primary-text",
+      "foreground": "hsl(162, 94%, 24%)",
+      "background": "hsl(40, 20%, 99%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-primary-button-label",
+      "foreground": "#ffffff",
+      "background": "hsl(162, 94%, 24%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-field-border",
+      "foreground": "hsl(215, 16%, 47%)",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "light-focus-ring",
+      "foreground": "hsl(162, 94%, 24%)",
+      "background": "#ffffff",
+      "type": "ui"
+    },
+    {
+      "id": "light-primary-text-selected-surface",
+      "foreground": "hsl(162, 94%, 24%)",
+      "background": "#e6f1ed",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-slate-plan-text",
+      "foreground": "#64748b",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-sky-plan-text",
+      "foreground": "#0369a1",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-indigo-plan-text",
+      "foreground": "#4338ca",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-violet-plan-text",
+      "foreground": "#6d28d9",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-amber-status-text",
+      "foreground": "#92400e",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-emerald-status-icon",
+      "foreground": "#047857",
+      "background": "#ffffff",
+      "type": "graphic"
+    },
+    {
+      "id": "light-destructive-text",
+      "foreground": "hsl(0, 74%, 42%)",
+      "background": "#ffffff",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-body-text",
+      "foreground": "hsl(0, 0%, 98%)",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-muted-text",
+      "foreground": "hsl(240, 5%, 64.9%)",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-primary-text",
+      "foreground": "hsl(158, 64%, 52%)",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-primary-button-label",
+      "foreground": "hsl(240, 10%, 3.9%)",
+      "background": "hsl(158, 64%, 52%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-field-border",
+      "foreground": "hsl(215, 20%, 65%)",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "ui"
+    },
+    {
+      "id": "dark-focus-ring",
+      "foreground": "hsl(158, 64%, 52%)",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "ui"
+    },
+    {
+      "id": "dark-sky-plan-text",
+      "foreground": "#7dd3fc",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-indigo-plan-text",
+      "foreground": "#a5b4fc",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-violet-plan-text",
+      "foreground": "#c4b5fd",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-amber-status-text",
+      "foreground": "#fcd34d",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-emerald-status-icon",
+      "foreground": "#6ee7b7",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "graphic"
+    }
+  ]
+}

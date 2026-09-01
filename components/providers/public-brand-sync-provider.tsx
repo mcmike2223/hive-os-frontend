@@ -9,7 +9,7 @@ import { formatDocumentTitle } from "@/lib/document-title";
 export function PublicBrandSyncProvider() {
   const workspaceScope = getWorkspaceScopeKey();
 
-  const { data: brandData } = useQuery({
+  const { data: brandData, dataUpdatedAt } = useQuery({
     queryKey: ["publicBrandSettings", workspaceScope],
     queryFn: async () => {
       const res = await fetch(`${getBackendApiRoot()}/settings/brand/public`, {
@@ -43,7 +43,9 @@ export function PublicBrandSyncProvider() {
           link.rel = "icon";
           document.head.appendChild(link);
         }
-        link.href = favUrl;
+        const versionedUrl = new URL(favUrl, window.location.origin);
+        versionedUrl.searchParams.set("brand", String(dataUpdatedAt));
+        link.href = versionedUrl.href;
       }
     }
 
@@ -54,7 +56,7 @@ export function PublicBrandSyncProvider() {
     ) {
       document.title = formatDocumentTitle(brandSettings.app_title);
     }
-  }, [brandSettings]);
+  }, [brandSettings, dataUpdatedAt]);
 
   return null;
 }

@@ -36,6 +36,7 @@ import type {
   TenantPaymentProvider,
   TenantPlanPricing,
   TenantResolvedModuleSubscriptions,
+  SubscriptionBillingPolicy,
   TenantSubscriptionFeatureMatrix,
   TenantSubscriptionFeatureMatrixModule,
   TenantSubscriptionOrder,
@@ -430,7 +431,7 @@ export function TenantSubscriptionsClient() {
   const [selectedModules, setSelectedModules] = React.useState<string[]>([]);
   const [customModules, setCustomModules] = React.useState<TenantCustomModuleInput[]>([]);
   const [checkoutModules, setCheckoutModules] = React.useState<TenantCatalogModule[]>([]);
-  const [checkoutMode, setCheckoutMode] = React.useState<"upgrade" | "renewal">("upgrade");
+  const [checkoutMode, setCheckoutMode] = React.useState<"upgrade" | "renewal" | "activation">("upgrade");
   const handledCheckoutTokenRef = React.useRef<string | null>(null);
   const handledCancelRef = React.useRef<string | null>(null);
 
@@ -524,6 +525,7 @@ export function TenantSubscriptionsClient() {
   const directTransfer: TenantDirectTransferSettings | undefined = data?.data?.direct_transfer ?? publicCatalogData?.data?.direct_transfer;
   const paymentMethods = data?.data?.payment_methods ?? publicCatalogData?.data?.payment_methods ?? [];
   const pendingOrders: TenantSubscriptionOrder[] = data?.data?.pending_orders ?? EMPTY_ORDERS;
+  const billingPolicy: SubscriptionBillingPolicy | undefined = data?.data?.subscription_policy;
   const planMeta = PLAN_META[currentPlan] ?? PLAN_META.business;
   const PlanIcon = planMeta.icon;
 
@@ -561,6 +563,13 @@ export function TenantSubscriptionsClient() {
 
     return basePlanPrice + activePaidAddons;
   }, [catalog, currentPlan, planPricing, serverEnabledModules]);
+  const renewalTotals = React.useMemo(() => ({
+    monthly: renewalEstimate,
+    yearly: renewalEstimate * 12 * (1 - Number(billingPolicy?.yearly_discount_percent ?? 0) / 100),
+  }), [billingPolicy?.yearly_discount_percent, renewalEstimate]);
+  const activationTotals = billingPolicy?.hybrid_activation_amounts_etb?.[currentPlan];
+  const activationOrder = pendingOrders.find((order) => order.scope === "hybrid_activation");
+  const activationUnderReview = activationOrder?.status === "pending_manual_review";
 
   React.useEffect(() => {
     setSelectedModules(prev => areStringListsEqual(prev, serverEnabledModules) ? prev : [...serverEnabledModules]);
@@ -655,8 +664,72 @@ export function TenantSubscriptionsClient() {
     setCheckoutModules(findCatalogModules(catalog, subscriptions?.enabled_modules ?? EMPTY_STRING_LIST));
   }, [catalog, subscriptions?.enabled_modules]);
 
+
+  const handleActivationRequest = React.useCallback(() => {
+    setCheckoutMode("activation");
+    setCheckoutModules(findCatalogModules(catalog, subscriptions?.enabled_modules ?? planDefaults[currentPlan] ?? EMPTY_STRING_LIST));
+  }, [catalog, currentPlan, planDefaults, subscriptions?.enabled_modules]);
   if (isLoading || (catalog.length === 0 && isPublicCatalogLoading)) {
     return <ModulePageSkeleton titleWidth="w-56" subtitleWidth="w-80" rows={5} cols={3} />;
+  }
+
+  if (subscription?.status === "pending_activation") {
+    return (
+      <div className="space-y-6">
+        <section className="overflow-hidden rounded-[2rem] border border-primary/25 bg-gradient-to-br from-primary/10 via-background to-amber-500/10 p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <Badge variant="outline" className="mb-4 rounded-full">Hybrid subscription · {subscription.billing_cycle}</Badge>
+              <h2 className="flex items-center gap-3 text-2xl font-black tracking-tight sm:text-3xl">
+                <Lock aria-hidden="true" className="text-primary" /> Activate your workspace
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+                Your tenant, landing template, plan, modules, and submodules are ready. Complete the private activation payment to unlock them. Gateway confirmation is automatic; direct transfers are reviewed by central administration.
+              </p>
+            </div>
+            <div className="min-w-64 rounded-2xl border bg-background/80 p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Activation amount</p>
+              <p className="mt-2 text-3xl font-black">ETB {Number(activationTotals?.[subscription.billing_cycle] ?? activationOrder?.total_amount_etb ?? 0).toFixed(0)}</p>
+              <p className="mt-1 text-sm capitalize text-muted-foreground">{subscription.billing_cycle} billing</p>
+              <Button type="button" className="mt-5 w-full" onClick={handleActivationRequest} disabled={!canManage || activationUnderReview}>
+                <CreditCard aria-hidden="true" /> {activationUnderReview ? "Awaiting central approval" : "Choose payment method"}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {activationOrder ? (
+          <section className="rounded-2xl border bg-card p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-bold">Activation order</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{activationOrder.payment_channel === "direct_transfer" ? "Direct transfer" : paymentProvider?.label ?? "Gateway"} · {activationOrder.status.replaceAll("_", " ")}</p>
+              </div>
+              {activationOrder.provider_checkout_url && isOrderActive(activationOrder.status) ? (
+                <Button type="button" variant="outline" onClick={() => window.location.assign(activationOrder.provider_checkout_url!)}><ExternalLink aria-hidden="true" /> Resume checkout</Button>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {checkoutModules.length > 0 ? (
+          <ModuleSubscriptionCheckoutDialog
+            open
+            onOpenChange={(open) => { if (!open) setCheckoutModules([]); }}
+            mode="activation"
+            modules={checkoutModules}
+            initialBillingCycle={subscription.billing_cycle}
+            estimatedTotalsByCycle={activationTotals}
+            paymentMethods={paymentMethods}
+            paymentProvider={paymentProvider}
+            directTransfer={directTransfer}
+            title="Activate Tenant Workspace"
+            description="Choose a gateway for automatic confirmation or submit a direct-transfer reference for central approval."
+            onOrderCreated={() => { queryClient.invalidateQueries({ queryKey: ["tenant-current-subscriptions"] }); }}
+          />
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -852,7 +925,9 @@ export function TenantSubscriptionsClient() {
                         ? "Tenant Module Upgrade"
                         : order.scope === "tenant_renewal"
                           ? "Tenant Renewal"
-                          : "Tenant Signup"}
+                          : order.scope === "hybrid_activation"
+                            ? "Hybrid Activation"
+                            : "Tenant Signup"}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">{order.created_at ? `Created ${new Date(order.created_at).toLocaleString()}` : "Created recently"}</p>
                   </div>
@@ -973,12 +1048,16 @@ export function TenantSubscriptionsClient() {
           mode={checkoutMode}
           modules={checkoutModules}
           estimatedTotalOverride={checkoutMode === "renewal" ? renewalEstimate : undefined}
+          estimatedTotalsByCycle={checkoutMode === "renewal" ? renewalTotals : undefined}
+          initialBillingCycle={subscription?.billing_cycle ?? "monthly"}
           paymentMethods={paymentMethods}
           paymentProvider={paymentProvider}
           directTransfer={directTransfer}
-          title={checkoutMode === "renewal" ? "Renew Tenant Subscription" : "Unlock Tenant Modules"}
+          title={checkoutMode === "renewal" ? "Renew Tenant Subscription" : checkoutMode === "activation" ? "Activate Tenant Workspace" : "Unlock Tenant Modules"}
           description={checkoutMode === "renewal"
             ? `Complete checkout with ${paymentProvider?.label ?? "the active payment provider"} or submit a direct transfer to extend the current tenant subscription window.`
+            : checkoutMode === "activation"
+              ? "Complete the private activation payment to unlock your subscribed workspace."
             : `Complete checkout with ${paymentProvider?.label ?? "the active payment provider"} or submit a direct transfer and the selected tenant modules will activate after payment confirmation.`}
           onOrderCreated={() => { queryClient.invalidateQueries({ queryKey: ["tenant-current-subscriptions"] }); }}
         />

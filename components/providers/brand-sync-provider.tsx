@@ -12,7 +12,7 @@ export function BrandSyncProvider() {
     const workspaceScope = getWorkspaceScopeKey();
 
     // 🚀 FETCH PROTECTED BRAND SETTINGS FOR METADATA SYNC
-    const { data: brandData } = useQuery({
+    const { data: brandData, dataUpdatedAt } = useQuery({
       queryKey: ['brandSettings', 'protected', workspaceScope],
       queryFn: async () => {
           const token = getAccessToken();
@@ -25,7 +25,7 @@ export function BrandSyncProvider() {
           if (await handleAuthFailureResponse(res)) {
               return null;
           }
-          
+
           if (!res.ok) throw new Error("Failed to fetch brand settings");
           return res.json();
       },
@@ -52,16 +52,18 @@ export function BrandSyncProvider() {
               link.rel = 'icon';
               document.getElementsByTagName('head')[0].appendChild(link);
             }
-            link.href = favUrl;
+            const versionedUrl = new URL(favUrl, window.location.origin);
+          versionedUrl.searchParams.set("brand", String(dataUpdatedAt));
+          link.href = versionedUrl.href;
         }
       }
-      
+
       // Safely apply Document Title
       if (brandSettings?.app_title) {
           const routeTitle = document.title.split("|")[0]?.trim() || "Dashboard";
           document.title = formatDocumentTitle(routeTitle, brandSettings.app_title);
       }
-    }, [brandSettings]);
+    }, [brandSettings, dataUpdatedAt]);
 
     return null; // This component doesn't render any UI, it just manages the DOM!
 }

@@ -562,7 +562,23 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                       <Input value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Hagenes PLC et" />
                     </Field>
                     <Field label="SKU">
-                      <Input value={form.sku} onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))} placeholder="SKU-001" />
+                      <div className="flex gap-2">
+                        <Input
+                          value={form.sku}
+                          onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
+                          placeholder="e.g. SKU-0001 (Auto-generated)"
+                          className="font-mono font-semibold"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="shrink-0 gap-1 text-xs"
+                          onClick={() => setForm((prev) => ({ ...prev, sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}` }))}
+                          title="Generate new unique SKU"
+                        >
+                          <RefreshCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </Field>
                     <Field label="Stock Code">
                       <Input value={form.stock_code} onChange={(event) => setForm((prev) => ({ ...prev, stock_code: event.target.value }))} placeholder="STK-001" />
@@ -705,9 +721,9 @@ export function ProductFormModal({ open, mode, productId, onClose, onSaved }: Pr
                         </SelectContent>
                       </Select>
                     </Field>
-                    <Field label="Category">
+                    <Field label="Product Category">
                       <Select value={form.product_category_id || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, product_category_id: value === "__none__" ? "" : value }))} onOpenChange={setIsAnySelectOpen}>
-                        <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select product category" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Uncategorized</SelectItem>
                           {(options?.categories ?? []).map((category) => (

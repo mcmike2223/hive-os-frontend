@@ -1,3 +1,6 @@
+import { bindTenantData } from "./landing-data-binder";
+import { getBackendOrigin } from "@/lib/runtime-context";
+
 export type TenantLandingTheme = {
   accent: string;
   accent_soft: string;
@@ -1101,6 +1104,17 @@ const normalizeRuntimeAssetBaseUrl = (value?: string): string => {
     return `${raw.replace(/\/+$/, "")}/`;
   }
 
+  const publicStoragePrefix = "/storage/landing-templates/assets/";
+  if (raw.startsWith(publicStoragePrefix)) {
+    const packagePath = raw.slice(publicStoragePrefix.length).replace(/^\/+|\/+$/g, "");
+    return `${getBackendOrigin()}/api/v1/landing-templates/assets/${packagePath}/`;
+  }
+
+  const publicApiPrefix = "/api/v1/landing-templates/assets/";
+  if (raw.startsWith(publicApiPrefix)) {
+    return `${getBackendOrigin()}${raw.replace(/\/+$/, "")}/`;
+  }
+
   if (!/^[a-zA-Z0-9_./-]+$/.test(raw)) {
     return "";
   }
@@ -1132,8 +1146,23 @@ const interpolateTemplateCode = (
   template: TenantLandingTemplate,
   brandName: string,
   businessLabel: string,
-  options?: { assetBaseUrl?: string; css?: boolean },
+  options?: { assetBaseUrl?: string; css?: boolean; tenantData?: Record<string, any> | null; collections?: Record<string, any[]> | null },
 ): string => {
+  const tenantPayload = {
+    name: options?.tenantData?.name || brandName,
+    tagline: options?.tenantData?.tagline || template.hero.description || template.meta?.template_description || "",
+    description: options?.tenantData?.description || template.meta?.template_description || template.hero.description || "",
+    phone: options?.tenantData?.phone || "+251 91 123 4567",
+    email: options?.tenantData?.email || "contact@example.com",
+    address: options?.tenantData?.address || "Addis Ababa, Ethiopia",
+    business_type: options?.tenantData?.business_type || template.meta?.business_type || "",
+    logo: options?.tenantData?.logo || "",
+    website: options?.tenantData?.website || "",
+    ...options?.tenantData,
+  };
+
+  const bound = bindTenantData(source, tenantPayload, options?.collections || {}, options?.assetBaseUrl ?? "");
+
   const tokenSource = {
     assets: {
       base_url: options?.assetBaseUrl ?? "",
@@ -1153,7 +1182,12 @@ const interpolateTemplateCode = (
     theme: template.theme,
   };
 
-  return source.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_match, token: string) => {
+  return bound.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, token: string) => {
+    const tokenRoot = token.split(".")[0];
+    if (!Object.prototype.hasOwnProperty.call(tokenSource, tokenRoot)) {
+      return match;
+    }
+
     const value = getPathValue(tokenSource, token);
     const stringValue = value === null || value === undefined ? "" : String(value);
 
@@ -1173,22 +1207,22 @@ const buildCustomCodeLandingDocument = (
   template: TenantLandingTemplate,
   brandName: string,
   businessLabel: string,
+  tenantData?: Record<string, any> | null,
+  collections?: Record<string, any[]> | null,
 ): string => {
   const isRawPackage = template.rendering.mode === "raw_package";
   const assetBaseUrl = isRawPackage
     ? normalizeRuntimeAssetBaseUrl(template.rendering.asset_base_url)
     : "";
   const html = sanitizeRuntimeTemplateHtml(
-    interpolateTemplateCode(template.rendering.html, template, brandName, businessLabel, { assetBaseUrl }),
+    interpolateTemplateCode(template.rendering.html, template, brandName, businessLabel, { assetBaseUrl, tenantData, collections }),
   );
   const css = sanitizeRuntimeTemplateCss(
-    interpolateTemplateCode(template.rendering.css, template, brandName, businessLabel, { assetBaseUrl, css: true }),
+    interpolateTemplateCode(template.rendering.css, template, brandName, businessLabel, { assetBaseUrl, css: true, tenantData, collections }),
   );
-  const js = isRawPackage
-    ? sanitizeRuntimeTemplateJs(
-        interpolateTemplateCode(template.rendering.js, template, brandName, businessLabel, { assetBaseUrl }),
-      )
-    : "";
+  const js = sanitizeRuntimeTemplateJs(
+    interpolateTemplateCode(template.rendering.js, template, brandName, businessLabel, { assetBaseUrl, tenantData, collections }),
+  );
   const landingData = isRawPackage
     ? escapeScriptJson({
         assets: {
@@ -1226,7 +1260,7 @@ const buildCustomCodeLandingDocument = (
   <body>
     ${isRawPackage ? `<script>window.HIVE_LANDING_DATA = Object.freeze(${landingData});</script>` : ""}
     ${html}
-    ${isRawPackage && js.trim() ? `<script>${js}</script>` : ""}
+    ${js.trim() ? `<script>${js}</script>` : ""}
   </body>
 </html>`;
 };
@@ -1243,6 +1277,8 @@ export type TenantLandingPreviewBranding = {
 export type TenantLandingPreviewOptions = {
   colorMode?: PreviewColorMode;
   branding?: TenantLandingPreviewBranding | null;
+  tenantData?: Record<string, any> | null;
+  collections?: Record<string, any[]> | null;
 };
 
 const normalizeHexColor = (value: string | null | undefined, fallback: string): string => {
@@ -1336,10 +1372,10 @@ export const buildTenantLandingPreviewHtml = (
     (resolved.rendering.mode === "custom_code" || resolved.rendering.mode === "raw_package")
     && resolved.rendering.html.trim()
   ) {
-    return buildCustomCodeLandingDocument(resolved, previewBrandName, businessLabel);
+    return buildCustomCodeLandingDocument(resolved, previewBrandName, businessLabel, options?.tenantData, options?.collections);
   }
 
-  const accent = normalizeHexColor(branding?.primary_color ?? theme.accent, "#0F766E");
+  const accent = normalizeHexColor(theme.accent, "#0F766E");
   const accentSoft = normalizeHexColor(
     theme.accent_soft,
     isDark ? blendHex(accent, "#0F172A", 0.72) : blendHex(accent, "#FFFFFF", 0.84),

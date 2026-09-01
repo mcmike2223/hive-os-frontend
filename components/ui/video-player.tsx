@@ -34,6 +34,12 @@ export interface VideoChapter {
   label: string;
 }
 
+export interface VideoPlaybackProgress {
+  currentTime: number;
+  duration: number;
+  percent: number;
+}
+
 export interface VideoPlayerProps {
   src: string;                 // HLS, public media, or a protected /files/{id}/serve URL
   nativeSrc?: string;          // Optional direct MP4/protected URL used when HLS playback is unavailable
@@ -52,6 +58,8 @@ export interface VideoPlayerProps {
   playbackRates?: number[];
   skipSeconds?: number;
   adaptiveQualityPending?: boolean;
+  onProgress?: (progress: VideoPlaybackProgress) => void;
+  onComplete?: () => void;
 }
 
 type PiPSupportMode = 'standard' | 'webkit' | 'none';
@@ -166,7 +174,9 @@ export function VideoPlayer({
   rememberProgress = true,
   playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
   skipSeconds = 10,
-  adaptiveQualityPending = false
+  adaptiveQualityPending = false,
+  onProgress,
+  onComplete,
 }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -178,6 +188,7 @@ export function VideoPlayer({
   const hlsRecoveryAttemptRef = useRef(false);
   const pendingStreamSeekRef = useRef<number | null>(null);
   const lastSavedProgressRef = useRef(-1);
+  const lastReportedProgressRef = useRef(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState("0:00");
@@ -224,8 +235,11 @@ export function VideoPlayer({
   const seekAnimTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [localSubtitles, setLocalSubtitles] = useState<SubtitleTrack[]>([]);
-  const subtitlesString = JSON.stringify(subtitles);
-  const orderedChapters = [...chapters].sort((a, b) => a.time - b.time);
+  const subtitlesString = React.useMemo(() => JSON.stringify(subtitles), [subtitles]);
+  const orderedChapters = React.useMemo(
+    () => [...chapters].sort((a, b) => a.time - b.time),
+    [chapters],
+  );
   const activeChapter = orderedChapters.reduce<VideoChapter | null>((current, chapter) => (
     currentSeconds >= chapter.time ? chapter : current
   ), null);
@@ -235,7 +249,10 @@ export function VideoPlayer({
   const progressStorageKey = rememberProgress
     ? `hive-video-progress:${getWorkspaceScopeKey()}:${getProgressIdentity(src, resumeKey)}`
     : null;
-  const availablePlaybackRates = Array.from(new Set(playbackRates)).sort((a, b) => a - b);
+  const availablePlaybackRates = React.useMemo(
+    () => Array.from(new Set(playbackRates)).sort((a, b) => a - b),
+    [playbackRates],
+  );
   const isHlsSource = HLS_PLAYLIST_PATTERN.test(src);
   const hasSelectableDirectQualities = !isHlsSource && qualityLevels.length > 1;
   const canChooseQuality = isHlsSource || hasSelectableDirectQualities || adaptiveQualityPending;
@@ -315,6 +332,7 @@ export function VideoPlayer({
     const objectUrls: string[] = [];
 
     const loadSubtitlesAsBlobs = async () => {
+      setActiveSubtitle(-1);
       const processedSubs = await Promise.all(
         subtitles.map(async (sub) => {
           try {
@@ -367,6 +385,7 @@ export function VideoPlayer({
 
     streamRefreshAttemptRef.current = false;
     hlsRecoveryAttemptRef.current = false;
+    lastReportedProgressRef.current = -1;
     setAuthorizedSrc('');
     setAuthorizedNativeSrc(undefined);
     setHasError(false);
@@ -407,6 +426,21 @@ export function VideoPlayer({
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [progressStorageKey]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  useEffect(() => () => {
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+    if (playAnimTimeoutRef.current) clearTimeout(playAnimTimeoutRef.current);
+    if (seekAnimTimeoutRef.current) clearTimeout(seekAnimTimeoutRef.current);
+  }, []);
 
   const videoVersionsString = JSON.stringify(videoVersions);
 
@@ -494,6 +528,11 @@ export function VideoPlayer({
       if (Hls.isSupported()) {
         const hls = new Hls({
           renderTextTracksNatively: true,
+          enableWorker: true,
+          capLevelToPlayerSize: true,
+          backBufferLength: 90,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
           xhrSetup: (xhr) => {
             const headers = buildPlayerRequestHeaders(authToken);
 
@@ -511,7 +550,9 @@ export function VideoPlayer({
            hlsRecoveryAttemptRef.current = false;
            setQualityLevels(data.levels);
         });
-        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => setActiveQuality(data.level));
+        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+          setActiveQuality(hls.autoLevelEnabled ? -1 : data.level);
+        });
         hls.on(Hls.Events.ERROR, (event, data) => {
            if (data.fatal) {
              switch(data.type) {
@@ -832,6 +873,16 @@ export function VideoPlayer({
       );
       if (!playerOwnsFocus) return;
 
+      if (e.key === 'Escape' && (showSpeed || showQuality || showCC || showChapters || showShortcuts)) {
+        e.preventDefault();
+        setShowSpeed(false);
+        setShowQuality(false);
+        setShowCC(false);
+        setShowChapters(false);
+        setShowShortcuts(false);
+        return;
+      }
+
       const target = e.target as HTMLElement | null;
       if (
         target instanceof HTMLInputElement ||
@@ -862,8 +913,8 @@ export function VideoPlayer({
         case 'l': e.preventDefault(); seekBy(skipSeconds); break;
         case 'f': e.preventDefault(); toggleFullscreen(); break;
         case 'm': e.preventDefault(); toggleMute(); break;
-        case 'arrowright': e.preventDefault(); videoRef.current.currentTime += 5; break;
-        case 'arrowleft': e.preventDefault(); videoRef.current.currentTime -= 5; break;
+        case 'arrowright': e.preventDefault(); seekBy(5); break;
+        case 'arrowleft': e.preventDefault(); seekBy(-5); break;
         case 'arrowup': 
           e.preventDefault(); 
           const newVolUp = Math.min(1, volume + 0.05);
@@ -878,7 +929,10 @@ export function VideoPlayer({
           videoRef.current.volume = newVolDown;
           if (newVolDown === 0) { setIsMuted(true); videoRef.current.muted = true; }
           break;
-        case 'c': e.preventDefault(); setShowCC(prev => !prev); break;
+        case 'c':
+          e.preventDefault();
+          if (localSubtitles.length > 0) setActiveSubtitle((current) => current === -1 ? 0 : -1);
+          break;
         case 'i': e.preventDefault(); togglePiP(); break;
         case 'o': e.preventDefault(); togglePiP(); break;
         case 'n': e.preventDefault(); jumpRelativeChapter(1); break;
@@ -888,7 +942,7 @@ export function VideoPlayer({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, orderedChapters.length, showCC, skipSeconds, volume]);
+  }, [isFullscreen, localSubtitles.length, orderedChapters.length, showCC, showChapters, showQuality, showShortcuts, showSpeed, skipSeconds, volume]);
 
   const handleMouseMove = () => {
     setShowControls(true);
@@ -922,6 +976,12 @@ export function VideoPlayer({
     setDurationSeconds(nextDuration);
     setProgress(nextDuration ? (nextCurrentTime / nextDuration) * 100 : 0);
     setCurrentTime(formatTime(nextCurrentTime));
+
+    const roundedSeconds = Math.floor(nextCurrentTime);
+    if (onProgress && roundedSeconds !== lastReportedProgressRef.current && roundedSeconds % 5 === 0) {
+      lastReportedProgressRef.current = roundedSeconds;
+      onProgress({ currentTime: nextCurrentTime, duration: nextDuration, percent: nextDuration ? (nextCurrentTime / nextDuration) * 100 : 0 });
+    }
 
     if (progressStorageKey && Math.floor(nextCurrentTime) % 5 === 0) {
       persistProgress(nextCurrentTime, nextDuration);
@@ -969,7 +1029,7 @@ export function VideoPlayer({
   };
 
   const toggleMute = () => {
-    const newMuted = !isMuted;
+    const newMuted = !(videoRef.current?.muted ?? isMuted);
     setIsMuted(newMuted);
     if (videoRef.current) videoRef.current.muted = newMuted;
   };
@@ -1040,9 +1100,6 @@ export function VideoPlayer({
           const currentPos = video.currentTime;
           const wasPlaying = !video.paused;
 
-          video.src = authorizedQualitySource;
-          video.load();
-
           const restorePlayback = () => {
               video.removeEventListener('loadedmetadata', restorePlayback);
               video.currentTime = Math.min(currentPos, video.duration || currentPos);
@@ -1052,6 +1109,8 @@ export function VideoPlayer({
           };
 
           video.addEventListener('loadedmetadata', restorePlayback);
+          video.src = authorizedQualitySource;
+          video.load();
 
           setActiveQuality(levelIndex);
           setShowQuality(false);
@@ -1088,7 +1147,7 @@ export function VideoPlayer({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative group bg-black overflow-hidden flex items-center justify-center w-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white [&_button]:min-h-11 [&_button]:min-w-11 [&_button]:touch-manipulation [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-white [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-offset-black",
+        "relative isolate [contain:layout_paint] group bg-black overflow-hidden flex items-center justify-center w-full transition-[border-radius,box-shadow] duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white [&_button]:min-h-11 [&_button]:min-w-11 [&_button]:touch-manipulation [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-white [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-offset-black",
         isFullscreen ? "rounded-none border-none" : "rounded-[2rem] border border-border/50 shadow-inner",
         cursorStateClass,
         className
@@ -1119,7 +1178,7 @@ export function VideoPlayer({
       )}
 
       {isBuffering && !hasError && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/75 pointer-events-none">
           <Loader2 className="h-10 w-10 text-primary animate-spin drop-shadow-[0_0_15px_hsl(var(--primary)/0.5)]" />
         </div>
       )}
@@ -1134,13 +1193,13 @@ export function VideoPlayer({
 
       {!isPlaying && !isBuffering && !hasError && (
         <div 
-            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/30 backdrop-blur-[2px] transition-all hover:bg-black/10"
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition-colors hover:bg-black/25"
         >
             <button
                 type="button"
                 onClick={togglePlay}
                 aria-label="Play video"
-                className="pointer-events-auto h-20 w-20 bg-primary/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-[0_0_40px_hsl(var(--primary)_/_0.4)] border border-primary/50 transition-transform duration-300 hover:scale-110 hover:shadow-[0_0_60px_hsl(var(--primary)_/_0.6)]"
+                className="pointer-events-auto h-20 w-20 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_40px_hsl(var(--primary)_/_0.4)] border border-primary/50 transition-transform duration-300 hover:scale-110 hover:shadow-[0_0_60px_hsl(var(--primary)_/_0.6)]"
             >
                 <Play className="h-10 w-10 text-primary-foreground fill-primary-foreground ml-1" />
             </button>
@@ -1148,7 +1207,7 @@ export function VideoPlayer({
       )}
 
       {resumeAt !== null && !isPlaying && !isBuffering && !hasError && (
-        <div className="absolute left-1/2 top-20 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 text-white shadow-xl backdrop-blur-md">
+        <div className="absolute left-1/2 top-20 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/90 px-3 py-2 text-white shadow-xl">
           <span className="text-xs font-bold">Resume from {formatTime(resumeAt)}</span>
           <button
             type="button"
@@ -1178,7 +1237,7 @@ export function VideoPlayer({
       )}
 
       {showShortcuts && !hasError && (
-        <div className="absolute right-4 top-4 z-30 w-[min(24rem,calc(100%-2rem))] rounded-3xl border border-white/10 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-xl">
+        <div className="absolute right-4 top-4 z-30 w-[min(24rem,calc(100%-2rem))] rounded-3xl border border-white/10 bg-black/95 p-4 text-white shadow-2xl">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/55">Keyboard Shortcuts</p>
@@ -1227,12 +1286,12 @@ export function VideoPlayer({
         showPlayAnim || showPauseAnim ? "opacity-100" : "opacity-0"
       )}>
         {showPlayAnim && (
-          <div className="bg-black/60 backdrop-blur-sm rounded-full p-6 animate-out fade-out zoom-out-50 duration-500 fill-mode-forwards text-white drop-shadow-xl scale-150">
+          <div className="bg-black/80 rounded-full p-6 animate-out fade-out zoom-out-50 duration-500 fill-mode-forwards text-white drop-shadow-xl scale-150">
             <Play className="h-10 w-10 fill-current ml-1" />
           </div>
         )}
         {showPauseAnim && (
-          <div className="bg-black/60 backdrop-blur-sm rounded-full p-6 animate-out fade-out zoom-out-50 duration-500 fill-mode-forwards text-white drop-shadow-xl scale-150">
+          <div className="bg-black/80 rounded-full p-6 animate-out fade-out zoom-out-50 duration-500 fill-mode-forwards text-white drop-shadow-xl scale-150">
             <Pause className="h-10 w-10 fill-current" />
           </div>
         )}
@@ -1265,7 +1324,7 @@ export function VideoPlayer({
             }}
             disabled={isPiPBusy}
             className={cn(
-              "flex items-center gap-2 rounded-full border border-white/10 bg-black/65 px-4 py-2 text-xs font-black text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-black/80",
+              "flex items-center gap-2 rounded-full border border-white/10 bg-black/90 px-4 py-2 text-xs font-black text-white shadow-xl transition-all hover:scale-105 hover:bg-black/80",
               isPiPBusy && "cursor-wait opacity-70",
               isPiPMode && "border-primary/40 text-primary"
             )}
@@ -1280,7 +1339,7 @@ export function VideoPlayer({
       {/* Double Click Seek Animations */}
       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center justify-between px-10 sm:px-20 overflow-hidden">
         <div className={cn(
-          "flex flex-col items-center bg-black/40 backdrop-blur-sm rounded-full p-5 text-white transition-all duration-300",
+          "flex flex-col items-center bg-black/75 rounded-full p-5 text-white transition-all duration-300",
           seekAnimDir === 'backward' ? "opacity-100 animate-in fade-in slide-in-from-right-8 scale-110" : "opacity-0 translate-x-12"
         )}>
           <SkipBack className="h-8 w-8 mb-1 fill-current" />
@@ -1288,7 +1347,7 @@ export function VideoPlayer({
         </div>
         
         <div className={cn(
-          "flex flex-col items-center bg-black/40 backdrop-blur-sm rounded-full p-5 text-white transition-all duration-300",
+          "flex flex-col items-center bg-black/75 rounded-full p-5 text-white transition-all duration-300",
           seekAnimDir === 'forward' ? "opacity-100 animate-in fade-in slide-in-from-left-8 scale-110" : "opacity-0 -translate-x-12"
         )}>
           <SkipForward className="h-8 w-8 mb-1 fill-current" />
@@ -1301,7 +1360,7 @@ export function VideoPlayer({
         poster={poster}
         preload="metadata"
         loop={isLooping}
-        className={cn("w-full max-h-[100vh] object-contain", hasError && "opacity-0")}
+        className={cn("block w-full max-h-[100vh] object-contain [backface-visibility:hidden]", hasError && "opacity-0")}
         onClick={handleVideoClick}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={() => {
@@ -1328,6 +1387,9 @@ export function VideoPlayer({
             return;
           }
           clearSavedProgress();
+          const video = videoRef.current;
+          if (video && onProgress) onProgress({ currentTime: video.duration, duration: video.duration, percent: 100 });
+          onComplete?.();
           if (onNext) onNext();
         }}
         playsInline
@@ -1370,7 +1432,7 @@ export function VideoPlayer({
                   onMouseLeave={handleProgressMouseLeave}
                   aria-label="Video position"
                   aria-valuetext={`${currentTime} of ${duration}`}
-                  className="w-full h-1.5 bg-white/20 rounded-full appearance-none accent-primary hover:h-2.5 transition-all duration-300 z-10 relative shadow-[0_0_10px_hsl(var(--primary)_/_0.5)] !cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
+                  className="w-full h-1.5 bg-white/20 rounded-full appearance-none accent-primary transition-colors duration-200 hover:bg-white/30 z-10 relative shadow-[0_0_10px_hsl(var(--primary)_/_0.5)] !cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
                 />
               </div>
               <button
@@ -1384,12 +1446,14 @@ export function VideoPlayer({
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1 sm:gap-3">
                 
-                <button type="button" onClick={onPrevious} disabled={!onPrevious} aria-label="Previous video" className={cn("transition-colors", onPrevious ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed")} title="Previous">
-                  <SkipBack className="h-5 w-5 fill-current" />
-                </button>
+                {onPrevious && (
+                  <button type="button" onClick={onPrevious} aria-label="Previous video" className="text-white/80 transition-colors hover:text-white" title="Previous">
+                    <SkipBack className="h-5 w-5 fill-current" />
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -1415,11 +1479,13 @@ export function VideoPlayer({
                   <RotateCw className="h-5 w-5" />
                 </button>
 
-                <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next video" className={cn("transition-colors", onNext ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed")} title="Next">
-                  <SkipForward className="h-5 w-5 fill-current" />
-                </button>
+                {onNext && (
+                  <button type="button" onClick={onNext} aria-label="Next video" className="text-white/80 transition-colors hover:text-white" title="Next">
+                    <SkipForward className="h-5 w-5 fill-current" />
+                  </button>
+                )}
 
-                <div className="flex items-center gap-2 group/vol ml-4">
+                <div className="flex items-center gap-1 sm:ml-2 sm:gap-2 group/vol">
                   <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute video" : "Mute video"} className="text-white hover:text-primary transition-colors" title={isMuted ? "Unmute (m)" : "Mute (m)"}>
                     {isMuted || volume === 0 ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
                   </button>
@@ -1432,12 +1498,12 @@ export function VideoPlayer({
                     }}
                     aria-label="Video volume"
                     aria-valuetext={`${Math.round((isMuted ? 0 : volume) * 100)} percent`}
-                    className="w-16 sm:w-20 opacity-100 h-1.5 bg-white/20 rounded-full appearance-none accent-primary transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="hidden w-16 opacity-100 h-1.5 bg-white/20 rounded-full appearance-none accent-primary transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:block sm:w-20"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-5 relative">
+              <div className="relative flex min-w-0 items-center gap-1 sm:gap-3">
 
                 {orderedChapters.length > 0 && (
                   <div className="relative">
@@ -1452,7 +1518,7 @@ export function VideoPlayer({
                       <ListVideo className="h-6 w-6" />
                     </button>
                     {showChapters && (
-                      <div className="absolute bottom-full right-0 mb-4 w-56 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
+                      <div className="absolute bottom-full right-0 mb-4 w-56 bg-background/95 border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
                         <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2 mb-1">
                           <h4 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Chapters</h4>
                           <div className="flex items-center gap-1">
@@ -1498,7 +1564,7 @@ export function VideoPlayer({
                       <Subtitles className="h-6 w-6" />
                     </button>
                     {showCC && (
-                      <div className="absolute bottom-full right-0 mb-4 w-44 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
+                      <div className="absolute bottom-full right-0 mb-4 w-44 bg-background/95 border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
                         <h4 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Subtitles</h4>
                         <button type="button" onClick={() => { setActiveSubtitle(-1); setShowCC(false); }} className="flex items-center justify-between px-3 py-2 text-xs font-bold text-foreground hover:bg-muted/80 rounded-xl transition-colors">
                           Off {activeSubtitle === -1 && <Check className="h-4 w-4 text-primary" />}
@@ -1528,7 +1594,7 @@ export function VideoPlayer({
                       ) : null}
                     </button>
                     {showQuality && (
-                      <div className="absolute bottom-full right-0 mb-4 w-44 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
+                      <div className="absolute bottom-full right-0 mb-4 w-44 bg-background/95 border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
                         <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Quality</h4>
                         
                         {isHlsSource ? (
@@ -1572,7 +1638,7 @@ export function VideoPlayer({
                     <Gauge className="h-6 w-6" />
                   </button>
                   {showSpeed && (
-                    <div className="absolute bottom-full right-0 mb-4 w-40 bg-background/90 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full right-0 mb-4 w-40 bg-background/95 border border-border/50 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-bottom-2">
                       <h4 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-3 py-2 mb-1 border-b border-border/50">Speed</h4>
                       {availablePlaybackRates.map((rate) => (
                         <button type="button" key={rate} onClick={() => changePlaybackRate(rate)} className="flex items-center justify-between px-3 py-2 text-xs font-bold text-foreground hover:bg-muted/80 rounded-xl transition-colors">

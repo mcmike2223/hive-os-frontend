@@ -3,7 +3,7 @@ import type { FrontendModuleDefinition } from "@/modules/types";
 
 export const subscriptionModule: FrontendModuleDefinition = {
   id: "subscription",
-  name: "Subscription",
+  name: "Subscriptions & Billing",
   description: "Tenant subscription management, renewals, and module access controls.",
   backendModule: "Modules\\Subscription",
   routePrefixes: ["/dashboard/subscriptions"],
@@ -11,10 +11,10 @@ export const subscriptionModule: FrontendModuleDefinition = {
     {
       moduleId: "subscription",
       translationKey: "nav.subscriptions",
-      fallbackLabel: "Module Subscriptions",
+      fallbackLabel: "Subscriptions & Billing",
       href: "/dashboard/subscriptions",
       icon: Layers,
-      permissions: ["view_module_subscriptions", "manage_module_subscriptions"],
+      permissions: ["view_module_subscriptions", "manage_module_subscriptions", "view_tenants", "manage_tenants", "provision_tenants"],
       tourId: "tour-nav-subscriptions",
       placement: "primary",
     },

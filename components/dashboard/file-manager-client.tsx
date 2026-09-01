@@ -149,6 +149,8 @@ type FileManagerMediaDetails = {
   human_size?: string;
   download_name?: string;
   url?: string;
+  public_url?: string;
+  signed_url?: string;
   thumbnail?: string;
   hls_path?: string;
   artist?: string;
@@ -163,6 +165,8 @@ type ModuleCheckoutError = Error & {
 type FileManagerFolder = {
   id: number;
   name: string;
+  parent_id?: number | null;
+  path?: string;
   created_at: string;
 };
 
@@ -172,6 +176,7 @@ type FileManagerFile = {
   created_at: string;
   media_details?: FileManagerMediaDetails;
   url?: string;
+  public_url?: string;
   path?: string;
 };
 
@@ -753,7 +758,7 @@ export function FileManagerClient({
   const [newName, setNewName] = React.useState("");
   const [isMoveModalOpen, setIsMoveModalOpen] = React.useState(false);
   const [moveTargetFolder, setMoveTargetFolder] =
-    React.useState<string>("root");
+    React.useState<string>("");
   const [itemsToMove, setItemsToMove] = React.useState<
     { type: "file" | "folder"; id: number }[]
   >([]);
@@ -840,6 +845,25 @@ export function FileManagerClient({
   const folderItems = React.useMemo(
     () => toCollectionItems<FileManagerFolder>(data?.data?.folders),
     [data?.data?.folders],
+  );
+
+  const { data: moveDestinationsData, isLoading: moveDestinationsLoading } =
+    useQuery({
+      queryKey: ["file-move-destinations"],
+      queryFn: async () => {
+        const res = await fetch(
+          `${getBackendApiRoot()}/files/move-destinations`,
+          { headers: getAuthHeaders() },
+        );
+        if (!res.ok) throw new Error("Failed to load destination folders");
+        return res.json();
+      },
+      enabled: canManage && isMoveModalOpen,
+    });
+
+  const moveDestinations = React.useMemo(
+    () => (moveDestinationsData?.folders || []) as FileManagerFolder[],
+    [moveDestinationsData?.folders],
   );
   const fileItems = React.useMemo(
     () => toCollectionItems<FileManagerFile>(data?.data?.files),
@@ -945,7 +969,14 @@ export function FileManagerClient({
           destination_folder_id: destId,
         }),
       });
-      if (!res.ok) throw new Error("Failed to move items");
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        const message =
+          error?.errors?.destination_folder_id?.[0] ||
+          error?.message ||
+          "Failed to move items";
+        throw new Error(message);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -955,7 +986,7 @@ export function FileManagerClient({
       setSelectedItems([]);
     },
     onError: (err: unknown) =>
-      toast.error(getErrorMessage(err, "Failed to rename item")),
+      toast.error(getErrorMessage(err, "Failed to move items")),
   });
 
   const emptyTrashMut = useMutation({
@@ -1014,7 +1045,10 @@ export function FileManagerClient({
         `${getBackendApiRoot()}/files/${type}/${id}/share`,
         { method: "POST", headers: getAuthHeaders() },
       );
-      if (!res.ok) throw new Error("Failed to generate link");
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.message || "Failed to generate link");
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -1525,7 +1559,7 @@ export function FileManagerClient({
   const openMoveModal = (items: { type: "file" | "folder"; id: number }[]) => {
     if (!canManage) return;
     setItemsToMove(items);
-    setMoveTargetFolder(currentFolderId ? currentFolderId.toString() : "root");
+    setMoveTargetFolder("");
     setIsMoveModalOpen(true);
   };
 
@@ -3002,33 +3036,46 @@ export function FileManagerClient({
             <DialogTitle>Move Items</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block mb-2">
-              Destination Folder
+            <label
+              htmlFor="move-destination-folder"
+              className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block mb-2"
+            >
+              Destination Folder <span aria-hidden="true">*</span>
             </label>
             <select
+              id="move-destination-folder"
+              aria-describedby="move-destination-help"
+              required
               value={moveTargetFolder}
               onChange={(e) => setMoveTargetFolder(e.target.value)}
-              className="w-full bg-muted/30 border border-border/50 h-12 rounded-xl text-sm px-3 focus:ring-2 focus:ring-emerald-500 outline-none truncate font-medium"
+              className="w-full bg-muted/30 border border-foreground/50 h-12 rounded-xl text-sm px-3 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 outline-none truncate font-medium"
             >
+              <option value="" disabled>
+                {moveDestinationsLoading
+                  ? "Loading destinations…"
+                  : "Select a destination"}
+              </option>
               <option value="root">Root Directory</option>
-              {/* Ensure we aren't allowing a user to move a folder into itself */}
-              {folderItems.map((f) => {
+              {moveDestinations.map((folder) => {
                 const isMovingSelf = itemsToMove.some(
-                  (i) => i.type === "folder" && i.id === f.id,
+                  (item) => item.type === "folder" && item.id === folder.id,
                 );
                 return (
                   <option
-                    key={f.id}
-                    value={f.id.toString()}
+                    key={folder.id}
+                    value={folder.id.toString()}
                     disabled={isMovingSelf}
                   >
-                    {isMovingSelf ? `🚫 ` : `📁 `} {f.name}
+                    {folder.path || folder.name}
                   </option>
                 );
               })}
             </select>
-            <p className="text-xs text-muted-foreground mt-3">
-              Moving {itemsToMove.length} item(s).
+            <p
+              id="move-destination-help"
+              className="text-xs text-muted-foreground mt-3"
+            >
+              Choose a different folder for {itemsToMove.length} selected item(s).
             </p>
           </div>
           <DialogFooter className="gap-2 sm:justify-end">
@@ -3040,7 +3087,11 @@ export function FileManagerClient({
               Cancel
             </Button>
             <Button
-              disabled={moveItemsMut.isPending}
+              disabled={
+                moveItemsMut.isPending ||
+                moveDestinationsLoading ||
+                moveTargetFolder === ""
+              }
               onClick={() => moveItemsMut.mutate()}
               className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400 font-bold rounded-xl px-6"
             >
@@ -3369,12 +3420,12 @@ export function FileManagerClient({
                                   subtitleInputRef.current?.click()
                                 }
                               >
-                                <Type className="h-4 w-4 mr-2" /> Attach .vtt
-                                File
+                                <Type className="h-4 w-4 mr-2" /> Add subtitle
+                                file
                               </Button>
                               <input
                                 type="file"
-                                accept=".vtt"
+                                accept=".vtt,.srt,.ass,.ssa,.sub,.sbv,.ttml,.dfxp"
                                 className="hidden"
                                 ref={subtitleInputRef}
                                 onChange={handleSubtitleSelect}
@@ -3518,8 +3569,8 @@ export function FileManagerClient({
                   <DialogTitle className="text-xl truncate">
                     Configure Subtitle
                   </DialogTitle>
-                  <DialogDescription className="text-xs truncate">
-                    Set language and label for your caption track.
+                  <DialogDescription className="text-xs leading-5">
+                    Upload a common subtitle format; Hive converts it to WebVTT automatically.
                   </DialogDescription>
                 </div>
               </div>
@@ -3536,13 +3587,17 @@ export function FileManagerClient({
                   {subtitleFile?.name || "No file selected"}
                 </span>
               </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Supported: VTT, SRT, ASS, SSA, SUB, SBV, TTML, and DFXP. Maximum 2 MB.
+              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
               <div className="space-y-1.5 min-w-0">
-                <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
+                <label htmlFor="subtitle-language" className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
                   Language Code
                 </label>
                 <select
+                  id="subtitle-language"
                   value={subtitleLang}
                   onChange={(e) => setSubtitleLang(e.target.value)}
                   className="w-full bg-background border border-border/50 h-10 rounded-xl text-sm px-3 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -3556,10 +3611,11 @@ export function FileManagerClient({
                 </select>
               </div>
               <div className="space-y-1.5 min-w-0">
-                <label className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
+                <label htmlFor="subtitle-display-label" className="text-[11px] font-black tracking-widest uppercase text-muted-foreground block">
                   Display Label
                 </label>
                 <Input
+                  id="subtitle-display-label"
                   value={subtitleLabel}
                   onChange={(e) => setSubtitleLabel(e.target.value)}
                   placeholder="e.g., English (US)"

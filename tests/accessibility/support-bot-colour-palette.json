@@ -1,0 +1,34 @@
+{
+  "checks": [
+    {
+      "id": "default-brand-normal-text",
+      "foreground": "#000000",
+      "background": "#3b82f6",
+      "type": "text-normal"
+    },
+    {
+      "id": "default-brand-ui-icon",
+      "foreground": "#000000",
+      "background": "#3b82f6",
+      "type": "ui"
+    },
+    {
+      "id": "dark-brand-normal-text",
+      "foreground": "#ffffff",
+      "background": "#1e3a8a",
+      "type": "text-normal"
+    },
+    {
+      "id": "unread-badge-text",
+      "foreground": "#ffffff",
+      "background": "#b91c1c",
+      "type": "text-normal"
+    },
+    {
+      "id": "human-agent-icon",
+      "foreground": "#ffffff",
+      "background": "#047857",
+      "type": "graphic"
+    }
+  ]
+}

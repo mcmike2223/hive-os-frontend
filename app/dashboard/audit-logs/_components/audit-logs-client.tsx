@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { 
-    Shield, Server, Clock, User as UserIcon, Filter, Eye, Activity, Zap, 
+import {
+    Shield, Server, Clock, User as UserIcon, Filter, Eye, Activity, Zap,
     Archive, Hash, FileText, Fingerprint, Settings2, Database, DatabaseBackup, Trash2, Calendar, RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,13 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogHeader, DialogFooter as DialogFooterUI } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox"; 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { useTour } from "@/components/providers/tour-provider"; 
+import { useTour } from "@/components/providers/tour-provider";
 import { useTranslation } from "@/store/use-translation";
 import { getAccessToken, isTenantSession } from "@/lib/runtime-context";
-import { cn } from "@/lib/utils"; 
+import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
 
 import {
@@ -69,9 +69,9 @@ function buildFallbackOptions(values: Array<string | null | undefined>, formatLa
 
 export function AuditLogsClient() {
     const queryClient = useQueryClient();
-    const { isActive } = useTour(); 
+    const { isActive } = useTour();
     const { t, locale } = useTranslation();
-    const { hasPermission } = usePermissions();
+    const { hasPermission, hasAnyPermission } = usePermissions();
 
     const [viewMode, setViewMode] = React.useState<"active" | "archived">("active");
     const [page, setPage] = React.useState(1);
@@ -85,13 +85,13 @@ export function AuditLogsClient() {
     const [moduleFilter, setModuleFilter] = React.useState("all");
     const [operatorFilter, setOperatorFilter] = React.useState("all");
     const [nodeIdFilter, setNodeIdFilter] = React.useState("all");
-    
+
     const [startDate, setStartDate] = React.useState<string>("");
     const [endDate, setEndDate] = React.useState<string>("");
-    
+
     const [viewLog, setViewLog] = React.useState<AuditLogRecord | null>(null);
     const [isArchiving, setIsArchiving] = React.useState(false);
-    
+
     const [selectedIds, setSelectedIds] = React.useState<number[]>([]);
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
     const [retentionDays, setRetentionDays] = React.useState<number>(90);
@@ -110,10 +110,10 @@ export function AuditLogsClient() {
         setIsTenant(isTenantSession());
     }, []);
 
-    const canExportLogs = hasPermission("export_logs");
-    const canManageLogSettings = hasPermission("manage_log_settings");
-    const canArchiveLogs = hasPermission("archive_logs");
-    const canDeleteArchivedLogs = hasPermission("delete_archived_logs");
+    const canExportLogs = hasAnyPermission(["export_logs", "view_logs", "view_audit_log", "manage_audit_log"]);
+    const canManageLogSettings = hasAnyPermission(["manage_log_settings", "manage_audit_retention", "manage_compliance_settings", "manage_audit_log"]);
+    const canArchiveLogs = hasAnyPermission(["archive_logs", "manage_log_settings", "manage_audit_retention", "manage_audit_log"]);
+    const canDeleteArchivedLogs = hasAnyPermission(["delete_archived_logs", "purge_audit_log", "manage_audit_log"]);
 
     const openAlert = (title: string, description: string, confirmText: string, variant: "default" | "destructive", action: () => void) => {
         setAlertConfig({ isOpen: true, title, description, confirmText, variant, action });
@@ -126,20 +126,20 @@ export function AuditLogsClient() {
         { value: "crud", label: t('audit.filter_crud', 'Modifications') },
         { value: "telemetry", label: t('audit.filter_telemetry', 'Telemetry') },
         { value: "system", label: t('audit.filter_system', 'System') },
-    ]), [t]);
+    ]), [t, locale]);
 
     const nodeScopeOptions = React.useMemo<FilterOption[]>(() => ([
         { value: "all", label: t('audit.node_all', 'All Nodes') },
         { value: "central", label: t('audit.node_central', 'Central') },
         { value: "tenant", label: t('audit.node_tenant', 'Tenants') },
-    ]), [t]);
+    ]), [t, locale]);
 
     const triggerAudit = React.useCallback(async (action: string, description: string) => {
         if (typeof window === "undefined") return;
         const now = Date.now();
         const payloadKey = `${action}_${description}`;
 
-        if (globalActionLock[payloadKey] && now - globalActionLock[payloadKey] < 2000) return; 
+        if (globalActionLock[payloadKey] && now - globalActionLock[payloadKey] < 2000) return;
         globalActionLock[payloadKey] = now;
 
         try {
@@ -156,7 +156,7 @@ export function AuditLogsClient() {
         queryKey: ["logs", page, pageSize, search, sortCol, sortDir, eventFilter, nodeFilter, moduleFilter, operatorFilter, nodeIdFilter, viewMode, startDate, endDate],
         queryFn: async () => {
             const params: LogQueryParams = {
-                page: page.toString(), pageSize: pageSize.toString(), search, 
+                page: page.toString(), pageSize: pageSize.toString(), search,
                 sort_by: sortCol || "created_at", sort_direction: sortDir || "desc",
                 event: eventFilter, node: nodeFilter
             };
@@ -168,9 +168,9 @@ export function AuditLogsClient() {
 
             const endpoint = viewMode === "archived" ? "/logs/archived" : "/logs";
             const { data: json } = await api.get(endpoint, { params });
-            
-            return { 
-                rows: json?.data || [], 
+
+            return {
+                rows: json?.data || [],
                 total: json?.meta?.total || 0,
                 engine: json?.meta?.engine || 'database'
             };
@@ -214,22 +214,20 @@ export function AuditLogsClient() {
         [filterOptions?.modules, logsData?.rows]
     );
 
-    const operatorOptions = React.useMemo(
-        () => (filterOptions?.operators?.length ? filterOptions.operators : buildFallbackOptions((logsData?.rows || []).map((row: AuditLogRecord) => row.causer))),
-        [filterOptions?.operators, logsData?.rows]
-    );
+    const operatorOptions = React.useMemo(() => {
+        const raw = filterOptions?.operators?.length ? filterOptions.operators : buildFallbackOptions((logsData?.rows || []).map((row: AuditLogRecord) => row.causer));
+        return raw.map((opt) => opt.value.toLowerCase() === 'system' ? { ...opt, label: t('audit.filter_system', 'System') } : opt);
+    }, [filterOptions?.operators, logsData?.rows, t, locale]);
 
-    const nodeOptions = React.useMemo(
-        () => (
-            filterOptions?.nodes?.length
-                ? filterOptions.nodes
-                : buildFallbackOptions(
-                    (logsData?.rows || []).map((row: AuditLogRecord) => row.tenant_id || "central"),
-                    (value) => value.toLowerCase() === "central" ? "Central Command" : value.toUpperCase()
-                )
-        ),
-        [filterOptions?.nodes, logsData?.rows]
-    );
+    const nodeOptions = React.useMemo(() => {
+        const raw = filterOptions?.nodes?.length
+            ? filterOptions.nodes
+            : buildFallbackOptions(
+                (logsData?.rows || []).map((row: AuditLogRecord) => row.tenant_id || "central"),
+                (value) => value.toLowerCase() === "central" ? "Central Command" : value.toUpperCase()
+            );
+        return raw.map((opt) => opt.value.toLowerCase() === 'central' ? { ...opt, label: t('permissions.central', 'Central Command') } : opt);
+    }, [filterOptions?.nodes, logsData?.rows, t, locale]);
 
     React.useEffect(() => {
         if (moduleFilter !== "all" && !moduleOptions.some((option) => option.value === moduleFilter)) {
@@ -346,9 +344,9 @@ export function AuditLogsClient() {
         const today = new Date();
         const start = new Date();
         start.setDate(today.getDate() - days);
-        
+
         const formatDate = (d: Date) => d.toISOString().split('T')[0];
-        
+
         setEndDate(formatDate(today));
         setStartDate(formatDate(start));
         setPage(1);
@@ -390,32 +388,32 @@ export function AuditLogsClient() {
     const columns = React.useMemo<ColumnDef<AuditLogRecord>[]>(() => {
         const baseCols: ColumnDef<AuditLogRecord>[] = [
             { id: "id", accessorKey: "id", header: t('audit.col_id', "ID"), size: 60, cell: ({ row }) => <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-0.5"><Hash className="h-3 w-3" />{row.original.id}</span> },
-            { 
-                id: "event", 
-                accessorFn: (row) => getTranslatedEventString(row.event), 
-                header: t('audit.col_action', "Action"), 
-                size: 100, 
-                cell: ({ row }) => getEventBadge(row.original.event) 
+            {
+                id: "event",
+                accessorFn: (row) => getTranslatedEventString(row.event),
+                header: t('audit.col_action', "Action"),
+                size: 100,
+                cell: ({ row }) => getEventBadge(row.original.event)
             },
             { id: "description", accessorKey: "description", header: t('audit.col_desc', "Activity Description"), cell: ({ row }) => <span className="font-medium text-foreground truncate block max-w-[250px]">{row.original.description}</span> },
             { id: "log_name", accessorKey: "log_name", header: t('audit.col_module', "Module"), cell: ({ row }) => (<div className="flex items-center gap-1.5 text-muted-foreground font-mono text-xs"><Shield className="h-3.5 w-3.5" />{row.original.log_name}</div>) },
             { id: "causer", accessorKey: "causer", header: t('audit.col_operator', "Operator"), cell: ({ row }) => (<div className="flex items-center gap-1.5 font-semibold text-sm"><UserIcon className="h-4 w-4 text-muted-foreground" />{row.original.causer}</div>) },
             { id: "created_at", accessorKey: "created_at", header: t('audit.col_time', "Timestamp"), cell: ({ row }) => (<div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono"><Clock className="h-3.5 w-3.5" />{row.original.created_at ? new Date(row.original.created_at).toLocaleString() : ''}</div>) },
-            { 
-                id: "actions", header: t('audit.col_actions', "Actions"), size: 80, 
+            {
+                id: "actions", header: t('audit.col_actions', "Actions"), size: 80,
                 cell: ({ row }) => (
                     <div className="flex items-center gap-1">
                         <span className="tour-audit-action-view flex">
                             <Button variant="ghost" size="icon" aria-label={t('audit.view_log', 'View log details') + ` (ID ${row.original.id})`} onClick={() => { setViewLog(row.original); triggerAudit('viewed', `Inspected Log ID: ${row.original.id}`); }}><Eye className="h-4 w-4 text-blue-500" /></Button>
                         </span>
-                        
+
                         {viewMode === 'archived' && canDeleteArchivedLogs && (
                             <span className="tour-audit-action-delete flex">
                                 <Button variant="ghost" size="icon" onClick={() => deleteIndividualLog(row.original.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </span>
                         )}
                     </div>
-                ) 
+                )
             }
         ];
 
@@ -427,7 +425,7 @@ export function AuditLogsClient() {
             baseCols.unshift({
                 id: "select",
                 header: () => (
-                    <Checkbox 
+                    <Checkbox
                         // 🚀 THE FIX: Safely check array length using optional chaining and nullish coalescing
                         checked={(logsData?.rows?.length ?? 0) > 0 && selectedIds.length === (logsData?.rows?.length ?? 0)}
                         onCheckedChange={(c) => c ? setSelectedIds(logsData?.rows?.map((r: AuditLogRecord) => r.id) || []) : setSelectedIds([])}
@@ -435,7 +433,7 @@ export function AuditLogsClient() {
                 ),
                 size: 40,
                 cell: ({ row }) => (
-                    <Checkbox 
+                    <Checkbox
                         checked={selectedIds.includes(row.original.id)}
                         onCheckedChange={(c) => c ? setSelectedIds(prev => [...prev, row.original.id]) : setSelectedIds(prev => prev.filter(id => id !== row.original.id))}
                     />
@@ -444,7 +442,7 @@ export function AuditLogsClient() {
         }
 
         return baseCols;
-    }, [triggerAudit, viewMode, selectedIds, logsData, isTenant, t, getTranslatedEventString, canDeleteArchivedLogs]);
+    }, [triggerAudit, viewMode, selectedIds, logsData, isTenant, t, locale, getTranslatedEventString, canDeleteArchivedLogs]);
 
     const exportUrl = React.useMemo(() => {
         const params = new URLSearchParams({
@@ -467,7 +465,7 @@ export function AuditLogsClient() {
 
     return (
         <div className="space-y-4 mt-6">
-            
+
             <div className="flex flex-col sm:flex-row justify-between items-end gap-4 mb-2">
                 <div id="tour-audit-view-modes" className="flex items-center gap-3">
                     <div className="flex bg-muted/40 p-1.5 rounded-xl border border-border/50 w-max">
@@ -482,7 +480,7 @@ export function AuditLogsClient() {
                     {/* ENGINE INDICATOR: Visually confirms Meilisearch is Active */}
                     {logsData?.engine === 'meilisearch' && search.length > 0 && (
                         <Badge variant="outline" className="h-8 px-3 bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-bold gap-1.5 animate-in fade-in zoom-in">
-                           <Zap className="h-4 w-4 fill-emerald-500 text-emerald-500" /> Advanced Search Active
+                           <Zap className="h-4 w-4 fill-emerald-500 text-emerald-500" /> {t('audit.advanced_search_active', 'Advanced Search Active')}
                         </Badge>
                     )}
                 </div>
@@ -501,7 +499,7 @@ export function AuditLogsClient() {
 
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-2 bg-card/40 p-4 rounded-2xl border border-border/50 backdrop-blur-md">
                 <div className="flex flex-col xl:flex-row gap-3 w-full">
-                    
+
                     <div className={cn("grid w-full gap-3 xl:grid-cols-4", !isActive && "overflow-x-auto")}>
                         <div id="tour-audit-filters-event" className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
                             <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -522,7 +520,7 @@ export function AuditLogsClient() {
                             </Select>
                         </div>
 
-                        <div className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
+                        <div id="tour-audit-filters-module" className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
                             <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                 <Shield className="h-3.5 w-3.5" />
                                 {t('audit.filter_module_label', 'Module')}
@@ -549,7 +547,7 @@ export function AuditLogsClient() {
                             </Select>
                         </div>
 
-                        <div className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
+                        <div id="tour-audit-filters-operator" className="rounded-2xl border border-border/50 bg-background/50 p-3 shadow-sm">
                             <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                 <UserIcon className="h-3.5 w-3.5" />
                                 {t('audit.filter_operator', 'Operator')}
@@ -619,7 +617,7 @@ export function AuditLogsClient() {
 
             <div className={cn("grid gap-3 rounded-2xl border border-border/50 bg-card/30 p-4 shadow-sm", !isTenant ? "md:grid-cols-[1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr]")}>
                 {!isTenant && (
-                    <div className="rounded-2xl border border-border/40 bg-background/60 p-3">
+                    <div id="tour-audit-filters-specific-node" className="rounded-2xl border border-border/40 bg-background/60 p-3">
                         <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                             <Server className="h-3.5 w-3.5" />
                             {t('audit.filter_node_label', 'Specific Node')}
@@ -655,29 +653,36 @@ export function AuditLogsClient() {
                     <div id="tour-audit-filters-date" className="space-y-3">
                         <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-muted/40 p-1">
                             <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(0)}>{t('audit.today', 'Today')}</Button>
-                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(7)}>7D</Button>
-                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(30)}>30D</Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(7)}>{t('audit.7d', '7D')}</Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-[11px] px-2" onClick={() => applyDatePreset(30)}>{t('audit.30d', '30D')}</Button>
                             {(startDate || endDate) && (
                                 <Button variant="ghost" size="icon" className="ml-auto h-7 w-7 text-destructive" onClick={() => { setStartDate(""); setEndDate(""); setPage(1); triggerAudit('filtered', 'Cleared date filters'); }}>
                                     <RotateCcw className="w-3 h-3" />
                                 </Button>
                             )}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1); triggerAudit('filtered', 'Applied start date filter'); }}
-                                className="h-10 rounded-xl bg-muted/30"
-                            />
-                            <Input
-                                type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1); triggerAudit('filtered', 'Applied end date filter'); }}
-                                className="h-10 rounded-xl bg-muted/30"
-                            />
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground ml-1">{t('audit.start_date', 'From')}</span>
+                                <Input
+                                    type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1); triggerAudit('filtered', 'Applied start date filter'); }}
+                                    className="h-10 rounded-xl bg-muted/30"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground ml-1">{t('audit.end_date', 'To')}</span>
+                                <Input
+                                    type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1); triggerAudit('filtered', 'Applied end date filter'); }}
+                                    className="h-10 rounded-xl bg-muted/30"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-end justify-end">
                     <Button
+                        id="tour-audit-filters-reset"
                         variant="outline"
                         className="h-10 rounded-xl"
                         onClick={() => {
@@ -700,27 +705,28 @@ export function AuditLogsClient() {
             </div>
 
             <DataTable
-                key={viewMode}
-                columns={columns} 
-                data={logsData?.rows || []} 
+                key={`${viewMode}-${locale}`}
+                columns={columns}
+                data={logsData?.rows || []}
                 totalEntries={logsData?.total || 0}
-                loading={isLoading || isFetching} 
-                resourceName={viewMode === "archived" ? "vaulted logs" : "logs"} 
-                pageIndex={page} 
+                loading={isLoading || isFetching}
+                resourceName={viewMode === "archived" ? t("audit.vaulted_logs_resource", "vaulted logs") : t("audit.logs_resource", "logs")}
+                searchPlaceholder={t("audit.search_placeholder", "Search audit logs...")}
+                pageIndex={page}
                 pageSize={pageSize}
-                onQueryChange={(q) => { 
-                    if (q.page) setPage(q.page); 
-                    if (q.pageSize) setPageSize(q.pageSize); 
-                    if (q.search !== undefined) setSearch(q.search); 
+                onQueryChange={(q) => {
+                    if (q.page) setPage(q.page);
+                    if (q.pageSize) setPageSize(q.pageSize);
+                    if (q.search !== undefined) setSearch(q.search);
                     if (q.sortCol !== undefined) setSortCol(q.sortCol ?? null);
                     if (q.sortDir !== undefined) setSortDir(q.sortDir ?? null);
                 }}
-                onRefresh={() => queryClient.invalidateQueries({ queryKey: ["logs"] })} 
-                onResetFilters={() => { 
-                    setSearch(""); setSortCol("created_at"); setSortDir("desc"); 
+                onRefresh={() => queryClient.invalidateQueries({ queryKey: ["logs"] })}
+                onResetFilters={() => {
+                    setSearch(""); setSortCol("created_at"); setSortDir("desc");
                     setEventFilter("all"); setNodeFilter("all"); setPage(1);
                     setModuleFilter("all"); setOperatorFilter("all"); setNodeIdFilter("all");
-                    setStartDate(""); setEndDate(""); 
+                    setStartDate(""); setEndDate("");
                 }}
                 onCopy={canExportLogs ? () => triggerAudit('copied', 'Copied datatable to clipboard') : undefined}
                 onPrint={canExportLogs ? () => triggerAudit('printed', 'Printed datatable') : undefined}
@@ -740,7 +746,7 @@ export function AuditLogsClient() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel className="rounded-xl">{t('global.cancel', 'Cancel')}</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={alertConfig.action}
                             className={`rounded-xl ${alertConfig.variant === "destructive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}`}
                         >

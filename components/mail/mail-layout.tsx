@@ -22,6 +22,7 @@ export default function MailLayout() {
 
     try {
       const echo = initEcho(token);
+      if (!echo) return;
       const tenantId = getTenantId();
       const presenceChannelName = tenantId ? `tenant.${tenantId}.mail.presence` : "mail.presence";
 
