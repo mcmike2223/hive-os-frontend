@@ -32,6 +32,7 @@ export const serviceApi = {
 
   // -------------------------------------------------------------- contracts
   listContracts: (params?: Params) => http.get(`${BASE_URL}/contracts`, { params }),
+  getContract: (id: number) => http.get(`${BASE_URL}/contracts/${id}`),
   createContract: (data: Payload) => http.post(`${BASE_URL}/contracts`, data),
   updateContract: (id: number, data: Payload) => http.put(`${BASE_URL}/contracts/${id}`, data),
 
@@ -51,7 +52,9 @@ export const serviceApi = {
 
   // ------------------------------------------------------------ work orders
   listWorkOrders: (params?: Params) => http.get(`${BASE_URL}/work-orders`, { params }),
+  getWorkOrder: (id: number) => http.get(`${BASE_URL}/work-orders/${id}`),
   createWorkOrder: (data: Payload) => http.post(`${BASE_URL}/work-orders`, data),
+  updateWorkOrder: (id: number, data: Payload) => http.put(`${BASE_URL}/work-orders/${id}`, data),
   transitionWorkOrder: (id: number, status: string) =>
     http.post(`${BASE_URL}/work-orders/${id}/transition`, { status }),
   addParts: (id: number, parts: Payload[]) =>
@@ -61,7 +64,9 @@ export const serviceApi = {
 
   // ------------------------------------------------------- preventive plans
   listPlans: (params?: Params) => http.get(`${BASE_URL}/plans`, { params }),
+  getPlan: (id: number) => http.get(`${BASE_URL}/plans/${id}`),
   createPlan: (data: Payload) => http.post(`${BASE_URL}/plans`, data),
+  updatePlan: (id: number, data: Payload) => http.put(`${BASE_URL}/plans/${id}`, data),
   deletePlan: (id: number) => http.delete(`${BASE_URL}/plans/${id}`),
 };
 

@@ -1,4 +1,4 @@
-import { LifeBuoy, Ticket, ClipboardCheck, HardHat, CalendarClock } from "lucide-react";
+import { LifeBuoy, Ticket, ClipboardCheck, HardHat, CalendarClock, UserCog } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
 const common = {
@@ -43,6 +43,15 @@ export const serviceModule: FrontendModuleDefinition = {
         "complete_service_work",
         "manage_service",
       ],
+    },
+    {
+      ...common,
+      translationKey: "nav.service_engineers",
+      fallbackLabel: "Engineers",
+      href: "/dashboard/service/engineers",
+      icon: UserCog,
+      permissions: ["view_service", "manage_service_technicians", "manage_service"],
+      placement: "secondary",
     },
     {
       ...common,

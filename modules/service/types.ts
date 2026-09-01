@@ -41,6 +41,7 @@ export type ServiceContract = {
   days_to_expiry?: number | null;
   assets_count?: number;
   requests_count?: number;
+  assets?: ServiceAsset[];
 };
 
 export type AssetStatus = "operational" | "faulty" | "decommissioned";
@@ -205,6 +206,15 @@ export type BreachingRow = {
   hours_remaining: number | null;
 };
 
+export type UpcomingMaintenancePlan = {
+  plan_id: number;
+  name: string;
+  asset: string;
+  next_due_on: string | null;
+  days_remaining: number | null;
+  is_due: boolean;
+};
+
 export type ServiceOverview = {
   range: { from: string | null; to: string | null };
   sla: {
@@ -268,14 +278,7 @@ export type ServiceOverview = {
     plans: number;
     due_now: number;
     due_soon: number;
-    upcoming: Array<{
-      plan_id: number;
-      name: string;
-      asset: string;
-      next_due_on: string | null;
-      days_remaining: number | null;
-      is_due: boolean;
-    }>;
+    upcoming: UpcomingMaintenancePlan[];
   };
   breaching: BreachingRow[];
   integrations: {
