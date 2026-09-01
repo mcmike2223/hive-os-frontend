@@ -17,6 +17,7 @@ export const internalAuditApi = {
 
   // ------------------------------------------------------------------ areas
   listAreas: (params?: Params) => http.get(`${BASE_URL}/areas`, { params }),
+  getArea: (id: number) => http.get(`${BASE_URL}/areas/${id}`),
   /** The plan: what is due, ranked by the risk that makes being due matter. */
   coverage: () => http.get(`${BASE_URL}/areas/coverage`),
   createArea: (data: Payload) => http.post(`${BASE_URL}/areas`, data),
@@ -58,6 +59,7 @@ export const internalAuditApi = {
 
   // ------------------------------------------------------------------ risks
   listRisks: (params?: Params) => http.get(`${BASE_URL}/risks`, { params }),
+  getRisk: (id: number) => http.get(`${BASE_URL}/risks/${id}`),
   createRisk: (data: Payload) => http.post(`${BASE_URL}/risks`, data),
   updateRisk: (id: number, data: Payload) => http.put(`${BASE_URL}/risks/${id}`, data),
 };

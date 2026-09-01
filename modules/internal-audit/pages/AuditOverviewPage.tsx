@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Layers, Repeat, ShieldCheck } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
@@ -226,9 +227,10 @@ export default function AuditOverviewPage() {
             ) : (
               <div className="space-y-1.5">
                 {raw.outstanding.slice(0, 8).map((row) => (
-                  <div
+                  <Link
                     key={row.action_id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm"
+                    href={`/dashboard/internal-audit/findings?id=${row.finding_id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm transition-colors hover:bg-muted/40"
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{row.description}</span>
@@ -238,7 +240,6 @@ export default function AuditOverviewPage() {
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
-                      {/* The word carries the state, never the colour alone. */}
                       <span
                         className={`block text-xs font-semibold ${
                           row.is_overdue ? "text-destructive" : "text-muted-foreground"
@@ -258,7 +259,7 @@ export default function AuditOverviewPage() {
                         {row.severity ?? "—"}
                       </span>
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
