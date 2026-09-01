@@ -51,11 +51,13 @@ export type CrmLead = {
   owner_employee_id: number | null;
   lost_reason: string | null;
   converted_account_id: number | null;
+  converted_contact_id: number | null;
   converted_opportunity_id: number | null;
   converted_at: string | null;
   notes: string | null;
   is_open?: boolean;
   campaign?: CrmCampaign;
+  activities?: CrmActivity[];
 };
 
 export type CrmAccount = {
@@ -103,6 +105,8 @@ export type CrmStageHistory = {
   to_stage_id: number;
   days_in_previous_stage: number;
   changed_at: string;
+  from_stage?: CrmStage | null;
+  to_stage?: CrmStage;
 };
 
 export type CrmOpportunity = {
@@ -156,6 +160,10 @@ export type CrmActivity = {
   duration_minutes: number | null;
   outcome: string | null;
   is_overdue?: boolean;
+  lead?: CrmLead;
+  account?: CrmAccount;
+  contact?: CrmContact;
+  opportunity?: CrmOpportunity;
 };
 
 export type CrmCampaign = {
