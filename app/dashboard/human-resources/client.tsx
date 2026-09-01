@@ -66,6 +66,11 @@ import {
   hrReferenceOptions,
   referenceOptionLabel,
 } from "@/modules/humanresources/api";
+import {
+  invalidateHrEmployeeQueries,
+  invalidateHrOrganizationQueries,
+  invalidateHrPositionQueries,
+} from "@/modules/humanresources/query-invalidation";
 import { LeavePanel } from "./leave-attendance";
 import { ErpReferenceSettings } from "@/components/settings/erp-reference-settings";
 import {
@@ -489,12 +494,7 @@ function EmployeeDialog({
         employee ? "Employee record updated." : "Employee record created.",
       );
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-positions"] });
-      queryClient.invalidateQueries({
-        queryKey: ["hr-unassigned-users", scope],
-      });
+      void invalidateHrEmployeeQueries(queryClient, { scope });
     },
     onError: (failure) => {
       setError(
@@ -1026,8 +1026,7 @@ function UnitDialog({
     onSuccess: () => {
       toast.success("Organization unit created.");
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ["hr-units"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-organization-table"] });
+      void invalidateHrOrganizationQueries(queryClient);
     },
     onError: (failure) => {
       setError(
@@ -1205,9 +1204,7 @@ function PositionDialog({
     onSuccess: () => {
       toast.success("Position created.");
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ["hr-positions"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-positions-table", scope] });
-      queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
+      void invalidateHrPositionQueries(queryClient);
     },
     onError: (failure) => {
       setError(

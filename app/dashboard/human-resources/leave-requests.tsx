@@ -69,6 +69,7 @@ import {
   Paginated,
   hrFetch,
 } from "@/modules/humanresources/api";
+import { invalidateHrLeaveQueries } from "@/modules/humanresources/query-invalidation";
 
 type DraftAttachment = {
   id?: number;
@@ -1816,8 +1817,7 @@ export function LeaveRequestWorkspace() {
   );
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["hr-leave"] });
-    queryClient.invalidateQueries({ queryKey: ["hr-leave-balances"] });
+    void invalidateHrLeaveQueries(queryClient);
     if (selectedId) {
       queryClient.invalidateQueries({
         queryKey: ["hr-leave-request", selectedId],

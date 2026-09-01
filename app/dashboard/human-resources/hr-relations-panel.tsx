@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getWorkspaceScopeKey } from "@/lib/runtime-context";
 import { Employee, hrFetch } from "@/modules/humanresources/api";
+import { invalidateHrPunishmentQueries } from "@/modules/humanresources/query-invalidation";
 import { PanelTableSkeleton } from "@/components/ui/loading-states";
 
 const controlClass =
@@ -181,17 +182,7 @@ export function EmployeeRelationsPanel({
   const adminCases = adminQuery.data?.data ?? [];
   const judiciaryCases = judiciaryQuery.data?.data ?? [];
 
-  const invalidateRelated = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["hr-administrative-punishments"] }),
-      queryClient.invalidateQueries({ queryKey: ["hr-judiciary-punishments"] }),
-      queryClient.invalidateQueries({ queryKey: ["hr-employees"] }),
-      queryClient.invalidateQueries({ queryKey: ["hr-employees-table"] }),
-      queryClient.invalidateQueries({ queryKey: ["all-employees-list"] }),
-      queryClient.invalidateQueries({ queryKey: ["hr-summary"] }),
-      queryClient.invalidateQueries({ queryKey: ["hr-positions"] }),
-    ]);
-  };
+  const invalidateRelated = () => invalidateHrPunishmentQueries(queryClient);
 
   const toastWithEffects = (message: string, effects?: PunishmentEffect[]) => {
     const note = formatPunishmentEffects(effects);

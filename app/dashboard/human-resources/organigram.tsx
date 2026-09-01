@@ -58,6 +58,7 @@ import {
   Position,
   hrFetch,
 } from "@/modules/humanresources/api";
+import { invalidateHrEmployeeQueries } from "@/modules/humanresources/query-invalidation";
 
 type PersonTreeNode = {
   employee: Employee;
@@ -754,9 +755,7 @@ export function OrganigramPanel({
     },
     onSuccess: () => {
       toast.success("Reporting line updated.");
-      queryClient.invalidateQueries({ queryKey: ["hr-organigram", scope] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employees-table"] });
+      void invalidateHrEmployeeQueries(queryClient, { scope });
     },
     onError: (error) =>
       toast.error(

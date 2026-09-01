@@ -78,6 +78,7 @@ import {
   fetchHrLetterTemplates,
   hrFetch,
 } from "@/modules/humanresources/api";
+import { invalidateHrTransferQueries } from "@/modules/humanresources/query-invalidation";
 
 const controlClass =
   "h-11 border-input bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary";
@@ -514,6 +515,7 @@ export function EmployeeTransferDialog({
   positions: Position[];
 }) {
   const queryClient = useQueryClient();
+  const scope = getWorkspaceScopeKey();
   const [form, setForm] = useState({
     organization_unit_id: "",
     position_id: "",
@@ -564,9 +566,7 @@ export function EmployeeTransferDialog({
     onSuccess: () => {
       toast.success(`Transfer recorded for ${employee?.primary_name}.`);
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-transfers-list"] });
+      void invalidateHrTransferQueries(queryClient, scope);
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to record transfer.");
@@ -2608,10 +2608,7 @@ export function EmployeeTransfersPanel() {
     },
     onSuccess: () => {
       toast.success("Employee transfer recorded successfully!");
-      queryClient.invalidateQueries({ queryKey: ["hr-transfers-list", scope] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employees-list-transfers", scope] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employees", scope] });
-      queryClient.invalidateQueries({ queryKey: ["hr-summary", scope] });
+      void invalidateHrTransferQueries(queryClient, scope);
       setFormData({
         employee_id: "",
         to_unit_id: "",

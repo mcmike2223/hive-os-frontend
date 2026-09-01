@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 import { Briefcase, UserPlus, CheckCircle, Star, Plus, ArrowRight, Loader2 } from 'lucide-react';
 import { hrFetch } from '@/modules/humanresources/api';
+import { invalidateHrEmployeeQueries, invalidateHrRecruitmentQueries } from '@/modules/humanresources/query-invalidation';
 import { getWorkspaceScopeKey } from '@/lib/runtime-context';
 import {
   PanelCardGridSkeleton,
@@ -75,7 +76,7 @@ export function HrRecruitmentPanel() {
         location: 'Addis Ababa',
         description: '',
       });
-      queryClient.invalidateQueries({ queryKey: ['hr-job-postings'] });
+      void invalidateHrRecruitmentQueries(queryClient);
     },
   });
 
@@ -95,7 +96,7 @@ export function HrRecruitmentPanel() {
         phone: '',
         notes: '',
       });
-      queryClient.invalidateQueries({ queryKey: ['hr-applicants'] });
+      void invalidateHrRecruitmentQueries(queryClient);
     },
   });
 
@@ -107,17 +108,17 @@ export function HrRecruitmentPanel() {
       }),
     onSuccess: () => {
       toast.success('Candidate moved to next stage.');
-      queryClient.invalidateQueries({ queryKey: ['hr-applicants'] });
+      void invalidateHrRecruitmentQueries(queryClient);
     },
   });
 
   const hireMutation = useMutation({
     mutationFn: (id: number) =>
       hrFetch(`/recruitment/applicants/${id}/hire`, { method: 'POST' }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Candidate successfully hired & promoted to Employee Profile!');
-      queryClient.invalidateQueries({ queryKey: ['hr-applicants'] });
-      queryClient.invalidateQueries({ queryKey: ['hr-employees-table'] });
+      await invalidateHrRecruitmentQueries(queryClient);
+      await invalidateHrEmployeeQueries(queryClient, { scope });
     },
   });
 

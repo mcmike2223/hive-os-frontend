@@ -53,6 +53,7 @@ import {
   WorkSchedule,
   hrFetch,
 } from "@/modules/humanresources/api";
+import { invalidateHrLeaveQueries } from "@/modules/humanresources/query-invalidation";
 
 const controlClass =
   "h-11 border-input bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary";
@@ -166,7 +167,7 @@ function RequestLeaveDialog({
           : "Leave request submitted.",
       );
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ["hr-leave"] });
+      void invalidateHrLeaveQueries(queryClient);
     },
     onError: (failure) =>
       setError(
@@ -408,8 +409,7 @@ export function LegacyLeavePanel() {
       }),
     onSuccess: (_, variables) => {
       toast.success(`Leave request ${variables.value}.`);
-      queryClient.invalidateQueries({ queryKey: ["hr-leave"] });
-      queryClient.invalidateQueries({ queryKey: ["hr-leave-balances"] });
+      void invalidateHrLeaveQueries(queryClient);
     },
     onError: (failure) =>
       toast.error(
