@@ -62,6 +62,13 @@ export type PriceResolution = {
   price_list_id: number | null;
   /** "explicit" | "customer" | "default" | "unpriced" */
   source: string;
+  pricing_hint?: {
+    type: "min_quantity";
+    min_quantity: number;
+    unit_price: number;
+    price_list_id: number;
+    source: string;
+  } | null;
 };
 
 export type QuotationStatus =
@@ -105,6 +112,7 @@ export type SalesQuotation = {
   is_expired?: boolean;
   customer?: SalesCustomer;
   lines?: SalesDocumentLine[];
+  order?: { id: number; order_number: string };
 };
 
 export type OrderStatus =
@@ -212,6 +220,7 @@ export type SalesCommission = {
 
 export type SalesOverview = {
   range: { from: string | null; to: string | null };
+  display_currency?: string;
   revenue: {
     booked: Numeric;
     orders: number;
@@ -255,6 +264,8 @@ export type SalesOverview = {
   };
   commissions: {
     period: string | null;
+    from?: string | null;
+    to?: string | null;
     accrued: Numeric;
     approved: Numeric;
     paid: Numeric;

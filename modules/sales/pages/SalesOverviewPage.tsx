@@ -2,12 +2,16 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, FileText, TrendingUp, Users } from "lucide-react";
+import { ClipboardList, FileText, RefreshCw, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/store/use-translation";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fetchInventoryProducts } from "@/modules/inventory/api";
+import type { ProductRecord } from "@/modules/inventory/types";
+import { hrFetch, type Employee as HrEmployee, type Paginated as HrPaginated } from "@/modules/humanresources/api";
 import { salesApi } from "@/modules/sales/api";
 import type { SalesOverview } from "@/modules/sales/types";
 import { EmptyPanel, LoadingPanel, Panel, StatTile } from "@/modules/shared/charts/primitives";
@@ -26,8 +30,27 @@ const n = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const money = (value: unknown) =>
-  `ETB ${n(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload;
+  const data = (payload as { data?: T[] })?.data;
+  return Array.isArray(data) ? data : [];
+}
+
+function employeeLabel(employees: Map<number, HrEmployee>, id: number | null | undefined) {
+  if (id == null) return null;
+  const employee = employees.get(id);
+  if (employee) return `${employee.primary_name} (${employee.employee_number})`;
+  return `#${id}`;
+}
+
+function productLabel(products: Map<number, ProductRecord>, id: number) {
+  const product = products.get(id);
+  if (product) return product.sku ? `${product.name} (${product.sku})` : product.name;
+  return `#${id}`;
+}
+
+const money = (value: unknown, currency = "ETB") =>
+  `${currency} ${n(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
 export default function SalesOverviewPage() {
   const { t } = useTranslation();
@@ -41,14 +64,88 @@ export default function SalesOverviewPage() {
     placeholderData: (previous) => previous,
   });
 
+  const employeesQuery = useQuery({
+    queryKey: ["hr", "employees", "sales-overview"],
+    queryFn: () => hrFetch<HrPaginated<HrEmployee>>("/employees?per_page=200"),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ["inventory", "products", "sales-overview"],
+    queryFn: async () => unwrapList<ProductRecord>(await fetchInventoryProducts({ per_page: 200, limit: 200 })),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const raw: SalesOverview | undefined = overviewQuery.data?.data;
   const refetching = overviewQuery.isFetching && !overviewQuery.isLoading;
+  const currency = raw?.display_currency ?? "ETB";
+
+  const employeeById = React.useMemo(() => {
+    const map = new Map<number, HrEmployee>();
+    for (const employee of employeesQuery.data?.data ?? []) {
+      map.set(employee.id, employee);
+    }
+    return map;
+  }, [employeesQuery.data]);
+
+  const productById = React.useMemo(() => {
+    const map = new Map<number, ProductRecord>();
+    for (const product of productsQuery.data ?? []) {
+      map.set(product.id, product);
+    }
+    return map;
+  }, [productsQuery.data]);
 
   const applyPreset = (days: number) => {
     setPreset(days);
     setFrom(isoDaysAgo(days - 1));
     setTo(isoDaysAgo(0));
   };
+
+  const openOrdersMeta = React.useMemo(() => {
+    if (!raw) return "";
+    const parts: string[] = [];
+    const overdue = n(raw.fulfilment?.overdue_orders);
+    const awaiting = n(raw.fulfilment?.awaiting_approval);
+    const openValue = n(raw.fulfilment?.open_value);
+
+    if (overdue > 0) {
+      parts.push(
+        t("sales.overview.overdue_meta", "{n} past their delivery date").replace("{n}", String(overdue)),
+      );
+    }
+    if (awaiting > 0) {
+      parts.push(
+        t("sales.overview.awaiting_approval_meta", "{n} awaiting approval").replace("{n}", String(awaiting)),
+      );
+    }
+    if (openValue > 0) {
+      parts.push(
+        t("sales.overview.open_value_meta", "{value} still to fulfil").replace("{value}", money(openValue, currency)),
+      );
+    }
+    if (parts.length === 0) {
+      parts.push(t("sales.overview.no_open_orders_meta", "Nothing waiting to ship"));
+    }
+    return parts.join(" · ");
+  }, [currency, raw, t]);
+
+  const pipelineMeta = React.useMemo(() => {
+    if (!raw) return "";
+    const parts = [
+      t("sales.overview.pipeline_meta", "{value} still open").replace(
+        "{value}",
+        money(raw.pipeline?.open_value, currency),
+      ),
+    ];
+    const expiring = n(raw.pipeline?.expiring_soon);
+    if (expiring > 0) {
+      parts.push(
+        t("sales.overview.expiring_soon_meta", "{n} expiring soon").replace("{n}", String(expiring)),
+      );
+    }
+    return parts.join(" · ");
+  }, [currency, raw, t]);
 
   return (
     <div className="space-y-6">
@@ -115,29 +212,60 @@ export default function SalesOverviewPage() {
             className="h-9 w-[9.5rem]"
           />
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-full"
+          disabled={overviewQuery.isFetching}
+          onClick={() => overviewQuery.refetch()}
+        >
+          <RefreshCw className={`mr-2 h-3.5 w-3.5 ${overviewQuery.isFetching ? "animate-spin" : ""}`} />
+          {t("sales.common.refresh", "Refresh")}
+        </Button>
       </div>
 
       {overviewQuery.isLoading ? (
         <LoadingPanel label={t("sales.common.loading", "Loading sales performance...")} />
+      ) : overviewQuery.isError ? (
+        <div className="space-y-3">
+          <EmptyPanel
+            label={t(
+              "sales.overview.load_failed",
+              "Could not load sales metrics. Check your connection and try again.",
+            )}
+          />
+          <div className="flex justify-center">
+            <Button variant="outline" className="rounded-full" onClick={() => overviewQuery.refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {t("sales.common.retry", "Retry")}
+            </Button>
+          </div>
+        </div>
       ) : !raw ? (
         <EmptyPanel label={t("sales.overview.unavailable", "Sales metrics are not available right now.")} />
       ) : (
         <>
-          {/* One hero figure: booked revenue is the number the business is
-              actually judged on. */}
           <section className="grid gap-4 rounded-2xl border border-border/60 bg-card p-5 lg:grid-cols-[minmax(0,20rem)_1fr]">
             <div className={refetching ? "opacity-50 transition-opacity" : "transition-opacity"}>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 {t("sales.overview.booked", "Revenue booked")}
               </p>
               <p className="mt-1 text-5xl font-black leading-none tracking-tight">
-                {money(raw.revenue?.booked)}
+                {money(raw.revenue?.booked, currency)}
               </p>
               <p className="mt-3 text-xs text-muted-foreground">
                 {t("sales.overview.booked_meta", "{orders} orders, averaging {avg}")
                   .replace("{orders}", String(n(raw.revenue?.orders)))
-                  .replace("{avg}", money(raw.revenue?.average_order_value))}
+                  .replace("{avg}", money(raw.revenue?.average_order_value, currency))}
               </p>
+              {n(raw.revenue?.cancelled_orders) > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("sales.overview.cancelled_meta", "{n} cancelled ({value})")
+                    .replace("{n}", String(n(raw.revenue?.cancelled_orders)))
+                    .replace("{value}", money(raw.revenue?.cancelled_value, currency))}
+                </p>
+              ) : null}
               {n(raw.targets?.target_amount) > 0 ? (
                 <p className="mt-1 text-xs font-semibold text-muted-foreground">
                   {t("sales.overview.attainment", "{pct}% of target").replace(
@@ -153,26 +281,20 @@ export default function SalesOverviewPage() {
                 icon={<TrendingUp className="h-4 w-4" />}
                 label={t("sales.overview.margin", "Gross margin")}
                 value={`${n(raw.revenue?.margin_percent).toFixed(1)}%`}
-                meta={money(raw.revenue?.margin)}
+                meta={money(raw.revenue?.margin, currency)}
               />
               <StatTile
                 icon={<FileText className="h-4 w-4" />}
                 label={t("sales.overview.win_rate", "Quote win rate")}
                 value={`${n(raw.pipeline?.win_rate_percent).toFixed(0)}%`}
-                meta={t("sales.overview.pipeline_meta", "{value} still open").replace(
-                  "{value}",
-                  money(raw.pipeline?.open_value),
-                )}
+                meta={pipelineMeta}
               />
               <StatTile
                 icon={<ClipboardList className="h-4 w-4" />}
                 label={t("sales.overview.open_orders", "Open orders")}
                 value={n(raw.fulfilment?.open_orders).toLocaleString()}
-                meta={t("sales.overview.overdue_meta", "{n} past their delivery date").replace(
-                  "{n}",
-                  String(n(raw.fulfilment?.overdue_orders)),
-                )}
-                alert={n(raw.fulfilment?.overdue_orders) > 0}
+                meta={openOrdersMeta}
+                alert={n(raw.fulfilment?.overdue_orders) > 0 || n(raw.fulfilment?.awaiting_approval) > 0}
               />
               <StatTile
                 icon={<Users className="h-4 w-4" />}
@@ -186,8 +308,6 @@ export default function SalesOverviewPage() {
             </div>
           </section>
 
-          {/* Revenue over time is a trend question, so it gets a line. Scaled to
-              the data rather than 0-100: these are birr, not percentages. */}
           <TrendChart
             title={t("sales.overview.daily_revenue", "Revenue over time")}
             description={t(
@@ -206,15 +326,22 @@ export default function SalesOverviewPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <ColumnChart
               title={t("sales.overview.quote_funnel", "Quotation funnel")}
-              description={t(
-                "sales.overview.quote_funnel_desc",
-                "Where offers are sitting between draft and converted.",
-              )}
+              description={
+                n(raw.pipeline?.expiring_soon) > 0
+                  ? t(
+                      "sales.overview.quote_funnel_expiring_desc",
+                      "Where offers are sitting between draft and converted. {n} expire within 7 days.",
+                    ).replace("{n}", String(n(raw.pipeline?.expiring_soon)))
+                  : t(
+                      "sales.overview.quote_funnel_desc",
+                      "Where offers are sitting between draft and converted.",
+                    )
+              }
               rows={(raw.pipeline?.by_status ?? []).map((row) => ({
                 key: row.status,
                 label: row.label,
                 value: n(row.count),
-                meta: money(row.value),
+                meta: money(row.value, currency),
               }))}
               valueLabel={t("sales.overview.quotations", "Quotations")}
               emptyLabel={t("sales.overview.no_quotes", "No quotations in this range.")}
@@ -265,7 +392,7 @@ export default function SalesOverviewPage() {
               )}
               rows={(raw.products ?? []).map((row) => ({
                 key: String(row.product_id),
-                label: `#${row.product_id}`,
+                label: productLabel(productById, row.product_id),
                 value: n(row.revenue),
                 meta: t("sales.overview.units", "{n} units").replace(
                   "{n}",
@@ -305,11 +432,12 @@ export default function SalesOverviewPage() {
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium">
                             {row.owner_employee_id
-                              ? `${t("sales.overview.owner", "Owner")} #${row.owner_employee_id}`
+                              ? employeeLabel(employeeById, row.owner_employee_id) ??
+                                `${t("sales.overview.owner", "Owner")} #${row.owner_employee_id}`
                               : t("sales.overview.company_wide", "Company-wide")}
                           </span>
                           <span className="tabular-nums">
-                            {money(row.actual)} / {money(row.target)}
+                            {money(row.actual, currency)} / {money(row.target, currency)}
                           </span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -329,22 +457,32 @@ export default function SalesOverviewPage() {
             <Panel
               title={t("sales.overview.commission", "Commission")}
               description={t(
-                "sales.overview.commission_desc",
-                "Earned on confirmed orders, by state of approval.",
-              )}
+                "sales.overview.commission_range_desc",
+                "Earned on confirmed orders in {from} to {to}, by state of approval.",
+              )
+                .replace("{from}", from)
+                .replace("{to}", to)}
+              action={
+                <Link
+                  href="/dashboard/sales/targets"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  {t("sales.overview.view_commissions", "View all")}
+                </Link>
+              }
             >
               <div className="grid gap-3 sm:grid-cols-3">
                 <StatTile
                   label={t("sales.overview.accrued", "Accrued")}
-                  value={money(raw.commissions?.accrued)}
+                  value={money(raw.commissions?.accrued, currency)}
                 />
                 <StatTile
                   label={t("sales.overview.approved", "Approved")}
-                  value={money(raw.commissions?.approved)}
+                  value={money(raw.commissions?.approved, currency)}
                 />
                 <StatTile
                   label={t("sales.overview.paid", "Paid")}
-                  value={money(raw.commissions?.paid)}
+                  value={money(raw.commissions?.paid, currency)}
                 />
               </div>
 
@@ -356,10 +494,11 @@ export default function SalesOverviewPage() {
                       className="flex items-center justify-between text-sm"
                     >
                       <span>
-                        {t("sales.overview.employee", "Employee")} #{row.employee_id}
+                        {employeeLabel(employeeById, row.employee_id) ??
+                          `${t("sales.overview.employee", "Employee")} #${row.employee_id}`}
                       </span>
                       <span className="tabular-nums">
-                        {money(row.amount)}
+                        {money(row.amount, currency)}
                         <span className="ml-2 text-xs text-muted-foreground">
                           {t("sales.overview.orders_count", "{n} orders").replace(
                             "{n}",
@@ -370,7 +509,11 @@ export default function SalesOverviewPage() {
                     </div>
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <p className="mt-4 border-t border-border/40 pt-4 text-sm italic text-muted-foreground">
+                  {t("sales.overview.no_commissions", "No commission recorded in this range.")}
+                </p>
+              )}
             </Panel>
           </div>
         </>

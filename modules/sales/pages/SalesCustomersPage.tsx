@@ -3,11 +3,12 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/store/use-translation";
 
 import { DataTable, type DataTableQuery } from "@/components/datatable/data-table";
+import { PanelTableSkeleton } from "@/components/ui/loading-states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,10 +21,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { hrFetch, type Employee as HrEmployee, type Paginated as HrPaginated } from "@/modules/humanresources/api";
+import { SalesConfirmDialog, useSalesConfirmDialog } from "@/modules/sales/components/sales-confirm-dialog";
 import { salesApi } from "@/modules/sales/api";
 import type { SalesCustomer, SalesPriceList } from "@/modules/sales/types";
+import { EmptyPanel } from "@/modules/shared/charts/primitives";
 
 const n = (value: unknown) => {
   const parsed = Number(value);
@@ -32,6 +37,10 @@ const n = (value: unknown) => {
 
 const money = (value: unknown) =>
   `ETB ${n(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+function employeeLabel(employee: HrEmployee) {
+  return `${employee.primary_name} (${employee.employee_number})`;
+}
 
 type CustomerForm = {
   id?: number;
@@ -71,19 +80,28 @@ const DEFAULT_CUSTOMER: CustomerForm = {
 export default function SalesCustomersPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { requestConfirm, closeConfirm, confirmDialogProps } = useSalesConfirmDialog();
 
   const [tableQuery, setTableQuery] = React.useState({ page: 1, pageSize: 10, search: "" });
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all");
+  const [segmentFilter, setSegmentFilter] = React.useState("");
+  const [ownerFilter, setOwnerFilter] = React.useState("all");
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState<CustomerForm>(DEFAULT_CUSTOMER);
+  const [archivingId, setArchivingId] = React.useState<number | null>(null);
 
   const listQuery = useQuery({
-    queryKey: ["sales", "customers", tableQuery],
+    queryKey: ["sales", "customers", tableQuery, statusFilter, segmentFilter, ownerFilter],
     queryFn: () =>
       salesApi
         .listCustomers({
           page: tableQuery.page,
           limit: tableQuery.pageSize,
           search: tableQuery.search || undefined,
+          is_active:
+            statusFilter === "all" ? undefined : statusFilter === "active" ? 1 : 0,
+          segment: segmentFilter.trim() || undefined,
+          owner_employee_id: ownerFilter === "all" ? undefined : Number(ownerFilter),
         })
         .then((res) => res.data),
   });
@@ -91,6 +109,12 @@ export default function SalesCustomersPage() {
   const priceListsQuery = useQuery({
     queryKey: ["sales", "price-list-options"],
     queryFn: () => salesApi.listPriceLists({ limit: 100 }).then((res) => res.data),
+  });
+
+  const employeesQuery = useQuery({
+    queryKey: ["hr", "employees", "sales-owner-picker"],
+    queryFn: () => hrFetch<HrPaginated<HrEmployee>>("/employees?per_page=200"),
+    enabled: true,
   });
 
   const invalidate = React.useCallback(() => {
@@ -131,13 +155,18 @@ export default function SalesCustomersPage() {
   });
 
   const archive = useMutation({
-    mutationFn: (id: number) => salesApi.deleteCustomer(id),
+    mutationFn: (id: number) => {
+      setArchivingId(id);
+      return salesApi.deleteCustomer(id);
+    },
     onSuccess: () => {
       toast.success(t("sales.customers.archived", "Customer archived; their order history is kept."));
       invalidate();
+      closeConfirm();
     },
     onError: (error: any) =>
       toast.error(errorText(error, t("sales.customers.archive_failed", "Could not archive them."))),
+    onSettled: () => setArchivingId(null),
   });
 
   const handleTableQueryChange = React.useCallback((query: DataTableQuery) => {
@@ -149,6 +178,7 @@ export default function SalesCustomersPage() {
   }, []);
 
   const priceLists = (priceListsQuery.data?.data ?? []) as SalesPriceList[];
+  const employees = employeesQuery.data?.data ?? [];
 
   const columns = React.useMemo<ColumnDef<SalesCustomer>[]>(
     () => [
@@ -224,11 +254,14 @@ export default function SalesCustomersPage() {
       {
         id: "actions",
         header: "",
-        cell: ({ row }) => (
-          <div className="flex justify-end gap-1">
+        cell: ({ row }) => {
+          const isArchiving = archivingId === row.original.id;
+          return (
+            <div className="flex justify-end gap-1">
             <Button
               variant="ghost"
               size="sm"
+              disabled={isArchiving}
               onClick={() => {
                 setForm({
                   id: row.original.id,
@@ -258,16 +291,25 @@ export default function SalesCustomersPage() {
               variant="ghost"
               size="sm"
               className="text-destructive"
-              onClick={() => archive.mutate(row.original.id)}
+              disabled={isArchiving}
+              onClick={() => {
+                requestConfirm({
+                  title: t("sales.customers.archive_title", "Archive Customer"),
+                  description: t("sales.customers.archive_confirm", "Archive this customer? Their order history will be kept."),
+                  confirmLabel: t("sales.common.archive", "Archive"),
+                  onConfirm: () => archive.mutate(row.original.id),
+                });
+              }}
               aria-label={t("sales.common.archive", "Archive")}
             >
-              <Trash2 className="h-4 w-4" />
+              {isArchiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </Button>
           </div>
-        ),
+          );
+        },
       },
     ],
-    [t, archive],
+    [t, archive, archivingId],
   );
 
   return (
@@ -296,17 +338,84 @@ export default function SalesCustomersPage() {
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={(listQuery.data?.data ?? []) as SalesCustomer[]}
-        totalEntries={listQuery.data?.meta?.total ?? 0}
-        loading={listQuery.isLoading}
-        pageIndex={tableQuery.page}
-        pageSize={tableQuery.pageSize}
-        onQueryChange={handleTableQueryChange}
-        searchPlaceholder={t("sales.customers.search", "Search customers...")}
-        resourceName="sales-customers"
-      />
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">{t("sales.common.status", "Status")}</Label>
+          <Select
+            value={statusFilter}
+            onValueChange={(value: "all" | "active" | "inactive") => {
+              setStatusFilter(value);
+              setTableQuery((prev) => ({ ...prev, page: 1 }));
+            }}
+          >
+            <SelectTrigger className="h-9 w-[10rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("sales.common.all", "All")}</SelectItem>
+              <SelectItem value="active">{t("sales.common.active", "Active")}</SelectItem>
+              <SelectItem value="inactive">{t("sales.common.inactive", "Inactive")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t("sales.customers.segment", "Segment")}</Label>
+          <Input
+            value={segmentFilter}
+            onChange={(event) => {
+              setSegmentFilter(event.target.value);
+              setTableQuery((prev) => ({ ...prev, page: 1 }));
+            }}
+            placeholder={t("sales.customers.segment_hint", "wholesale, retail, key account")}
+            className="h-9 w-[13rem]"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t("sales.customers.owner", "Account manager")}</Label>
+          <Select
+            value={ownerFilter}
+            onValueChange={(value) => {
+              setOwnerFilter(value);
+              setTableQuery((prev) => ({ ...prev, page: 1 }));
+            }}
+          >
+            <SelectTrigger className="h-9 w-[14rem]">
+              <SelectValue placeholder={t("sales.common.select", "Select...")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("sales.common.all", "All")}</SelectItem>
+              {employees.map((employee) => (
+                <SelectItem key={employee.id} value={String(employee.id)}>
+                  {employeeLabel(employee)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {employeesQuery.isError ? (
+            <p className="text-[11px] text-muted-foreground">
+              {t("sales.customers.owner_picker_unavailable", "Employee directory unavailable.")}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {listQuery.isPending ? (
+        <PanelTableSkeleton rows={8} cols={6} />
+      ) : listQuery.isError ? (
+        <EmptyPanel label={t("sales.customers.load_failed", "Could not load customers.")} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={(listQuery.data?.data ?? []) as SalesCustomer[]}
+          totalEntries={listQuery.data?.meta?.total ?? 0}
+          loading={listQuery.isFetching && !listQuery.isPending}
+          pageIndex={tableQuery.page}
+          pageSize={tableQuery.pageSize}
+          onQueryChange={handleTableQueryChange}
+          searchPlaceholder={t("sales.customers.search", "Search customers...")}
+          resourceName="sales-customers"
+        />
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl rounded-[2rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl">
@@ -355,19 +464,22 @@ export default function SalesCustomersPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cust-list">{t("sales.customers.price_list", "Price list")}</Label>
-              <select
-                id="cust-list"
-                value={form.price_list_id}
-                onChange={(event) => setForm({ ...form, price_list_id: event.target.value })}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              <Select
+                value={form.price_list_id || "none"}
+                onValueChange={(value) => setForm({ ...form, price_list_id: value === "none" ? "" : value })}
               >
-                <option value="">{t("sales.customers.default_list", "Tenant default")}</option>
+                <SelectTrigger id="cust-list" className="h-9 w-full">
+                  <SelectValue placeholder={t("sales.customers.default_list", "Tenant default")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("sales.customers.default_list", "Tenant default")}</SelectItem>
                 {priceLists.map((list) => (
-                  <option key={list.id} value={list.id}>
+                  <SelectItem key={list.id} value={String(list.id)}>
                     {list.name}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cust-phone">{t("sales.customers.phone", "Phone")}</Label>
@@ -424,13 +536,33 @@ export default function SalesCustomersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cust-owner">{t("sales.customers.owner", "Account manager ID")}</Label>
-              <Input
-                id="cust-owner"
-                type="number"
-                value={form.owner_employee_id}
-                onChange={(event) => setForm({ ...form, owner_employee_id: event.target.value })}
-              />
+              <Label htmlFor="cust-owner">{t("sales.customers.owner", "Account manager")}</Label>
+              {employeesQuery.isError ? (
+                <Input
+                  id="cust-owner"
+                  type="number"
+                  value={form.owner_employee_id}
+                  onChange={(event) => setForm({ ...form, owner_employee_id: event.target.value })}
+                  placeholder={t("sales.customers.owner_id_fallback", "Account manager ID")}
+                />
+              ) : (
+                <Select
+                  value={form.owner_employee_id || "none"}
+                  onValueChange={(value) => setForm({ ...form, owner_employee_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger id="cust-owner" className="h-9 w-full">
+                    <SelectValue placeholder={t("sales.common.select", "Select...")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("sales.common.select", "Select...")}</SelectItem>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={String(employee.id)}>
+                        {employeeLabel(employee)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Switch
@@ -449,6 +581,15 @@ export default function SalesCustomersPage() {
                 onChange={(event) => setForm({ ...form, address: event.target.value })}
               />
             </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="cust-notes">{t("sales.common.notes", "Notes")}</Label>
+              <Textarea
+                id="cust-notes"
+                rows={2}
+                value={form.notes}
+                onChange={(event) => setForm({ ...form, notes: event.target.value })}
+              />
+            </div>
           </div>
 
           <DialogFooter className="border-t border-border/40 px-6 py-4">
@@ -464,6 +605,11 @@ export default function SalesCustomersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SalesConfirmDialog
+        {...confirmDialogProps}
+        pending={archive.isPending}
+      />
     </div>
   );
 }
