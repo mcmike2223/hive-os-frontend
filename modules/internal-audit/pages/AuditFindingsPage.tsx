@@ -104,6 +104,9 @@ const n = (value: unknown) => {
 const dateOnly = (value: string | null | undefined) =>
   value ? String(value).slice(0, 10) : "—";
 
+const isOutstandingAction = (status: string) =>
+  status === "pending" || status === "in_progress";
+
 const money = (value: unknown) =>
   `ETB ${n(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
@@ -181,6 +184,7 @@ export default function AuditFindingsPage() {
   const [cancelling, setCancelling] = React.useState<AuditAction | null>(null);
   const [cancelReason, setCancelReason] = React.useState("");
   const [cancellingId, setCancellingId] = React.useState<number | null>(null);
+  const actionsSectionRef = React.useRef<HTMLDivElement>(null);
 
   const findingsQuery = useQuery({
     queryKey: [
@@ -278,6 +282,36 @@ export default function AuditFindingsPage() {
 
   const errorText = (error: any, fallback: string) => error?.response?.data?.message || fallback;
 
+  const focusActionsSection = React.useCallback(
+    (options?: { findingId?: number; outstandingOnly?: boolean; search?: string }) => {
+      if (options?.findingId !== undefined) {
+        setActionFindingFilter(String(options.findingId));
+      }
+      if (options?.outstandingOnly !== undefined) {
+        setActionOutstandingOnly(options.outstandingOnly);
+      }
+      setActionsTableQuery((prev) => ({
+        ...prev,
+        page: 1,
+        search: options?.search ?? (options?.findingId !== undefined ? "" : prev.search),
+      }));
+      setDetailId(null);
+      window.setTimeout(() => {
+        actionsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    },
+    [],
+  );
+
+  const openAgreeDialog = React.useCallback((finding: AuditFinding) => {
+    setAgreeing(finding);
+    setActionForm({
+      description: finding.recommendation?.trim() ?? "",
+      owner_name: "",
+      due_on: "",
+    });
+  }, []);
+
   const raise = useMutation({
     mutationFn: () =>
       internalAuditApi.createFinding({
@@ -309,12 +343,12 @@ export default function AuditFindingsPage() {
       setTransitioningId(id);
       return internalAuditApi.transitionFinding(id, next, note);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success(t("internal_audit.findings.moved", "Finding updated."));
       invalidate();
       setTransitioning(null);
       setTransitionNote("");
-      if (detailId) detailQuery.refetch();
+      if (detailId === variables.id) detailQuery.refetch();
     },
     onError: (error: any) =>
       toast.error(errorText(error, t("internal_audit.findings.move_failed", "Could not move it."))),
@@ -329,11 +363,13 @@ export default function AuditFindingsPage() {
         due_on: actionForm.due_on,
       }),
     onSuccess: () => {
+      const findingId = agreeing!.id;
       toast.success(t("internal_audit.findings.action_agreed", "Action agreed."));
       invalidate();
       setAgreeing(null);
       setActionForm({ description: "", owner_name: "", due_on: "" });
-      if (detailId) detailQuery.refetch();
+      if (detailId === findingId) detailQuery.refetch();
+      focusActionsSection({ findingId, outstandingOnly: true });
     },
     onError: (error: any) =>
       toast.error(errorText(error, t("internal_audit.findings.action_failed", "Could not agree it."))),
@@ -345,11 +381,16 @@ export default function AuditFindingsPage() {
       return internalAuditApi.completeAction(id, completed_on);
     },
     onSuccess: () => {
+      const findingId = completing?.finding_id;
       toast.success(t("internal_audit.actions.completed", "Action recorded as complete."));
       invalidate();
       setCompleting(null);
       setCompletedOn("");
+      setActionOutstandingOnly(true);
       if (detailId) detailQuery.refetch();
+      if (findingId) {
+        focusActionsSection({ findingId, outstandingOnly: true });
+      }
     },
     onError: (error: any) => toast.error(errorText(error, "Could not complete it.")),
     onSettled: () => setCompletingId(null),
@@ -430,6 +471,9 @@ export default function AuditFindingsPage() {
   const detail = (detailQuery.data?.data ?? null) as AuditFinding | null;
 
   const filteredEngagement = engagements.find((row) => String(row.id) === engagementFilter);
+  const filteredActionFinding =
+    findings.find((row) => String(row.id) === actionFindingFilter) ??
+    (detail && String(detail.id) === actionFindingFilter ? detail : null);
 
   const findingColumns = React.useMemo<ColumnDef<AuditFinding>[]>(
     () => [
@@ -521,10 +565,12 @@ export default function AuditFindingsPage() {
           <button
             type="button"
             className="text-left text-xs tabular-nums hover:underline"
-            onClick={() => {
-              setActionFindingFilter(String(row.original.id));
-              setActionOutstandingOnly(false);
-            }}
+            onClick={() =>
+              focusActionsSection({
+                findingId: row.original.id,
+                outstandingOnly: false,
+              })
+            }
           >
             {n(row.original.actions_count)}
             {n(row.original.outstanding_actions_count) > 0 ? (
@@ -574,7 +620,7 @@ export default function AuditFindingsPage() {
                   size="sm"
                   variant="outline"
                   className="h-7 text-[11px]"
-                  onClick={() => setAgreeing(row.original)}
+                  onClick={() => openAgreeDialog(row.original)}
                 >
                   {t("internal_audit.findings.agree", "Agree action")}
                 </Button>
@@ -596,7 +642,7 @@ export default function AuditFindingsPage() {
         },
       },
     ],
-    [canManageActions, canManageFindings, startTransition, t, transitioningId],
+    [canManageActions, canManageFindings, focusActionsSection, openAgreeDialog, startTransition, t, transitioningId],
   );
 
   const actionColumns = React.useMemo<ColumnDef<AuditAction>[]>(
@@ -864,10 +910,12 @@ export default function AuditFindingsPage() {
                     size="sm"
                     variant="ghost"
                     className="mt-1 h-7 text-[11px]"
-                    onClick={() => {
-                      setActionFindingFilter(String(row.finding_id));
-                      setActionOutstandingOnly(true);
-                    }}
+                    onClick={() =>
+                      focusActionsSection({
+                        findingId: row.finding_id,
+                        outstandingOnly: true,
+                      })
+                    }
                   >
                     {t("internal_audit.findings.filter_actions", "Filter actions")}
                   </Button>
@@ -1012,6 +1060,31 @@ export default function AuditFindingsPage() {
         />
       )}
 
+      <div ref={actionsSectionRef} className="scroll-mt-6 space-y-4">
+      {actionFindingFilter !== "all" ? (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 px-4 py-3 text-sm">
+          <span>
+            {t("internal_audit.findings.actions_for", "Showing actions for finding")}{" "}
+            <span className="font-semibold">
+              {filteredActionFinding?.finding_number ?? `#${actionFindingFilter}`}
+              {filteredActionFinding?.title ? ` — ${filteredActionFinding.title}` : ""}
+            </span>
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              setActionFindingFilter("all");
+              setActionsTableQuery((prev) => ({ ...prev, page: 1, search: "" }));
+            }}
+          >
+            <X className="mr-1 h-3.5 w-3.5" />
+            {t("internal_audit.common.clear", "Clear")}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-border/60 bg-card p-4">
         <div className="space-y-1">
           <Label className="text-xs">{t("internal_audit.common.status", "Status")}</Label>
@@ -1060,7 +1133,10 @@ export default function AuditFindingsPage() {
             variant="ghost"
             size="sm"
             className="h-9"
-            onClick={() => setActionFindingFilter("all")}
+            onClick={() => {
+              setActionFindingFilter("all");
+              setActionsTableQuery((prev) => ({ ...prev, page: 1, search: "" }));
+            }}
           >
             <X className="mr-1 h-3.5 w-3.5" />
             {t("internal_audit.common.clear", "Clear finding filter")}
@@ -1099,6 +1175,7 @@ export default function AuditFindingsPage() {
           resourceName="audit-actions"
         />
       )}
+      </div>
 
       {/* Raise finding */}
       <Dialog open={raiseOpen} onOpenChange={setRaiseOpen}>
@@ -1419,41 +1496,100 @@ export default function AuditFindingsPage() {
                 detail.management_response,
               )}
 
-              {(detail.actions ?? []).length > 0 ? (
-                <Panel title={t("internal_audit.actions.title", "Agreed actions")}>
-                  <ul className="space-y-2">
-                    {(detail.actions ?? []).map((action) => (
-                      <li
-                        key={action.id}
-                        className="flex items-start justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm"
+              {(() => {
+                const allActions = detail.actions ?? [];
+                const outstandingActions = allActions.filter((action) =>
+                  isOutstandingAction(action.status),
+                );
+                const closedActions = allActions.filter(
+                  (action) => !isOutstandingAction(action.status),
+                );
+
+                return (
+                  <>
+                    {outstandingActions.length > 0 ? (
+                      <Panel title={t("internal_audit.actions.outstanding_title", "Outstanding actions")}>
+                        <ul className="space-y-2">
+                          {outstandingActions.map((action) => (
+                            <li
+                              key={action.id}
+                              className="flex items-start justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm"
+                            >
+                              <div>
+                                <p>{action.description}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {action.owner_name} · {t("internal_audit.actions.due", "Due")}{" "}
+                                  {dateOnly(action.due_on)} · {action.status.replace(/_/g, " ")}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 shrink-0 text-[11px]"
+                                onClick={() =>
+                                  focusActionsSection({
+                                    findingId: detail.id,
+                                    outstandingOnly: true,
+                                    search: action.description,
+                                  })
+                                }
+                              >
+                                {t("internal_audit.common.open", "Open")}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </Panel>
+                    ) : null}
+
+                    {closedActions.length > 0 ? (
+                      <Panel
+                        title={t(
+                          "internal_audit.actions.completed_title",
+                          "Completed or cancelled",
+                        )}
                       >
-                        <div>
-                          <p>{action.description}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {action.owner_name} · {t("internal_audit.actions.due", "Due")}{" "}
-                            {dateOnly(action.due_on)} · {action.status.replace(/_/g, " ")}
-                            {action.is_verified
-                              ? ` · ${t("internal_audit.actions.verified", "Verified")}`
-                              : ""}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 shrink-0 text-[11px]"
-                          onClick={() => {
-                            setActionFindingFilter(String(detail.id));
-                            setActionOutstandingOnly(false);
-                            setDetailId(null);
-                          }}
-                        >
-                          {t("internal_audit.common.open", "Open")}
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </Panel>
-              ) : null}
+                        <ul className="space-y-2">
+                          {closedActions.map((action) => (
+                            <li
+                              key={action.id}
+                              className="flex items-start justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm"
+                            >
+                              <div>
+                                <p>{action.description}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {action.owner_name} · {t("internal_audit.actions.due", "Due")}{" "}
+                                  {dateOnly(action.due_on)} · {action.status.replace(/_/g, " ")}
+                                  {action.completed_on
+                                    ? ` · ${t("internal_audit.actions.done_on", "Done")} ${dateOnly(action.completed_on)}`
+                                    : ""}
+                                  {action.is_verified
+                                    ? ` · ${t("internal_audit.actions.verified", "Verified")}`
+                                    : ""}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 shrink-0 text-[11px]"
+                                onClick={() =>
+                                  focusActionsSection({
+                                    findingId: detail.id,
+                                    outstandingOnly: false,
+                                    search: action.description,
+                                  })
+                                }
+                              >
+                                {t("internal_audit.actions.view", "View")}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </Panel>
+                    ) : null}
+                  </>
+                );
+              })()}
 
               {canManageFindings ? (
                 <div className="flex flex-wrap gap-1 border-t border-border/40 pt-4">
@@ -1463,7 +1599,7 @@ export default function AuditFindingsPage() {
                       variant="outline"
                       className="h-7 text-[11px]"
                       onClick={() => {
-                        setAgreeing(detail);
+                        openAgreeDialog(detail);
                         setDetailId(null);
                       }}
                     >
@@ -1537,7 +1673,15 @@ export default function AuditFindingsPage() {
       </Dialog>
 
       {/* Agree action */}
-      <Dialog open={agreeing !== null} onOpenChange={(open) => !open && setAgreeing(null)}>
+      <Dialog
+        open={agreeing !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAgreeing(null);
+            setActionForm({ description: "", owner_name: "", due_on: "" });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg rounded-[2rem] border-border/60 bg-background/95 p-0 backdrop-blur-xl">
           <div className="border-b border-border/40 px-6 py-5">
             <DialogHeader>
@@ -1545,14 +1689,24 @@ export default function AuditFindingsPage() {
                 {t("internal_audit.findings.agree", "Agree action")}
               </DialogTitle>
               <DialogDescription>
-                {t(
-                  "internal_audit.findings.agree_desc",
-                  "The action belongs to management, not to audit. Naming an owner and a date is the difference between an agreed action and a suggestion.",
-                )}
+                {agreeing
+                  ? `${agreeing.finding_number} — ${agreeing.title}`
+                  : t(
+                      "internal_audit.findings.agree_desc",
+                      "The action belongs to management, not to audit. Naming an owner and a date is the difference between an agreed action and a suggestion.",
+                    )}
               </DialogDescription>
             </DialogHeader>
           </div>
           <div className="grid gap-4 px-6 py-5">
+            {agreeing && n(agreeing.outstanding_actions_count) > 0 ? (
+              <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                {t(
+                  "internal_audit.findings.existing_actions",
+                  "This finding already has {n} outstanding action(s). Add another only if management agreed to more than one fix.",
+                ).replace("{n}", String(n(agreeing.outstanding_actions_count)))}
+              </p>
+            ) : null}
             <div className="space-y-1.5">
               <Label>{t("internal_audit.actions.description", "What will be done")}</Label>
               <Textarea
