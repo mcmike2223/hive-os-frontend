@@ -9,6 +9,7 @@ export type ReviewCycle = {
   id: number; code: string; name: string; description?: string | null; cycle_type: string; period_start: string; period_end: string;
   self_review_due_on?: string | null; manager_review_due_on?: string | null; calibration_due_on?: string | null;
   goal_weight: string | number; competency_weight: string | number; status: string; reviews_count?: number; completed_reviews_count?: number;
+  settings?: { requires_calibration?: boolean } | null;
 };
 
 export type Competency = {

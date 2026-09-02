@@ -32,8 +32,8 @@ export const performanceApi = {
   createPlan: async (payload: Payload) => (await api.post<DataEnvelope<ImprovementPlan>>("/performance/improvement-plans", payload)).data.data,
   updatePlan: async (id: number, payload: Payload) => (await api.patch<DataEnvelope<ImprovementPlan>>(`/performance/improvement-plans/${id}`, payload)).data.data,
   planAction: async (id: number, action: "activate" | "acknowledge" | "successful" | "extend" | "unsuccessful" | "cancel", payload: Payload = {}) => (await api.post(`/performance/improvement-plans/${id}/actions/${action}`, payload)).data,
-  report: async () => (await api.get<DataEnvelope<PerformanceDashboard>>("/performance/reports/summary")).data.data,
-  exportReport: async () => (await api.get<Blob>("/performance/reports/export", { responseType: "blob" })).data,
+  report: async (params: Params = {}) => (await api.get<DataEnvelope<PerformanceDashboard>>("/performance/reports/summary", { params })).data.data,
+  exportReport: async (params: Params = {}) => (await api.get<Blob>("/performance/reports/export", { params, responseType: "blob" })).data,
   exportUrl: "/performance/reports/export",
 };
 
