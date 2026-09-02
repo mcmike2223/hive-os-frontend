@@ -1,11 +1,20 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Gauge, Rocket, Target } from "lucide-react";
+import { AlertTriangle, Gauge, RefreshCw, Rocket, Target } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
 
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { strategyApi } from "@/modules/strategy/api";
 import type { ScoreBand, StrategyOverview } from "@/modules/strategy/types";
 import { EmptyPanel, LoadingPanel, Panel, StatTile } from "@/modules/shared/charts/primitives";
@@ -61,38 +70,50 @@ export default function StrategyOverviewPage() {
         </p>
       </div>
 
-      {(raw?.plans ?? []).length > 1 ? (
+      {(raw?.plans ?? []).length > 0 ? (
         <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-border/60 bg-card p-4">
           <div className="space-y-1">
-            <Label htmlFor="sp-plan" className="text-xs">
-              {t("strategy.overview.plan", "Plan")}
-            </Label>
-            <select
-              id="sp-plan"
-              value={planId}
-              onChange={(event) => setPlanId(event.target.value)}
-              className="h-9 w-72 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t("strategy.overview.current_plan", "Current plan")}</option>
-              {raw!.plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name} ({plan.status})
-                </option>
-              ))}
-            </select>
+            <Label className="text-xs">{t("strategy.overview.plan", "Plan")}</Label>
+            <Select value={planId || "current"} onValueChange={(v) => setPlanId(v === "current" ? "" : v)}>
+              <SelectTrigger className="h-9 w-72">
+                <SelectValue placeholder={t("strategy.overview.current_plan", "Current plan")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current">{t("strategy.overview.current_plan", "Current plan")}</SelectItem>
+                {raw!.plans.map((plan) => (
+                  <SelectItem key={plan.id} value={String(plan.id)}>
+                    {plan.name} ({plan.status})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       ) : null}
 
       {overviewQuery.isLoading ? (
         <LoadingPanel label={t("strategy.common.loading", "Loading the scorecard...")} />
+      ) : overviewQuery.isError ? (
+        <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            {t("strategy.overview.load_failed", "Could not load strategy overview.")}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => overviewQuery.refetch()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            {t("strategy.common.retry", "Retry")}
+          </Button>
+        </div>
       ) : !raw || !raw.plan ? (
-        <EmptyPanel
-          label={t(
-            "strategy.overview.no_plan",
-            "No strategic plan has been set up yet.",
-          )}
-        />
+        <div className="space-y-4 text-center">
+          <EmptyPanel
+            label={t("strategy.overview.no_plan", "No strategic plan has been set up yet.")}
+          />
+          <Button asChild className="rounded-full">
+            <Link href="/dashboard/strategy/reviews">
+              {t("strategy.scorecard.setup_plan", "Set up a plan")}
+            </Link>
+          </Button>
+        </div>
       ) : (
         <>
           {/* One hero figure. The score alone says nothing; the score against
@@ -143,27 +164,26 @@ export default function StrategyOverviewPage() {
                   String(n(raw.objectives?.without_kpi)),
                 )}
                 alert={n(raw.objectives?.without_kpi) > 0}
+                href="/dashboard/strategy/scorecard"
               />
               <StatTile
                 icon={<Gauge className="h-4 w-4" />}
                 label={t("strategy.overview.stale", "Stale measures")}
                 value={n(raw.kpis?.stale).toLocaleString()}
-                // A scorecard full of stale numbers is worse than an empty one,
-                // because it looks current.
-                meta={t("strategy.overview.measured_meta", "{measured} of {total} reported").
-                  replace("{measured}", String(n(raw.measurement?.measured))).
-                  replace("{total}", String(n(raw.measurement?.kpis)))}
+                meta={t("strategy.overview.measured_meta", "{measured} of {total} reported")
+                  .replace("{measured}", String(n(raw.measurement?.measured)))
+                  .replace("{total}", String(n(raw.measurement?.kpis)))}
                 alert={n(raw.kpis?.stale) > 0}
+                href="/dashboard/strategy/kpis"
               />
               <StatTile
                 icon={<Rocket className="h-4 w-4" />}
                 label={t("strategy.overview.delivery", "Initiative delivery")}
                 value={`${n(raw.initiatives?.weighted_progress_percent).toFixed(0)}%`}
-                // Weighted by budget: a nearly-finished small project and a
-                // barely-started large one are not equally reassuring.
                 meta={t("strategy.overview.delivery_meta", "weighted by budget · {spent} of {budget}")
                   .replace("{spent}", money(raw.initiatives?.spent))
                   .replace("{budget}", money(raw.initiatives?.budget))}
+                href="/dashboard/strategy/initiatives"
               />
               <StatTile
                 icon={<AlertTriangle className="h-4 w-4" />}
@@ -173,6 +193,7 @@ export default function StrategyOverviewPage() {
                   .replace("{overdue}", String(n(raw.initiatives?.overdue)))
                   .replace("{over}", String(n(raw.initiatives?.overspending)))}
                 alert={(raw.initiatives?.at_risk ?? []).length > 0}
+                href="/dashboard/strategy/initiatives?at_risk=1&open_only=1"
               />
             </div>
           </section>
@@ -257,6 +278,7 @@ export default function StrategyOverviewPage() {
                 label: row.title,
                 value: n(row.score),
                 meta: row.owner ?? undefined,
+                href: `/dashboard/strategy/scorecard?objective_id=${row.objective_id}`,
               }))}
               valueLabel={t("strategy.overview.score", "Score")}
               valueSuffix="%"
@@ -294,9 +316,10 @@ export default function StrategyOverviewPage() {
               ) : (
                 <div className="space-y-1.5">
                   {raw.kpis.worst.slice(0, 6).map((kpi) => (
-                    <div
+                    <Link
                       key={kpi.kpi_id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm"
+                      href={`/dashboard/strategy/kpis?kpi_id=${kpi.kpi_id}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
                       <span className="min-w-0">
                         <span className="block truncate font-medium">{kpi.name}</span>
@@ -333,7 +356,7 @@ export default function StrategyOverviewPage() {
                           </span>
                         ) : null}
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -353,9 +376,10 @@ export default function StrategyOverviewPage() {
               ) : (
                 <div className="space-y-1.5">
                   {raw.initiatives.at_risk.slice(0, 6).map((row) => (
-                    <div
+                    <Link
                       key={row.initiative_id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm"
+                      href={`/dashboard/strategy/initiatives?initiative_id=${row.initiative_id}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-muted/30"
                     >
                       <span className="min-w-0">
                         <span className="block truncate font-medium">{row.name}</span>
@@ -386,7 +410,7 @@ export default function StrategyOverviewPage() {
                             .join(" · ")}
                         </span>
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

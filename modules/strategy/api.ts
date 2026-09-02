@@ -16,14 +16,16 @@ export const strategyApi = {
 
   // ------------------------------------------------------------------ plans
   listPlans: (params?: Params) => http.get(`${BASE_URL}/plans`, { params }),
-  /** The full scored tree for one plan. */
-  scorecard: (id: number) => http.get(`${BASE_URL}/plans/${id}/scorecard`),
+  /** The full scored tree for one plan. Optional `as_of` for a historical snapshot. */
+  scorecard: (id: number, params?: Params) =>
+    http.get(`${BASE_URL}/plans/${id}/scorecard`, { params }),
   createPlan: (data: Payload) => http.post(`${BASE_URL}/plans`, data),
   updatePlan: (id: number, data: Payload) => http.put(`${BASE_URL}/plans/${id}`, data),
 
   // ----------------------------------------------------------- perspectives
   listPerspectives: (params?: Params) => http.get(`${BASE_URL}/perspectives`, { params }),
   createPerspective: (data: Payload) => http.post(`${BASE_URL}/perspectives`, data),
+  updatePerspective: (id: number, data: Payload) => http.put(`${BASE_URL}/perspectives/${id}`, data),
 
   // ------------------------------------------------------------- objectives
   listObjectives: (params?: Params) => http.get(`${BASE_URL}/objectives`, { params }),

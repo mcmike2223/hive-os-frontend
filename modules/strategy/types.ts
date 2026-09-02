@@ -66,6 +66,9 @@ export type StrategyObjective = {
   perspective?: StrategyPerspective | null;
   kpis_count?: number;
   initiatives_count?: number;
+  children?: StrategyObjective[];
+  initiatives?: StrategyInitiative[];
+  kpis?: StrategyKpi[];
 };
 
 export type KpiDirection = "higher_is_better" | "lower_is_better";

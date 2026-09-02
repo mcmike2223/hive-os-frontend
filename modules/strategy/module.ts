@@ -29,7 +29,7 @@ export const strategyModule: FrontendModuleDefinition = {
       fallbackLabel: "Scorecard",
       href: "/dashboard/strategy/scorecard",
       icon: Grid2x2,
-      permissions: ["view_strategy", "manage_strategy_objectives", "manage_strategy"],
+      permissions: ["view_strategy", "manage_strategy"],
     },
     {
       ...common,
