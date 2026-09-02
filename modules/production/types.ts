@@ -112,6 +112,9 @@ export interface ProductionOrder {
   line?: ProductionLine | null;
   bom?: ProductionBom | null;
   consumptions?: ProductionMaterialConsumption[];
+  runs?: ProductionRun[];
+  treatmentLogs?: WaterTreatmentLog[];
+  sanitationLogs?: SanitationLog[];
   created_at: string;
   updated_at: string;
 }

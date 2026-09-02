@@ -33,6 +33,8 @@ export const productionApi = {
 
   // Work orders
   listOrders: (params?: Record<string, unknown>) => http.get(`${BASE_URL}/orders`, { params }),
+  exportOrders: (params?: Record<string, unknown>) =>
+    http.get(`${BASE_URL}/orders/export`, { params, responseType: "blob" }),
   getOrder: (id: number) => http.get(`${BASE_URL}/orders/${id}`),
   createOrder: (data: Record<string, unknown>) => http.post(`${BASE_URL}/orders`, data),
   updateOrder: (id: number, data: Partial<ProductionOrder>) => http.put(`${BASE_URL}/orders/${id}`, data),
@@ -62,6 +64,7 @@ export const productionApi = {
   // Water treatment
   treatmentSpecification: () => http.get(`${BASE_URL}/water-treatment/specification`),
   listTreatmentLogs: (params?: Record<string, unknown>) => http.get(`${BASE_URL}/water-treatment`, { params }),
+  getTreatmentLog: (id: number) => http.get(`${BASE_URL}/water-treatment/${id}`),
   createTreatmentLog: (data: Partial<WaterTreatmentLog>) => http.post(`${BASE_URL}/water-treatment`, data),
   updateTreatmentLog: (id: number, data: Partial<WaterTreatmentLog>) =>
     http.put(`${BASE_URL}/water-treatment/${id}`, data),
@@ -86,6 +89,7 @@ export const productionApi = {
 
   // Sanitation / CIP
   listSanitationLogs: (params?: Record<string, unknown>) => http.get(`${BASE_URL}/sanitation`, { params }),
+  getSanitationLog: (id: number) => http.get(`${BASE_URL}/sanitation/${id}`),
   createSanitationLog: (data: Partial<SanitationLog>) => http.post(`${BASE_URL}/sanitation`, data),
   updateSanitationLog: (id: number, data: Partial<SanitationLog>) =>
     http.put(`${BASE_URL}/sanitation/${id}`, data),

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Droplets, Factory, Loader2, PackageCheck, ShieldCheck } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
@@ -149,6 +150,7 @@ export default function ProductionOverviewPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <SummaryTile
+              href="/dashboard/production/orders?open_only=1"
               icon={<Factory className="h-4 w-4" />}
               label={t("production.overview.open_orders", "Open work orders")}
               value={overview.orders.open.toLocaleString()}
@@ -164,6 +166,7 @@ export default function ProductionOverviewPage() {
               meta={`${overview.oee.reject_units.toLocaleString()} ${t("production.overview.rejected", "rejected")}`}
             />
             <SummaryTile
+              href="/dashboard/production/orders?qa_status=pending"
               icon={<ShieldCheck className="h-4 w-4" />}
               label={t("production.overview.awaiting_qa", "Batches awaiting QA")}
               value={overview.orders.awaiting_qa.toLocaleString()}
@@ -342,15 +345,17 @@ function SummaryTile({
   value,
   meta,
   alert = false,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   meta: string;
   alert?: boolean;
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-4">
+  const content = (
+    <div className="rounded-2xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
         <span className="text-muted-foreground">{icon}</span>
@@ -362,6 +367,8 @@ function SummaryTile({
       </p>
     </div>
   );
+
+  return href ? <Link href={href} className="block">{content}</Link> : content;
 }
 
 function Panel({
