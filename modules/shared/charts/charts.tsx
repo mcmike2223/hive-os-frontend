@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 
 /**
  * Inline-SVG chart primitives shared by every module dashboard.
@@ -727,7 +728,7 @@ export function RankedBarChart({
 }: {
   title: string;
   description?: string;
-  rows: Array<{ key: string; label: string; value: number; meta?: string }>;
+  rows: Array<{ key: string; label: string; value: number; meta?: string; href?: string }>;
   emptyLabel: string;
   valueLabel: string;
   valueSuffix?: string;
@@ -777,38 +778,60 @@ export function RankedBarChart({
         <p className="py-10 text-center text-sm italic text-muted-foreground">{emptyLabel}</p>
       ) : (
         <div className="space-y-2.5">
-          {rows.map((row) => (
-            <div
-              key={row.key}
-              tabIndex={0}
-              role="group"
-              aria-label={`${row.label}: ${row.value.toLocaleString()}${valueSuffix}`}
-              className="space-y-1 rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary"
-              onPointerEnter={() => setActive(row.key)}
-              onPointerLeave={() => setActive(null)}
-              onFocus={() => setActive(row.key)}
-              onBlur={() => setActive(null)}
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="truncate text-sm font-medium">{row.label}</span>
-                <span className="shrink-0 text-sm font-bold tabular-nums">
-                  {row.value.toLocaleString()}
-                  {valueSuffix}
-                </span>
+          {rows.map((row) => {
+            const inner = (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="truncate text-sm font-medium">{row.label}</span>
+                  <span className="shrink-0 text-sm font-bold tabular-nums">
+                    {row.value.toLocaleString()}
+                    {valueSuffix}
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full transition-opacity"
+                    style={{
+                      width: `${(Math.abs(row.value) / max) * 100}%`,
+                      backgroundColor: SERIES[1],
+                      opacity: active === null || active === row.key ? 1 : 0.55,
+                    }}
+                  />
+                </div>
+                {row.meta ? <p className="text-[11px] text-muted-foreground">{row.meta}</p> : null}
+              </>
+            );
+
+            const className =
+              "space-y-1 rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary" +
+              (row.href ? " block hover:bg-muted/30" : "");
+
+            return row.href ? (
+              <Link
+                key={row.key}
+                href={row.href}
+                className={className}
+                onPointerEnter={() => setActive(row.key)}
+                onPointerLeave={() => setActive(null)}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div
+                key={row.key}
+                tabIndex={0}
+                role="group"
+                aria-label={`${row.label}: ${row.value.toLocaleString()}${valueSuffix}`}
+                className={className}
+                onPointerEnter={() => setActive(row.key)}
+                onPointerLeave={() => setActive(null)}
+                onFocus={() => setActive(row.key)}
+                onBlur={() => setActive(null)}
+              >
+                {inner}
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full transition-opacity"
-                  style={{
-                    width: `${(Math.abs(row.value) / max) * 100}%`,
-                    backgroundColor: SERIES[1],
-                    opacity: active === null || active === row.key ? 1 : 0.55,
-                  }}
-                />
-              </div>
-              {row.meta ? <p className="text-[11px] text-muted-foreground">{row.meta}</p> : null}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </ChartFrame>

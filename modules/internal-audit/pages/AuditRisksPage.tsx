@@ -432,21 +432,23 @@ export default function AuditRisksPage() {
       </div>
       <div className="space-y-1.5">
         <Label>{t("internal_audit.risks.category", "Category")}</Label>
-        <Select
-          value={form.category}
-          onValueChange={(value) => setForm({ ...form, category: value as RiskCategory })}
-        >
-          <SelectTrigger className="capitalize">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map((value) => (
-              <SelectItem key={value} value={value} className="capitalize">
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div onPointerDownCapture={(e: React.PointerEvent) => e.stopPropagation()}>
+          <Select
+            value={form.category}
+            onValueChange={(value) => setForm({ ...form, category: value as RiskCategory })}
+          >
+            <SelectTrigger className="capitalize">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((value) => (
+                <SelectItem key={value} value={value} className="capitalize">
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label>{t("internal_audit.findings.title_field", "Title")}</Label>
@@ -461,60 +463,66 @@ export default function AuditRisksPage() {
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label>{t("internal_audit.findings.area", "Area")}</Label>
-        <Select
-          value={form.area_id || "none"}
-          onValueChange={(value) => setForm({ ...form, area_id: value === "none" ? "" : value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">
-              {t("internal_audit.risks.no_area", "Not tied to one area")}
-            </SelectItem>
-            {areas.map((area) => (
-              <SelectItem key={area.id} value={String(area.id)}>
-                {area.code} — {area.name}
+        <div onPointerDownCapture={(e: React.PointerEvent) => e.stopPropagation()}>
+          <Select
+            value={form.area_id || "none"}
+            onValueChange={(value) => setForm({ ...form, area_id: value === "none" ? "" : value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                {t("internal_audit.risks.no_area", "Not tied to one area")}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {areas.map((area) => (
+                <SelectItem key={area.id} value={String(area.id)}>
+                  {area.code} — {area.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1.5">
         <Label>{t("internal_audit.risks.likelihood", "Likelihood before controls")}</Label>
-        <Select
-          value={form.likelihood}
-          onValueChange={(value) => setForm({ ...form, likelihood: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SCALE.map((value) => (
-              <SelectItem key={value} value={String(value)}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div onPointerDownCapture={(e: React.PointerEvent) => e.stopPropagation()}>
+          <Select
+            value={form.likelihood}
+            onValueChange={(value) => setForm({ ...form, likelihood: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SCALE.map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1.5">
         <Label>{t("internal_audit.risks.impact", "Impact before controls")}</Label>
-        <Select
-          value={form.impact}
-          onValueChange={(value) => setForm({ ...form, impact: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SCALE.map((value) => (
-              <SelectItem key={value} value={String(value)}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div onPointerDownCapture={(e: React.PointerEvent) => e.stopPropagation()}>
+          <Select
+            value={form.impact}
+            onValueChange={(value) => setForm({ ...form, impact: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SCALE.map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label>{t("internal_audit.risks.controls", "Existing controls")}</Label>
@@ -526,39 +534,43 @@ export default function AuditRisksPage() {
       </div>
       <div className="space-y-1.5">
         <Label>{t("internal_audit.risks.residual_likelihood", "Likelihood after")}</Label>
-        <Select
-          value={form.residual_likelihood}
-          onValueChange={(value) => setForm({ ...form, residual_likelihood: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SCALE.map((value) => (
-              <SelectItem key={value} value={String(value)}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div onPointerDownCapture={(e: React.PointerEvent) => e.stopPropagation()}>
+          <Select
+            value={form.residual_likelihood}
+            onValueChange={(value) => setForm({ ...form, residual_likelihood: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SCALE.map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1.5">
         <Label>{t("internal_audit.risks.residual_impact", "Impact after")}</Label>
-        <Select
-          value={form.residual_impact}
-          onValueChange={(value) => setForm({ ...form, residual_impact: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SCALE.map((value) => (
-              <SelectItem key={value} value={String(value)}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div onPointerDownCapture={(e: React.PointerEvent) => e.stopPropagation()}>
+          <Select
+            value={form.residual_impact}
+            onValueChange={(value) => setForm({ ...form, residual_impact: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SCALE.map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="space-y-1.5">
         <Label>{t("internal_audit.risks.treatment", "Treatment")}</Label>

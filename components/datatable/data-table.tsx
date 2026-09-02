@@ -130,6 +130,9 @@ interface DataTableProps<TData, TValue> {
   exportEndpoint?: string;
   resourceName?: string;
   syncWithUrl?: boolean;
+  defaultSearch?: string;
+  defaultSortCol?: string;
+  defaultSortDir?: "asc" | "desc";
   onCopy?: () => void;
   onPrint?: () => void;
   onExport?: (format: string) => void;
@@ -556,6 +559,9 @@ function DataTableInner<TData, TValue>({
   exportEndpoint,
   resourceName = "records",
   syncWithUrl = true,
+  defaultSearch = "",
+  defaultSortCol,
+  defaultSortDir = "desc",
   onCopy,
   onPrint,
   onExport,
@@ -584,17 +590,16 @@ function DataTableInner<TData, TValue>({
     : Number(pageSize) || 10;
 
   const [busy, setBusy] = React.useState(false);
-  const [searchValue, setSearchValue] = React.useState(getParam("search", ""));
-  const [sorting, setSorting] = React.useState<SortingState>(
-    getParam("sortCol", null)
-      ? [
-          {
-            id: getParam("sortCol", ""),
-            desc: getParam("sortDir", "") === "desc",
-          },
-        ]
-      : [],
+  const [searchValue, setSearchValue] = React.useState(
+    syncWithUrl ? String(getParam("search", "")) : defaultSearch,
   );
+  const [sorting, setSorting] = React.useState<SortingState>(() => {
+    const sortCol = syncWithUrl ? getParam("sortCol", null) : defaultSortCol;
+    const sortDir = syncWithUrl ? getParam("sortDir", "") : defaultSortDir;
+    return sortCol
+      ? [{ id: String(sortCol), desc: sortDir === "desc" }]
+      : [];
+  });
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
