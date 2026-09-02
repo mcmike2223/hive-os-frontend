@@ -43,6 +43,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { strategyApi } from "@/modules/strategy/api";
 import type {
   PlanStatus,
+  StrategyOverview,
   StrategyPerspective,
   StrategyPlan,
   StrategyReview,
@@ -676,7 +677,7 @@ export default function StrategyReviewsPage() {
                 <SelectItem value="current">
                   {overview.plan?.name ?? t("strategy.common.current_plan", "Current plan")}
                 </SelectItem>
-                {overview.plans.map((plan) => (
+                {overview.plans.map((plan: StrategyOverview["plans"][number]) => (
                   <SelectItem key={plan.id} value={String(plan.id)}>
                     {plan.code} — {plan.name}
                   </SelectItem>

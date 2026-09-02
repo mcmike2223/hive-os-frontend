@@ -447,7 +447,9 @@ export default function ContainerDepositsPage() {
     if (!movementIdParam) return;
     if (tab !== "movements") setTab("movements");
     const id = Number(movementIdParam);
-    const found = (movementsQuery.data?.data ?? []).find((movement) => movement.id === id);
+    const found = ((movementsQuery.data?.data ?? []) as ContainerMovement[]).find(
+      (movement) => movement.id === id,
+    );
     if (found) setInspectMovement(found as ContainerMovement);
   }, [movementIdParam, movementsQuery.data, tab]);
 

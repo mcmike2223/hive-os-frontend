@@ -54,8 +54,10 @@ import { productionApi } from "@/modules/production/api";
 import type {
   ProductionBom,
   ProductionLine,
+  ProductionMaterialConsumption,
   ProductionOrder,
   ProductionOrderStatus,
+  ProductionRun,
 } from "@/modules/production/types";
 import { OrderStatusBadge, QaStatusBadge } from "@/modules/production/components/status-badges";
 import {
@@ -1085,7 +1087,7 @@ export default function WorkOrdersPage() {
                     {t("production.orders.materials", "Material plan")}
                   </p>
                   <ul className="space-y-1 text-sm">
-                    {inspectOrder.consumptions?.map((item) => (
+                    {inspectOrder.consumptions?.map((item: ProductionMaterialConsumption) => (
                       <li key={item.id} className="flex justify-between gap-3">
                         <span>
                           {item.component?.name ?? `#${item.component_product_id}`} ({item.component_type})
@@ -1103,7 +1105,7 @@ export default function WorkOrdersPage() {
                 <div>
                   <p className="mb-2 text-sm font-semibold">{t("production.orders.shift_runs", "Shift runs")}</p>
                   <ul className="space-y-1 text-sm">
-                    {inspectOrder.runs?.map((run) => (
+                    {inspectOrder.runs?.map((run: ProductionRun) => (
                       <li key={run.id}>
                         <Link
                           href={`/dashboard/production/runs?order_id=${inspectOrder.id}`}
@@ -1183,7 +1185,7 @@ export default function WorkOrdersPage() {
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {(materialOrder?.consumptions ?? []).map((consumption) => (
+                    {(materialOrder?.consumptions ?? []).map((consumption: ProductionMaterialConsumption) => (
                       <SelectItem key={consumption.id} value={String(consumption.component_product_id)}>
                         {consumption.component?.name ?? `#${consumption.component_product_id}`} (
                         {consumption.component_type})
