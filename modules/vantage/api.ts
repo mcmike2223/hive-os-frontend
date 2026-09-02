@@ -38,6 +38,7 @@ export const vantageApi = {
   // ----------------------------------------------------------------- alerts
   listAlerts: (params?: Params) => http.get(`${BASE_URL}/alerts`, { params }),
   createAlert: (data: Payload) => http.post(`${BASE_URL}/alerts`, data),
+  updateAlert: (id: number, data: Payload) => http.put(`${BASE_URL}/alerts/${id}`, data),
   /** Re-evaluate every alert now rather than waiting for the scheduler. */
   runAlerts: () => http.post(`${BASE_URL}/alerts/run`, {}),
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { BellRing, Database, PlugZap, Sigma } from "lucide-react";
 import { useTranslation } from "@/store/use-translation";
@@ -142,6 +143,7 @@ export default function VantageOverviewPage() {
                 String(n(raw.alerts?.active)),
               )}
               alert={n(raw.alerts?.triggered) > 0}
+              href="/dashboard/vantage/alerts?status=triggered"
             />
             <StatTile
               label={t("vantage.overview.never_evaluated", "Never evaluated")}
@@ -149,6 +151,7 @@ export default function VantageOverviewPage() {
               // The number that tells an operator the scheduler is not running.
               meta={t("vantage.overview.never_meta", "alerts that have not run yet")}
               alert={n(raw.alerts?.never_evaluated) > 0}
+              href="/dashboard/vantage/alerts?status=never_evaluated"
             />
           </div>
 
@@ -354,9 +357,10 @@ export default function VantageOverviewPage() {
               ) : (
                 <div className="space-y-1.5">
                   {raw.alerts.rows.slice(0, 8).map((alert) => (
-                    <div
+                    <Link
                       key={alert.alert_id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm"
+                      href={`/dashboard/vantage/alerts?alert_id=${alert.alert_id}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-card/60"
                     >
                       <span className="min-w-0">
                         <span className="block truncate font-medium">{alert.name}</span>
@@ -385,7 +389,7 @@ export default function VantageOverviewPage() {
                               })}
                         </span>
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
