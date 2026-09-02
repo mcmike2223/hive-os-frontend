@@ -6,7 +6,7 @@ import api from '@/lib/api'
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let cancelPrevious: (() => void) | null = null
 
-export default {
+const mentionSuggestion = {
   items: ({ query }: { query: string }): Promise<any[]> => {
     return new Promise((resolve) => {
       // If there's an ongoing debounce, cancel the previous promise by resolving it empty
@@ -79,3 +79,5 @@ export default {
     }
   },
 }
+
+export default mentionSuggestion

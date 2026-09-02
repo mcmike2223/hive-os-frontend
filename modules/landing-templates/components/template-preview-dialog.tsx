@@ -111,7 +111,6 @@ export function TemplatePreviewDialog({
                 className="h-full w-full border-0"
               />
             ) : template?.thumbnail ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`${getBackendOrigin()}${template.thumbnail}`}
                 alt={template.name}

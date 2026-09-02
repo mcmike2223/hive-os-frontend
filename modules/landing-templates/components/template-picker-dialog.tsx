@@ -259,7 +259,6 @@ export function TemplatePickerDialog({
                     >
                       <div className="relative h-44 w-full overflow-hidden bg-muted/30 border-b border-border/40">
                         {thumbUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={thumbUrl}
                             alt={tpl.name}

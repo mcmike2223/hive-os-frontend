@@ -224,7 +224,6 @@ export function LiveSupportInbox({ bot }: Props) {
     return () => {
       echo?.leave(channelName);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bot.id]);
 
   const handleSendReply = async () => {

@@ -1,6 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
 
+const sentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
+
 export async function register() {
+  if (!sentryEnabled) return;
+
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
   }
@@ -10,4 +14,6 @@ export async function register() {
 }
 
 // Forwards React Server Component / route handler errors to Sentry.
-export const onRequestError = Sentry.captureRequestError;
+export const onRequestError = sentryEnabled
+  ? Sentry.captureRequestError
+  : () => undefined;

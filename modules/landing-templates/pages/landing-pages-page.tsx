@@ -240,7 +240,6 @@ export default function LandingPagesPage() {
           <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
             <div className="relative min-h-[220px]">
               {recommended.thumbnail ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`${getBackendOrigin()}${recommended.thumbnail}`}
                   alt={recommended.name}
@@ -371,7 +370,6 @@ export default function LandingPagesPage() {
               <Card key={template.id} className={cn("group relative overflow-hidden rounded-[1.75rem] border-border/50 shadow-sm", isActive && "border-primary/50 ring-2 ring-primary/20")}>
                 <div className="relative flex h-24 items-end p-3">
                   {template.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={`${getBackendOrigin()}${template.thumbnail}`}
                       alt={template.name}
