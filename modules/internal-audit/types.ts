@@ -37,6 +37,7 @@ export type AuditArea = {
   is_overdue_for_audit?: boolean;
   engagements_count?: number;
   open_findings_count?: number;
+  risks_count?: number;
 };
 
 export type CoverageRow = {

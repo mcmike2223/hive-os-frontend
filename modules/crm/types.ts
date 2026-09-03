@@ -78,6 +78,7 @@ export type CrmAccount = {
   opportunities_count?: number;
   contacts?: CrmContact[];
   opportunities?: CrmOpportunity[];
+  activities?: CrmActivity[];
 };
 
 export type CrmContact = {

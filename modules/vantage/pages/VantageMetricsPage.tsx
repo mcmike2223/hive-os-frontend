@@ -353,11 +353,11 @@ export default function VantageMetricsPage() {
     if (!evaluation?.series?.points?.length) return [];
     return evaluation.series.points.map((point) => ({
       date: point.label,
-      live: point.value,
+      live: point.value ?? 0,
       reported:
-        evaluation.reported?.find((row) => row.label === point.label)?.value ?? null,
+        evaluation.reported?.find((row) => row.label === point.label)?.value ?? 0,
     }));
-  }, [evaluation]);
+  }, [evaluation?.series?.points, evaluation?.reported]);
 
   return (
     <div className="space-y-6 print:space-y-4">
