@@ -1193,7 +1193,7 @@ export default function StrategyInitiativesPage() {
                 value={form.objective_id || "none"}
                 onValueChange={(v) => setForm({ ...form, objective_id: v === "none" ? "" : v })}
               >
-                <SelectTrigger>
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1297,7 +1297,7 @@ export default function StrategyInitiativesPage() {
                 value={form.status}
                 onValueChange={(v) => setForm({ ...form, status: v as InitiativeStatus })}
               >
-                <SelectTrigger className="capitalize">
+                <SelectTrigger className="capitalize" onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1385,7 +1385,7 @@ export default function StrategyInitiativesPage() {
                   setProgressForm({ ...progressForm, status: v as InitiativeStatus })
                 }
               >
-                <SelectTrigger className="capitalize">
+                <SelectTrigger className="capitalize" onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

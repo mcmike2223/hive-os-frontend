@@ -1260,7 +1260,7 @@ export default function StrategyKpisPage() {
                 value={form.objective_id || "none"}
                 onValueChange={(v) => setForm({ ...form, objective_id: v === "none" ? "" : v })}
               >
-                <SelectTrigger>
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue placeholder={t("strategy.common.select", "Select...")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1296,7 +1296,7 @@ export default function StrategyKpisPage() {
             <div className="space-y-1.5 sm:col-span-2">
               <Label>{t("strategy.kpis.direction", "Direction")}</Label>
               <Select value={form.direction} onValueChange={(v) => setForm({ ...form, direction: v })}>
-                <SelectTrigger>
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1351,7 +1351,7 @@ export default function StrategyKpisPage() {
             <div className="space-y-1.5">
               <Label>{t("strategy.kpis.frequency", "Reported")}</Label>
               <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v })}>
-                <SelectTrigger className="capitalize">
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

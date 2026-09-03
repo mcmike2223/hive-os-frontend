@@ -1303,7 +1303,7 @@ export default function StrategyReviewsPage() {
                 value={planForm.status}
                 onValueChange={(v) => setPlanForm({ ...planForm, status: v as PlanStatus })}
               >
-                <SelectTrigger className="capitalize">
+                <SelectTrigger className="capitalize" onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1534,7 +1534,7 @@ export default function StrategyReviewsPage() {
                 value={reviewForm.plan_id || "none"}
                 onValueChange={(v) => setReviewForm({ ...reviewForm, plan_id: v === "none" ? "" : v })}
               >
-                <SelectTrigger>
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}>
                   <SelectValue placeholder={t("strategy.common.select", "Select...")} />
                 </SelectTrigger>
                 <SelectContent>

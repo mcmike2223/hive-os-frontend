@@ -56,14 +56,13 @@ import type {
 import { EmptyPanel, LoadingPanel, Panel, StatTile } from "@/modules/shared/charts/primitives";
 
 function employeeLabel(
-  employees: Map<number, { id: number; first_name?: string; last_name?: string; name?: string }>,
+  employees: Map<number, { id: number; primary_name?: string; preferred_name?: string | null }>,
   id: number | null | undefined,
 ): string | null {
   if (id == null) return null;
   const row = employees.get(id);
   if (!row) return null;
-  if (row.name) return row.name;
-  return [row.first_name, row.last_name].filter(Boolean).join(" ") || null;
+  return row.preferred_name || row.primary_name || null;
 }
 
 function metaById(objectives: StrategyObjective[]): Map<number, StrategyObjective> {
@@ -1235,7 +1234,7 @@ export default function StrategyScorecardPage() {
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Perspective</Label>
               <Select value={form.perspective_id || "unassigned"} onValueChange={(v) => setForm({ ...form, perspective_id: v === "unassigned" ? "" : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {perspectives.map((p) => (
@@ -1247,7 +1246,7 @@ export default function StrategyScorecardPage() {
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Parent objective</Label>
               <Select value={form.parent_id || "none"} onValueChange={(v) => setForm({ ...form, parent_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
                   {parentOptions.map((o) => (
@@ -1280,7 +1279,7 @@ export default function StrategyScorecardPage() {
                   const name = id ? employeeLabel(employeeById, Number(id)) : "";
                   setForm({ ...form, owner_employee_id: id, owner_name: name ?? form.owner_name });
                 }}>
-                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                  <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}><SelectValue placeholder="Select employee" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {(employeesQuery.data?.data ?? []).map((emp) => (
@@ -1304,7 +1303,7 @@ export default function StrategyScorecardPage() {
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Status</Label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as ObjectiveStatus })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger onPointerDownCapture={(e) => e.stopPropagation()}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {OBJECTIVE_STATUSES.map((s) => (
                       <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
