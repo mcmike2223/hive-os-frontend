@@ -9,6 +9,39 @@ import { expect, test } from "@playwright/test";
  * ForcedPasswordChangeTest.
  */
 test.describe("forced change password form", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("hive_token", "playwright-password-change-token");
+      localStorage.setItem(
+        "hive_user",
+        JSON.stringify({ must_change_password: true }),
+      );
+    });
+  });
+
+  test("uses the public branding logo and app title", async ({ page }) => {
+    await page.route("**/api/v1/settings/brand/public", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            app_title: "Acceptance Workspace",
+            logo_light: "/branding/hive-os-logo-light-large-tight.png",
+            logo_dark: "/branding/hive-os-logo-dark-large-tight.png",
+          },
+        }),
+      });
+    });
+
+    await page.goto("http://localhost:3001/change-password");
+
+    await expect(
+      page.getByRole("img", { name: "Acceptance Workspace logo" }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(/Create your new password/i);
+  });
+
   test("ticks each rule as it is satisfied and gates the submit button", async ({ page }) => {
     await page.goto("http://localhost:3001/change-password");
 

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-    BellRing, Home, CheckCircle2, 
-    AlertTriangle, AlertCircle, Clock, Info, Filter, Trash2, Loader2, X
+import {
+    BellRing, Home, CheckCircle2,
+    AlertTriangle, AlertCircle, Clock, Info, Filter, Trash2, Loader2, RefreshCcw, X
 } from 'lucide-react';
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
@@ -25,29 +25,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertsFeedSkeleton } from "@/components/ui/loading-states";
 import { usePermissions } from "@/hooks/use-permissions";
-import { getAccessToken, getBackendApiRoot } from "@/lib/runtime-context";
-
-// --- API Helper ---
-const getApiUrl = () => {
-    // 🚀 THE FIX: Check if window DOES NOT exist (SSR fallback)
-    return getBackendApiRoot();
-};
-
-const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-    const token = getAccessToken();
-    const url = `${getApiUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-    const headers: HeadersInit = {
-        'Accept': 'application/json',
-        ...(options.body && typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {})
-    };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "API Request Failed");
-    }
-    return res.json();
-};
+import { getErrorMessage } from "@/lib/errors";
+import { getWorkspaceScopeKey } from "@/lib/runtime-context";
+import api from "@/modules/shared/api/http";
 
 // --- Types ---
 interface SystemAlert {
@@ -64,48 +44,45 @@ export default function SystemAlertsPage() {
     const { hasPermission, isLoaded } = usePermissions();
     const canViewAlerts = hasPermission("view_alerts");
     const canManageAlerts = hasPermission("manage_alerts");
+    const workspaceScope = getWorkspaceScopeKey();
     
     // State for filtering
     const [filter, setFilter] = useState<'all' | 'critical' | 'warning' | 'info'>('all');
 
     // FETCH REAL ALERTS FROM LARAVEL
-    const { data: alertsData, isLoading } = useQuery({
-        queryKey: ['systemAlertsList'],
-        queryFn: () => apiFetch('/system/alerts'),
+    const alertsQuery = useQuery({
+        queryKey: ['systemAlertsList', workspaceScope],
+        queryFn: async () => (await api.get('/system/alerts')).data,
         enabled: isLoaded && canViewAlerts,
     });
 
     // MUTATION: Dismiss a single alert
     const dismissMut = useMutation({
-        mutationFn: (id: string | number) => apiFetch(`/system/alerts/${id}`, { method: 'DELETE' }),
+        mutationFn: async (id: string | number) => (await api.delete(`/system/alerts/${id}`)).data,
         onSuccess: () => {
             toast.success(t('alerts.toast_dismissed', 'Alert dismissed.'));
             queryClient.invalidateQueries({ queryKey: ['systemAlertsList'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] }); // Update dashboard counters too!
         },
-onError: (err: unknown) => {
-    const message =
-        err instanceof Error ? err.message : "Failed to dismiss alert";
-
-    toast.error(message);
-}    });
+        onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, t('alerts.dismiss_failed', 'Failed to dismiss alert.')));
+        },
+    });
 
     // MUTATION: Dismiss ALL alerts
     const dismissAllMut = useMutation({
-        mutationFn: () => apiFetch(`/system/alerts/clear-all`, { method: 'POST' }),
+        mutationFn: async () => (await api.post('/system/alerts/clear-all')).data,
         onSuccess: () => {
             toast.success(t('alerts.toast_cleared', 'All alerts have been cleared.'));
             queryClient.invalidateQueries({ queryKey: ['systemAlertsList'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
         },
-onError: (err: unknown) => {
-    const message =
-        err instanceof Error ? err.message : "Failed to dismiss alert";
+        onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, t('alerts.clear_failed', 'Failed to clear alerts.')));
+        },
+    });
 
-    toast.error(message);
-}    });
-
-    const alerts: SystemAlert[] = alertsData?.data || [];
+    const alerts: SystemAlert[] = alertsQuery.data?.data || [];
 
     // Derived counts
     const criticalCount = alerts.filter(a => a.level === 'critical').length;
@@ -261,8 +238,36 @@ onError: (err: unknown) => {
             </div>
 
             {/* Alert Feed */}
-            {isLoading ? (
+            {alertsQuery.isLoading ? (
                 <AlertsFeedSkeleton />
+            ) : alertsQuery.isError ? (
+                <div role="alert" className="flex flex-col gap-4 rounded-[2rem] border border-red-400 bg-red-950 p-6 text-red-50 sm:flex-row sm:items-center">
+                    <div aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-900 text-red-100">
+                        <AlertCircle className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-bold">{t('alerts.load_failed_title', 'Could not load system alerts')}</h2>
+                        <p className="mt-1 text-sm leading-6 text-red-100">
+                            {getErrorMessage(alertsQuery.error, t('alerts.load_failed', 'Check your connection and try loading the alerts again.'))}
+                        </p>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => alertsQuery.refetch()}
+                        disabled={alertsQuery.isFetching}
+                        className="min-h-11 shrink-0 border-red-200 bg-white text-red-950 hover:bg-red-50 hover:text-red-950 focus-visible:ring-red-200"
+                    >
+                        {alertsQuery.isFetching ? (
+                            <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <RefreshCcw aria-hidden="true" className="h-4 w-4" />
+                        )}
+                        {alertsQuery.isFetching
+                            ? t('alerts.retrying', 'Retrying...')
+                            : t('alerts.try_again', 'Try Again')}
+                    </Button>
+                </div>
             ) : (
                 <div className="space-y-3">
                     {filteredAlerts.map((alert) => (

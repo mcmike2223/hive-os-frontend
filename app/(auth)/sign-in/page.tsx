@@ -167,8 +167,16 @@ export default function LoginPage() {
       initializeSessionActivity();
       sessionStorage.removeItem("hive_eject_reason");
 
+      const redirectPath = resolveSafePostLoginRedirect();
+      if (data.data.user?.must_change_password) {
+        sessionStorage.setItem("hive_password_change_intended", redirectPath);
+        window.location.href = "/change-password";
+        return;
+      }
+
+      sessionStorage.removeItem("hive_password_change_intended");
       await logFrontendAction({ module: 'UI Telemetry', action: 'session_initialized', description: `Operator ${email} authenticated.` }).catch(()=>{});
-      window.location.href = resolveSafePostLoginRedirect();
+      window.location.href = redirectPath;
       
     } catch (err: unknown) {
       const message = getErrorMessage(err, "Invalid credentials provided");

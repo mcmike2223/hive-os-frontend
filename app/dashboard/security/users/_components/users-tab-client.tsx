@@ -26,10 +26,6 @@ import {
   VenetianMask,
   X,
   Zap,
-  Phone,
-  Send,
-  Bell,
-  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -40,7 +36,6 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -356,13 +351,6 @@ export function UsersTabClient(props: Props) {
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [isAvatarRemoved, setIsAvatarRemoved] = React.useState(false);
 
-  const [formPhoneNumber, setFormPhoneNumber] = React.useState("");
-  const [formTelegramChatId, setFormTelegramChatId] = React.useState("");
-  const [formDefaultChannel, setFormDefaultChannel] = React.useState<"email" | "sms" | "telegram">("email");
-  const [formChannelEmail, setFormChannelEmail] = React.useState(true);
-  const [formChannelSms, setFormChannelSms] = React.useState(true);
-  const [formChannelTelegram, setFormChannelTelegram] = React.useState(true);
-
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
 
   const handleUserDialogOpenChange = React.useCallback((open: boolean) => {
@@ -668,12 +656,6 @@ export function UsersTabClient(props: Props) {
     setFormRoleId(assignableRoles.length > 0 ? assignableRoles[0].id : "");
     setFormAvatarPath(null); setPreviewUrl(null); setIsAvatarRemoved(false); setShowPassword(false);
     setFormHospitalityStaffId("");
-    setFormPhoneNumber("");
-    setFormTelegramChatId("");
-    setFormDefaultChannel("email");
-    setFormChannelEmail(true);
-    setFormChannelSms(true);
-    setFormChannelTelegram(true);
     setFieldErrors({});
   }, [assignableRoles]);
 
@@ -695,13 +677,6 @@ export function UsersTabClient(props: Props) {
     setFormRoleId(u.userRoles[0]?.roleId || (assignableRoles.length > 0 ? assignableRoles[0].id : ""));
     setFormPassword("");
     setFormHospitalityStaffId(u.hospitalityStaff ? String(u.hospitalityStaff.id) : "");
-    setFormPhoneNumber(u.phoneNumber || "");
-    setFormTelegramChatId(u.telegramChatId || "");
-    const prefs = u.notificationPreferences || {};
-    setFormDefaultChannel((prefs.default_channel as "email" | "sms" | "telegram") || "email");
-    setFormChannelEmail(prefs.channels?.email ?? true);
-    setFormChannelSms(prefs.channels?.sms ?? true);
-    setFormChannelTelegram(prefs.channels?.telegram ?? true);
     setFieldErrors({});
     setCreateDialogOpen(true);
     triggerAudit('viewed', `Accessed Operator Modification form for: ${u.name || u.email}`);
@@ -754,17 +729,6 @@ export function UsersTabClient(props: Props) {
         : Number(formHospitalityStaffId);
     }
 
-    if (formPhoneNumber.trim()) payload.phone_number = formPhoneNumber.trim();
-    if (formTelegramChatId.trim()) payload.telegram_chat_id = formTelegramChatId.trim();
-    payload.notification_preferences = {
-      default_channel: formDefaultChannel,
-      channels: {
-        email: formChannelEmail,
-        sms: formChannelSms,
-        telegram: formChannelTelegram,
-      },
-    };
-
     try {
       if (isEdit && editingUser) {
         const updatePayload: UserUpdateOfflinePayload = {
@@ -795,7 +759,7 @@ export function UsersTabClient(props: Props) {
       }
       // Non-422 errors are surfaced by the mutation's onError handler.
     }
-  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule, formPhoneNumber, formTelegramChatId, formDefaultChannel, formChannelEmail, formChannelSms, formChannelTelegram]);
+  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule]);
 
   const getPrimaryRoleName = React.useCallback((u: UserForClient) => {
     if (u.role) return u.role;
@@ -1114,7 +1078,7 @@ export function UsersTabClient(props: Props) {
       {/* CREATE/EDIT USER MODAL */}
       <Dialog open={createDialogOpen} onOpenChange={handleUserDialogOpenChange}>
         <DialogContent
-          className="sm:max-w-[550px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl"
+          className="sm:max-w-[620px] max-h-[min(90vh,760px)] grid grid-rows-[auto_minmax(0,1fr)] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 shadow-2xl"
           onInteractOutside={(event) => {
             if (avatarPickerOpenRef.current || createRoleDialogOpen) event.preventDefault();
           }}
@@ -1122,7 +1086,7 @@ export function UsersTabClient(props: Props) {
             if (avatarPickerOpenRef.current || createRoleDialogOpen) event.preventDefault();
           }}
         >
-          <div className="px-6 py-5 border-b border-border/40 bg-muted/20">
+          <div className="px-6 py-5 border-b border-border/40 bg-gradient-to-br from-primary/[0.12] via-background to-muted/60">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -1134,20 +1098,20 @@ export function UsersTabClient(props: Props) {
             </DialogHeader>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="px-6 py-6 space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="min-h-0 grid grid-rows-[minmax(0,1fr)_auto]">
+            <div className="overflow-y-auto px-6 py-6 space-y-5">
 
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-5 rounded-2xl border border-[hsl(var(--muted-foreground))] bg-muted/30 p-4 sm:p-5">
                 <button
                   ref={avatarPickerTriggerRef}
                   type="button"
-                  className={cn("relative group shrink-0 transition-all duration-200", canBrowseAvatarLibrary ? "cursor-pointer" : "cursor-default")}
+                  className={cn("relative group shrink-0 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-readable))] focus-visible:ring-offset-2", canBrowseAvatarLibrary ? "cursor-pointer" : "cursor-default")}
                   onClick={() => canBrowseAvatarLibrary && openAvatarPicker()}
                   disabled={!canBrowseAvatarLibrary}
                   aria-label={previewUrl ? t('users.change_profile_photo', 'Change profile photo') : t('users.add_profile_photo', 'Add profile photo')}
                   title={!canBrowseAvatarLibrary ? t("storage.denied", "Storage access required to browse avatars.") : undefined}
                 >
-                  <Avatar className="h-20 w-20 border-2 border-dashed border-border group-hover:border-primary/50 transition-colors bg-muted">
+                  <Avatar className="h-20 w-20 border-2 border-dashed border-[hsl(var(--primary-readable))] group-hover:border-[hsl(var(--primary-readable))] transition-colors bg-background shadow-sm">
                     {previewUrl ? (
                       <AvatarImage src={previewUrl} alt={t('users.profile_photo_preview', 'Profile photo preview')} className="object-cover" />
                     ) : (
@@ -1156,15 +1120,15 @@ export function UsersTabClient(props: Props) {
                       </AvatarFallback>
                     )}
                   </Avatar>
-                  <div className={cn("absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity rounded-full", canBrowseAvatarLibrary ? "opacity-0 group-hover:opacity-100" : "opacity-0")}>
+                  <div className={cn("absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity rounded-full", canBrowseAvatarLibrary ? "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" : "opacity-0")}>
                     <Upload aria-hidden="true" className="h-5 w-5 text-white" />
                   </div>
                 </button>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-medium text-foreground">{t('users.profile_photo', 'Profile Photo')}</h4>
-                  <p className="text-xs text-muted-foreground">{t('users.photo_reqs', 'Select an image from the File Manager.')}</p>
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-semibold text-foreground">{t('users.profile_photo', 'Profile Photo')}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">{t('users.photo_reqs', 'Select an image from the File Manager.')}</p>
                   {previewUrl && (
-                    <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); removeAvatar(); }} className="h-7 px-2 text-xs text-destructive hover:text-destructive -ml-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); removeAvatar(); }} className="h-8 px-2 text-xs text-destructive hover:text-destructive -ml-2">
                       {t('users.remove_photo', 'Remove Photo')}
                     </Button>
                   )}
@@ -1173,7 +1137,7 @@ export function UsersTabClient(props: Props) {
 
               <Separator />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 rounded-2xl border border-[hsl(var(--muted-foreground))] bg-card/60 p-4 sm:p-5 shadow-sm">
                 {tenantId && hasHospitalityModule && staffOptions.length > 0 && (
                   <div className="sm:col-span-2 space-y-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 p-4 rounded-2xl">
                     <Label htmlFor="hospitality_staff_id" className="text-indigo-500 dark:text-indigo-400 font-bold flex items-center gap-1.5 text-xs uppercase tracking-wider">
@@ -1335,107 +1299,14 @@ export function UsersTabClient(props: Props) {
               </div>
 
               <div className="flex justify-end">
-                <Button type="button" variant="link" size="sm" onClick={() => { const newPass = generateStrongPassword(); setFormPassword(newPass); setShowPassword(true); validateField("password", newPass); }} className="h-auto p-0 text-xs text-primary gap-1.5">
+                <Button type="button" variant="link" size="sm" onClick={() => { const newPass = generateStrongPassword(); setFormPassword(newPass); setShowPassword(true); validateField("password", newPass); }} className="h-8 px-2 text-xs text-foreground hover:bg-muted gap-1.5">
                   <RefreshCw className="h-3 w-3" /> {t('users.generate_pass', 'Generate Strong Password')}
                 </Button>
               </div>
 
-              <Separator />
-
-              {/* 🚀 NOTIFICATION CHANNELS & PREFERENCES */}
-              <div className="space-y-4 rounded-2xl bg-muted/30 border border-border/60 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                      <Bell className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
-                        {t("users.notification_channels", "Notification Channels & Alert Routing")}
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground">
-                        {t("users.notification_channels_desc", "Configure SMS, Email, and Telegram bot dispatch.")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  {/* Phone Number for SMS */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone_number" className="text-xs font-semibold flex items-center gap-1.5">
-                      <Phone className="h-3.5 w-3.5 text-sky-500" /> {t("users.phone_number", "Phone Number (SMS)")}
-                    </Label>
-                    <Input
-                      id="phone_number"
-                      value={formPhoneNumber}
-                      onChange={(e) => setFormPhoneNumber(e.target.value)}
-                      placeholder="0943488880 or +2519..."
-                      className="bg-background/80 h-10 text-xs font-mono rounded-xl border-border/60"
-                    />
-                  </div>
-
-                  {/* Telegram Chat ID */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="telegram_chat_id" className="text-xs font-semibold flex items-center gap-1.5">
-                      <Send className="h-3.5 w-3.5 text-sky-500" /> {t("users.telegram_chat_id", "Telegram Chat ID")}
-                    </Label>
-                    <Input
-                      id="telegram_chat_id"
-                      value={formTelegramChatId}
-                      onChange={(e) => setFormTelegramChatId(e.target.value)}
-                      placeholder="e.g. 734736898"
-                      className="bg-background/80 h-10 text-xs font-mono rounded-xl border-border/60"
-                    />
-                  </div>
-                </div>
-
-                {/* Default Primary Channel Radio Group */}
-                <div className="space-y-2 pt-1 border-t border-border/40">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {t("users.default_channel", "Default / Primary Alert Channel")}
-                  </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["email", "sms", "telegram"] as const).map((channel) => (
-                      <button
-                        key={channel}
-                        type="button"
-                        onClick={() => setFormDefaultChannel(channel)}
-                        className={cn(
-                          "flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold transition-all",
-                          formDefaultChannel === channel
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                            : "bg-background/60 text-muted-foreground hover:bg-muted/80 border-border/60"
-                        )}
-                      >
-                        {channel === "email" && <Mail className="h-3.5 w-3.5" />}
-                        {channel === "sms" && <MessageSquare className="h-3.5 w-3.5" />}
-                        {channel === "telegram" && <Send className="h-3.5 w-3.5" />}
-                        <span className="capitalize">{channel}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Channel Toggles */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-border/40">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border/40">
-                    <Label htmlFor="chan_email" className="text-xs font-medium cursor-pointer">Email Alerts</Label>
-                    <Switch id="chan_email" checked={formChannelEmail} onCheckedChange={setFormChannelEmail} />
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border/40">
-                    <Label htmlFor="chan_sms" className="text-xs font-medium cursor-pointer">SMS Alerts</Label>
-                    <Switch id="chan_sms" checked={formChannelSms} onCheckedChange={setFormChannelSms} />
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border/40">
-                    <Label htmlFor="chan_telegram" className="text-xs font-medium cursor-pointer">Telegram Bot</Label>
-                    <Switch id="chan_telegram" checked={formChannelTelegram} onCheckedChange={setFormChannelTelegram} />
-                  </div>
-                </div>
-              </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-border/40 bg-background/95 backdrop-blur flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)} className="rounded-xl">{t('global.cancel', 'Cancel')}</Button>
               <Button type="submit" disabled={createMut.isPending || updateMut.isPending || Object.values(fieldErrors).some(err => err !== "")} className={cn("rounded-xl px-8 shadow-lg font-bold transition-all", Object.values(fieldErrors).some(err => err !== "") ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground")}>
                 {(createMut.isPending || updateMut.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1471,7 +1342,7 @@ export function UsersTabClient(props: Props) {
       {/* CREATE NEW ROLE DIALOG */}
       <Dialog open={createRoleDialogOpen} onOpenChange={setCreateRoleDialogOpen}>
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl">
-          <div className="px-6 py-5 border-b border-border/40 bg-muted/20">
+          <div className="px-6 py-5 border-b border-border/40 bg-gradient-to-br from-primary/[0.12] via-background to-muted/60">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
