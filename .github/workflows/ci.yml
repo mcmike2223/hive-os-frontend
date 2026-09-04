@@ -58,6 +58,11 @@ jobs:
       HIVE_E2E_REVERB_HOST: localhost
       HIVE_E2E_REVERB_PORT: "9095"
       HIVE_E2E_REVERB_SCHEME: http
+      # Compose interpolates every service before applying the requested
+      # service selection. These are disposable values for this isolated CI
+      # stack, not production credentials.
+      MEILISEARCH_KEY: hive-e2e-meilisearch-key-2026
+      GF_SECURITY_ADMIN_PASSWORD: hive-e2e-grafana-password-2026
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - name: Checkout frontend under its Compose sibling path

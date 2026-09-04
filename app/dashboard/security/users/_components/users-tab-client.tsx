@@ -391,7 +391,7 @@ export function UsersTabClient(props: Props) {
     if (field === "name" && value.length > 0 && value.trim().length < 2) error = "Name must be at least 2 characters.";
     if (field === "email" && value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Invalid email format.";
     if (field === "password" && value.length > 0) {
-      if (value.length < 6) error = "Requires at least 6 characters.";
+      if (value.length < 8) error = "Requires at least 8 characters.";
       else if (!/[A-Z]/.test(value) || !/[a-z]/.test(value)) error = "Requires uppercase & lowercase.";
       else if (!/[0-9]/.test(value)) error = "Requires a number.";
       else if (!/[^A-Za-z0-9]/.test(value)) error = "Requires a special symbol.";
@@ -419,7 +419,7 @@ export function UsersTabClient(props: Props) {
 
     if (!isEdit && !formPassword) errors.password = "Encryption key is required.";
     else if (formPassword) {
-      if (formPassword.length < 6) errors.password = "Encryption key requires at least 6 characters.";
+      if (formPassword.length < 8) errors.password = "Encryption key requires at least 8 characters.";
       else if (!/[A-Z]/.test(formPassword) || !/[a-z]/.test(formPassword)) errors.password = "Encryption key requires uppercase and lowercase letters.";
       else if (!/[0-9]/.test(formPassword)) errors.password = "Encryption key requires a number.";
       else if (!/[^A-Za-z0-9]/.test(formPassword)) errors.password = "Encryption key requires a special symbol.";

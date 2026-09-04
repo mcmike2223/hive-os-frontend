@@ -27,8 +27,15 @@ function unwrapApiResponse<T>(response: { data: T | ApiSuccessEnvelope<T> }): T 
 export const getProfile = async () => unwrapApiResponse(await api.get("/user"));
 export const fetchUsers = async (params: any) => unwrapApiResponse(await api.get("/users", { params }));
 export const createUser = async (data: FormData | any) => unwrapApiResponse(await api.post("/users", data));
-export const updateUser = async ({ id, formData }: { id: number; formData: FormData | any }) =>
-  unwrapApiResponse(await api.post(`/users/${id}?_method=PUT`, formData));
+export const updateUser = async ({ id, formData }: { id: number; formData: FormData | any }) => {
+  if (formData instanceof FormData) {
+    formData.set("_method", "PUT");
+  } else {
+    formData = { ...formData, _method: "PUT" };
+  }
+
+  return unwrapApiResponse(await api.post(`/users/${id}`, formData));
+};
 export const deleteUser = async (id: number) => unwrapApiResponse(await api.delete(`/users/${id}`));
 export const toggleUserStatus = async (id: number) => unwrapApiResponse(await api.post(`/users/${id}/toggle-status`));
 export const verify2FA = async (data: any) => (await api.post("/verify-2fa", data)).data;
