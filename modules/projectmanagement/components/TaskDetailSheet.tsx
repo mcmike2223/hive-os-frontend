@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isToday, isYesterday, isSameDay, isThisYear } from "date-fns";
 import { FileManagerClient } from "@/components/dashboard/file-manager-client";
+import { SafeRichText } from "@/components/security/safe-rich-text";
 import { ImageViewer } from "@/components/ui/image-viewer";
 import { VideoPlayer } from "@/components/ui/video-player";
 import { AudioPlayer } from "@/components/ui/audio-player";
@@ -706,7 +707,7 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                     <span>This message was deleted</span>
                   </div>
                 ) : (
-                  <div dangerouslySetInnerHTML={{ __html: comment.content }} />
+                  <SafeRichText html={comment.content} />
                 )}
               </div>
             )}
@@ -966,7 +967,10 @@ export function TaskDetailSheet({ taskId, columns, onOpenChange }: TaskDetailMod
                         
                         <div className="space-y-3 mb-8">
                           <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">{t('project_management.task_description', 'Task Description')} :</h4>
-                          <div className="text-foreground/90 text-sm sm:text-base leading-relaxed prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: task.description || t('project_management.no_description', "No description provided.") }} />
+                          <SafeRichText
+                            className="text-foreground/90 text-sm sm:text-base leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                            html={task.description || t('project_management.no_description', "No description provided.")}
+                          />
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-border/50">

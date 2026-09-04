@@ -1,17 +1,10 @@
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { FlatCompat } from "@eslint/eslintrc";
 import { defineConfig, globalIgnores } from "eslint/config";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
 export default defineConfig([
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextVitals,
+  ...nextTs,
   globalIgnores([
     ".next/**",
     "out/**",
@@ -31,6 +24,19 @@ export default defineConfig([
       "@typescript-eslint/no-require-imports": "off",
       "no-param-reassign": "off",
       "react-hooks/exhaustive-deps": "off",
+      // The existing application intentionally performs synchronous hydration
+      // and animation setup in effects. Keep the pre-upgrade lint baseline
+      // until those flows can be migrated without changing runtime behavior.
+      "react-hooks/immutability": "off",
+      "react-hooks/incompatible-library": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/static-components": "off",
+      // Auth and tenant boundary changes intentionally use hard navigation to
+      // clear in-memory state; router navigation would change that behavior.
+      "@next/next/no-location-assign-relative-destination": "off",
       "react/no-unescaped-entities": "off",
       "prefer-const": "off",
       "@typescript-eslint/no-this-alias": "off",

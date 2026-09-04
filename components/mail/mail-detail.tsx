@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { SafeRichText } from '@/components/security/safe-rich-text';
 
 export default function MailDetail() {
   const { mails, selectedMailId, selectMail, deleteMail, updateMail, setComposeOpen, activeFolder, checkedMailIds, adjustCounts, isFullscreen, setFullscreen, encryptionConfig } = useMailStore();
@@ -240,9 +241,9 @@ export default function MailDetail() {
             </div>
           </div>
 
-          <div 
+          <SafeRichText
             className="whitespace-pre-wrap flex-1 text-[15px] leading-relaxed text-foreground/90 pb-8 prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: mail.message?.body || '' }}
+            html={mail.message?.body || ''}
           />
           
           <div className="flex items-center gap-3 mt-auto pt-8 shrink-0 print:hidden">

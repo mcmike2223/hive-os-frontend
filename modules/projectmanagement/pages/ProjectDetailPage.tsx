@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SafeRichText } from "@/components/security/safe-rich-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -261,9 +262,9 @@ function ProjectOverview({
             <div className="flex-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
               <p className="mt-4 text-sm font-semibold">{t("project_management.project_description", "Project Description")} :</p>
-              <div 
+              <SafeRichText
                 className="mt-3 text-sm leading-7 text-muted-foreground prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: project.description || t("project_management.no_description_provided", "No description provided.") }}
+                html={project.description || t("project_management.no_description_provided", "No description provided.")}
               />
             </div>
 

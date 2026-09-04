@@ -11,6 +11,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SafeRichText } from "@/components/security/safe-rich-text";
 import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/lib/errors";
 import EmojiPicker from "emoji-picker-react";
@@ -675,7 +676,7 @@ export function ProjectDiscussion({ projectId }: ProjectDiscussionProps) {
                     <span>This message was deleted</span>
                   </div>
                 ) : (
-                  <div dangerouslySetInnerHTML={{ __html: comment.content }} />
+                  <SafeRichText html={comment.content} />
                 )}
               </div>
             )}
