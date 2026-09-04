@@ -517,6 +517,17 @@ export const getBackendStorageUrl = (
     return url;
   }
 
+  // Blob and Data URLs are already local client-side preview URLs
+  if (url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+
+  // Normalize /api/v1/files/ URLs to relative path so Next.js proxies to backend
+  if (url.includes("/api/v1/files/")) {
+    const idx = url.indexOf("/api/v1/files/");
+    return url.substring(idx);
+  }
+
   const assetPath = getStorageAssetPath(url);
   if (assetPath) {
     const onTenantHost =

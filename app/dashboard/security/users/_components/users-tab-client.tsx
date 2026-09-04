@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   Filter,
+  FolderOpen,
   ImageIcon,
   KeyRound,
   Loader2,
@@ -74,7 +75,7 @@ import { useTenantModuleAccess } from "@/hooks/use-tenant-module-access";
 import { useTranslation } from "@/store/use-translation";
 import { getErrorMessage } from "@/lib/errors";
 import { getTrashChannelName, initEcho } from "@/lib/echo";
-import { getAccessToken, getBackendStorageUrl, persistHiveContext } from "@/lib/runtime-context";
+import { getAccessToken, getAuthHeaders, getBackendApiRoot, getBackendStorageUrl, persistHiveContext } from "@/lib/runtime-context";
 
 type ServerRoleRecord = { id: number | string; name: string };
 type ServerUserRecord = {
@@ -359,6 +360,10 @@ export function UsersTabClient(props: Props) {
   const [formAvatarPath, setFormAvatarPath] = React.useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [isAvatarRemoved, setIsAvatarRemoved] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
+  const [avatarLoadError, setAvatarLoadError] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
 
@@ -699,27 +704,38 @@ export function UsersTabClient(props: Props) {
   }, [assignableRoles]);
 
   const openCreate = React.useCallback(() => {
-    setEditingUser(null); resetForm(); setCreateDialogOpen(true);
+    setEditingUser(null);
+    resetForm();
+    setPreviewUrl(null);
+    setFormAvatarPath(null);
+    setIsAvatarRemoved(false);
+    setAvatarLoadError(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setCreateDialogOpen(true);
     triggerAudit('viewed', 'Accessed Operator Provisioning form');
   }, [resetForm, triggerAudit]);
 
   const openEdit = React.useCallback((u: UserForClient) => {
-    // 🚀 THE FIX: Removed 'return' here as well
     if (isProtectedUser(u)) {
         toast.error(t('users.protected_user', "This profile is protected and cannot be edited."));
         return;
     }
-    setEditingUser(u); setFormName(u.name || ""); setFormEmail(u.email);
-    setPreviewUrl(u.avatarUrl || null);
+    setEditingUser(u);
+    setFormName(u.name || "");
+    setFormEmail(u.email);
+    const resolvedAvatar = u.avatarUrl ? (getStorageUrl(u.avatarUrl) || u.avatarUrl) : null;
+    setPreviewUrl(resolvedAvatar);
     setFormAvatarPath(null);
     setIsAvatarRemoved(false);
+    setAvatarLoadError(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setFormRoleId(u.userRoles[0]?.roleId || (assignableRoles.length > 0 ? assignableRoles[0].id : ""));
     setFormPassword("");
     setFormHospitalityStaffId(u.hospitalityStaff ? String(u.hospitalityStaff.id) : "");
     setFieldErrors({});
     setCreateDialogOpen(true);
     triggerAudit('viewed', `Accessed Operator Modification form for: ${u.name || u.email}`);
-  }, [assignableRoles, isProtectedUser, t, triggerAudit]);
+  }, [assignableRoles, getStorageUrl, isProtectedUser, t, triggerAudit]);
 
   const handleFileSelect = React.useCallback((file: PickerFile) => {
       const avatarPath = file?.media_details?.relative_path || file?.path;
@@ -731,6 +747,7 @@ export function UsersTabClient(props: Props) {
 
       setFormAvatarPath(extractPathFromUrl(avatarPath));
       setIsAvatarRemoved(false);
+      setAvatarLoadError(false);
 
       const fullPreviewUrl = getBackendStorageUrl(previewSource) || previewSource;
       setPreviewUrl(fullPreviewUrl);
@@ -739,11 +756,117 @@ export function UsersTabClient(props: Props) {
   }, [extractPathFromUrl, handleAvatarPickerOpenChange]);
 
   const removeAvatar = React.useCallback(() => {
-    setFormAvatarPath(null); setPreviewUrl(null); setIsAvatarRemoved(true);
+    setFormAvatarPath(null);
+    setPreviewUrl(null);
+    setIsAvatarRemoved(true);
+    setAvatarLoadError(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
+
+  const handleDirectFileUpload = React.useCallback(async (file: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error(t("profile.invalid_file_type", "Please select a valid image file (PNG, JPG, WebP, GIF)."));
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t("profile.file_too_large", "Image size must not exceed 5MB."));
+      return;
+    }
+
+    // 1. Instant zero-latency local preview
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
+    setAvatarLoadError(false);
+    setIsAvatarRemoved(false);
+    setIsUploadingAvatar(true);
+
+    // 2. Upload file to backend to get media ID / relative path
+    try {
+      const uploadId = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("chunk_index", "0");
+      formData.append("total_chunks", "1");
+      formData.append("upload_id", uploadId);
+      formData.append("original_name", file.name);
+
+      const authHeaders = getAuthHeaders();
+      const headers: Record<string, string> = { ...authHeaders };
+      delete headers["Content-Type"];
+
+      const res = await fetch(`${getBackendApiRoot()}/files/upload`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to upload avatar image.");
+      }
+
+      const data = await res.json();
+      const media = data.file?.media?.[0];
+      const relativePath = media ? `${media.id}/${media.file_name}` : "";
+
+      if (relativePath) {
+        setFormAvatarPath(relativePath);
+        toast.success(t("users.avatar_uploaded", "Profile photo uploaded successfully."));
+      } else {
+        throw new Error("Could not process uploaded image.");
+      }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to upload photo"));
+      if (!editingUser?.avatarUrl) {
+        setPreviewUrl(null);
+      } else {
+        setPreviewUrl(editingUser.avatarUrl);
+      }
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [editingUser?.avatarUrl, t]);
+
+  const handleNativeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleDirectFileUpload(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleDirectFileUpload(file);
+    }
+  };
 
   const handleSubmit = React.useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingAvatar) {
+      toast.error(t("users.avatar_uploading_wait", "Please wait for avatar upload to complete before saving."));
+      return;
+    }
     if (!validateUserForm()) {
       toast.error("Please fix the validation errors before submitting.");
       return;
@@ -1161,70 +1284,126 @@ export function UsersTabClient(props: Props) {
           <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6">
 
-              {/* AVATAR SELECTOR */}
-              <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card/80 via-card/50 to-primary/[0.03] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:gap-6 shadow-xs backdrop-blur-xs transition-all">
-                <button
-                  ref={avatarPickerTriggerRef}
-                  type="button"
-                  className={cn("relative group shrink-0 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2", canBrowseAvatarLibrary ? "cursor-pointer" : "cursor-default")}
-                  onClick={() => canBrowseAvatarLibrary && openAvatarPicker()}
-                  disabled={!canBrowseAvatarLibrary}
-                  aria-label={previewUrl ? t('users.change_profile_photo', 'Change profile photo') : t('users.add_profile_photo', 'Add profile photo')}
-                  title={!canBrowseAvatarLibrary ? t("storage.denied", "Storage access required to browse avatars.") : undefined}
-                >
-                  <Avatar className="h-20 w-20 sm:h-22 sm:w-22 border-2 border-dashed border-primary/30 bg-muted/40 shadow-inner transition-colors group-hover:border-primary group-hover:shadow-md">
-                    {previewUrl ? (
-                      <AvatarImage src={previewUrl} alt={t('users.profile_photo_preview', 'Profile photo preview')} className="object-cover" />
+              {/* HIDDEN NATIVE FILE INPUT */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleNativeFileChange}
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                className="hidden"
+                aria-hidden="true"
+              />
+
+              {/* AVATAR SELECTOR (Matching Profile Tab Design) */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={cn(
+                  "relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card/80 via-card/50 to-primary/[0.03] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:gap-6 shadow-xs backdrop-blur-xs transition-all duration-300",
+                  isDragging && "ring-2 ring-primary border-primary bg-primary/5"
+                )}
+              >
+                {/* AVATAR PREVIEW WITH HOVER OVERLAY */}
+                <div className="relative group shrink-0 mx-auto sm:mx-0">
+                  <div className="relative h-24 w-24 sm:h-28 sm:w-28 overflow-hidden rounded-[2.5rem] border-2 border-dashed border-border/80 bg-muted/40 shadow-inner flex items-center justify-center transition-all duration-300 group-hover:border-primary/50">
+                    {previewUrl && !avatarLoadError ? (
+                      <img
+                        src={previewUrl}
+                        alt={formName || "Operator"}
+                        className="h-full w-full object-cover"
+                        onError={() => setAvatarLoadError(true)}
+                      />
                     ) : (
-                      <AvatarFallback className="bg-muted/60 text-muted-foreground">
-                        <ImageIcon aria-hidden="true" className="h-7 w-7 opacity-40 group-hover:opacity-70 group-hover:text-primary transition-all" />
-                      </AvatarFallback>
+                      <span className="font-space text-2xl sm:text-3xl font-black text-muted-foreground/70 tracking-wider">
+                        {initials(formName, formEmail)}
+                      </span>
                     )}
-                  </Avatar>
-                  <div className={cn("absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs transition-opacity rounded-full text-white", canBrowseAvatarLibrary ? "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" : "opacity-0")}>
-                    <Upload aria-hidden="true" className="h-5 w-5 mb-0.5" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">{t('users.upload', 'Change')}</span>
+
+                    {/* Upload Overlay on Hover */}
+                    <div
+                      onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
+                      className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 cursor-pointer text-primary"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Upload className="h-5 w-5 animate-bounce" />
+                      )}
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-center px-1">
+                        {previewUrl ? t("users.change_photo", "Change Photo") : t("users.upload_photo_btn", "Upload New Photo")}
+                      </span>
+                    </div>
                   </div>
-                </button>
-                <div className="mt-3 min-w-0 space-y-1.5 sm:mt-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                </div>
+
+                {/* CONTROLS & INFO */}
+                <div className="mt-3 min-w-0 space-y-1.5 sm:mt-0 flex-1 text-center sm:text-left">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                     <p className="text-sm sm:text-base font-bold text-foreground flex items-center gap-1.5">
-                      <UserCircle className="h-4 w-4 text-primary" />
-                      {t('users.profile_photo', 'Profile Photo')}
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      {t("users.profile_photo", "Operator Avatar")}
                     </p>
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border/50">
-                      {t('users.optional', 'Optional')}
+                      {t("users.optional", "Optional")}
                     </span>
                   </div>
                   <p className="max-w-md text-xs sm:text-sm leading-relaxed text-muted-foreground">
-                    {t('users.photo_reqs', 'Choose a recognizable photo from File Manager so teammates can identify this operator quickly.')}
+                    {t("users.photo_reqs", "Upload a photo or select from File Manager. Displayed across topbar, sidebar, and ledgers.")}
                   </p>
-                  <div className="flex items-center gap-2 pt-1">
+                  
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1.5">
+                    {/* Direct Upload Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="h-8 px-3 text-xs rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 gap-1.5 font-bold shadow-xs transition-all cursor-pointer"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5 text-primary" />
+                      )}
+                      <span>{t("profile.upload_btn", "Upload New")}</span>
+                    </Button>
+
+                    {/* Browse Library Button */}
                     {canBrowseAvatarLibrary && (
                       <Button
+                        ref={avatarPickerTriggerRef}
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => openAvatarPicker()}
-                        className="h-7 px-2.5 text-xs rounded-lg border-border/70 bg-background/80 hover:bg-background gap-1.5 font-medium shadow-xs"
+                        disabled={isUploadingAvatar}
+                        className="h-8 px-3 text-xs rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 gap-1.5 font-bold shadow-xs transition-all cursor-pointer"
                       >
-                        <ImageIcon aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
-                        {previewUrl ? t('users.change_photo', 'Change Photo') : t('users.select_photo', 'Browse File Manager')}
+                        <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{t("profile.library_btn", "Library")}</span>
                       </Button>
                     )}
-                    {previewUrl && (
+
+                    {/* Remove Photo Button */}
+                    {(previewUrl || formAvatarPath) && (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); removeAvatar(); }}
-                        className="h-7 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive rounded-lg gap-1.5 font-medium"
+                        disabled={isUploadingAvatar}
+                        className="h-8 px-3 text-xs rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 gap-1.5 font-bold shadow-xs transition-all cursor-pointer"
                       >
-                        <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
-                        {t('users.remove_photo', 'Remove')}
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>{t("users.remove_photo", "Remove")}</span>
                       </Button>
                     )}
                   </div>
+                  <p className="text-[11px] text-muted-foreground pt-0.5">
+                    {t("profile.avatar_tip", "Supports PNG, JPG, or WebP up to 5MB. Drag & drop supported.")}
+                  </p>
                 </div>
               </div>
 
