@@ -59,16 +59,36 @@ jobs:
       - name: Deploy and verify in Coolify
         env:
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_API_BASE_URL: ${{ vars.COOLIFY_API_BASE_URL || 'https://deploy.techiveet.com/api/v1' }}
         run: |
           test -n "$COOLIFY_API_TOKEN"
+          auth_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            "$COOLIFY_API_BASE_URL/teams" \
+            -H "Accept: application/json" -H "Authorization: Bearer $COOLIFY_API_TOKEN" || true)"
+          case "$auth_status" in
+            200) ;;
+            401)
+              echo "::error::Coolify rejected COOLIFY_API_TOKEN. Replace the production environment secret with a current token for the deployment team."
+              exit 1
+              ;;
+            403)
+              echo "::error::COOLIFY_API_TOKEN is valid but lacks access to the deployment team."
+              exit 1
+              ;;
+            *)
+              echo "::error::Coolify authentication preflight returned HTTP $auth_status. Check COOLIFY_API_BASE_URL and API access."
+              exit 1
+              ;;
+          esac
+
           response="$(curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
-            "https://deploy.techiveet.com/api/v1/deploy?uuid=z140ve7ehjoyuoluqk0azmwe&force=false" \
+            --request POST "$COOLIFY_API_BASE_URL/deploy?uuid=z140ve7ehjoyuoluqk0azmwe&force=false" \
             -H "Accept: application/json" -H "Authorization: Bearer $COOLIFY_API_TOKEN")"
           deployment_uuid="$(jq -er '.deployments[0].deployment_uuid' <<<"$response")"
           echo "Coolify deployment queued: $deployment_uuid"
           for attempt in $(seq 1 100); do
             status="$(curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
-              "https://deploy.techiveet.com/api/v1/deployments/$deployment_uuid" \
+              "$COOLIFY_API_BASE_URL/deployments/$deployment_uuid" \
               -H "Accept: application/json" -H "Authorization: Bearer $COOLIFY_API_TOKEN" |
               jq -er '.status')"
             echo "Coolify status: $status"
