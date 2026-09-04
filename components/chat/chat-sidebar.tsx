@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useChatAccess } from '@/hooks/use-chat-access';
 import { useChatStore } from '@/store/chat-store';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-  MessageSquare, 
-  Users, 
-  UserCircle, 
-  Settings, 
-  Bell, 
+import {
+  MessageSquare,
+  Users,
+  Settings,
+  Bell,
   Plus,
-  Compass,
-  LayoutGrid
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CommunicationBrandMark } from '@/components/communications/communication-workspace-header';
 
 export default function ChatSidebar() {
   const { 
@@ -34,77 +35,108 @@ export default function ChatSidebar() {
   }, []);
 
   const navItems = [
-    { id: 'recent', label: 'All', icon: MessageSquare, badge: counts.unread },
-    { id: 'groups', label: 'Groups', icon: Users },
+    { id: 'recent', label: 'All chats', icon: MessageSquare, badge: counts.unread },
+    { id: 'groups', label: 'Group chats', icon: Users },
   ];
 
   return (
-    <div className="flex flex-col h-full w-full bg-card/50 dark:bg-card/30 backdrop-blur-sm border-r border-border/30">
+    <TooltipProvider>
+    <div className="flex size-full flex-col border-r border-border/60 bg-card/70 backdrop-blur-xl">
       <div className="flex flex-col items-center gap-2 p-2">
-        {/* Logo */}
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 mb-2">
-          <span className="text-white font-black text-lg">H</span>
-        </div>
+        <Link href="/dashboard" className="mb-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/70 p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:justify-start">
+          <CommunicationBrandMark compact />
+          <span className="hidden truncate text-sm font-bold text-foreground lg:inline">Communications</span>
+        </Link>
 
-        {/* Nav Items */}
         {navItems.map((item) => {
           const badge = item.badge ?? 0;
 
           return (
+            <Tooltip key={item.id}>
+              <TooltipTrigger asChild>
             <Button
-              key={item.id}
               variant="ghost"
-              size="icon"
+              size="sm"
+              aria-label={item.label}
+              aria-pressed={activeTab === item.id}
               className={cn(
-                "h-10 w-10 rounded-xl transition-all duration-200",
+                "relative min-h-10 w-full justify-center rounded-xl px-2 lg:justify-start",
                 activeTab === item.id 
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30" 
-                  : "text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-600 dark:hover:text-orange-400"
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                  : "text-muted-foreground"
               )}
               onClick={() => setActiveTab(item.id as 'recent' | 'groups')}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon aria-hidden="true" data-icon="inline-start" />
+              <span className="hidden lg:inline">{item.label}</span>
               {badge > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[11px] font-black text-white">
+                <Badge className="absolute -right-1 -top-1 min-w-5 px-1 text-[11px] lg:static lg:ml-auto">
                   {badge > 9 ? '9+' : badge}
-                </span>
+                </Badge>
               )}
             </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="lg:hidden">{item.label}</TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
 
       <div className="flex-1" />
 
-      {/* Bottom Actions */}
       <div className="flex flex-col items-center gap-2 p-2">
-        <Button
-          variant="outline"
-          size="icon"
-          disabled={!canManageChat}
-          className="h-10 w-10 rounded-xl border-dashed border-2 border-orange-200 dark:border-orange-800 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all"
-          onClick={() => setComposeOpen(true)}
-        >
-          <Plus className="h-5 w-5 text-orange-500" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Start a new conversation"
+              disabled={!canManageChat}
+              className="min-h-10 w-full justify-center rounded-xl border-dashed px-2 text-primary lg:justify-start"
+              onClick={() => setComposeOpen(true)}
+            >
+              <Plus aria-hidden="true" data-icon="inline-start" />
+              <span className="hidden lg:inline">New chat</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="lg:hidden">New chat</TooltipContent>
+        </Tooltip>
 
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="ghost" size="sm" className="min-h-10 w-full justify-center px-2 text-muted-foreground lg:justify-start">
+              <Link href="/dashboard/alerts" aria-label="Open alerts">
+                <Bell aria-hidden="true" data-icon="inline-start" />
+                <span className="hidden lg:inline">Alerts</span>
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="lg:hidden">Alerts</TooltipContent>
+        </Tooltip>
 
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30">
-          <Settings className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="ghost" size="sm" className="min-h-10 w-full justify-center px-2 text-muted-foreground lg:justify-start">
+              <Link href="/dashboard/settings/branding" aria-label="Open branding settings">
+                <Settings aria-hidden="true" data-icon="inline-start" />
+                <span className="hidden lg:inline">Brand settings</span>
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="lg:hidden">Brand settings</TooltipContent>
+        </Tooltip>
 
-        <div className="mt-2">
-          <Avatar className="h-9 w-9 rounded-xl ring-2 ring-orange-200 dark:ring-orange-700">
+        <div className="mt-2 flex w-full items-center justify-center gap-2 lg:justify-start">
+          <Avatar className="size-9 rounded-xl ring-2 ring-primary/25">
             <AvatarImage src={user?.avatar_url} />
-            <AvatarFallback className="bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 font-bold text-sm">
+            <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
               {user?.name?.charAt(0) || 'U'}
             </AvatarFallback>
           </Avatar>
+          <span className="hidden min-w-0 truncate text-xs font-semibold text-foreground lg:inline">{user?.name || 'Signed-in user'}</span>
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

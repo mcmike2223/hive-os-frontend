@@ -158,13 +158,13 @@ export default function ComposeModal() {
   return (
     <>
       <Dialog open={isComposeOpen} onOpenChange={setComposeOpen}>
-        <DialogContent className="sm:max-w-[600px] flex flex-col gap-4">
+        <DialogContent className="flex max-h-[92dvh] flex-col gap-4 overflow-y-auto border-border/70 bg-background/95 shadow-2xl backdrop-blur-xl sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {draftId ? 'Edit Draft' : 'New Message'}
             {encryptionConfig.enabled && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                <Lock className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-primary">
+                <Lock aria-hidden="true" className="h-3 w-3" data-icon="inline-start" />
                 Encrypted
               </span>
             )}
@@ -172,27 +172,28 @@ export default function ComposeModal() {
         </DialogHeader>
         <div className="flex flex-col gap-3">
           {encryptionConfig.enabled && (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Secure mail is enabled.</span>{' '}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-primary">Secure mail is enabled.</span>{' '}
               The subject and message body will be encrypted in the browser before sending.
             </div>
           )}
 
           {encryptionConfig.enabled && missingSecureRecipients.length > 0 && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+            <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {missingSecureRecipients.map((user) => user.name).join(', ')} must open secure chat or secure mail once before you can send an encrypted email to them.
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">To</Label>
+              <Label htmlFor="mail-to" className="text-xs text-muted-foreground uppercase tracking-wider">To</Label>
               <div className="flex items-center gap-2 text-xs font-semibold">
-                {!showCcHeader && <button onClick={() => setShowCcHeader(true)} className="hover:underline text-muted-foreground">Cc</button>}
-                {!showBccHeader && <button onClick={() => setShowBccHeader(true)} className="hover:underline text-muted-foreground">Bcc</button>}
+                {!showCcHeader && <button type="button" onClick={() => setShowCcHeader(true)} className="rounded-sm text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cc</button>}
+                {!showBccHeader && <button type="button" onClick={() => setShowBccHeader(true)} className="rounded-sm text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Bcc</button>}
               </div>
             </div>
             <UserMultiSelect 
+              id="mail-to"
               placeholder="Search recipients..." 
               selectedUsers={to} 
               onChange={setTo} 
@@ -202,12 +203,13 @@ export default function ComposeModal() {
           {showCcHeader && (
             <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center justify-between">
-                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cc</Label>
-                 <button onClick={() => { setShowCcHeader(false); setCc([]); }} className="text-muted-foreground hover:text-foreground">
-                    <X className="w-3.5 h-3.5" />
+                 <Label htmlFor="mail-cc" className="text-xs text-muted-foreground uppercase tracking-wider">Cc</Label>
+                 <button type="button" aria-label="Remove Cc recipients" onClick={() => { setShowCcHeader(false); setCc([]); }} className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <X aria-hidden="true" className="w-3.5 h-3.5" />
                  </button>
               </div>
               <UserMultiSelect 
+                id="mail-cc"
                 placeholder="Search Cc recipients..." 
                 selectedUsers={cc} 
                 onChange={setCc} 
@@ -218,12 +220,13 @@ export default function ComposeModal() {
           {showBccHeader && (
             <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center justify-between">
-                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Bcc</Label>
-                 <button onClick={() => { setShowBccHeader(false); setBcc([]); }} className="text-muted-foreground hover:text-foreground">
-                    <X className="w-3.5 h-3.5" />
+                 <Label htmlFor="mail-bcc" className="text-xs text-muted-foreground uppercase tracking-wider">Bcc</Label>
+                 <button type="button" aria-label="Remove Bcc recipients" onClick={() => { setShowBccHeader(false); setBcc([]); }} className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <X aria-hidden="true" className="w-3.5 h-3.5" />
                  </button>
               </div>
               <UserMultiSelect 
+                id="mail-bcc"
                 placeholder="Search Bcc recipients..." 
                 selectedUsers={bcc} 
                 onChange={setBcc} 
@@ -254,11 +257,11 @@ export default function ComposeModal() {
             Cancel
           </Button>
           <Button variant="outline" onClick={handleSaveDraft} disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" data-icon="inline-start" /> : null}
             Save Draft
           </Button>
           <Button onClick={handleSend} disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" data-icon="inline-start" /> : null}
             Send
           </Button>
         </DialogFooter>
@@ -271,8 +274,8 @@ export default function ComposeModal() {
           <DialogContent className="flex h-[85vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden rounded-[2.5rem] border-border/50 bg-background p-0 shadow-2xl z-[100]">
             <DialogTitle className="sr-only">Select Media for Email</DialogTitle>
             <div className="z-10 flex shrink-0 items-center gap-4 border-b border-border/50 bg-card/60 px-8 py-5 backdrop-blur-xl">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 shadow-inner">
-                <ImageIcon className="h-6 w-6 text-emerald-500" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 shadow-inner">
+                <ImageIcon aria-hidden="true" className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-xl font-black tracking-tight text-foreground">Select Email Media</h2>

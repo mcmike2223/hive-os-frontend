@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { Home, Layers, LockKeyhole, MessageSquare } from "lucide-react";
 import ChatLayout from "@/components/chat/chat-layout";
+import { CommunicationWorkspaceHeader } from "@/components/communications/communication-workspace-header";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { ModulePageSkeleton } from "@/components/ui/loading-states";
 import { useChatAccess } from "@/hooks/use-chat-access";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useChatStore } from "@/store/chat-store";
 import { useTranslation } from "@/store/use-translation";
 
 export default function ChatPage() {
@@ -16,6 +18,8 @@ export default function ChatPage() {
   const { hasAnyPermission } = usePermissions();
   const { isLoaded, canAccessChat, hasMailboxModule, isTenantWorkspace } = useChatAccess();
   const canOpenSubscriptions = hasAnyPermission(["view_module_subscriptions", "manage_module_subscriptions"]);
+  const unreadCount = useChatStore((state) => state.counts.unread);
+  const onlineCount = useChatStore((state) => state.onlineUsers.length);
 
   if (!isLoaded) {
     return <ModulePageSkeleton titleWidth="w-44" subtitleWidth="w-80" rows={6} cols={4} />;
@@ -24,8 +28,8 @@ export default function ChatPage() {
   if (!canAccessChat) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center rounded-[2rem] border border-border/50 bg-card/40 p-8 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-[1.75rem] border border-orange-500/20 bg-orange-500/10">
-          <MessageSquare className="h-9 w-9 text-orange-500" />
+        <div className="flex size-20 items-center justify-center rounded-[1.75rem] border border-primary/20 bg-primary/10">
+          <MessageSquare aria-hidden="true" className="size-9 text-primary" />
         </div>
         <h2 className="mt-6 text-3xl font-black tracking-tight">
           {t("global.access_denied", "Access Denied")}
@@ -72,5 +76,12 @@ export default function ChatPage() {
     );
   }
 
-  return <ChatLayout />;
+  return (
+    <div className="flex min-h-0 flex-col gap-3">
+      <CommunicationWorkspaceHeader kind="chat" onlineCount={onlineCount} unreadCount={unreadCount} />
+      <div className="h-[calc(100dvh-13rem)] min-h-[34rem] overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-sm">
+        <ChatLayout />
+      </div>
+    </div>
+  );
 }

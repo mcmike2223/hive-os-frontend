@@ -14,14 +14,14 @@ import { SafeRichText } from '@/components/security/safe-rich-text';
 
 export default function MailDetail() {
   const { mails, selectedMailId, selectMail, deleteMail, updateMail, setComposeOpen, activeFolder, checkedMailIds, adjustCounts, isFullscreen, setFullscreen, encryptionConfig } = useMailStore();
-  
+
   const mail = mails.find((m) => m.mail_message_id === selectedMailId);
   const isMailEncrypted = Boolean(mail?.message?.encryption?.encrypted);
   const isSecureMailEnabled = Boolean(encryptionConfig.enabled);
 
   if (!mail) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full bg-background border-l">
+      <div className="flex h-full flex-1 flex-col items-center justify-center border-l bg-background text-muted-foreground">
         {checkedMailIds.length > 0 ? (
            <div className="flex flex-col items-center">
              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 ring-8 ring-primary/5">
@@ -32,8 +32,8 @@ export default function MailDetail() {
            </div>
         ) : (
            <>
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <MailOpen className="w-8 h-8 text-muted-foreground/50 opacity-50" />
+            <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
+              <MailOpen aria-hidden="true" className="size-8 text-primary" />
             </div>
             <p className="font-medium">Select a message to read</p>
            </>
@@ -132,15 +132,15 @@ export default function MailDetail() {
 
   return (
     <TooltipProvider>
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-background/95 print:w-full print:border-none print:absolute print:inset-0 rounded-2xl relative">
+      <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-background print:absolute print:inset-0 print:w-full print:border-none">
         <div className="flex-1 overflow-y-auto p-8 md:p-10 flex flex-col print:p-0 scrollbar-thin overscroll-none">
-          
+
           {/* Header Action Toolbar Area matching reference */}
           <div className="flex items-start justify-between mb-8">
             <div className="flex items-center gap-4">
-               <Avatar className="h-[52px] w-[52px] border shadow-sm">
+               <Avatar className="size-[52px] border shadow-sm">
                  <AvatarImage src={mail.message?.sender?.avatar_url} />
-                 <AvatarFallback className="bg-slate-200 text-slate-600 font-bold text-xl">
+                 <AvatarFallback className="bg-primary/10 text-xl font-bold text-primary">
                    {mail.message?.sender?.name?.charAt(0) || 'U'}
                  </AvatarFallback>
                </Avatar>
@@ -155,7 +155,7 @@ export default function MailDetail() {
             <div className="flex items-center gap-2 print:hidden bg-muted/10 rounded-lg p-1 border border-border/50">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => selectMail(null)} className="h-[38px] w-[38px] md:hidden">
+                    <Button variant="ghost" size="icon" aria-label="Back to mail list" onClick={() => selectMail(null)} className="size-[38px] md:hidden">
                       <ArrowLeft className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
@@ -164,16 +164,16 @@ export default function MailDetail() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleToggleStar} className="h-[38px] w-[38px] hover:bg-white dark:hover:bg-muted/80 shadow-sm transition-all hover:scale-105">
+                    <Button variant="ghost" size="icon" aria-label={mail.is_starred ? 'Unstar message' : 'Star message'} onClick={handleToggleStar} className="size-[38px] shadow-sm">
                       <Star className={cn("w-[18px] h-[18px]", mail.is_starred ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground")} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{mail.is_starred ? 'Unstar' : 'Star'}</TooltipContent>
                 </Tooltip>
-                
+
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleArchive} className="h-[38px] w-[38px] hover:bg-white dark:hover:bg-muted/80 shadow-sm transition-all hover:scale-105">
+                    <Button variant="ghost" size="icon" aria-label="Archive message" onClick={handleArchive} className="size-[38px] shadow-sm">
                       <Archive className="w-[18px] h-[18px] text-muted-foreground" />
                     </Button>
                   </TooltipTrigger>
@@ -182,7 +182,7 @@ export default function MailDetail() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleSpamToggle} className="h-[38px] w-[38px] hover:bg-white dark:hover:bg-muted/80 shadow-sm transition-all hover:scale-105">
+                    <Button variant="ghost" size="icon" aria-label={activeFolder === 'spam' ? 'Move message to inbox' : 'Report message as spam'} onClick={handleSpamToggle} className="size-[38px] shadow-sm">
                       {activeFolder === 'spam' ? <Mail className="w-[18px] h-[18px] text-muted-foreground" /> : <Zap className="w-[18px] h-[18px] text-muted-foreground" />}
                     </Button>
                   </TooltipTrigger>
@@ -191,7 +191,7 @@ export default function MailDetail() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setFullscreen(!isFullscreen)} className="h-[38px] w-[38px] hover:bg-white dark:hover:bg-muted/80 shadow-sm transition-all hover:scale-105 hidden md:flex">
+                    <Button variant="ghost" size="icon" aria-label={isFullscreen ? 'Exit fullscreen' : 'Open fullscreen'} onClick={() => setFullscreen(!isFullscreen)} className="hidden size-[38px] shadow-sm md:flex">
                       {isFullscreen ? <Minimize className="w-[18px] h-[18px] text-muted-foreground" /> : <Maximize className="w-[18px] h-[18px] text-muted-foreground" />}
                     </Button>
                   </TooltipTrigger>
@@ -200,16 +200,16 @@ export default function MailDetail() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handlePrint} className="h-[38px] w-[38px] hover:bg-white dark:hover:bg-muted/80 shadow-sm transition-all hover:scale-105 hidden sm:flex">
+                    <Button variant="ghost" size="icon" aria-label="Print message" onClick={handlePrint} className="hidden size-[38px] shadow-sm sm:flex">
                       <Printer className="w-[18px] h-[18px] text-muted-foreground" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Print</TooltipContent>
                 </Tooltip>
-                
+
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleDelete} className="h-[38px] w-[38px] hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/50 shadow-sm transition-all hover:scale-105">
+                    <Button variant="destructive" size="icon" aria-label={activeFolder === 'trash' ? 'Delete message forever' : 'Move message to trash'} onClick={handleDelete} className="size-[38px] shadow-sm">
                       <Trash className="w-[18px] h-[18px]" />
                     </Button>
                   </TooltipTrigger>
@@ -224,14 +224,14 @@ export default function MailDetail() {
                 {mail.message?.subject || '(No Subject)'}
               </h1>
               {isMailEncrypted && (
-                <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  <Lock className="h-3.5 w-3.5" />
+                <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-primary">
+                  <Lock aria-hidden="true" className="size-3.5" />
                   E2E Encrypted
                 </div>
               )}
               {!isMailEncrypted && isSecureMailEnabled && (
-                <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  <Lock className="h-3.5 w-3.5" />
+                <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                  <Lock aria-hidden="true" className="size-3.5" />
                   Secure Mail On
                 </div>
               )}
@@ -245,13 +245,13 @@ export default function MailDetail() {
             className="whitespace-pre-wrap flex-1 text-[15px] leading-relaxed text-foreground/90 pb-8 prose dark:prose-invert max-w-none"
             html={mail.message?.body || ''}
           />
-          
+
           <div className="flex items-center gap-3 mt-auto pt-8 shrink-0 print:hidden">
-            <Button className="gap-2 shrink-0 font-semibold bg-[#22d3ee] hover:bg-[#0891b2] text-white shadow-sm" onClick={handleForward}>
-              <Forward className="w-[18px] h-[18px]" /> Forward
+            <Button variant="outline" className="shrink-0 font-semibold shadow-sm" onClick={handleForward}>
+              <Forward aria-hidden="true" data-icon="inline-start" /> Forward
             </Button>
-            <Button className="gap-2 shrink-0 font-semibold bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-sm" onClick={handleReply}>
-              <Reply className="w-[18px] h-[18px]" /> Reply
+            <Button className="shrink-0 font-semibold shadow-sm" onClick={handleReply}>
+              <Reply aria-hidden="true" data-icon="inline-start" /> Reply
             </Button>
           </div>
         </div>

@@ -9,9 +9,8 @@ import { cn } from '@/lib/utils';
 import { isToday, isYesterday, format } from 'date-fns';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Search, MoreVertical, Loader2, Plus, Lock } from 'lucide-react';
+import { Search, Loader2, Plus, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ChatListProps {
@@ -104,15 +103,18 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-card/30 dark:bg-card/20">
-      {/* Header */}
-      <div className="p-3 border-b border-border/20">
-        <h2 className="text-lg font-bold text-foreground mb-2">Messages</h2>
+    <div className="flex h-full flex-col bg-card/30">
+      <div className="flex flex-col gap-2 border-b border-border/60 p-3">
+        <h2 className="text-lg font-bold text-foreground">Conversations</h2>
+        <label htmlFor="chat-conversation-search" className="text-xs font-medium text-muted-foreground">
+          Search conversations
+        </label>
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search aria-hidden="true" className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input 
+            id="chat-conversation-search"
             placeholder="Search conversations..."
-            className="pl-9 h-9 bg-background/50 border-border/50 rounded-lg text-sm"
+            className="h-9 rounded-lg border-border/60 bg-background/70 pl-9 text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -122,15 +124,17 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
       {/* List */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+          <div className="flex items-center justify-center gap-2 p-8" role="status">
+            <Loader2 aria-hidden="true" className="size-6 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">Loading conversations</span>
           </div>
         ) : displayConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3">
-              <Search className="h-6 w-6 text-orange-500" />
+            <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10">
+              <Search aria-hidden="true" className="size-6 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground">No conversations yet</p>
+            <p className="text-sm font-medium text-foreground">No conversations yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">Start a chat with someone in your workspace.</p>
             <Button 
               variant="outline" 
               size="sm" 
@@ -138,12 +142,12 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
               className="mt-3 rounded-lg"
               onClick={() => useChatStore.getState().setComposeOpen(true)}
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus aria-hidden="true" data-icon="inline-start" />
               Start Chat
             </Button>
           </div>
         ) : (
-          <div className="p-2 space-y-1">
+          <ul className="flex flex-col gap-1 p-2" aria-label="Chat conversations">
             {displayConversations.map((conv) => {
               const other = getOtherParticipant(conv);
                const displayTitle = conv.type === 'group' ? (conv.title || 'Group') : (other?.name || 'Chat');
@@ -157,28 +161,32 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
                  : false;
               
               return (
-                <div
-                  key={conv.id}
+                <li key={conv.id}>
+                <button
+                  type="button"
+                  aria-current={isActive ? "true" : undefined}
                   className={cn(
-                    "flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-200",
+                    "flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive 
-                      ? "bg-orange-100 dark:bg-orange-900/40" 
-                      : "hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                      ? "bg-primary/10 ring-1 ring-primary/20"
+                      : "hover:bg-accent/60"
                   )}
                   onClick={() => handleSelect(conv.id)}
                 >
                   <div className="relative shrink-0">
                     <Avatar className={cn(
-                      "h-10 w-10 rounded-full",
-                      conv.type === 'group' && "ring-2 ring-orange-200 dark:ring-orange-700"
+                      "size-10 rounded-full",
+                      conv.type === 'group' && "ring-2 ring-primary/25"
                     )}>
                       <AvatarImage src={displayAvatar || undefined} />
-                      <AvatarFallback className="bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 font-bold text-sm">
+                      <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
                         {displayTitle?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     {conv.type !== 'group' && other && isOnline && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-background" />
+                      <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-primary">
+                        <span className="sr-only">Online</span>
+                      </span>
                     )}
                   </div>
 
@@ -188,13 +196,13 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
                         "flex items-center gap-1.5 text-sm truncate",
                         hasUnread ? "font-bold text-foreground" : "font-medium text-foreground/80"
                       )}>
-                        {isEncrypted && <Lock className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
-                        {!isEncrypted && isSecureMode && <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
+                        {isEncrypted && <Lock aria-label="End-to-end encrypted" className="size-3.5 shrink-0 text-primary" />}
+                        {!isEncrypted && isSecureMode && <Lock aria-label="Encryption ready" className="size-3.5 shrink-0 text-muted-foreground" />}
                         <span className="truncate">{displayTitle}</span>
                       </span>
                       <span className={cn(
                         "text-[11px] shrink-0 ml-2",
-                        hasUnread ? "text-orange-500 font-semibold" : "text-muted-foreground"
+                        hasUnread ? "font-semibold text-primary" : "text-muted-foreground"
                       )}>
                         {formatMessageTime(conv.updated_at || conv.last_message?.created_at)}
                       </span>
@@ -209,16 +217,17 @@ export default function ChatList({ onConversationSelect }: ChatListProps) {
                       </p>
                       
                       {hasUnread && (
-                        <span className="h-5 min-w-[18px] px-1.5 flex items-center justify-center rounded-full bg-orange-500 text-[11px] font-black text-white">
+                        <span className="flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-black text-primary-foreground" aria-label={`${conv.unread_count} unread messages`}>
                           {conv.unread_count}
                         </span>
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </div>
     </div>

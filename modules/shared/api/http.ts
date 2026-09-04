@@ -1,5 +1,6 @@
 import axios from "axios";
 import { clearHiveSession } from "@/lib/auth-sync";
+import { getEchoSocketId } from "@/lib/echo";
 import { getAccessToken, getBackendApiRoot, getTenantHeaders } from "@/lib/runtime-context";
 
 export const api = axios.create({
@@ -22,6 +23,12 @@ api.interceptors.request.use((config) => {
     config.baseURL = backendUrl;
 
     Object.assign(config.headers, getTenantHeaders());
+
+    // Laravel's `toOthers()` contract depends on this header. Supplying the
+    // active Reverb socket prevents the initiating tab from applying its own
+    // optimistic mailbox mutation twice, while other tabs still receive it.
+    const socketId = getEchoSocketId();
+    if (socketId) config.headers["X-Socket-ID"] = socketId;
   }
   return config;
 });

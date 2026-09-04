@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import EmojiPicker from 'emoji-picker-react';
 import {
   ArrowLeft,
@@ -10,17 +10,14 @@ import {
   CheckCheck,
   Download,
   FileText,
-  Info,
   Loader2,
   Lock,
   MessageSquare,
   Paperclip,
-  Phone,
   Plus,
   Reply,
   Send,
   Smile,
-  Video,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -330,6 +327,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
     encryptionConfig,
   } = useChatStore();
   const { canManageChat, canBrowseAttachments, canSaveAttachments } = useChatAccess();
+  const shouldReduceMotion = useReducedMotion();
 
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -710,7 +708,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
       return;
     }
 
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth', block: 'center' });
     setHighlightedMessageId(messageId);
 
     if (highlightTimeoutRef.current) {
@@ -732,23 +730,23 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center h-full bg-gradient-to-b from-orange-50/50 to-transparent dark:from-orange-950/20">
+      <div className="flex h-full flex-1 flex-col items-center justify-center bg-primary/5">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center text-center p-8"
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/40 dark:to-amber-900/40 flex items-center justify-center mb-4">
-            <MessageSquare className="w-8 h-8 text-orange-500" />
+          <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10">
+            <MessageSquare aria-hidden="true" className="size-8 text-primary" />
           </div>
           <h2 className="text-xl font-bold text-foreground mb-2">Your Messages</h2>
           <p className="text-sm text-muted-foreground mb-4">Select a conversation to start messaging</p>
           <Button
             variant="outline"
-            className="rounded-xl gap-2 border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/30"
+            className="rounded-xl"
             onClick={() => useChatStore.getState().setComposeOpen(true)}
           >
-            <Plus className="h-4 w-4" />
+            <Plus aria-hidden="true" data-icon="inline-start" />
             New Conversation
           </Button>
         </motion.div>
@@ -766,6 +764,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Back to conversations"
                   onClick={() => {
                     setActiveConversation(null);
                     onBack?.();
@@ -777,9 +776,9 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
               )}
 
               <div className="relative">
-                <Avatar className="h-10 w-10 rounded-full ring-2 ring-orange-200 dark:ring-orange-700">
+                <Avatar className="size-10 rounded-full ring-2 ring-primary/25">
                   <AvatarImage src={displayAvatar || undefined} />
-                  <AvatarFallback className="bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 font-bold">
+                  <AvatarFallback className="bg-primary/10 font-bold text-primary">
                     {displayTitle?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
@@ -817,32 +816,9 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Voice Call</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30">
-                    <Video className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Video Call</TooltipContent>
-              </Tooltip>
-
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30">
-                <Info className="h-4 w-4" />
-              </Button>
-            </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <ol className="flex flex-1 flex-col gap-3 overflow-y-auto p-4" aria-label="Conversation messages">
             <AnimatePresence>
               {conversationMessages.map((message) => {
                 const isOwn = String(message.sender_id) === String(currentUser?.id);
@@ -852,12 +828,12 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                 const fallbackText = !trimmedBody && !attachment ? getChatMessageFallback(message.type) : '';
 
                 return (
-                  <motion.div
+                  <motion.li
                     key={message.id}
                     ref={(node) => {
                       messageRefs.current[String(message.id)] = node;
                     }}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={cn(
                       "group flex gap-2 max-w-[88%]",
@@ -881,7 +857,8 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                         size="icon"
                         onClick={() => setReplyingTo(message)}
                         disabled={!canManageChat}
-                        className="h-7 w-7 shrink-0 rounded-full opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:bg-orange-100 hover:text-orange-500 dark:hover:bg-orange-900/30"
+                        aria-label={`Reply to ${message.sender?.name || 'message'}`}
+                        className="size-7 shrink-0 rounded-full text-muted-foreground opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
                       >
                         <Reply className="h-3.5 w-3.5" />
                       </Button>
@@ -890,7 +867,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                         <div className={cn(
                           "space-y-2 px-3 py-2 rounded-2xl text-sm",
                           isOwn
-                            ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-br-sm"
+                            ? "rounded-br-sm bg-primary text-primary-foreground"
                             : "bg-card dark:bg-card/60 text-foreground border border-border/30 rounded-bl-sm"
                         )}>
                           {replyTo && (
@@ -939,19 +916,20 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                         </div>
                       </div>
                     </div>
-                  </motion.div>
+                  </motion.li>
                 );
               })}
             </AnimatePresence>
             <div ref={messagesEndRef} />
-          </div>
+          </ol>
 
           <div className="px-4 h-6">
             {typingIndicatorUsers.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 5 }}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 text-[11px] text-orange-500 font-medium"
+                className="flex items-center gap-2 text-[11px] font-medium text-primary"
+                aria-live="polite"
               >
                 <div className="flex gap-1">
                   <span className="w-1 h-1 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -967,7 +945,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
 
           <div className="p-3 border-t border-border/30 bg-card/50 dark:bg-card/30">
             {replyingTo && (
-              <div className="mb-2 flex items-start justify-between gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/5 px-3 py-2">
+              <div className="mb-2 flex items-start justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-500">
                     Replying to {replyingTo.sender?.name || 'Message'}
@@ -981,7 +959,8 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => setReplyingTo(null)}
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:bg-orange-500/10 hover:text-orange-500"
+                  aria-label="Cancel reply"
+                  className="size-8 rounded-full text-muted-foreground"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -995,19 +974,23 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
               />
             )}
 
-            <div className="flex items-center gap-2 p-2 bg-background/50 dark:bg-background/30 rounded-2xl border border-border/30">
+            <label htmlFor="chat-message-input" className="mb-1 block text-xs font-medium text-muted-foreground">Message</label>
+            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/70 p-2">
               <Button
                 type="button"
                 onClick={() => setIsFileManagerOpen(true)}
                 variant="ghost"
-                size="icon"
+                size="sm"
+                aria-label="Attach a file"
                 disabled={!canBrowseAttachments || !canManageChat}
-                className="h-9 w-9 rounded-full shrink-0 text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                className="shrink-0 rounded-xl text-muted-foreground"
               >
-                <Paperclip className="h-4 w-4" />
+                <Paperclip aria-hidden="true" data-icon="inline-start" />
+                <span className="hidden xl:inline">Attach</span>
               </Button>
 
               <input
+                id="chat-message-input"
                 type="text"
                 value={messageInput}
                 onChange={(event) => setMessageInput(event.target.value)}
@@ -1034,8 +1017,9 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                     type="button"
                     variant="ghost"
                     size="icon"
+                    aria-label="Choose an emoji"
                     disabled={!canManageChat}
-                    className="h-9 w-9 rounded-full shrink-0 text-muted-foreground hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                    className="shrink-0 rounded-full text-muted-foreground"
                   >
                     <Smile className="h-4 w-4 text-amber-500" />
                   </Button>
@@ -1056,15 +1040,17 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
                 type="button"
                 onClick={() => void handleSendMessage()}
                 disabled={!canSendMessage}
-                size="icon"
+                size="sm"
+                aria-label={sending ? "Sending message" : "Send message"}
                 className={cn(
-                  "h-9 w-9 rounded-full transition-all",
+                  "shrink-0 rounded-xl",
                   canManageChat && (messageInput.trim() || pendingAttachment)
-                    ? "bg-orange-500 text-white hover:bg-orange-600"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "bg-muted text-muted-foreground"
                 )}
               >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {sending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Send aria-hidden="true" data-icon="inline-start" />}
+                <span className="hidden sm:inline">{sending ? 'Sending' : 'Send'}</span>
               </Button>
             </div>
           </div>

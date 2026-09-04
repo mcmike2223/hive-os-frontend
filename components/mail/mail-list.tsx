@@ -7,7 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import api from '@/lib/api';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, Star, MailOpen, Mail, Archive, MoreVertical, ChevronLeft, ChevronRight, Lock, Zap } from 'lucide-react';
+import { Search, Trash2, Star, MailOpen, Mail, Archive, ChevronLeft, ChevronRight, Lock, Zap, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -85,7 +85,14 @@ export default function MailList() {
     selectMail(mail.mail_message_id);
     if (!mail.is_read) {
       updateMail(mail.mail_message_id, { is_read: true });
-      await api.put(`/mail/${mail.mail_message_id}`, { is_read: true }).catch(() => {});
+      adjustCounts({ inbox_unread: -1 });
+      try {
+        await api.put(`/mail/${mail.mail_message_id}`, { is_read: true });
+      } catch {
+        updateMail(mail.mail_message_id, { is_read: false });
+        adjustCounts({ inbox_unread: 1 });
+        toast.error('Message opened, but its read status could not be saved');
+      }
     }
   };
 
@@ -96,8 +103,11 @@ export default function MailList() {
     try {
       await api.post('/mail/bulk', { ids, action });
       
+      const selectedMails = mails.filter((mail) => ids.includes(mail.mail_message_id));
       const countUpdate: Partial<MailCounts> & Partial<Record<MailFolderCountKey, number>> = {};
       const amount = ids.length;
+      const unreadAmount = selectedMails.filter((mail) => !mail.is_read).length;
+      const unstarredAmount = selectedMails.filter((mail) => !mail.is_starred).length;
       const decrementActiveFolder = () => {
         if (activeFolder !== 'all') countUpdate[activeFolder] = -amount;
       };
@@ -113,7 +123,7 @@ export default function MailList() {
          decrementActiveFolder();
       } else if (action === 'star') {
          bulkUpdateMails(ids, { is_starred: true });
-         countUpdate.starred = amount;
+         countUpdate.starred = unstarredAmount;
       } else if (action === 'archive') {
          bulkUpdateMails(ids, { folder: 'archive' });
          if (activeFolder !== 'archive') bulkDeleteMails(ids);
@@ -136,10 +146,10 @@ export default function MailList() {
          countUpdate.important = amount;
       } else if (action === 'read') {
          bulkUpdateMails(ids, { is_read: true });
-         if (activeFolder === 'inbox') countUpdate.inbox_unread = -amount;
+         if (activeFolder === 'inbox') countUpdate.inbox_unread = -unreadAmount;
       } else if (action === 'unread') {
          bulkUpdateMails(ids, { is_read: false });
-         if (activeFolder === 'inbox') countUpdate.inbox_unread = amount;
+         if (activeFolder === 'inbox') countUpdate.inbox_unread = amount - unreadAmount;
       }
       
       adjustCounts(countUpdate);
@@ -151,6 +161,20 @@ export default function MailList() {
   };
 
   const filteredMails = mails.filter(mail => {
+
+  const handleToggleStar = async (mail: typeof mails[number]) => {
+    const nextValue = !mail.is_starred;
+    updateMail(mail.mail_message_id, { is_starred: nextValue });
+    adjustCounts({ starred: nextValue ? 1 : -1 });
+
+    try {
+      await api.put(`/mail/${mail.mail_message_id}`, { is_starred: nextValue });
+    } catch {
+      updateMail(mail.mail_message_id, { is_starred: !nextValue });
+      adjustCounts({ starred: nextValue ? -1 : 1 });
+      toast.error('Failed to update star');
+    }
+  };
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return mail.message.subject?.toLowerCase().includes(q) || 
@@ -161,11 +185,20 @@ export default function MailList() {
   const allChecked = filteredMails.length > 0 && checkedMailIds.length === filteredMails.length;
   const indeterminate = checkedMailIds.length > 0 && checkedMailIds.length < filteredMails.length;
 
+  if (loading && !mails.length) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 border-r text-muted-foreground" role="status">
+        <Loader2 aria-hidden="true" className="size-6 animate-spin text-primary" />
+        <p className="text-sm">Loading {activeFolder} mail</p>
+      </div>
+    );
+  }
+
   if (!mails.length) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5 h-full p-8 text-center border-r">
-        <div className="rounded-full bg-muted p-4 mb-4">
-           <Mail className="w-8 h-8 opacity-50" />
+      <div className="flex h-full flex-1 flex-col items-center justify-center border-r bg-muted/5 p-8 text-center text-muted-foreground">
+        <div className="mb-4 rounded-full bg-primary/10 p-4">
+           <Mail aria-hidden="true" className="size-8 text-primary" />
         </div>
         <p className="font-medium text-foreground">No messages in {activeFolder}</p>
         <p className="text-sm mt-1">When you receive new messages, they will appear here.</p>
@@ -174,106 +207,113 @@ export default function MailList() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-transparent">
+    <div className="flex size-full flex-col overflow-hidden bg-transparent">
       
-      {/* Title Header */}
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
         <div className="flex items-center gap-3">
-           <Checkbox 
+           <Checkbox
+             id="select-all-mail"
+             aria-label={`Select all messages in ${activeFolder}`}
              checked={allChecked ? true : indeterminate ? "indeterminate" : false} 
              onCheckedChange={() => toggleCheckAll(filteredMails.map(m => m.mail_message_id))}
-             className="border-muted-foreground/30 data-[state=checked]:bg-[#8b5cf6] data-[state=checked]:text-white rounded-[4px]"
+             className="rounded border-muted-foreground/40"
            />
            <div className="ml-2 flex items-center gap-2">
              <h2 className="text-xl font-bold text-foreground capitalize tracking-tight">
                {activeFolder === 'all' ? 'All Mails' : activeFolder}
              </h2>
              {encryptionConfig.enabled && (
-               <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                 <Lock className="h-3 w-3" />
+               <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-primary">
+                 <Lock aria-hidden="true" className="size-3" />
                  Secure Mail
                </span>
              )}
            </div>
         </div>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <MoreVertical className="w-5 h-5" />
-        </Button>
       </div>
 
       {/* Search & Bulk Actions Bar */}
       <div className="px-6 pb-4 shrink-0">
         {checkedMailIds.length > 0 ? (
-          <div className="flex items-center gap-1 bg-white/80 dark:bg-muted/80 backdrop-blur-xl p-1.5 rounded-xl border border-border/50 animate-in fade-in zoom-in-95 duration-200 shadow-md h-[44px]">
+          <div className="flex min-h-11 items-center gap-1 overflow-x-auto rounded-xl border border-border/60 bg-background/80 p-1.5 shadow-sm" aria-label="Bulk mail actions">
              <span className="text-sm font-semibold mx-3 text-muted-foreground whitespace-nowrap">
                {checkedMailIds.length} selected
              </span>
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white dark:hover:bg-muted" onClick={() => handleBulkAction(activeFolder === 'trash' ? 'delete' : 'trash')} title={activeFolder === 'trash' ? "Delete Forever" : "Move to Trash"}>
+             <Button variant="ghost" size="icon-sm" aria-label={activeFolder === 'trash' ? "Delete forever" : "Move to trash"} onClick={() => handleBulkAction(activeFolder === 'trash' ? 'delete' : 'trash')}>
                <Trash2 className="w-[18px] h-[18px] text-muted-foreground hover:text-destructive transition-colors" />
              </Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white dark:hover:bg-muted" onClick={() => handleBulkAction('archive')} title="Archive">
+             <Button variant="ghost" size="icon-sm" aria-label="Archive selected messages" onClick={() => handleBulkAction('archive')}>
                <Archive className="w-[18px] h-[18px] text-muted-foreground" />
              </Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white dark:hover:bg-muted" onClick={() => handleBulkAction(activeFolder === 'spam' ? 'inbox' : 'spam')} title={activeFolder === 'spam' ? "Move to Inbox" : "Report Spam"}>
+             <Button variant="ghost" size="icon-sm" aria-label={activeFolder === 'spam' ? "Move selected messages to inbox" : "Report selected messages as spam"} onClick={() => handleBulkAction(activeFolder === 'spam' ? 'inbox' : 'spam')}>
                {activeFolder === 'spam' ? <Mail className="w-[18px] h-[18px] text-muted-foreground" /> : <Zap className="w-[18px] h-[18px] text-muted-foreground hover:text-amber-500" />}
              </Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white dark:hover:bg-muted" onClick={() => handleBulkAction('star')} title="Star">
+             <Button variant="ghost" size="icon-sm" aria-label="Star selected messages" onClick={() => handleBulkAction('star')}>
                <Star className="w-[18px] h-[18px] text-muted-foreground hover:text-yellow-500" />
              </Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white dark:hover:bg-muted" onClick={() => handleBulkAction('read')} title="Mark as Read">
+             <Button variant="ghost" size="icon-sm" aria-label="Mark selected messages as read" onClick={() => handleBulkAction('read')}>
                <MailOpen className="w-[18px] h-[18px] text-muted-foreground" />
              </Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white dark:hover:bg-muted" onClick={() => handleBulkAction('unread')} title="Mark as Unread">
+             <Button variant="ghost" size="icon-sm" aria-label="Mark selected messages as unread" onClick={() => handleBulkAction('unread')}>
                <Mail className="w-[18px] h-[18px] text-muted-foreground" />
              </Button>
           </div>
         ) : (
-          <div className="relative">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="mail-search" className="text-xs font-medium text-muted-foreground">Search mail</label>
+            <div className="relative">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60" />
              <Input 
+               id="mail-search"
                placeholder="Search Email" 
                className="pl-10 h-[44px] bg-muted/20 dark:bg-muted/30 backdrop-blur-sm border-muted-foreground/20 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-transparent rounded-xl shadow-sm transition-all text-[15px]"
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
              />
+            </div>
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto w-full border-r-transparent scrollbar-thin px-2 space-y-1 overscroll-none">
+      <div className="flex w-full flex-1 flex-col gap-1 overflow-y-auto border-r-transparent px-2 scrollbar-thin overscroll-none">
         {filteredMails.length === 0 ? (
            <div className="p-8 text-center text-sm text-muted-foreground">No matches found.</div>
         ) : filteredMails.map((mail) => (
-          <div
+          <article
             key={mail.id || `msg-${mail.mail_message_id}`}
             className={cn(
-              "group relative flex items-start gap-4 p-4 text-left border border-transparent rounded-2xl transition-all duration-300 cursor-pointer m-1 hover:shadow-md hover:scale-[1.01] hover:border-border/30",
+              "group relative m-1 flex items-start gap-4 rounded-2xl border border-transparent p-4 text-left transition-colors hover:border-border/60 hover:bg-accent/40",
               selectedMailId === mail.mail_message_id 
                 ? "bg-white dark:bg-muted shadow-sm border-primary/20 ring-1 ring-primary/10" 
                 : "bg-transparent hover:bg-white/80 dark:hover:bg-muted/60",
             )}
-            onClick={() => handleSelect(mail)}
           >
+            <button
+              type="button"
+              onClick={() => handleSelect(mail)}
+              aria-label={`Open ${mail.message?.subject || 'message'} from ${mail.message?.sender?.name || 'System'}`}
+              className="absolute inset-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
             {/* Absolute Checkbox Overlay */}
             <div className={cn(
-               "absolute left-4 top-4 z-10 bg-white/80 dark:bg-background/80 rounded-sm backdrop-blur-sm transition-opacity", 
-               checkedMailIds.includes(mail.mail_message_id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+               "absolute left-4 top-4 z-20 rounded-sm bg-background/80 backdrop-blur-sm",
             )} onClick={(e) => e.stopPropagation()}>
               <Checkbox 
+                aria-label={`Select ${mail.message?.subject || 'message'} from ${mail.message?.sender?.name || 'System'}`}
                 checked={checkedMailIds.includes(mail.mail_message_id)}
                 onCheckedChange={() => toggleCheckMail(mail.mail_message_id)}
-                className="data-[state=checked]:bg-[#8b5cf6] data-[state=checked]:text-white rounded-[4px] shadow-sm border-muted-foreground/30 h-5 w-5"
+                className="size-5 rounded border-muted-foreground/40 shadow-sm"
               />
             </div>
 
-            <Avatar className="h-10 w-10 shrink-0 border border-border shadow-sm">
+            <Avatar className="pointer-events-none relative z-10 size-10 shrink-0 border border-border shadow-sm">
               <AvatarImage src={mail.message?.sender?.avatar_url} />
               <AvatarFallback className="bg-primary/5 text-primary text-sm font-semibold">
                 {mail.message?.sender?.name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 overflow-hidden min-w-0 py-0.5">
+            <div className="pointer-events-none relative z-10 min-w-0 flex-1 overflow-hidden py-0.5">
               <div className="flex w-full justify-between items-center gap-2 mb-1">
                 <span className={cn(
                   "truncate text-[15px]", 
@@ -288,13 +328,13 @@ export default function MailList() {
                   )}>
                     {formatDistanceToNow(new Date(mail.message?.created_at || mail.created_at || new Date()), { addSuffix: true })}
                   </span>
-                  <div className="w-5 h-5 flex items-center justify-center" onClick={e => { e.stopPropagation(); handleBulkAction('star'); toggleCheckMail(mail.mail_message_id); }}>
+                  <button type="button" className="pointer-events-auto relative z-20 flex size-8 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={mail.is_starred ? `Unstar ${mail.message?.subject || 'message'}` : `Star ${mail.message?.subject || 'message'}`} onClick={() => void handleToggleStar(mail)}>
                      {mail.is_starred ? (
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <Star aria-hidden="true" className="size-4 fill-primary text-primary" />
                      ) : (
-                        <Star className="w-4 h-4 text-muted-foreground/40 hidden group-hover:block" />
+                        <Star aria-hidden="true" className="size-4 text-muted-foreground" />
                      )}
-                  </div>
+                  </button>
                 </div>
               </div>
               <div className={cn(
@@ -313,7 +353,7 @@ export default function MailList() {
                 {(mail.message?.body || '').replace(/<[^>]+>/g, '')}
               </div>
             </div>
-          </div>
+          </article>
         ))}
       </div>
 
@@ -330,7 +370,7 @@ export default function MailList() {
             onClick={() => setPage(p => Math.max(1, p - 1))}
             className="h-8 shadow-sm transition-all text-xs"
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
+            <ChevronLeft aria-hidden="true" data-icon="inline-start" />
             Previous
           </Button>
           <Button 
@@ -341,7 +381,7 @@ export default function MailList() {
             className="h-8 shadow-sm transition-all text-xs"
           >
             Next
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRight aria-hidden="true" data-icon="inline-end" />
           </Button>
         </div>
       </div>

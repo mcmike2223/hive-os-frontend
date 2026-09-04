@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Search, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { X, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 
@@ -16,12 +15,13 @@ export interface User {
 }
 
 interface UserMultiSelectProps {
+  id: string;
   placeholder?: string;
   selectedUsers: User[];
   onChange: (users: User[]) => void;
 }
 
-export function UserMultiSelect({ placeholder = "Search users...", selectedUsers, onChange }: UserMultiSelectProps) {
+export function UserMultiSelect({ id, placeholder = "Search users...", selectedUsers, onChange }: UserMultiSelectProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +49,7 @@ export function UserMultiSelect({ placeholder = "Search users...", selectedUsers
       try {
         const { data } = await api.get(`/directory/users?search=${encodeURIComponent(query)}`);
         let usersList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-        
+
         const q = query.toLowerCase().trim();
         if (q === 'all' || "all users".startsWith(q) || "everyone".startsWith(q)) {
             usersList = [
@@ -59,7 +59,7 @@ export function UserMultiSelect({ placeholder = "Search users...", selectedUsers
         }
 
         setResults(usersList);
-      } catch (err) {
+      } catch {
         console.error("Failed to fetch users");
       } finally {
         setLoading(false);
@@ -82,6 +82,8 @@ export function UserMultiSelect({ placeholder = "Search users...", selectedUsers
     onChange(selectedUsers.filter(u => u.id !== id));
   };
 
+  const listboxId = `${id}-options`;
+
   return (
     <div className="relative w-full" ref={containerRef}>
       <div className="flex flex-wrap items-center gap-2 border rounded-md p-2 bg-background focus-within:ring-2 focus-within:ring-ring">
@@ -90,15 +92,21 @@ export function UserMultiSelect({ placeholder = "Search users...", selectedUsers
             {user.name}
             <button
               type="button"
-              className="text-muted-foreground hover:text-foreground outline-none"
+              aria-label={`Remove ${user.name}`}
+              className="rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => handleRemove(user.id)}
             >
-              <X className="h-3 w-3" />
+              <X aria-hidden="true" className="h-3 w-3" data-icon="inline-start" />
             </button>
           </Badge>
         ))}
         <input
+          id={id}
           type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={open && Boolean(query)}
           className="flex-1 bg-transparent outline-none min-w-[120px] text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground"
           placeholder={selectedUsers.length === 0 ? placeholder : ""}
           value={query}
@@ -111,13 +119,18 @@ export function UserMultiSelect({ placeholder = "Search users...", selectedUsers
       </div>
 
       {open && query && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md z-50 overflow-hidden max-h-[220px] overflow-y-auto">
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label="Matching users"
+          className="absolute top-full left-0 right-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md z-50 overflow-hidden max-h-[220px] overflow-y-auto"
+        >
           {loading && (
             <div className="p-3 text-sm text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Searching...
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin motion-reduce:animate-none" data-icon="inline-start" /> Searching...
             </div>
           )}
-          
+
           {!loading && results.length === 0 && (
             <div className="p-3 text-sm text-muted-foreground text-center">
               No users found.
@@ -128,7 +141,9 @@ export function UserMultiSelect({ placeholder = "Search users...", selectedUsers
             <button
               key={user.id}
               type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 focus:bg-muted outline-none flex flex-col"
+              role="option"
+              aria-selected={selectedUsers.some((selected) => selected.id === user.id)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring flex flex-col"
               onClick={() => handleSelect(user)}
             >
               <span className="font-semibold">{user.name}</span>

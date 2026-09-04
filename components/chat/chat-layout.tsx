@@ -35,24 +35,24 @@ export default function ChatLayout() {
   return (
     <div
       className={cn(
-        "flex w-full h-full overflow-hidden rounded-xl",
+        "relative flex size-full overflow-hidden bg-background/40",
         isFullscreen && "fixed inset-0 z-[100] h-[100dvh] w-screen rounded-none bg-background"
       )}
     >
       {showSidebar && (
-        <aside className={cn("shrink-0 h-full", isMobile ? "w-16" : "w-16")}>
+        <aside aria-label="Chat navigation" className={cn("h-full shrink-0", isMobile ? "w-16" : "w-16 lg:w-48")}>
           <ChatSidebar />
         </aside>
       )}
 
       {showList && (
-        <aside className={cn("shrink-0 h-full border-r border-border/30", isMobile ? "flex-1 min-w-0" : "w-72")}>
+        <aside aria-label="Conversations" className={cn("h-full shrink-0 border-r border-border/60", isMobile ? "min-w-0 flex-1" : "w-72 xl:w-80")}>
           <ChatList />
         </aside>
       )}
 
       {showDetail && (
-        <main className="flex-1 h-full min-w-0">
+        <main className="h-full min-w-0 flex-1">
           <ChatDetail />
         </main>
       )}

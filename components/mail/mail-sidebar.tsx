@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Inbox, Send, Archive, Trash2, Star, Edit, Zap, Users, Tag, HardDrive } from 'lucide-react';
 import api from '@/lib/api';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
 const navItems = [
@@ -53,35 +54,33 @@ export default function MailSidebar() {
   }, [setCounts]);
 
   return (
-    <div className="w-full h-full flex flex-col pt-6 pb-4 bg-transparent overflow-hidden relative">
-      <div className="px-6 mb-6 shrink-0">
-        <Button 
-          onClick={() => setComposeOpen(true)} 
-          className="w-full h-12 gap-2 shadow-md shadow-emerald-500/20 font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-emerald-500/30 text-[15px]"
+    <div className="relative flex size-full flex-col overflow-hidden bg-transparent pb-4 pt-5">
+      <div className="mb-5 shrink-0 px-5">
+        <Button
+          onClick={() => setComposeOpen(true)}
+          className="h-11 w-full rounded-xl font-bold shadow-sm"
         >
-          <PlusCircle className="w-5 h-5" />
+          <PlusCircle aria-hidden="true" data-icon="inline-start" />
           Compose Mail
         </Button>
       </div>
- 
 
-      <div className="px-6 text-xs font-bold text-muted-foreground tracking-wider mb-2">
-        MAILS
-      </div>
+
+      <h2 className="mb-2 px-5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Mailboxes</h2>
 
       <nav className="flex flex-col gap-1 w-full px-3 flex-1 overflow-y-auto scrollbar-thin overscroll-none border-b border-transparent">
         <Button
            variant={activeFolder === 'all' ? "secondary" : "ghost"}
            className={cn(
              "justify-between w-full h-11 transition-all duration-200 px-3 mb-2 rounded-xl group",
-             activeFolder === 'all' 
-               ? "bg-white dark:bg-muted shadow-sm text-foreground font-semibold" 
+             activeFolder === 'all'
+               ? "bg-white dark:bg-muted shadow-sm text-foreground font-semibold"
                : "hover:bg-white/60 dark:hover:bg-muted/50 text-muted-foreground font-medium hover:scale-[1.02]"
            )}
            onClick={() => setActiveFolder('all')}
         >
            <div className="flex items-center gap-4">
-              <Inbox className={cn("w-[18px] h-[18px]", activeFolder === 'all' ? "text-primary opacity-100" : "opacity-70")} />
+              <Inbox aria-hidden="true" data-icon="inline-start" className={cn(activeFolder === 'all' ? "text-primary opacity-100" : "opacity-70")} />
               <span>All Mails</span>
            </div>
         </Button>
@@ -95,61 +94,48 @@ export default function MailSidebar() {
               variant={isActive ? "secondary" : "ghost"}
               className={cn(
                 "justify-between w-full h-11 transition-all duration-200 font-medium px-3 rounded-xl group",
-                isActive 
-                  ? "bg-white dark:bg-muted shadow-sm text-foreground font-semibold" 
+                isActive
+                  ? "bg-white dark:bg-muted shadow-sm text-foreground font-semibold"
                   : "hover:bg-white/60 dark:hover:bg-muted/50 text-muted-foreground hover:scale-[1.02]"
               )}
               onClick={() => setActiveFolder(item.id as MailFolder)}
             >
               <div className="flex items-center gap-4">
-                <item.icon className="w-[18px] h-[18px] opacity-70" />
+                <item.icon aria-hidden="true" data-icon="inline-start" className="opacity-70" />
                 {item.label}
               </div>
               {count > 0 && (
-                <span className={cn(
-                  "flex h-5 items-center justify-center rounded-full px-2 text-xs font-bold",
-                  item.id === 'starred' ? "bg-amber-50 text-amber-600" :
-                  item.id === 'inbox' ? "bg-purple-50 text-purple-600" :
-                  item.id === 'sent' ? "bg-blue-50 text-blue-600" :
-                  item.id === 'drafts' ? "bg-slate-100 text-slate-600" :
-                  item.id === 'spam' ? "bg-red-50 text-red-600" :
-                  item.id === 'important' ? "bg-rose-50 text-rose-600" :
-                  item.id === 'trash' ? "bg-zinc-100 text-zinc-600" :
-                  item.id === 'archive' ? "bg-teal-50 text-teal-600" :
-                  "bg-muted/50 text-foreground/50"
-                )}>
+                <Badge variant={isActive ? "default" : "secondary"} aria-label={`${count} messages`}>
                   {count}
-                </span>
+                </Badge>
               )}
             </Button>
           )
         })}
       </nav>
 
-      {/* 🟢 ACTIVE PERSONNEL — always shown while mailbox is open */}
       <div className="mt-auto pt-4 px-4 shrink-0 border-t border-muted/50">
-        {/* Header */}
         <div className="px-1 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[11px] font-black text-emerald-500 tracking-wider">
+          <div className="flex items-center gap-2 text-[11px] font-black text-primary tracking-wider">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              <span className="absolute inline-flex size-full rounded-full bg-primary opacity-60 motion-safe:animate-ping" />
+              <span className="relative inline-flex size-2 rounded-full bg-primary" />
             </span>
             ACTIVE PERSONNEL
           </div>
-          <span className="text-[11px] font-bold bg-emerald-500/10 text-emerald-600 rounded-full px-2 py-0.5">
+          <Badge variant="secondary" className="text-[11px]">
             {onlineUsers.length} online
-          </span>
+          </Badge>
         </div>
 
         <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto scrollbar-thin overscroll-none px-1 pb-1">
           {/* Current user — always top */}
           {user && (
-            <div className="flex items-center gap-2.5 p-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+            <div className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/5 p-1.5">
               <div className="relative shrink-0">
-                <Avatar className="h-7 w-7 ring-2 ring-emerald-500/40">
+                <Avatar className="size-7 ring-2 ring-primary/30">
                   <AvatarImage src={user.avatar_url} />
-                  <AvatarFallback className="text-[11px] bg-emerald-100 text-emerald-700 font-bold">
+                  <AvatarFallback className="bg-primary/10 text-[11px] font-bold text-primary">
                     {user.name?.charAt(0) || 'Y'}
                   </AvatarFallback>
                 </Avatar>
@@ -157,7 +143,7 @@ export default function MailSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-bold text-foreground truncate block">{user.name}</span>
-                <span className="text-[11px] text-emerald-500 font-semibold">You · Viewing now</span>
+                <span className="text-[11px] font-semibold text-primary">You · Viewing now</span>
               </div>
             </div>
           )}
@@ -189,16 +175,15 @@ export default function MailSidebar() {
         </div>
       </div>
 
-      {/* 💾 MAILBOX STORAGE QUOTA Tracker */}
       <div className="mt-4 pt-4 pb-2 px-4 shrink-0 border-t border-muted/50">
         <div className="flex items-center justify-between text-[11px] font-black tracking-widest text-muted-foreground uppercase mb-3 px-1">
           <span className="flex items-center gap-1.5"><HardDrive className="h-3 w-3 text-primary/70" /> Storage</span>
           <span className="text-primary font-bold">{formatBytes(counts?.storage_used || 0)} <span className="text-muted-foreground/40 font-medium">/</span> {formatBytes(counts?.storage_limit || 0)}</span>
         </div>
         <div className="px-1">
-          <Progress 
-             value={((counts?.storage_used || 0) / (counts?.storage_limit || 1)) * 100} 
-             className={cn("h-2 bg-muted/50 shadow-inner", ((counts?.storage_used || 0) / (counts?.storage_limit || 1)) * 100 > 85 && "text-rose-500 bg-rose-500/20 [&>div]:bg-rose-500")} 
+          <Progress
+             value={((counts?.storage_used || 0) / (counts?.storage_limit || 1)) * 100}
+             className={cn("h-2 bg-muted/50 shadow-inner", ((counts?.storage_used || 0) / (counts?.storage_limit || 1)) * 100 > 85 && "[&>div]:bg-destructive")}
           />
         </div>
       </div>

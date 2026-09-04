@@ -2,6 +2,28 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { getBackendApiRoot, getTenantHeaders, getTenantId } from "@/lib/runtime-context";
 
+export type RealtimeConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'unavailable';
+
+type ReverbConnection = {
+  state?: string;
+  bind: (event: string, callback: () => void) => void;
+  unbind: (event: string, callback: () => void) => void;
+};
+
+const resolveRealtimeStatus = (state?: string): RealtimeConnectionStatus => {
+  if (state === 'connected') return 'connected';
+  if (state === 'connecting' || state === 'initialized') return 'connecting';
+  return 'disconnected';
+};
+
+const getReverbConnection = (echo: Echo<'reverb'>): ReverbConnection | null => {
+  const connector = echo.connector as unknown as {
+    pusher?: { connection?: ReverbConnection };
+  };
+
+  return connector.pusher?.connection ?? null;
+};
+
 declare global {
   interface Window {
     Pusher: typeof Pusher;
@@ -177,4 +199,41 @@ export const initEcho = (token: string): Echo<"reverb"> | null => {
   }
 
   return window.Echo;
+};
+
+export const getEchoSocketId = (): string | null => {
+  if (typeof window === 'undefined' || !window.Echo) return null;
+
+  return window.Echo.socketId() || null;
+};
+
+export const subscribeToRealtimeStatus = (
+  echo: Echo<'reverb'>,
+  listener: (status: RealtimeConnectionStatus) => void,
+): (() => void) => {
+  const connection = getReverbConnection(echo);
+
+  if (!connection) {
+    listener('unavailable');
+    return () => undefined;
+  }
+
+  const onConnecting = () => listener('connecting');
+  const onConnected = () => listener('connected');
+  const onDisconnected = () => listener('disconnected');
+
+  listener(resolveRealtimeStatus(connection.state));
+  connection.bind('connecting', onConnecting);
+  connection.bind('connected', onConnected);
+  connection.bind('disconnected', onDisconnected);
+  connection.bind('unavailable', onDisconnected);
+  connection.bind('failed', onDisconnected);
+
+  return () => {
+    connection.unbind('connecting', onConnecting);
+    connection.unbind('connected', onConnected);
+    connection.unbind('disconnected', onDisconnected);
+    connection.unbind('unavailable', onDisconnected);
+    connection.unbind('failed', onDisconnected);
+  };
 };
