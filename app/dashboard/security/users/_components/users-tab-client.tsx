@@ -14,15 +14,23 @@ import {
   EyeOff,
   Filter,
   ImageIcon,
+  KeyRound,
   Loader2,
+  Lock,
   Mail,
   Pencil,
   PlusCircle,
   RefreshCw,
   Shield,
+  ShieldCheck,
+  Sparkles,
   Trash2,
   Upload,
+  User,
+  UserCheck,
+  UserCircle,
   UserCog,
+  UserPlus,
   VenetianMask,
   X,
   Zap,
@@ -396,6 +404,36 @@ export function UsersTabClient(props: Props) {
     });
   }, []);
 
+  const validateUserForm = React.useCallback(() => {
+    const errors: Record<string, string> = {};
+    const normalizedName = formName.trim();
+    const normalizedEmail = formEmail.trim();
+
+    if (!normalizedName) errors.name = "Full name is required.";
+    else if (normalizedName.length < 2) errors.name = "Full name must be at least 2 characters.";
+
+    if (!normalizedEmail) errors.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) errors.email = "Enter a valid email address.";
+
+    if (!formRoleId || formRoleId.startsWith("__")) errors.role = "Select a clearance level.";
+
+    if (!isEdit && !formPassword) errors.password = "Encryption key is required.";
+    else if (formPassword) {
+      if (formPassword.length < 6) errors.password = "Encryption key requires at least 6 characters.";
+      else if (!/[A-Z]/.test(formPassword) || !/[a-z]/.test(formPassword)) errors.password = "Encryption key requires uppercase and lowercase letters.";
+      else if (!/[0-9]/.test(formPassword)) errors.password = "Encryption key requires a number.";
+      else if (!/[^A-Za-z0-9]/.test(formPassword)) errors.password = "Encryption key requires a special symbol.";
+    }
+
+    setFieldErrors(errors);
+    const firstInvalidField = ["name", "email", "role", "password"].find((field) => errors[field]);
+    if (firstInvalidField) {
+      window.requestAnimationFrame(() => document.getElementById(firstInvalidField)?.focus());
+    }
+
+    return Object.keys(errors).length === 0;
+  }, [formEmail, formName, formPassword, formRoleId, isEdit]);
+
   const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ["users", page, pageSize, search, statusFilter, roleFilter, onboardingFilter, avatarFilter, dateFrom, dateTo, sortCol, sortDir, tenantId],
     queryFn: async () => {
@@ -706,9 +744,9 @@ export function UsersTabClient(props: Props) {
 
   const handleSubmit = React.useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (Object.values(fieldErrors).some(err => err !== "")) {
-        toast.error("Please fix the validation errors before submitting.");
-        return;
+    if (!validateUserForm()) {
+      toast.error("Please fix the validation errors before submitting.");
+      return;
     }
 
     const payload: UserOfflinePayload = {
@@ -760,7 +798,7 @@ export function UsersTabClient(props: Props) {
       }
       // Non-422 errors are surfaced by the mutation's onError handler.
     }
-  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, fieldErrors, t, formHospitalityStaffId, hasHospitalityModule]);
+  }, [formName, formEmail, formPassword, formRoleId, formAvatarPath, isAvatarRemoved, isEdit, editingUser, assignableRoles, tenantId, updateMut, createMut, t, formHospitalityStaffId, hasHospitalityModule, validateUserForm]);
 
   const getPrimaryRoleName = React.useCallback((u: UserForClient) => {
     if (u.role) return u.role;
@@ -1079,7 +1117,7 @@ export function UsersTabClient(props: Props) {
       {/* CREATE/EDIT USER MODAL */}
       <Dialog open={createDialogOpen} onOpenChange={handleUserDialogOpenChange}>
         <DialogContent
-          className="sm:max-w-[620px] max-h-[min(90vh,760px)] grid grid-rows-[auto_minmax(0,1fr)] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 shadow-2xl"
+          className="w-[calc(100%-2rem)] sm:max-w-[720px] max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2rem] border border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200"
           onInteractOutside={(event) => {
             if (avatarPickerOpenRef.current || createRoleDialogOpen) event.preventDefault();
           }}
@@ -1087,232 +1125,417 @@ export function UsersTabClient(props: Props) {
             if (avatarPickerOpenRef.current || createRoleDialogOpen) event.preventDefault();
           }}
         >
-          <div className="px-6 py-5 border-b border-border/40 bg-gradient-to-br from-primary/[0.12] via-background to-muted/60">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                  <UserCog className="h-4 w-4 text-primary" />
+          <div className="relative overflow-hidden border-b border-border/50 bg-gradient-to-br from-primary/10 via-card/90 to-muted/40 px-6 py-6 text-foreground sm:px-8 shrink-0">
+            <div aria-hidden="true" className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+            <div aria-hidden="true" className="absolute -left-12 -bottom-12 h-36 w-36 rounded-full bg-accent/15 blur-2xl pointer-events-none" />
+            <div aria-hidden="true" className="absolute bottom-0 left-20 h-px w-64 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <DialogHeader className="relative text-left">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-lg shadow-primary/10 ring-4 ring-primary/5">
+                  {isEdit ? <UserCheck aria-hidden="true" className="h-6 w-6" /> : <UserPlus aria-hidden="true" className="h-6 w-6" />}
                 </div>
-                {isEdit ? t('users.edit_profile', "Edit Profile") : t('users.new_team_member', "New Team Member")}
-              </DialogTitle>
-              <DialogDescription className="ml-10">{isEdit ? t('users.edit_desc', "Update clearance and details.") : t('users.new_desc', "Provision a new system operator.")}</DialogDescription>
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
+                      <Sparkles aria-hidden="true" className="h-3 w-3" />
+                      {isEdit ? t('users.editing_operator', 'Editing operator') : t('users.new_operator', 'New operator')}
+                    </span>
+                    {isEdit && editingUser?.isActive !== undefined && (
+                      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", editingUser.isActive ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30")}>
+                        <span className={cn("h-1.5 w-1.5 rounded-full", editingUser.isActive ? "bg-emerald-500" : "bg-rose-500")} />
+                        {editingUser.isActive ? t('global.active', 'Active') : t('global.locked', 'Locked')}
+                      </span>
+                    )}
+                  </div>
+                  <DialogTitle className="text-2xl font-black font-space tracking-tight text-foreground sm:text-3xl">
+                    {isEdit ? t('users.edit_profile', "Edit Profile") : t('users.new_team_member', "New Team Member")}
+                  </DialogTitle>
+                  <DialogDescription className="max-w-xl text-xs sm:text-sm leading-relaxed text-muted-foreground">
+                    {isEdit ? t('users.edit_desc', "Update clearance and account details.") : t('users.new_desc', "Create a secure operator account and assign the right access level.")}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="min-h-0 grid grid-rows-[minmax(0,1fr)_auto]">
-            <div className="overflow-y-auto px-6 py-6 space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6">
 
-              <div className="flex items-center gap-5 rounded-2xl border border-[hsl(var(--muted-foreground))] bg-muted/30 p-4 sm:p-5">
+              {/* AVATAR SELECTOR */}
+              <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card/80 via-card/50 to-primary/[0.03] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:gap-6 shadow-xs backdrop-blur-xs transition-all">
                 <button
                   ref={avatarPickerTriggerRef}
                   type="button"
-                  className={cn("relative group shrink-0 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-readable))] focus-visible:ring-offset-2", canBrowseAvatarLibrary ? "cursor-pointer" : "cursor-default")}
+                  className={cn("relative group shrink-0 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2", canBrowseAvatarLibrary ? "cursor-pointer" : "cursor-default")}
                   onClick={() => canBrowseAvatarLibrary && openAvatarPicker()}
                   disabled={!canBrowseAvatarLibrary}
                   aria-label={previewUrl ? t('users.change_profile_photo', 'Change profile photo') : t('users.add_profile_photo', 'Add profile photo')}
                   title={!canBrowseAvatarLibrary ? t("storage.denied", "Storage access required to browse avatars.") : undefined}
                 >
-                  <Avatar className="h-20 w-20 border-2 border-dashed border-[hsl(var(--primary-readable))] group-hover:border-[hsl(var(--primary-readable))] transition-colors bg-background shadow-sm">
+                  <Avatar className="h-20 w-20 sm:h-22 sm:w-22 border-2 border-dashed border-primary/30 bg-muted/40 shadow-inner transition-colors group-hover:border-primary group-hover:shadow-md">
                     {previewUrl ? (
                       <AvatarImage src={previewUrl} alt={t('users.profile_photo_preview', 'Profile photo preview')} className="object-cover" />
                     ) : (
-                      <AvatarFallback className="bg-muted text-muted-foreground">
-                        <ImageIcon aria-hidden="true" className="h-8 w-8 opacity-50" />
+                      <AvatarFallback className="bg-muted/60 text-muted-foreground">
+                        <ImageIcon aria-hidden="true" className="h-7 w-7 opacity-40 group-hover:opacity-70 group-hover:text-primary transition-all" />
                       </AvatarFallback>
                     )}
                   </Avatar>
-                  <div className={cn("absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity rounded-full", canBrowseAvatarLibrary ? "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" : "opacity-0")}>
-                    <Upload aria-hidden="true" className="h-5 w-5 text-white" />
+                  <div className={cn("absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs transition-opacity rounded-full text-white", canBrowseAvatarLibrary ? "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" : "opacity-0")}>
+                    <Upload aria-hidden="true" className="h-5 w-5 mb-0.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">{t('users.upload', 'Change')}</span>
                   </div>
                 </button>
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm font-semibold text-foreground">{t('users.profile_photo', 'Profile Photo')}</p>
-                  <p className="text-xs leading-5 text-muted-foreground">{t('users.photo_reqs', 'Select an image from the File Manager.')}</p>
-                  {previewUrl && (
-                    <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); removeAvatar(); }} className="h-8 px-2 text-xs text-destructive hover:text-destructive -ml-2">
-                      {t('users.remove_photo', 'Remove Photo')}
-                    </Button>
-                  )}
+                <div className="mt-3 min-w-0 space-y-1.5 sm:mt-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm sm:text-base font-bold text-foreground flex items-center gap-1.5">
+                      <UserCircle className="h-4 w-4 text-primary" />
+                      {t('users.profile_photo', 'Profile Photo')}
+                    </p>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border/50">
+                      {t('users.optional', 'Optional')}
+                    </span>
+                  </div>
+                  <p className="max-w-md text-xs sm:text-sm leading-relaxed text-muted-foreground">
+                    {t('users.photo_reqs', 'Choose a recognizable photo from File Manager so teammates can identify this operator quickly.')}
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    {canBrowseAvatarLibrary && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openAvatarPicker()}
+                        className="h-7 px-2.5 text-xs rounded-lg border-border/70 bg-background/80 hover:bg-background gap-1.5 font-medium shadow-xs"
+                      >
+                        <ImageIcon aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
+                        {previewUrl ? t('users.change_photo', 'Change Photo') : t('users.select_photo', 'Browse File Manager')}
+                      </Button>
+                    )}
+                    {previewUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); removeAvatar(); }}
+                        className="h-7 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive rounded-lg gap-1.5 font-medium"
+                      >
+                        <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                        {t('users.remove_photo', 'Remove')}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <Separator />
+              {/* IDENTITY & ACCESS FIELDS */}
+              <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xs p-5 sm:p-6 space-y-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck aria-hidden="true" className="h-4 w-4 text-primary" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
+                      {t('users.identity_access', 'Identity & Account Access')}
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground hidden sm:block">
+                    {t('users.identity_access_desc', 'Enter operator details and assign access level.')}
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 rounded-2xl border border-[hsl(var(--muted-foreground))] bg-card/60 p-4 sm:p-5 shadow-sm">
-                {tenantId && hasHospitalityModule && staffOptions.length > 0 && (
-                  <div className="sm:col-span-2 space-y-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 p-4 rounded-2xl">
-                    <Label htmlFor="hospitality_staff_id" className="text-indigo-500 dark:text-indigo-400 font-bold flex items-center gap-1.5 text-xs uppercase tracking-wider">
-                      <VenetianMask className="h-4 w-4" /> Link to Hospitality Staff Profile (Optional)
-                    </Label>
-                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={comboboxOpen}
-                          className="w-full justify-between text-left bg-background/80 h-11 border-indigo-500/20 focus:ring-indigo-500 rounded-xl px-3 font-normal"
-                        >
-                          {selectedStaff ? (
-                            <div className="flex flex-col text-left">
-                              <span className="font-semibold text-foreground text-sm">{selectedStaff.name}</span>
-                              <span className="text-[11px] text-muted-foreground capitalize">
-                                Role: {selectedStaff.role} • {selectedStaff.email}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Select a staff profile to auto-fill...</span>
-                          )}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[450px] p-0 rounded-xl border-border/50 shadow-xl" align="start">
-                        <Command className="rounded-xl">
-                          <CommandInput placeholder="Search staff by name, email or role..." />
-                          <CommandList className="max-h-[250px] overflow-y-auto">
-                            <CommandEmpty>No staff profile found.</CommandEmpty>
-                            <CommandGroup>
-                              {isEdit && (
-                                <CommandItem
-                                  value="none"
-                                  onSelect={() => {
-                                    setFormHospitalityStaffId("none");
-                                    setComboboxOpen(false);
-                                  }}
-                                  className="cursor-pointer py-2 text-destructive font-semibold flex items-center justify-between"
-                                >
-                                  <span>None (Unlink Staff Profile)</span>
-                                  {formHospitalityStaffId === "none" && <Check className="h-4 w-4" />}
-                                </CommandItem>
-                              )}
-                              {staffOptions.map((s: HospitalityStaffOption) => (
-                                <CommandItem
-                                  key={s.id}
-                                  value={`${s.name} ${s.email} ${s.role} ${s.id}`}
-                                  onSelect={() => {
-                                    const val = String(s.id);
-                                    setFormHospitalityStaffId(val);
-                                    setComboboxOpen(false);
-                                    setFormName(s.name || "");
-                                    setFormEmail(s.email || "");
-                                    // Try to auto-select clearance level
-                                    const systemRoleName = staffRoleToSystemRole[s.role];
-                                    if (systemRoleName) {
-                                      const matchedRoleObj = assignableRoles.find((r) => r.name === systemRoleName);
-                                      if (matchedRoleObj) {
-                                        setFormRoleId(matchedRoleObj.id);
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  {tenantId && hasHospitalityModule && staffOptions.length > 0 && (
+                    <div className="sm:col-span-2 space-y-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/15 p-4 rounded-xl">
+                      <Label htmlFor="hospitality_staff_id" className="text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                        <VenetianMask className="h-4 w-4" /> Link to Hospitality Staff Profile (Optional)
+                      </Label>
+                      <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={comboboxOpen}
+                            className="w-full justify-between text-left bg-background/80 h-11 border-indigo-500/20 focus:ring-indigo-500 rounded-xl px-3 font-normal"
+                          >
+                            {selectedStaff ? (
+                              <div className="flex flex-col text-left">
+                                <span className="font-semibold text-foreground text-sm">{selectedStaff.name}</span>
+                                <span className="text-[11px] text-muted-foreground capitalize">
+                                  Role: {selectedStaff.role} • {selectedStaff.email}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">Select a staff profile to auto-fill...</span>
+                            )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[450px] p-0 rounded-xl border-border/50 shadow-xl" align="start">
+                          <Command className="rounded-xl">
+                            <CommandInput placeholder="Search staff by name, email or role..." />
+                            <CommandList className="max-h-[250px] overflow-y-auto">
+                              <CommandEmpty>No staff profile found.</CommandEmpty>
+                              <CommandGroup>
+                                {isEdit && (
+                                  <CommandItem
+                                    value="none"
+                                    onSelect={() => {
+                                      setFormHospitalityStaffId("none");
+                                      setComboboxOpen(false);
+                                    }}
+                                    className="cursor-pointer py-2 text-destructive font-semibold flex items-center justify-between"
+                                  >
+                                    <span>None (Unlink Staff Profile)</span>
+                                    {formHospitalityStaffId === "none" && <Check className="h-4 w-4" />}
+                                  </CommandItem>
+                                )}
+                                {staffOptions.map((s: HospitalityStaffOption) => (
+                                  <CommandItem
+                                    key={s.id}
+                                    value={`${s.name} ${s.email} ${s.role} ${s.id}`}
+                                    onSelect={() => {
+                                      const val = String(s.id);
+                                      setFormHospitalityStaffId(val);
+                                      setComboboxOpen(false);
+                                      setFormName(s.name || "");
+                                      setFormEmail(s.email || "");
+                                      const systemRoleName = staffRoleToSystemRole[s.role];
+                                      if (systemRoleName) {
+                                        const matchedRoleObj = assignableRoles.find((r) => r.name === systemRoleName);
+                                        if (matchedRoleObj) {
+                                          setFormRoleId(matchedRoleObj.id);
+                                        }
                                       }
-                                    }
-                                  }}
-                                  className="cursor-pointer py-2 flex items-center justify-between"
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-foreground text-sm">{s.name}</span>
-                                    <span className="text-[11px] text-muted-foreground capitalize">
-                                      Role: {s.role} • {s.email}
-                                    </span>
-                                  </div>
-                                  {formHospitalityStaffId === String(s.id) && <Check className="h-4 w-4 text-indigo-500" />}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <p className="text-[11px] text-muted-foreground/80 mt-1">Linking a staff profile will automatically fill in their details and connect them to shifts/tables.</p>
+                                    }}
+                                    className="cursor-pointer py-2 flex items-center justify-between"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-foreground text-sm">{s.name}</span>
+                                      <span className="text-[11px] text-muted-foreground capitalize">
+                                        Role: {s.role} • {s.email}
+                                      </span>
+                                    </div>
+                                    {formHospitalityStaffId === String(s.id) && <Check className="h-4 w-4 text-indigo-500" />}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-[11px] text-muted-foreground">Select a hotel staff profile to synchronize name, email and role automatically.</p>
+                    </div>
+                  )}
+
+                  {/* FULL NAME */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label htmlFor="name" className={cn("text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1", fieldErrors.name && "text-destructive")}>
+                      {t('users.full_name', 'Full Name')} <span className="text-destructive font-bold">*</span>
+                    </Label>
+                    <div className="relative">
+                      <User aria-hidden="true" className={cn("absolute left-3.5 top-3.5 h-4 w-4 pointer-events-none transition-colors", fieldErrors.name ? "text-destructive" : "text-muted-foreground")} />
+                      <Input
+                        id="name"
+                        name="name"
+                        autoComplete="name"
+                        value={formName}
+                        onChange={(e) => { setFormName(e.target.value); validateField("name", e.target.value); }}
+                        required
+                        aria-invalid={Boolean(fieldErrors.name)}
+                        aria-describedby={fieldErrors.name ? "name-hint name-error" : "name-hint"}
+                        placeholder="e.g. Elena Vance"
+                        className={cn("h-11 rounded-xl border border-border/70 bg-background/80 pl-10 text-sm font-medium transition-all hover:border-border focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary", fieldErrors.name && "border-destructive focus-visible:ring-destructive text-destructive")}
+                      />
+                    </div>
+                    <p id="name-hint" className="text-xs text-muted-foreground leading-relaxed">{t('users.name_hint', 'Use the name teammates will recognize across Hive.OS.')}</p>
+                    {fieldErrors.name && <p id="name-error" className="text-[11px] text-destructive font-bold uppercase tracking-wider flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle aria-hidden="true" className="h-3 w-3" /> {fieldErrors.name}</p>}
                   </div>
-                )}
 
-                <div className="sm:col-span-2 space-y-1.5">
-                  <Label htmlFor="name" className={cn(fieldErrors.name && "text-destructive")}>{t('users.full_name', 'Full Name')} <span className="text-destructive">*</span></Label>
-                  <Input id="name" value={formName} onChange={(e) => { setFormName(e.target.value); validateField("name", e.target.value); }} required aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} placeholder="e.g. Sarah Connor" className={cn("bg-muted/30 h-11 transition-all", fieldErrors.name && "border-destructive focus-visible:ring-destructive")} />
-                  {fieldErrors.name && <p id="name-error" className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle aria-hidden="true" className="h-3 w-3" /> {fieldErrors.name}</p>}
-                </div>
-
-                <div className="sm:col-span-2 space-y-1.5">
-                  <Label htmlFor="email" className={cn(fieldErrors.email && "text-destructive")}>{t('users.email_address', 'Email Address')} <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <Mail className={cn("absolute left-3 top-3 h-4 w-4", fieldErrors.email ? "text-destructive" : "text-muted-foreground")} />
-                    <Input id="email" type="email" value={formEmail} onChange={(e) => { setFormEmail(e.target.value); validateField("email", e.target.value); }} required disabled={isEdit} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined} placeholder="user@hive.os" className={cn("pl-9 bg-muted/30 h-11 transition-all", fieldErrors.email && "border-destructive focus-visible:ring-destructive text-destructive")} />
+                  {/* EMAIL ADDRESS */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="email" className={cn("text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1", fieldErrors.email && "text-destructive")}>
+                        {t('users.email_address', 'Email Address')} <span className="text-destructive font-bold">*</span>
+                      </Label>
+                      {isEdit && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border/50">
+                          {t('users.locked_on_edit', 'Locked on edit')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Mail aria-hidden="true" className={cn("absolute left-3.5 top-3.5 h-4 w-4 pointer-events-none transition-colors", fieldErrors.email ? "text-destructive" : "text-muted-foreground")} />
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        value={formEmail}
+                        onChange={(e) => { setFormEmail(e.target.value); validateField("email", e.target.value); }}
+                        required
+                        disabled={isEdit}
+                        aria-invalid={Boolean(fieldErrors.email)}
+                        aria-describedby={fieldErrors.email ? "email-hint email-error" : "email-hint"}
+                        placeholder="operator@hive.os"
+                        className={cn("h-11 rounded-xl border border-border/70 bg-background/80 pl-10 text-sm font-medium transition-all hover:border-border focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary disabled:opacity-60 disabled:bg-muted/30", fieldErrors.email && "border-destructive focus-visible:ring-destructive text-destructive")}
+                      />
+                    </div>
+                    <p id="email-hint" className="text-xs text-muted-foreground leading-relaxed">{isEdit ? t('users.email_locked_hint', 'Email is the account identifier and cannot be changed here.') : t('users.email_hint', 'This email will be used to sign in.')}</p>
+                    {fieldErrors.email && <p id="email-error" className="text-[11px] text-destructive font-bold uppercase tracking-wider flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle aria-hidden="true" className="h-3 w-3" /> {fieldErrors.email}</p>}
                   </div>
-                  {fieldErrors.email && <p id="email-error" className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1 mt-1 animate-in fade-in"><AlertCircle aria-hidden="true" className="h-3 w-3" /> {fieldErrors.email}</p>}
-                </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="role" className={cn(fieldErrors.role && "text-destructive")}>{t('users.clearance_level', 'Clearance Level')} <span className="text-destructive">*</span></Label>
-                  <Select value={formRoleId} onValueChange={(val) => {
-                    if (val === "__create_new") {
-                      setCreateRoleDialogOpen(true);
-                    } else {
-                      setFormRoleId(val);
-                      if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: "" }));
-                    }
-                  }} required>
-                    <SelectTrigger id="role" aria-invalid={Boolean(fieldErrors.role)} aria-describedby={fieldErrors.role ? "role-error" : undefined} className={cn("bg-muted/30 h-11 transition-all", fieldErrors.role && "border-destructive focus:ring-destructive")}>
-                      <SelectValue placeholder={t('users.select_role', "Select Role")} />
-                    </SelectTrigger>
-                    <SelectContent position="popper" side="bottom" className="max-h-[200px] rounded-xl border-border/50 shadow-xl">
-                      {isRolesLoading && (
-                        <SelectItem value="__roles_loading" disabled className="py-2.5">
-                          {t('users.loading_roles', 'Loading roles...')}
-                        </SelectItem>
-                      )}
-                      {isRolesError && (
-                        <SelectItem value="__roles_error" disabled className="py-2.5 text-destructive">
-                          {t('users.roles_unavailable', 'Roles unavailable')}
-                        </SelectItem>
-                      )}
-                      {!isRolesLoading && !isRolesError && assignableRoles.length === 0 && (
-                        <SelectItem value="__roles_empty" disabled className="py-2.5">
-                          {t('users.no_assignable_roles', 'No assignable roles')}
-                        </SelectItem>
-                      )}
-                      {assignableRoles.map((r) => (
-                        <SelectItem key={r.id} value={r.id} className="cursor-pointer py-2.5">
-                          <div className="flex items-center gap-2 font-medium">{r.name}</div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="__create_new" className="cursor-pointer py-2.5 text-primary font-semibold">
-                        <div className="flex items-center gap-2">
-                          <PlusCircle className="h-4 w-4" />
-                          {t('users.create_new_role', 'Create New Role')}
+                  {/* CLEARANCE LEVEL (ROLE) */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="role" className={cn("text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1", fieldErrors.role && "text-destructive")}>
+                      {t('users.clearance_level', 'Clearance Level')} <span className="text-destructive font-bold">*</span>
+                    </Label>
+                    <Select value={formRoleId} onValueChange={(val) => {
+                      if (val === "__create_new") {
+                        setCreateRoleDialogOpen(true);
+                      } else {
+                        setFormRoleId(val);
+                        if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: "" }));
+                      }
+                    }} required>
+                      <SelectTrigger id="role" aria-invalid={Boolean(fieldErrors.role)} aria-describedby={fieldErrors.role ? "role-hint role-error" : "role-hint"} className={cn("h-11 rounded-xl border border-border/70 bg-background/80 px-3.5 text-sm font-medium transition-all hover:border-border focus:ring-2 focus:ring-primary/25 focus:border-primary", fieldErrors.role && "border-destructive focus:ring-destructive")}>
+                        <div className="flex items-center gap-2 truncate">
+                          <KeyRound aria-hidden="true" className="h-4 w-4 text-primary/70 shrink-0" />
+                          <SelectValue placeholder={t('users.select_role', "Select Role")} />
                         </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {fieldErrors.role && <p id="role-error" className="text-[11px] font-bold uppercase tracking-widest text-destructive">{fieldErrors.role}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className={cn(fieldErrors.password && "text-destructive")}>
-                    {t('users.encryption_key', 'Encryption Key')}
-                    {isEdit && <span className="text-[11px] font-medium text-emerald-500 ml-2 uppercase tracking-tight">({t('users.unchanged', 'Leave blank to keep current')})</span>}
-                  </Label>
-                  <div className="relative">
-                    <Input id="password" type={showPassword ? "text" : "password"} value={formPassword} onChange={(e) => { setFormPassword(e.target.value); validateField("password", e.target.value); }} required={!isEdit} aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined} placeholder={isEdit ? t('users.unchanged_placeholder', "Unchanged...") : "••••••••"} className={cn("pr-9 bg-muted/30 h-11 placeholder:text-muted-foreground/50 transition-all", fieldErrors.password && "border-destructive focus-visible:ring-destructive text-destructive")} />
-                    <button type="button" aria-label={showPassword ? t('users.hide_password', 'Hide password') : t('users.show_password', 'Show password')} onClick={() => setShowPassword(!showPassword)} className={cn("absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", fieldErrors.password ? "text-destructive hover:text-destructive" : "text-muted-foreground hover:text-foreground")}>
-                      {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
-                    </button>
+                      </SelectTrigger>
+                      <SelectContent position="popper" side="bottom" className="max-h-[220px] rounded-xl border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl">
+                        {isRolesLoading && (
+                          <SelectItem value="__roles_loading" disabled className="py-2.5">
+                            {t('users.loading_roles', 'Loading roles...')}
+                          </SelectItem>
+                        )}
+                        {isRolesError && (
+                          <SelectItem value="__roles_error" disabled className="py-2.5 text-destructive">
+                            {t('users.roles_unavailable', 'Roles unavailable')}
+                          </SelectItem>
+                        )}
+                        {!isRolesLoading && !isRolesError && assignableRoles.length === 0 && (
+                          <SelectItem value="__roles_empty" disabled className="py-2.5">
+                            {t('users.no_assignable_roles', 'No assignable roles')}
+                          </SelectItem>
+                        )}
+                        {assignableRoles.map((r) => (
+                          <SelectItem key={r.id} value={r.id} className="cursor-pointer py-2.5">
+                            <div className="flex items-center gap-2 font-medium">{r.name}</div>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__create_new" className="cursor-pointer py-2.5 text-primary font-semibold border-t border-border/40 mt-1">
+                          <div className="flex items-center gap-2">
+                            <PlusCircle className="h-4 w-4" />
+                            {t('users.create_new_role', 'Create New Role')}
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p id="role-hint" className="text-xs text-muted-foreground leading-relaxed">{t('users.role_hint', 'Choose the clearance level that covers this operator’s permissions.')}</p>
+                    {fieldErrors.role && <p id="role-error" className="text-[11px] font-bold uppercase tracking-wider text-destructive">{fieldErrors.role}</p>}
                   </div>
-                  {fieldErrors.password && <p id="password-error" className="text-[11px] text-destructive font-bold uppercase tracking-widest flex items-start gap-1 mt-1 animate-in fade-in leading-tight"><AlertCircle aria-hidden="true" className="h-3 w-3 shrink-0 mt-[1px]" /> {fieldErrors.password}</p>}
+
+                  {/* ENCRYPTION KEY (PASSWORD) */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className={cn("text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1", fieldErrors.password && "text-destructive")}>
+                        {t('users.encryption_key', 'Encryption Key')}
+                        {isEdit && <span className="text-[10px] font-medium text-emerald-500 normal-case tracking-normal">({t('users.unchanged', 'Leave blank to keep current')})</span>}
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { const newPass = generateStrongPassword(); setFormPassword(newPass); setShowPassword(true); validateField("password", newPass); }}
+                        className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 rounded-md gap-1 font-bold transition-all -mr-1"
+                      >
+                        <RefreshCw aria-hidden="true" className="h-3 w-3" />
+                        {t('users.generate_pass', 'Generate Key')}
+                      </Button>
+                    </div>
+                    <div className="relative">
+                      <Lock aria-hidden="true" className={cn("absolute left-3.5 top-3.5 h-4 w-4 pointer-events-none transition-colors", fieldErrors.password ? "text-destructive" : "text-muted-foreground")} />
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        spellCheck={false}
+                        value={formPassword}
+                        onChange={(e) => { setFormPassword(e.target.value); validateField("password", e.target.value); }}
+                        required={!isEdit}
+                        aria-invalid={Boolean(fieldErrors.password)}
+                        aria-describedby={fieldErrors.password ? "password-hint password-error" : "password-hint"}
+                        placeholder={isEdit ? t('users.unchanged_placeholder', "Leave blank to keep current") : "••••••••••••"}
+                        className={cn("h-11 rounded-xl border border-border/70 bg-background/80 pl-10 pr-11 text-sm font-mono transition-all hover:border-border focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary", fieldErrors.password && "border-destructive focus-visible:ring-destructive text-destructive")}
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? t('users.hide_password', 'Hide password') : t('users.show_password', 'Show password')}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className={cn("absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", fieldErrors.password ? "text-destructive hover:text-destructive" : "text-muted-foreground hover:text-foreground hover:bg-muted/60")}
+                      >
+                        {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p id="password-hint" className="text-xs text-muted-foreground leading-relaxed">{isEdit ? t('users.password_edit_hint', 'Leave blank to keep current, or enter a new key.') : t('users.password_create_hint', 'Use uppercase, lowercase, numbers, and symbols.')}</p>
+                    {fieldErrors.password && <p id="password-error" className="text-[11px] text-destructive font-bold uppercase tracking-wider flex items-start gap-1 mt-1 animate-in fade-in leading-tight"><AlertCircle aria-hidden="true" className="h-3 w-3 shrink-0 mt-[1px]" /> {fieldErrors.password}</p>}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button type="button" variant="link" size="sm" onClick={() => { const newPass = generateStrongPassword(); setFormPassword(newPass); setShowPassword(true); validateField("password", newPass); }} className="h-8 px-2 text-xs text-foreground hover:bg-muted gap-1.5">
-                  <RefreshCw className="h-3 w-3" /> {t('users.generate_pass', 'Generate Strong Password')}
+              {/* SECURITY TIP BANNER */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.08] to-primary/[0.02] p-4 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/25 text-primary flex items-center justify-center shrink-0">
+                    <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground">{t('users.security_tip_title', 'Credential Security Standard')}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t('users.password_tip', 'Use a generated key for a stronger, unique account credential.')}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { const newPass = generateStrongPassword(); setFormPassword(newPass); setShowPassword(true); validateField("password", newPass); }}
+                  className="h-9 shrink-0 gap-1.5 rounded-xl border-primary/30 bg-card hover:bg-primary/10 text-primary font-bold text-xs shadow-xs transition-all"
+                >
+                  <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
+                  {t('users.generate_pass', 'Generate Key')}
                 </Button>
               </div>
 
             </div>
 
-            <div className="px-6 py-4 border-t border-border/40 bg-background/95 backdrop-blur flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)} className="rounded-xl">{t('global.cancel', 'Cancel')}</Button>
-              <Button type="submit" disabled={createMut.isPending || updateMut.isPending || Object.values(fieldErrors).some(err => err !== "")} className={cn("rounded-xl px-8 shadow-lg font-bold transition-all", Object.values(fieldErrors).some(err => err !== "") ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground")}>
-                {(createMut.isPending || updateMut.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEdit ? t('global.save_changes', "Save Changes") : t('users.provision_btn', "Provision User")}
-              </Button>
+            {/* DIALOG FOOTER */}
+            <div className="px-6 sm:px-8 py-4 border-t border-border/50 bg-muted/20 backdrop-blur-md flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span aria-hidden="true" className="font-bold text-destructive">*</span>
+                {t('users.required_fields', 'Required fields must be completed before saving.')}
+              </p>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateDialogOpen(false)}
+                  className="h-10 flex-1 sm:flex-none rounded-xl px-5 border-border/70 hover:bg-muted/80 font-semibold text-xs transition-all"
+                >
+                  {t('global.cancel', 'Cancel')}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMut.isPending || updateMut.isPending}
+                  className="h-10 flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-6 shadow-md shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-60"
+                >
+                  {(createMut.isPending || updateMut.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEdit ? t('global.save_changes', "Save Changes") : t('users.provision_btn', "Provision User")}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>
@@ -1342,74 +1565,84 @@ export function UsersTabClient(props: Props) {
 
       {/* CREATE NEW ROLE DIALOG */}
       <Dialog open={createRoleDialogOpen} onOpenChange={setCreateRoleDialogOpen}>
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl">
-          <div className="px-6 py-5 border-b border-border/40 bg-gradient-to-br from-primary/[0.12] via-background to-muted/60">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                  <Shield className="h-4 w-4 text-primary" />
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl flex flex-col">
+          <div className="relative px-6 py-5 border-b border-border/50 bg-gradient-to-br from-primary/10 via-card/80 to-muted/40 overflow-hidden shrink-0">
+            <div aria-hidden="true" className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/15 blur-2xl pointer-events-none" />
+            <DialogHeader className="relative text-left">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/15 border border-primary/25 text-primary flex items-center justify-center shadow-md shadow-primary/10 shrink-0">
+                  <Shield className="h-5 w-5" />
                 </div>
-                {t('users.create_new_role', 'Create New Role')}
-              </DialogTitle>
-              <DialogDescription className="ml-10">{t('users.create_role_desc', 'Establish a new clearance level for system operators.')}</DialogDescription>
+                <div>
+                  <DialogTitle className="text-xl font-black font-space tracking-tight text-foreground">
+                    {t('users.create_new_role', 'Create New Role')}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                    {t('users.create_role_desc', 'Establish a new clearance level for system operators.')}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); if (newRoleName.trim()) createRoleMut.mutate({ name: newRoleName.trim(), permissions: newRolePermissions }); }}>
-            <div className="px-6 py-6 space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); if (newRoleName.trim()) createRoleMut.mutate({ name: newRoleName.trim(), permissions: newRolePermissions }); }} className="flex flex-col">
+            <div className="px-6 py-6 space-y-5 flex-1">
               <div className="space-y-1.5">
-                <Label htmlFor="newRoleName">{t('users.role_name', 'Role Name')} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="newRoleName" className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  {t('users.role_name', 'Role Name')} <span className="text-destructive font-bold">*</span>
+                </Label>
                 <Input
                   id="newRoleName"
                   value={newRoleName}
                   onChange={(e) => setNewRoleName(e.target.value)}
-                  placeholder="e.g. Project Manager"
-                  className="bg-muted/30 h-11 transition-all"
+                  placeholder="e.g. Field Supervisor, Lead Architect"
+                  className="bg-background/80 h-11 rounded-xl border-border/70 text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
                   autoFocus
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label>{t('users.permissions', 'Permissions')}</Label>
-                <div className="border border-border/40 rounded-xl bg-muted/20 p-4 max-h-[250px] overflow-y-auto">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">{t('users.permissions', 'Permissions')}</Label>
+                  <span className="text-[11px] font-mono text-muted-foreground">{newRolePermissions.length} selected</span>
+                </div>
+                <div className="border border-border/60 rounded-xl bg-card/60 p-3.5 max-h-[220px] overflow-y-auto space-y-2 divide-y divide-border/30">
                   {isPermissionsLoading ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     </div>
                   ) : permissionsData && permissionsData.length > 0 ? (
-                    <div className="space-y-2">
-                      {permissionsData.map((perm: any) => (
-                        <div key={perm.id} className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            id={`perm-${perm.id}`}
-                            checked={newRolePermissions.includes(perm.name)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setNewRolePermissions([...newRolePermissions, perm.name]);
-                              } else {
-                                setNewRolePermissions(newRolePermissions.filter(p => p !== perm.name));
-                              }
-                            }}
-                            className="h-4 w-4 rounded border-border/50 text-primary focus:ring-primary/50"
-                          />
-                          <label htmlFor={`perm-${perm.id}`} className="text-sm cursor-pointer select-none">
-                            {perm.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+                    permissionsData.map((perm: any) => (
+                      <div key={perm.id} className="flex items-center gap-3 pt-2 first:pt-0">
+                        <input
+                          type="checkbox"
+                          id={`perm-${perm.id}`}
+                          checked={newRolePermissions.includes(perm.name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewRolePermissions([...newRolePermissions, perm.name]);
+                            } else {
+                              setNewRolePermissions(newRolePermissions.filter(p => p !== perm.name));
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-border/70 text-primary focus:ring-primary/40"
+                        />
+                        <label htmlFor={`perm-${perm.id}`} className="text-xs font-medium cursor-pointer select-none text-foreground hover:text-primary transition-colors flex-1">
+                          {perm.name}
+                        </label>
+                      </div>
+                    ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">{t('users.no_permissions', 'No permissions available')}</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">{t('users.no_permissions', 'No permissions available')}</p>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">{t('users.permissions_desc', 'Select the permissions this role should have.')}</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{t('users.permissions_desc', 'Select the permissions this role should have.')}</p>
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => { setCreateRoleDialogOpen(false); setNewRoleName(""); setNewRolePermissions([]); }} className="rounded-xl">{t('global.cancel', 'Cancel')}</Button>
-              <Button type="submit" disabled={createRoleMut.isPending || !newRoleName.trim()} className="rounded-xl px-8 shadow-lg font-bold transition-all bg-primary text-primary-foreground">
+            <div className="px-6 py-4 border-t border-border/50 bg-muted/20 backdrop-blur-md flex justify-end gap-3 shrink-0">
+              <Button type="button" variant="outline" onClick={() => { setCreateRoleDialogOpen(false); setNewRoleName(""); setNewRolePermissions([]); }} className="h-10 rounded-xl px-5 border-border/70 text-xs font-semibold">{t('global.cancel', 'Cancel')}</Button>
+              <Button type="submit" disabled={createRoleMut.isPending || !newRoleName.trim()} className="h-10 rounded-xl px-6 shadow-md shadow-primary/20 font-bold text-xs transition-all bg-primary hover:bg-primary/90 text-primary-foreground">
                 {createRoleMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('users.create_role_btn', 'Create Role')}
               </Button>
@@ -1419,41 +1652,42 @@ export function UsersTabClient(props: Props) {
       </Dialog>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-border/60 rounded-[2rem]">
-          <div className="bg-gradient-to-br from-primary to-orange-500 h-24 w-full relative">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-border/60 rounded-[2rem] bg-background/95 backdrop-blur-2xl shadow-2xl">
+          <div className="bg-gradient-to-br from-primary via-primary/90 to-amber-500/90 h-28 w-full relative overflow-hidden">
+            <div aria-hidden="true" className="absolute -top-10 -right-10 h-36 w-36 rounded-full bg-white/10 blur-xl pointer-events-none" />
             <div className="absolute -bottom-8 left-6">
-              <Avatar className="h-20 w-20 border-4 border-background shadow-lg bg-muted">
+              <Avatar className="h-20 w-20 border-4 border-background shadow-xl bg-card ring-2 ring-primary/20">
                 <AvatarImage src={viewUser?.avatarUrl || ""} className="object-cover" />
-                <AvatarFallback className="text-2xl font-bold bg-muted text-muted-foreground">{initials(viewUser?.name, viewUser?.email)}</AvatarFallback>
+                <AvatarFallback className="text-2xl font-bold bg-muted text-foreground">{initials(viewUser?.name, viewUser?.email)}</AvatarFallback>
               </Avatar>
             </div>
           </div>
-          <div className="pt-10 px-6 pb-6">
-            <div className="flex justify-between items-start mb-6">
-              <div className="min-w-0">
-                <DialogTitle className="text-xl font-bold text-foreground truncate">{viewUser?.name}</DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground truncate">{viewUser?.email}</DialogDescription>
+          <div className="pt-11 px-6 pb-6 space-y-5">
+            <div className="flex justify-between items-start">
+              <div className="min-w-0 pr-2">
+                <DialogTitle className="text-xl font-black font-space tracking-tight text-foreground truncate">{viewUser?.name}</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground truncate font-mono mt-0.5">{viewUser?.email}</DialogDescription>
               </div>
-              <Badge variant={viewUser?.isActive ? "default" : "secondary"} className={viewUser?.isActive ? "bg-emerald-500 shrink-0" : "shrink-0"}>
+              <Badge variant={viewUser?.isActive ? "default" : "secondary"} className={cn("shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5", viewUser?.isActive ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "border-border")}>
                 {viewUser?.isActive ? t('global.active', "Active") : t('global.locked', "Locked")}
               </Badge>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm border-t border-border/50 pt-4">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('users.filter_role', 'Role')}</p>
-                <p className="font-semibold text-foreground flex items-center gap-2 truncate">
+            <div className="grid grid-cols-2 gap-3 text-sm border-t border-border/40 pt-4">
+              <div className="space-y-1 p-3 rounded-xl bg-muted/20 border border-border/40">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('users.filter_role', 'Clearance Role')}</p>
+                <p className="font-semibold text-foreground text-xs flex items-center gap-1.5 truncate">
                   <Shield className="h-3.5 w-3.5 text-primary shrink-0" /> {viewUser && getPrimaryRoleName(viewUser)}
                 </p>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('users.joined', 'Joined')}</p>
-                <p className="font-semibold text-foreground flex items-center gap-2 truncate">
+              <div className="space-y-1 p-3 rounded-xl bg-muted/20 border border-border/40">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('users.joined', 'Joined Date')}</p>
+                <p className="font-semibold text-foreground text-xs flex items-center gap-1.5 truncate">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> {viewUser?.createdAt && formatDate(viewUser.createdAt)}
                 </p>
               </div>
-              <div className="col-span-2 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('users.user_id', 'User ID')}</p>
-                <code className="text-xs bg-muted py-1 px-2 rounded block w-full overflow-hidden text-ellipsis">{viewUser?.id}</code>
+              <div className="col-span-2 space-y-1 p-3 rounded-xl bg-muted/20 border border-border/40">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('users.user_id', 'Identity UUID')}</p>
+                <code className="text-[11px] font-mono text-muted-foreground block truncate select-all">{viewUser?.id}</code>
               </div>
             </div>
           </div>

@@ -576,15 +576,28 @@ export function RolesTabClient({
       {/* CREATE/EDIT MODAL */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl flex flex-col max-h-[90vh]">
-          <div className="px-6 py-5 border-b border-border/40 bg-muted/20 shrink-0">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                  <ShieldAlert className="h-4 w-4 text-primary" />
+          <div className="relative px-6 sm:px-8 py-6 border-b border-border/50 bg-gradient-to-br from-primary/10 via-card/90 to-muted/40 overflow-hidden shrink-0">
+            <div aria-hidden="true" className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+            <div aria-hidden="true" className="absolute bottom-0 left-16 h-px w-48 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <DialogHeader className="relative text-left">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/25 text-primary flex items-center justify-center shadow-lg shadow-primary/10 ring-4 ring-primary/5 shrink-0">
+                  <ShieldAlert className="h-6 w-6 text-primary" />
                 </div>
-                {isEdit ? t('roles.modify_title', "Modify Clearance Level") : t('roles.establish_title', "Establish Clearance Level")}
-              </DialogTitle>
-              <DialogDescription className="ml-10">{t('roles.dialog_desc', 'Configure role identity and assign network capabilities.')}</DialogDescription>
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
+                      {isEdit ? t('roles.editing_role', 'Clearance Reconfiguration') : t('roles.new_role', 'New Clearance Level')}
+                    </span>
+                  </div>
+                  <DialogTitle className="text-2xl font-black font-space tracking-tight text-foreground sm:text-3xl">
+                    {isEdit ? t('roles.modify_title', "Modify Clearance Level") : t('roles.establish_title', "Establish Clearance Level")}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-0.5">
+                    {t('roles.dialog_desc', 'Configure role identity and assign network capabilities.')}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
           </div>
 
@@ -697,9 +710,9 @@ export function RolesTabClient({
             </form>
           </div>
 
-          <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex justify-end gap-3 shrink-0">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t('global.cancel', 'Cancel')}</Button>
-            <Button type="submit" form="role-form" disabled={saveMut.isPending} className="rounded-xl px-8 shadow-lg font-bold bg-primary text-primary-foreground">
+          <div className="px-6 sm:px-8 py-4 border-t border-border/50 bg-muted/20 backdrop-blur-md flex justify-end gap-3 shrink-0">
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="h-10 rounded-xl px-5 border-border/70 hover:bg-muted/80 font-semibold text-xs transition-all">{t('global.cancel', 'Cancel')}</Button>
+            <Button type="submit" form="role-form" disabled={saveMut.isPending} className="h-10 rounded-xl px-6 shadow-md shadow-primary/20 font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground transition-all active:scale-[0.98]">
               {saveMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEdit ? t('roles.update_matrix', "Update Matrix") : t('roles.deploy_clearance', "Deploy Clearance")}
             </Button>
@@ -709,14 +722,22 @@ export function RolesTabClient({
 
       {/* VIEW DIALOG */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl">
-          <div className="px-6 py-6 border-b border-border/40 bg-muted/20 flex items-center gap-4">
-            <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center border shadow-inner shrink-0", viewRole?.name === 'Super Admin' ? "bg-amber-500/10 border-amber-500/30" : "bg-primary/10 border-primary/20")}>
-              <Shield className={cn("h-7 w-7", viewRole?.name === 'Super Admin' ? "text-amber-500" : "text-primary")} />
-            </div>
-            <div>
-              <DialogTitle className="text-2xl font-black font-space tracking-tight">{viewRole?.name}</DialogTitle>
-              <DialogDescription className="font-mono text-[11px] uppercase tracking-widest mt-1">{t('roles.caps_overview', 'Network Capabilities Overview')}</DialogDescription>
+        <DialogContent className="sm:max-w-[620px] p-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl">
+          <div className="relative px-6 sm:px-8 py-6 border-b border-border/50 bg-gradient-to-br from-primary/10 via-card/90 to-muted/40 overflow-hidden">
+            <div aria-hidden="true" className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-primary/15 blur-2xl pointer-events-none" />
+            <div className="flex items-center gap-4 relative">
+              <div className={cn("h-13 w-13 rounded-2xl flex items-center justify-center border shadow-md shrink-0 ring-4", viewRole?.name === 'Super Admin' ? "bg-amber-500/15 border-amber-500/30 text-amber-500 ring-amber-500/10" : "bg-primary/15 border-primary/25 text-primary ring-primary/10")}>
+                <Shield className="h-7 w-7" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Clearance Profile
+                  </span>
+                </div>
+                <DialogTitle className="text-2xl font-black font-space tracking-tight text-foreground truncate mt-0.5">{viewRole?.name}</DialogTitle>
+                <DialogDescription className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{t('roles.caps_overview', 'Network Capabilities Overview')}</DialogDescription>
+              </div>
             </div>
           </div>
 
