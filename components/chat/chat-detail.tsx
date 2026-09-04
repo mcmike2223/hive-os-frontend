@@ -341,7 +341,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const conversationChannelRef = useRef<PresenceChannel | null>(null);
-  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const messageRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const isTypingRef = useRef(false);
 
   const conversation = conversations.find((item) => String(item.id) === String(activeConversationId));

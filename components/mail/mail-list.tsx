@@ -160,8 +160,6 @@ export default function MailList() {
     }
   };
 
-  const filteredMails = mails.filter(mail => {
-
   const handleToggleStar = async (mail: typeof mails[number]) => {
     const nextValue = !mail.is_starred;
     updateMail(mail.mail_message_id, { is_starred: nextValue });
@@ -175,6 +173,8 @@ export default function MailList() {
       toast.error('Failed to update star');
     }
   };
+
+  const filteredMails = mails.filter(mail => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return mail.message.subject?.toLowerCase().includes(q) || 
