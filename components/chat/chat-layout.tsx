@@ -7,6 +7,7 @@ import ChatSidebar from './chat-sidebar';
 import ChatList from './chat-list';
 import ChatDetail from './chat-detail';
 import ComposeChatModal from './compose-chat-modal';
+import VideoMeetingModal from './video-meeting-modal';
 
 export default function ChatLayout() {
   const activeConversationId = useChatStore((state) => state.activeConversationId);
@@ -58,6 +59,7 @@ export default function ChatLayout() {
       )}
 
       <ComposeChatModal />
+      <VideoMeetingModal />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   Settings,
   Bell,
   Plus,
+  Video,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +22,9 @@ import { CommunicationBrandMark } from '@/components/communications/communicatio
 export default function ChatSidebar() {
   const { 
     activeTab, setActiveTab, 
-    setComposeOpen, counts 
+    setComposeOpen, setVideoMeetingOpen, counts
   } = useChatStore();
-  const { canManageChat } = useChatAccess();
+  const { canManageChat, hasChatWorkspace } = useChatAccess();
   
   const [user, setUser] = useState<{ name?: string; avatar_url?: string } | null>(null);
 
@@ -85,6 +86,23 @@ export default function ChatSidebar() {
       <div className="flex-1" />
 
       <div className="flex flex-col items-center gap-2 p-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="default"
+              size="sm"
+              aria-label="Create a video meeting"
+              disabled={!hasChatWorkspace}
+              className="min-h-11 w-full justify-center rounded-xl px-2 lg:justify-start"
+              onClick={() => setVideoMeetingOpen(true)}
+            >
+              <Video aria-hidden="true" data-icon="inline-start" />
+              <span className="hidden lg:inline">New video meeting</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="lg:hidden">New video meeting</TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

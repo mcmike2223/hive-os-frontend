@@ -326,8 +326,10 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
     typingUsers,
     clearTyping,
     encryptionConfig,
+    pendingVideoCallConversationId,
+    setPendingVideoCallConversationId,
   } = useChatStore();
-  const { canManageChat, canBrowseAttachments, canSaveAttachments } = useChatAccess();
+  const { canAccessChat, canManageChat, canBrowseAttachments, canSaveAttachments } = useChatAccess();
   const shouldReduceMotion = useReducedMotion();
 
   const [messageInput, setMessageInput] = useState('');
@@ -817,7 +819,14 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
               </div>
             </div>
 
-            <VideoCallButton key={conversation.id} kind="chat" id={conversation.id} disabled={!canManageChat} />
+            <VideoCallButton
+              key={conversation.id}
+              kind="chat"
+              id={conversation.id}
+              disabled={!canAccessChat}
+              autoOpen={pendingVideoCallConversationId === conversation.id}
+              onAutoOpenHandled={() => setPendingVideoCallConversationId(null)}
+            />
           </header>
 
           <ol className="flex flex-1 flex-col gap-3 overflow-y-auto p-4" aria-label="Conversation messages">

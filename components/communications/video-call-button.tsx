@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Room, RoomEvent, Track, type Participant } from "livekit-client";
+import { Room, RoomEvent, Track, setLogLevel, type Participant } from "livekit-client";
 import { Video } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,30 @@ function MediaTrack({ media }: { media: Media }) {
   </div>;
 }
 
-export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" | "mail"; id: string | number; disabled?: boolean }) {
+type VideoCallButtonProps = {
+  kind: "chat" | "mail";
+  id: string | number;
+  disabled?: boolean;
+  autoOpen?: boolean;
+  onAutoOpenHandled?: () => void;
+};
+
+const connectionErrorMessage = (error: unknown) => {
+  const responseMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+  if (responseMessage) return responseMessage;
+
+  const message = error instanceof Error ? error.message : "";
+  if (message === "Internal error") {
+    return "The video service closed the connection before the call was ready. Wait a moment, then try again.";
+  }
+  if (message.toLowerCase().includes("negotiation timed out") || message.toLowerCase().includes("could not establish pc connection")) {
+    return "Your browser could not establish the video connection. Check camera and microphone permissions or try another network, then rejoin.";
+  }
+
+  return message || "Could not connect to the call. Please try again.";
+};
+
+export function VideoCallButton({ kind, id, disabled = false, autoOpen = false, onAutoOpenHandled }: VideoCallButtonProps) {
   const endpoint = kind === "chat" ? `/chat/conversations/${id}/call` : `/mail/${id}/call`;
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("Ready to join");
@@ -48,6 +71,14 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
   const clientInstanceRef = useRef("");
   const generation = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (!autoOpen || disabled) return;
+    setError("");
+    setStatus("Ready to join");
+    setOpen(true);
+    onAutoOpenHandled?.();
+  }, [autoOpen, disabled, onAutoOpenHandled]);
 
   const leave = () => {
     generation.current++;
@@ -81,6 +112,9 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
     const current = ++generation.current;
     heading.current?.focus();
     setBusy(true); setError(""); setStatus("Connecting…");
+    // The dialog presents connection failures itself. Avoid LiveKit's console.error calls
+    // triggering the Next.js development overlay for errors that are already handled here.
+    setLogLevel("silent");
     // Match the working Zoom clone room lifecycle and compatibility profile.
     const room = new Room({ adaptiveStream: false, dynacast: true });
     roomRef.current = room;
@@ -145,8 +179,7 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
     } catch (e) {
       await room.disconnect();
       if (current === generation.current) {
-        const message = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
-        setError(message || "Could not connect to the call. Please try again.");
+        setError(connectionErrorMessage(e));
         setStatus("Connection failed");
       }
     } finally { if (current === generation.current) setBusy(false); }

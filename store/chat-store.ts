@@ -99,6 +99,8 @@ interface ChatState {
     conversations: ChatConversation[];
     messages: ChatMessage[];
     isComposeOpen: boolean;
+    isVideoMeetingOpen: boolean;
+    pendingVideoCallConversationId: number | null;
     composeData: any | null;
     counts: ChatCounts;
     checkedConversationIds: number[];
@@ -127,6 +129,8 @@ interface ChatState {
     setMessages: (messages: ChatMessage[]) => void;
     appendMessage: (message: ChatMessage) => void;
     setComposeOpen: (isOpen: boolean, prefillData?: any) => void;
+    setVideoMeetingOpen: (isOpen: boolean) => void;
+    setPendingVideoCallConversationId: (id: number | null) => void;
     setCounts: (counts: ChatCounts) => void;
     toggleCheckConversation: (id: number) => void;
     toggleCheckAll: (ids: number[]) => void;
@@ -156,6 +160,8 @@ export const useChatStore = create<ChatState>()(
             conversations: [],
             messages: [],
             isComposeOpen: false,
+            isVideoMeetingOpen: false,
+            pendingVideoCallConversationId: null,
             composeData: null,
             counts: {
                 total: 0,
@@ -232,6 +238,8 @@ export const useChatStore = create<ChatState>()(
                 return { messages: [...state.messages, message] };
             }),
             setComposeOpen: (isOpen, prefillData = null) => set({ isComposeOpen: isOpen, composeData: prefillData }),
+            setVideoMeetingOpen: (isOpen) => set({ isVideoMeetingOpen: isOpen }),
+            setPendingVideoCallConversationId: (id) => set({ pendingVideoCallConversationId: id }),
             setCounts: (counts) => set({ counts }),
             toggleCheckConversation: (id) => set((state) => ({
                 checkedConversationIds: state.checkedConversationIds.includes(id) 
