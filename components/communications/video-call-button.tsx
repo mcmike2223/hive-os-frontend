@@ -37,6 +37,9 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
   const [busy, setBusy] = useState(false);
   const [media, setMedia] = useState<Media[]>([]);
   const [names, setNames] = useState<string[]>([]);
+  const [people, setPeople] = useState<{ identity: string; name: string; camera: boolean; mic: boolean; local: boolean }[]>([]);
+  const [joinMic, setJoinMic] = useState(false);
+  const [joinCamera, setJoinCamera] = useState(false);
   const [mic, setMic] = useState(false);
   const [camera, setCamera] = useState(false);
   const [screen, setScreen] = useState(false);
@@ -51,7 +54,7 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
     const room = roomRef.current;
     roomRef.current = null;
     void room?.disconnect();
-    setConnected(false); setBusy(false); setMedia([]); setNames([]);
+    setConnected(false); setBusy(false); setMedia([]); setNames([]); setPeople([]);
     setMic(false); setCamera(false); setScreen(false);
     setAudioPlaybackBlocked(false);
     setStatus("Call ended");
@@ -74,6 +77,7 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
   }, [endpoint, disabled]);
 
   const join = async () => {
+    if (busy || connected) return;
     const current = ++generation.current;
     heading.current?.focus();
     setBusy(true); setError(""); setStatus("Connecting…");
@@ -96,6 +100,7 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
       }
       setMedia(tracks);
       setNames(participants.map(person => person.name || "Participant"));
+      setPeople(participants.map(person => ({ identity: person.identity, name: person.name || "Participant", camera: person.isCameraEnabled, mic: person.isMicrophoneEnabled, local: person === room.localParticipant })));
       setMic(room.localParticipant.isMicrophoneEnabled);
       setCamera(room.localParticipant.isCameraEnabled);
       setScreen(room.localParticipant.isScreenShareEnabled);
@@ -115,7 +120,7 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
       .on(RoomEvent.Reconnected, () => setStatus("Connected"))
       .on(RoomEvent.Disconnected, () => {
         if (current !== generation.current) return;
-        setConnected(false); setMedia([]); setNames([]); setStatus("Disconnected. You can rejoin.");
+        setConnected(false); setMedia([]); setNames([]); setPeople([]); setStatus("Disconnected. You can rejoin.");
       });
     try {
       if (!clientInstanceRef.current) clientInstanceRef.current = crypto.randomUUID();
@@ -126,6 +131,17 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
       void room.startAudio().then(() => setAudioPlaybackBlocked(!room.canPlaybackAudio))
         .catch(() => setAudioPlaybackBlocked(true));
       setConnected(true); setStatus("Connected"); refresh();
+      for (const device of ["mic", "camera"] as const) {
+        if (current !== generation.current) { await room.disconnect(); return; }
+        try {
+          if (device === "mic" && joinMic) await room.localParticipant.setMicrophoneEnabled(true, undefined, { name: "microphone" });
+          if (device === "camera" && joinCamera) await room.localParticipant.setCameraEnabled(true, undefined, { name: "camera" });
+        } catch {
+          if (current === generation.current) setError("You joined, but a device could not start. Check browser permissions and use the call controls to retry.");
+        }
+      }
+      if (current !== generation.current) { await room.disconnect(); return; }
+      refresh();
     } catch (e) {
       await room.disconnect();
       if (current === generation.current) {
@@ -160,10 +176,18 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
       <DialogTitle ref={heading} tabIndex={-1}>Video call</DialogTitle>
       <DialogDescription className="text-foreground">
         Only members of this {kind === "chat" ? "conversation" : "mail message"} can join. Ask them to open the same item and select Video call.
-        Camera and microphone start off. Calls use encrypted transport; message end-to-end encryption does not apply to video.
+        Choose your microphone and camera before joining. Calls use encrypted transport; message end-to-end encryption does not apply to video.
       </DialogDescription>
       <p role="status" className="text-sm">{status}{connected ? ` · ${names.length} participant(s)` : ""}</p>
       {error && <p role="alert" className="text-sm font-medium">{error}</p>}
+      {!connected && <div className="rounded-lg border border-foreground p-4">
+        <p className="mb-3 text-sm">Your devices stay off until you join the call.</p>
+        <div className="flex flex-wrap gap-2 [&_button]:min-h-11 [&_button]:border-foreground [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-foreground">
+          <Button variant="outline" disabled={busy} onClick={() => setJoinMic(value => !value)}>{joinMic ? "Join muted" : "Join with microphone"}</Button>
+          <Button variant="outline" disabled={busy} onClick={() => setJoinCamera(value => !value)}>{joinCamera ? "Join without camera" : "Join with camera"}</Button>
+        </div>
+        <p className="mt-3 text-sm">Microphone {joinMic ? "on" : "off"} / Camera {joinCamera ? "on" : "off"} when you join</p>
+      </div>}
       {connected && audioPlaybackBlocked && <div className="flex flex-wrap items-center gap-2 rounded-lg border border-foreground p-3">
         <p className="text-sm">Remote audio is paused by the browser.</p>
         <Button variant="outline" onClick={() => void roomRef.current?.startAudio()
@@ -171,7 +195,13 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
           .catch(() => setError("Use your browser’s sound permission to enable remote audio."))}>Enable remote audio</Button>
       </div>}
       {connected && <p className="text-sm break-words">{names.join(", ")}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">{media.map(item => <MediaTrack key={item.key} media={item} />)}</div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {people.filter(person => !person.camera).map(person => <div key={person.identity} className="flex min-h-40 flex-col items-center justify-center rounded-lg bg-muted p-4 text-foreground">
+          <p className="text-lg font-medium">{person.name}{person.local ? " (you)" : ""}</p>
+          <p className="text-sm">Camera off / {person.mic ? "Microphone on" : "Muted"}</p>
+        </div>)}
+        {media.map(item => <MediaTrack key={item.key} media={item} />)}
+      </div>
       <div className="flex flex-wrap gap-2 [&_button]:min-h-11 [&_button]:border-foreground [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-foreground">
         {!connected && <Button variant="outline" disabled={busy} onClick={() => void join()}>{busy ? "Connecting…" : "Join call"}</Button>}
         {connected && <>
