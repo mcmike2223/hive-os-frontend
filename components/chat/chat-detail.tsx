@@ -1,5 +1,6 @@
 "use client";
 
+import { VideoCallButton } from "@/components/communications/video-call-button";
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -816,6 +817,7 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
               </div>
             </div>
 
+            <VideoCallButton key={conversation.id} kind="chat" id={conversation.id} disabled={!canManageChat} />
           </header>
 
           <ol className="flex flex-1 flex-col gap-3 overflow-y-auto p-4" aria-label="Conversation messages">

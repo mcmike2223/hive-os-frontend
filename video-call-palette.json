@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "id": "light-text",
+      "foreground": "hsl(240, 10%, 3.9%)",
+      "background": "hsl(40, 20%, 99%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "light-focus-border",
+      "foreground": "hsl(240, 10%, 3.9%)",
+      "background": "hsl(40, 20%, 99%)",
+      "type": "ui"
+    },
+    {
+      "id": "light-tile-text",
+      "foreground": "hsl(240, 10%, 3.9%)",
+      "background": "hsl(240, 4.8%, 95.9%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-text",
+      "foreground": "#fafafa",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "text-normal"
+    },
+    {
+      "id": "dark-focus-border",
+      "foreground": "#fafafa",
+      "background": "hsl(240, 10%, 2%)",
+      "type": "ui"
+    },
+    {
+      "id": "dark-tile-text",
+      "foreground": "#fafafa",
+      "background": "hsl(240, 3.7%, 15.9%)",
+      "type": "text-normal"
+    }
+  ]
+}

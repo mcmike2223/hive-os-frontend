@@ -1,5 +1,6 @@
 "use client";
 
+import { VideoCallButton } from "@/components/communications/video-call-button";
 import React from 'react';
 import { useMailStore } from '@/store/mail-store';
 import { Button } from '@/components/ui/button';
@@ -152,7 +153,8 @@ export default function MailDetail() {
                </div>
             </div>
 
-            <div className="flex items-center gap-2 print:hidden bg-muted/10 rounded-lg p-1 border border-border/50">
+            <div className="flex flex-wrap items-center gap-2 print:hidden bg-muted/10 rounded-lg p-1 border border-border/50">
+                {mail.message?.status === "sent" && <VideoCallButton key={mail.mail_message_id} kind="mail" id={mail.mail_message_id} />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" aria-label="Back to mail list" onClick={() => selectMail(null)} className="size-[38px] md:hidden">
