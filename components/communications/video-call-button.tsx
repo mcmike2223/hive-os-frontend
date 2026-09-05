@@ -40,7 +40,9 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
   const [mic, setMic] = useState(false);
   const [camera, setCamera] = useState(false);
   const [screen, setScreen] = useState(false);
+  const [audioPlaybackBlocked, setAudioPlaybackBlocked] = useState(false);
   const roomRef = useRef<Room | null>(null);
+  const clientInstanceRef = useRef("");
   const generation = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
 
@@ -51,6 +53,7 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
     void room?.disconnect();
     setConnected(false); setBusy(false); setMedia([]); setNames([]);
     setMic(false); setCamera(false); setScreen(false);
+    setAudioPlaybackBlocked(false);
     setStatus("Call ended");
   };
   useEffect(() => {
@@ -74,7 +77,8 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
     const current = ++generation.current;
     heading.current?.focus();
     setBusy(true); setError(""); setStatus("Connecting…");
-    const room = new Room({ adaptiveStream: true, dynacast: true });
+    // Match the working Zoom clone room lifecycle and compatibility profile.
+    const room = new Room({ adaptiveStream: false, dynacast: true });
     roomRef.current = room;
     const refresh = () => {
       if (current !== generation.current) return;
@@ -96,10 +100,17 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
       setCamera(room.localParticipant.isCameraEnabled);
       setScreen(room.localParticipant.isScreenShareEnabled);
     };
-    room.on(RoomEvent.TrackSubscribed, refresh).on(RoomEvent.TrackUnsubscribed, refresh)
+    room.on(RoomEvent.TrackSubscribed, track => {
+      refresh();
+      if (track.kind === Track.Kind.Audio) {
+        void room.startAudio().then(() => setAudioPlaybackBlocked(!room.canPlaybackAudio))
+          .catch(() => setAudioPlaybackBlocked(true));
+      }
+    }).on(RoomEvent.TrackUnsubscribed, refresh)
       .on(RoomEvent.LocalTrackPublished, refresh).on(RoomEvent.LocalTrackUnpublished, refresh)
       .on(RoomEvent.TrackMuted, refresh).on(RoomEvent.TrackUnmuted, refresh)
       .on(RoomEvent.ParticipantConnected, refresh).on(RoomEvent.ParticipantDisconnected, refresh)
+      .on(RoomEvent.AudioPlaybackStatusChanged, canPlay => setAudioPlaybackBlocked(!canPlay))
       .on(RoomEvent.Reconnecting, () => setStatus("Reconnecting…"))
       .on(RoomEvent.Reconnected, () => setStatus("Connected"))
       .on(RoomEvent.Disconnected, () => {
@@ -107,10 +118,13 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
         setConnected(false); setMedia([]); setNames([]); setStatus("Disconnected. You can rejoin.");
       });
     try {
-      const { data } = await api.post(endpoint);
+      if (!clientInstanceRef.current) clientInstanceRef.current = crypto.randomUUID();
+      const { data } = await api.post(endpoint, { client_instance: clientInstanceRef.current });
       if (current !== generation.current) return;
       await room.connect(data.url, data.token);
       if (current !== generation.current) { await room.disconnect(); return; }
+      void room.startAudio().then(() => setAudioPlaybackBlocked(!room.canPlaybackAudio))
+        .catch(() => setAudioPlaybackBlocked(true));
       setConnected(true); setStatus("Connected"); refresh();
     } catch (e) {
       await room.disconnect();
@@ -126,8 +140,8 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
     if (!room || busy) return;
     setBusy(true); setError("");
     try {
-      if (device === "mic") await room.localParticipant.setMicrophoneEnabled(!room.localParticipant.isMicrophoneEnabled);
-      if (device === "camera") await room.localParticipant.setCameraEnabled(!room.localParticipant.isCameraEnabled);
+      if (device === "mic") await room.localParticipant.setMicrophoneEnabled(!room.localParticipant.isMicrophoneEnabled, undefined, { name: "microphone" });
+      if (device === "camera") await room.localParticipant.setCameraEnabled(!room.localParticipant.isCameraEnabled, undefined, { name: "camera" });
       if (device === "screen") await room.localParticipant.setScreenShareEnabled(!room.localParticipant.isScreenShareEnabled);
       setMic(room.localParticipant.isMicrophoneEnabled);
       setCamera(room.localParticipant.isCameraEnabled);
@@ -150,6 +164,12 @@ export function VideoCallButton({ kind, id, disabled = false }: { kind: "chat" |
       </DialogDescription>
       <p role="status" className="text-sm">{status}{connected ? ` · ${names.length} participant(s)` : ""}</p>
       {error && <p role="alert" className="text-sm font-medium">{error}</p>}
+      {connected && audioPlaybackBlocked && <div className="flex flex-wrap items-center gap-2 rounded-lg border border-foreground p-3">
+        <p className="text-sm">Remote audio is paused by the browser.</p>
+        <Button variant="outline" onClick={() => void roomRef.current?.startAudio()
+          .then(() => setAudioPlaybackBlocked(false))
+          .catch(() => setError("Use your browser’s sound permission to enable remote audio."))}>Enable remote audio</Button>
+      </div>}
       {connected && <p className="text-sm break-words">{names.join(", ")}</p>}
       <div className="grid gap-3 sm:grid-cols-2">{media.map(item => <MediaTrack key={item.key} media={item} />)}</div>
       <div className="flex flex-wrap gap-2 [&_button]:min-h-11 [&_button]:border-foreground [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-foreground">
