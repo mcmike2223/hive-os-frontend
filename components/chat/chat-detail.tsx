@@ -35,6 +35,7 @@ import {
   bootstrapConversationEncryption,
   decryptChatMessage,
   encryptChatMessageBody,
+  getChatCallEncryptionMaterial,
 } from '@/lib/chat-e2ee';
 import {
   createReplyMetadata,
@@ -823,8 +824,13 @@ export default function ChatDetail({ onBack }: ChatDetailProps) {
               key={conversation.id}
               kind="chat"
               id={conversation.id}
+              title={displayTitle}
+              isHost={String(conversation.created_by) === String(currentUser?.id)}
+              registeredParticipants={conversation.participants}
+              resolveEncryptionMaterial={() => getChatCallEncryptionMaterial(conversation)}
               disabled={!canAccessChat}
               autoOpen={pendingVideoCallConversationId === conversation.id}
+              onConversationUpdated={(updatedConversation) => updateConversation(conversation.id, updatedConversation)}
               onAutoOpenHandled={() => setPendingVideoCallConversationId(null)}
             />
           </header>

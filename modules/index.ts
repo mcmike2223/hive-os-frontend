@@ -27,6 +27,7 @@ import { agricultureModule } from "@/modules/agriculture/module";
 import { lmsModule } from "@/modules/Lms/module";
 import { b2bMarketplaceModule } from "@/modules/b2b-marketplace/module";
 import { landingTemplatesModule } from "@/modules/landing-templates/module";
+import { videoConferencingModule } from "@/modules/video-conferencing/module";
 import { supportBotModule } from "@/modules/support-bot/module";
 import type {
   FrontendModuleDefinition,
@@ -66,6 +67,7 @@ export const FEATURE_MODULES: FrontendModuleDefinition[] = [
   agricultureModule,
   b2bMarketplaceModule,
   landingTemplatesModule,
+  videoConferencingModule,
   supportBotModule,
 ];
 

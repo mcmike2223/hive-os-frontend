@@ -12,6 +12,7 @@ import api from '@/lib/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { SafeRichText } from '@/components/security/safe-rich-text';
+import { getMailCallEncryptionMaterial } from '@/lib/mail-e2ee';
 
 export default function MailDetail() {
   const { mails, selectedMailId, selectMail, deleteMail, updateMail, setComposeOpen, activeFolder, checkedMailIds, adjustCounts, isFullscreen, setFullscreen, encryptionConfig } = useMailStore();
@@ -154,7 +155,14 @@ export default function MailDetail() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 print:hidden bg-muted/10 rounded-lg p-1 border border-border/50">
-                {mail.message?.status === "sent" && <VideoCallButton key={mail.mail_message_id} kind="mail" id={mail.mail_message_id} />}
+                {mail.message?.status === "sent" && <VideoCallButton
+                  key={mail.mail_message_id}
+                  kind="mail"
+                  id={mail.mail_message_id}
+                  title={mail.message.subject || "Mail video call"}
+                  isHost={String(mail.message.sender_id) === String(mail.user_id)}
+                  resolveEncryptionMaterial={() => getMailCallEncryptionMaterial(mail)}
+                />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" aria-label="Back to mail list" onClick={() => selectMail(null)} className="size-[38px] md:hidden">

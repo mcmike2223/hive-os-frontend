@@ -41,6 +41,10 @@ export const STORAGE_ROUTE_PERMISSIONS = [
   "manage_storage",
 ] as const;
 export const CHAT_ROUTE_PERMISSIONS = ["view_chat", "manage_chat"] as const;
+export const VIDEO_CONFERENCING_ROUTE_PERMISSIONS = [
+  "view_chat",
+  "manage_chat",
+] as const;
 export const SUPPORT_BOT_ROUTE_PERMISSIONS = [
   "view_support_bots",
   "manage_support_bots",
@@ -502,6 +506,13 @@ export function canAccessDashboardRoute(
         "video_player",
         "audio_player",
       ])
+    );
+  }
+
+  if (matchesPrefix(path, "/dashboard/video-conferencing")) {
+    return (
+      access.hasAnyPermission([...VIDEO_CONFERENCING_ROUTE_PERMISSIONS]) &&
+      hasSubscribedModule(access, "video_conferencing")
     );
   }
 

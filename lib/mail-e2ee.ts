@@ -5,6 +5,7 @@ import {
   createWrappedCommunicationKey,
   decryptCommunicationValue,
   ensureCommunicationIdentity,
+  exportCommunicationKeyMaterial,
   encryptCommunicationValue,
   getEncryptedCommunicationFallback,
   getStoredCommunicationUser,
@@ -212,4 +213,14 @@ export const decryptMailParticipant = async (participant: MailParticipant) => {
 
 export const decryptMailParticipants = async (participants: MailParticipant[]) => {
   return Promise.all(participants.map((participant) => decryptMailParticipant(participant)));
+};
+
+export const getMailCallEncryptionMaterial = async (participant: MailParticipant) => {
+  const sharedKey = await resolveMailMessageKey(participant);
+
+  if (!sharedKey) {
+    throw new Error('This message has no end-to-end encryption key. Start the call from an encrypted sent message.');
+  }
+
+  return exportCommunicationKeyMaterial(sharedKey);
 };

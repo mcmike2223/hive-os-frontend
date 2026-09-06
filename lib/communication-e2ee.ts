@@ -194,9 +194,35 @@ const importSharedKey = (rawKey: ArrayBuffer) => {
       name: 'AES-GCM',
       length: 256,
     },
-    false,
+    true,
     ['encrypt', 'decrypt']
   );
+};
+
+export const exportCommunicationKeyMaterial = async (sharedKey: CryptoKey) => {
+  return crypto.subtle.exportKey('raw', sharedKey);
+};
+
+export const wrapCommunicationKeyMaterial = async (
+  rawSharedKey: ArrayBuffer,
+  recipients: Array<{ id: number | string; publicKey: string }>,
+) => {
+  const wrappedKeys: Record<string, string> = {};
+
+  await Promise.all(
+    recipients.map(async (recipient) => {
+      const publicKey = await importPublicKey(recipient.publicKey);
+      const wrappedKey = await crypto.subtle.encrypt(
+        { name: 'RSA-OAEP' },
+        publicKey,
+        rawSharedKey
+      );
+
+      wrappedKeys[String(recipient.id)] = toBase64(new Uint8Array(wrappedKey));
+    })
+  );
+
+  return wrappedKeys;
 };
 
 const serializeEncryptedEnvelope = (payload: EncryptedEnvelope) => {
@@ -261,21 +287,8 @@ export const createWrappedCommunicationKey = async (
     ['encrypt', 'decrypt']
   );
 
-  const rawSharedKey = new Uint8Array(await crypto.subtle.exportKey('raw', sharedKey));
-  const wrappedKeys: Record<string, string> = {};
-
-  await Promise.all(
-    recipients.map(async (recipient) => {
-      const publicKey = await importPublicKey(recipient.publicKey);
-      const wrappedKey = await crypto.subtle.encrypt(
-        { name: 'RSA-OAEP' },
-        publicKey,
-        rawSharedKey
-      );
-
-      wrappedKeys[String(recipient.id)] = toBase64(new Uint8Array(wrappedKey));
-    })
-  );
+  const rawSharedKey = await crypto.subtle.exportKey('raw', sharedKey);
+  const wrappedKeys = await wrapCommunicationKeyMaterial(rawSharedKey, recipients);
 
   return {
     sharedKey,

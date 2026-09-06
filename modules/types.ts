@@ -30,6 +30,7 @@ export type ModuleId =
   | "lms"
   | "b2b-marketplace"
   | "landing-templates"
+  | "video-conferencing"
   | "support_bot";
 export type DashboardNavPlacement = "primary" | "secondary";
 

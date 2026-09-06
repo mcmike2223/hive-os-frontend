@@ -4,6 +4,7 @@ import {
   createWrappedCommunicationKey,
   decryptCommunicationValue,
   ensureCommunicationIdentity,
+  exportCommunicationKeyMaterial,
   getEncryptedCommunicationFallback,
   isEncryptedCommunicationValue,
   resolveWrappedCommunicationKey,
@@ -191,6 +192,20 @@ export const decryptChatMessages = async (
   conversation: ChatConversation,
 ) => {
   return Promise.all(messages.map((message) => decryptChatMessage(message, conversation)));
+};
+
+export const getChatCallEncryptionMaterial = async (conversation: ChatConversation) => {
+  const updatedConversation = await bootstrapConversationEncryption(conversation);
+  const conversationKey = await resolveConversationKey(updatedConversation);
+
+  if (!conversationKey) {
+    throw new Error('End-to-end encryption must be enabled before starting a video call.');
+  }
+
+  return {
+    material: await exportCommunicationKeyMaterial(conversationKey),
+    conversation: updatedConversation,
+  };
 };
 
 export const getEndToEndEncryptionLabel = () => COMMUNICATION_SHARED_KEY_ALGORITHM;

@@ -11,6 +11,9 @@ import VideoMeetingModal from './video-meeting-modal';
 
 export default function ChatLayout() {
   const activeConversationId = useChatStore((state) => state.activeConversationId);
+  const conversations = useChatStore((state) => state.conversations);
+  const setActiveConversation = useChatStore((state) => state.setActiveConversation);
+  const setPendingVideoCallConversationId = useChatStore((state) => state.setPendingVideoCallConversationId);
   const isFullscreen = useChatStore((state) => state.isFullscreen);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -24,6 +27,22 @@ export default function ChatLayout() {
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const params = new URLSearchParams(window.location.search);
+    const conversationId = Number(params.get('conversation'));
+    if (!Number.isInteger(conversationId) || conversationId <= 0) return;
+    if (!conversations.some((conversation) => Number(conversation.id) === conversationId)) return;
+
+    setActiveConversation(conversationId);
+    if (params.get('call') === '1') {
+      setPendingVideoCallConversationId(conversationId);
+      params.delete('call');
+      const query = params.toString();
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }
+  }, [conversations, mounted, setActiveConversation, setPendingVideoCallConversationId]);
 
   if (!mounted) {
     return null;
