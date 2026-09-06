@@ -126,7 +126,7 @@ export const initPublicEcho = (): Echo<"reverb"> | null => {
     wsPort: reverbPort,
     wssPort: reverbPort,
     forceTLS: reverbScheme === 'https',
-    enabledTransports: [reverbScheme === 'https' ? 'wss' : 'ws'],
+    enabledTransports: ['ws'],
   });
 
   return publicEcho;
@@ -184,7 +184,7 @@ export const initEcho = (token: string): Echo<"reverb"> | null => {
       wsPort: reverbPort,
       wssPort: reverbPort,
       forceTLS: reverbScheme === 'https',
-      enabledTransports: [reverbScheme === 'https' ? 'wss' : 'ws'],
+      enabledTransports: ['ws'],
       authEndpoint: `${backendApiRoot}/broadcasting/auth`,
       auth: {
         headers: {
