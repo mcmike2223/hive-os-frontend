@@ -35,7 +35,16 @@ export function useRealtimeStatus(): RealtimeConnectionStatus {
         return;
       }
 
-      unsubscribe = subscribeToRealtimeStatus(echo, setStatus);
+      unsubscribe = subscribeToRealtimeStatus(echo, (nextStatus) => {
+        if (disposed) return;
+
+        setStatus(nextStatus);
+        window.clearTimeout(retryTimer);
+
+        if (nextStatus === "disconnected" || nextStatus === "unavailable") {
+          retryTimer = window.setTimeout(connect, 3_000);
+        }
+      });
     };
 
     const reconnectWhenVisible = () => {
