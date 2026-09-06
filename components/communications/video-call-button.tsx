@@ -53,6 +53,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { ChatConversation } from "@/store/chat-store";
 import { useTenantModuleAccess } from "@/hooks/use-tenant-module-access";
 
@@ -731,10 +732,11 @@ export function VideoCallButton({
 
   const sendReaction = async (emoji: typeof REACTIONS[number]) => {
     const idValue = crypto.randomUUID();
+    setReaction({ id: idValue, sender: "You", text: emoji });
+    setReactionMenuOpen(false);
+
     try {
       await publishPacket({ v: 1, type: "reaction", id: idValue, emoji });
-      setReaction({ id: idValue, sender: "You", text: emoji });
-      setReactionMenuOpen(false);
     } catch (cause) {
       setError(connectionErrorMessage(cause));
     }
@@ -997,7 +999,7 @@ export function VideoCallButton({
               <div className="min-w-0">
                 <DialogTitle ref={heading} tabIndex={-1} className="truncate text-base font-semibold text-foreground sm:text-lg">{title || "Hive video conference"}</DialogTitle>
                 <DialogDescription className="sr-only">Full-screen video conference controls and participant area.</DialogDescription>
-                <p role="status" className="flex items-center gap-1 truncate text-xs text-muted-foreground"><Lock aria-hidden="true" className="size-3 text-emerald-600" /> E2EE · {status} · {formatDuration(elapsed)} · {people.length} participant{people.length === 1 ? "" : "s"}</p>
+                <p className="flex items-center gap-1 truncate text-xs text-muted-foreground"><Lock aria-hidden="true" className="size-3 text-emerald-600" /> E2EE · <span role="status">{status}</span> · {formatDuration(elapsed)} · {people.length} participant{people.length === 1 ? "" : "s"}</p>
               </div>
               <div className="flex items-center gap-2">
                 {(recording || remoteRecording) && <span className="flex items-center gap-2 rounded-full bg-red-950 px-3 py-1 text-xs font-semibold text-red-100"><Circle aria-hidden="true" className="size-3 fill-red-500 text-red-500" />REC</span>}
@@ -1035,7 +1037,7 @@ export function VideoCallButton({
                     <div className="hidden w-48 shrink-0 space-y-2 overflow-y-auto xl:block">{tiles.filter((tile) => tile.key !== featuredTile.key).map((tile) => <ParticipantTile key={tile.key} tile={tile} handRaised={hands.has(tile.identity)} pinned={pinnedTile === tile.key} onPin={() => setPinnedTile(tile.key)} />)}</div>
                   </div>
                 ) : null}
-                {reaction && <div key={reaction.id} role="status" aria-live="polite" className="pointer-events-none absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-2xl bg-black/80 px-5 py-3 text-center shadow-xl"><div className="text-4xl" aria-hidden="true">{reaction.text}</div><p className="text-sm text-white">{reaction.sender}</p></div>}
+                {reaction && <div key={reaction.id} role="status" className="pointer-events-none absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-2xl bg-black/80 px-5 py-3 text-center shadow-xl"><div className="text-4xl" aria-hidden="true">{reaction.text}</div><p className="text-sm text-white">{reaction.sender}</p></div>}
                 {caption && <div key={caption.id} aria-live="polite" className="absolute bottom-5 left-1/2 z-30 max-w-[min(90%,44rem)] -translate-x-1/2 rounded-xl bg-black/90 px-5 py-3 text-center text-white shadow-xl"><span className="font-semibold text-white">{caption.sender}: </span>{caption.text}</div>}
               </main>
 
@@ -1063,12 +1065,21 @@ export function VideoCallButton({
 
             {audioTracks.map((item) => <div key={item.key} className="sr-only"><MediaTrack media={item} /></div>)}
             <footer className="border-t border-border bg-card px-2 py-2 sm:px-4">
-              <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1">
+              <div className="flex items-center justify-start gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 lg:justify-center">
                 <Button type="button" variant="outline" className={controlClass} disabled={busy} onClick={() => void toggle("mic")}><span className="flex flex-col items-center text-xs">{mic ? <Mic aria-hidden="true" /> : <MicOff aria-hidden="true" />}<span>{mic ? "Mute" : "Unmute"}</span></span></Button>
                 <Button type="button" variant="outline" className={controlClass} disabled={busy} onClick={() => void toggle("camera")}><span className="flex flex-col items-center text-xs">{camera ? <Video aria-hidden="true" /> : <VideoOff aria-hidden="true" />}<span>{camera ? "Stop video" : "Start video"}</span></span></Button>
                 <Button type="button" variant="outline" className={controlClass} disabled={busy} onClick={() => void toggle("screen")}><span className="flex flex-col items-center text-xs"><MonitorUp aria-hidden="true" /><span>{screen ? "Stop share" : "Share"}</span></span></Button>
                 <Button type="button" variant="outline" className={cn(controlClass, localHand && "border-amber-300 bg-amber-950")} onClick={() => void toggleHand()} aria-pressed={localHand}><span className="flex flex-col items-center text-xs"><Hand aria-hidden="true" /><span>{localHand ? "Lower hand" : "Raise hand"}</span></span></Button>
-                <div className="relative"><Button type="button" variant="outline" className={cn(controlClass, reactionMenuOpen && "border-[hsl(var(--primary-readable))] bg-accent")} onClick={() => setReactionMenuOpen((value) => !value)} aria-expanded={reactionMenuOpen} aria-controls={`call-reactions-${kind}-${id}`}><span className="flex flex-col items-center text-xs"><Smile aria-hidden="true" /><span>React</span></span></Button>{reactionMenuOpen && <div id={`call-reactions-${kind}-${id}`} className="absolute bottom-full left-1/2 z-40 mb-2 flex -translate-x-1/2 gap-1 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl">{REACTIONS.map((emoji) => <Button key={emoji} type="button" size="icon" variant="ghost" className="min-h-11 min-w-11 text-xl" onClick={() => void sendReaction(emoji)} aria-label={`React ${emoji}`}>{emoji}</Button>)}</div>}</div>
+                <Popover open={reactionMenuOpen} onOpenChange={setReactionMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className={cn(controlClass, reactionMenuOpen && "border-[hsl(var(--primary-readable))] bg-accent")} aria-expanded={reactionMenuOpen} aria-controls={`call-reactions-${kind}-${id}`}><span className="flex flex-col items-center text-xs"><Smile aria-hidden="true" /><span>React</span></span></Button>
+                  </PopoverTrigger>
+                  <PopoverContent id={`call-reactions-${kind}-${id}`} side="top" align="center" className="video-conferencing w-auto max-w-[calc(100vw-1rem)] border-border bg-popover p-2 text-popover-foreground">
+                    <div className="flex flex-wrap justify-center gap-1" role="group" aria-label="Call reactions">
+                      {REACTIONS.map((emoji) => <Button key={emoji} type="button" size="icon" variant="ghost" className="min-h-11 min-w-11 text-xl" onClick={() => void sendReaction(emoji)} aria-label={`React ${emoji}`}>{emoji}</Button>)}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button type="button" variant="outline" className={cn(controlClass, activePanel === "people" && "border-[hsl(var(--primary-readable))] bg-accent")} onClick={() => setActivePanel((current) => current === "people" ? null : "people")} aria-pressed={activePanel === "people"}><span className="flex flex-col items-center text-xs"><Users aria-hidden="true" /><span>People ({people.length})</span></span></Button>
                 <Button type="button" variant="outline" className={cn(controlClass, activePanel === "chat" && "border-[hsl(var(--primary-readable))] bg-accent")} onClick={() => setActivePanel((current) => current === "chat" ? null : "chat")} aria-pressed={activePanel === "chat"}><span className="flex flex-col items-center text-xs"><MessageSquare aria-hidden="true" /><span>Chat</span></span></Button>
                 <Button type="button" variant="outline" className={cn(controlClass, activePanel === "invite" && "border-[hsl(var(--primary-readable))] bg-accent")} onClick={() => setActivePanel((current) => current === "invite" ? null : "invite")} aria-pressed={activePanel === "invite"}><span className="flex flex-col items-center text-xs"><UserPlus aria-hidden="true" /><span>Invite</span></span></Button>

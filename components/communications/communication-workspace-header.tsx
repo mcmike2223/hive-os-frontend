@@ -87,7 +87,7 @@ export function CommunicationWorkspaceHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2" aria-label={`${title} status`}>
-          <Badge variant="outline" className="gap-1.5 bg-background/70" role="status" aria-live="polite">
+          <Badge variant="outline" className="gap-1.5 bg-background/70" role="status">
             <span
               aria-hidden="true"
               className={cn(

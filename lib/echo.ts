@@ -6,8 +6,8 @@ export type RealtimeConnectionStatus = 'connecting' | 'connected' | 'disconnecte
 
 type ReverbConnection = {
   state?: string;
-  bind: (event: string, callback: () => void) => void;
-  unbind: (event: string, callback: () => void) => void;
+  bind: (event: string, callback: (payload?: unknown) => void) => void;
+  unbind: (event: string, callback: (payload?: unknown) => void) => void;
 };
 
 const resolveRealtimeStatus = (state?: string): RealtimeConnectionStatus => {
@@ -196,6 +196,11 @@ export const initEcho = (token: string): Echo<"reverb"> | null => {
     });
 
     window.__hiveEchoSessionKey = sessionKey;
+  } else {
+    const state = getReverbConnection(window.Echo)?.state;
+    if (!state || !["connected", "connecting", "initialized"].includes(state)) {
+      window.Echo.connect();
+    }
   }
 
   return window.Echo;
@@ -221,6 +226,12 @@ export const subscribeToRealtimeStatus = (
   const onConnecting = () => listener('connecting');
   const onConnected = () => listener('connected');
   const onDisconnected = () => listener('disconnected');
+  const onStateChange = (payload?: unknown) => {
+    const state = typeof payload === "object" && payload !== null && "current" in payload
+      ? String((payload as { current?: unknown }).current ?? "")
+      : connection.state;
+    listener(resolveRealtimeStatus(state));
+  };
 
   listener(resolveRealtimeStatus(connection.state));
   connection.bind('connecting', onConnecting);
@@ -228,6 +239,8 @@ export const subscribeToRealtimeStatus = (
   connection.bind('disconnected', onDisconnected);
   connection.bind('unavailable', onDisconnected);
   connection.bind('failed', onDisconnected);
+  connection.bind('state_change', onStateChange);
+  connection.bind('error', onDisconnected);
 
   return () => {
     connection.unbind('connecting', onConnecting);
@@ -235,5 +248,7 @@ export const subscribeToRealtimeStatus = (
     connection.unbind('disconnected', onDisconnected);
     connection.unbind('unavailable', onDisconnected);
     connection.unbind('failed', onDisconnected);
+    connection.unbind('state_change', onStateChange);
+    connection.unbind('error', onDisconnected);
   };
 };
