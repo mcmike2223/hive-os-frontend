@@ -1169,8 +1169,8 @@ function GeneralSettings() {
   }, []);
 
   const canManageCommunicationEncryption =
-    isTenantNode === false &&
-    roles.some((role) => role.toLowerCase() === "super admin");
+    isTenantNode !== null &&
+    roles.some((role) => ["super admin", "admin", "tenant admin"].includes(role.toLowerCase()));
 
   const saveMut = useMutation({
     mutationFn: () => {
@@ -1677,11 +1677,11 @@ function GeneralSettings() {
                   {isTenantNode
                     ? t(
                         "settings.communication_encryption_tenant_locked",
-                        "This setting is controlled from the central system by the Super Admin.",
+                        "Only an administrator of this tenant can change its communication encryption.",
                       )
                     : t(
                         "settings.communication_encryption_locked",
-                        "Only the central Super Admin can enable or disable communication encryption.",
+                        "Only a central administrator can change communication encryption for central accounts.",
                       )}
                 </p>
               </div>
