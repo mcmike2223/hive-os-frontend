@@ -86,16 +86,42 @@ jobs:
             -H "Accept: application/json" -H "Authorization: Bearer $COOLIFY_API_TOKEN")"
           deployment_uuid="$(jq -er '.deployments[0].deployment_uuid' <<<"$response")"
           echo "Coolify deployment queued: $deployment_uuid"
+          deployment_body="$(mktemp)"
+          trap 'rm -f "$deployment_body"' EXIT
+
           for attempt in $(seq 1 100); do
-            status="$(curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            http_status="$(curl --silent --show-error --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 30 \
+              --output "$deployment_body" --write-out '%{http_code}' \
               "$COOLIFY_API_BASE_URL/deployments/$deployment_uuid" \
-              -H "Accept: application/json" -H "Authorization: Bearer $COOLIFY_API_TOKEN" |
-              jq -er '.status')"
-            echo "Coolify status: $status"
-            case "$status" in
-              finished) exit 0 ;;
-              failed|cancelled) exit 1 ;;
+              -H "Accept: application/json" -H "Authorization: Bearer $COOLIFY_API_TOKEN" || true)"
+
+            case "$http_status" in
+              200)
+                status="$(jq -er '.status' "$deployment_body")"
+                echo "Coolify status: $status"
+                case "$status" in
+                  finished) exit 0 ;;
+                  failed|cancelled) exit 1 ;;
+                esac
+                ;;
+              401|403)
+                echo "::error::Coolify rejected deployment status access with HTTP $http_status."
+                exit 1
+                ;;
+              404|000)
+                echo "Coolify deployment is not queryable yet (HTTP $http_status, attempt $attempt/100)."
+                ;;
+              429|5??)
+                echo "Coolify status API is temporarily unavailable (HTTP $http_status, attempt $attempt/100)."
+                ;;
+              *)
+                echo "::error::Unexpected Coolify deployment status response: HTTP $http_status."
+                cat "$deployment_body"
+                exit 1
+                ;;
             esac
+
             sleep 15
           done
           echo "Timed out waiting for Coolify deployment."
