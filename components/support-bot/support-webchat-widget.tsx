@@ -3,20 +3,26 @@ import { readableTextColor } from "@/modules/support-bot/utils/widget-colors";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Bot,
   Headphones,
   Loader2,
-  MessageSquare,
   Mic,
   MicOff,
   RotateCcw,
   Send,
+  ThumbsDown,
+  ThumbsUp,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormattedChatMessage } from "@/components/support-bot/formatted-chat-message";
+import {
+  HEX_CLIP,
+  QueenBeeAvatar,
+  QueenBeeMark,
+  shade,
+} from "@/components/support-bot/queen-bee";
 import api from "@/modules/shared/api/http";
 import { getSupportBotThreadChannelName, initPublicEcho } from "@/lib/echo";
 import { useDictation } from "@/hooks/use-dictation";
@@ -47,7 +53,33 @@ interface SupportWebchatWidgetProps {
   embedded?: boolean;
   /** Lets the embed host resize its iframe as the panel opens and closes. */
   onOpenChange?: (open: boolean) => void;
+
+  /**
+   * A command from the host page's `HiveAssistant` API.
+   *
+   * Carried as a value with an incrementing `id` rather than an imperative
+   * handle because the caller is another window: what arrives is a postMessage,
+   * and the natural translation of "an event arrived" into React state is a
+   * value that changes. The `id` is what makes two identical commands — the
+   * same `send("hello")` twice — two commands rather than one.
+   */
+  command?: WidgetCommand | null;
+
+  /** Fires when the assistant or an agent says something. */
+  onBotMessage?: (message: { content: string; sender: string }) => void;
+
+  /** Fires once the widget is able to accept commands. */
+  onReady?: () => void;
 }
+
+export type WidgetCommand =
+  | { id: number; type: "open" | "close" }
+  | { id: number; type: "send"; text: string }
+  | {
+      id: number;
+      type: "identify";
+      visitor: { name?: string; email?: string; external_id?: string; signature?: string };
+    };
 
 interface WidgetMessage {
   id: number | string;
@@ -59,6 +91,12 @@ interface WidgetMessage {
     source_kb?: string;
     escalated?: boolean;
   } | null;
+  /**
+   * Identifies the answer for feedback. Set only on the reply the server just
+   * produced, so a rating attaches to that answer rather than to the thread —
+   * "the conversation was unhelpful" is not something anybody can act on.
+   */
+  interactionId?: number | null;
 }
 
 interface WidgetConfig {
@@ -120,14 +158,24 @@ const STARTER_SUGGESTIONS = [
   "How do I create an invoice?",
 ];
 
+/**
+ * Queen Bee's opener, when a tenant has not written their own.
+ *
+ * Deliberately about fetching rather than about ruling: she is named for the
+ * centre of the hive, but what she actually does is go and find things and
+ * bring them back, and the greeting is the first place that voice is set.
+ */
 const FALLBACK_GREETING =
-  "Hello! Ask me anything about Hive and I will do my best to help.";
+  "I am Queen Bee, your guide to Hive. Tell me what you need and I will find it — a module, a page, or an answer.";
 
 export function SupportWebchatWidget({
   botSlug = "hive-ai-assistant",
   primaryColor: initialColor,
   embedded = false,
   onOpenChange,
+  command,
+  onBotMessage,
+  onReady,
 }: SupportWebchatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [config, setConfig] = useState<WidgetConfig | null>(null);
@@ -149,12 +197,38 @@ export function SupportWebchatWidget({
   const [identityGiven, setIdentityGiven] = useState(false);
   const [showIdentityForm, setShowIdentityForm] = useState(false);
 
+  /**
+   * The host application's own identifier for this person, plus the signature
+   * vouching for it. Sent with every session so the server can decide whether
+   * the claim is verified — an unsigned `identify()` is only what the browser
+   * chose to say, and the transcript is marked accordingly.
+   */
+  const [externalIdentity, setExternalIdentity] = useState<{
+    external_id?: string;
+    signature?: string;
+    name?: string;
+    email?: string;
+  } | null>(null);
+
+  /**
+   * The same value, readable without being a dependency.
+   *
+   * The session is opened by an effect that must not re-run when identity
+   * arrives — re-running it opens a second conversation — but it does need the
+   * newest value if `identify()` landed before it got there.
+   */
+  const externalIdentityRef = useRef<typeof externalIdentity>(null);
+  externalIdentityRef.current = externalIdentity;
+
   /** Agent messages that arrived while the panel was closed. */
   const [unread, setUnread] = useState(0);
   /** Set while the agent is composing, cleared on a timer. */
   const [agentTyping, setAgentTyping] = useState(false);
 
   const endRef = useRef<HTMLDivElement>(null);
+  const launcherButtonRef = useRef<HTMLButtonElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  const wasOpenRef = useRef(false);
   const typingTimerRef = useRef<number | null>(null);
   const typingSentAtRef = useRef(0);
   const openingRef = useRef(false);
@@ -170,10 +244,10 @@ export function SupportWebchatWidget({
   });
 
   const primaryColor = initialColor || config?.primary_color || "#3b82f6";
-  const title = config?.widget_config?.title || config?.name || "Hive Assistant";
+  const title = config?.widget_config?.title || config?.name || "Queen Bee";
   const sessionStorageKey = `support_bot_session_${botSlug}`;
   const primaryForeground = readableTextColor(primaryColor);
-  const subtitle = config?.widget_config?.subtitle || "Ask us anything";
+  const subtitle = config?.widget_config?.subtitle || "Your guide to the hive";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -183,6 +257,99 @@ export function SupportWebchatWidget({
   useEffect(() => {
     onOpenChange?.(isOpen);
   }, [isOpen, onOpenChange]);
+
+  // Opening the non-modal dialog moves keyboard focus into the conversation;
+  // closing it returns focus to the launcher that opened it.
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      requestAnimationFrame(() => messageInputRef.current?.focus());
+    } else if (!isOpen && wasOpenRef.current) {
+      requestAnimationFrame(() => launcherButtonRef.current?.focus());
+    }
+
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Commands from the host page's `HiveAssistant` API. Keyed on the command's
+  // id so `send("hello")` twice is two sends rather than one — a value-equality
+  // dependency would silently swallow the second.
+  const commandId = command?.id ?? null;
+
+  useEffect(() => {
+    if (!command) return;
+
+    if (command.type === "open") {
+      setIsOpen(true);
+      return;
+    }
+
+    if (command.type === "close") {
+      setIsOpen(false);
+      return;
+    }
+
+    if (command.type === "identify") {
+      // The host's claim about who this is. Whether it is *verified* is decided
+      // on the server, from the signature; nothing here can assert that.
+      if (command.visitor.name) setVisitorName(command.visitor.name);
+      if (command.visitor.email) setVisitorEmail(command.visitor.email);
+      if (command.visitor.name || command.visitor.email) setIdentityGiven(true);
+      if (command.visitor.external_id) setExternalIdentity(command.visitor);
+
+      // The session may already be open — a host that calls identify() after
+      // the page settles is the normal case, not the exception — so the claim
+      // is sent up rather than left to be picked up by an effect that has
+      // already run. Resuming with the existing credentials updates the same
+      // conversation; it does not start a second one.
+      if (sessionId && sessionToken) {
+        void api
+          .post(`/public/support-bot/${botSlug}/session`, {
+            session_id: sessionId,
+            session_token: sessionToken,
+            visitor: command.visitor,
+          })
+          .catch(() => {
+            // Identity is an enrichment. Failing to attach it must not stop
+            // somebody from asking their question.
+          });
+      }
+
+      return;
+    }
+
+    if (command.type === "send" && command.text.trim()) {
+      setIsOpen(true);
+      void send(command.text);
+    }
+  }, [commandId]);
+
+  useEffect(() => {
+    if (credentialsLoaded) onReady?.();
+  }, [credentialsLoaded, onReady]);
+
+  /**
+   * Tells the host page when Queen Bee or an agent has said something.
+   *
+   * The embed loader needs this for the unread badge: the closed frame is an
+   * 84px hexagon with no room to draw one, so the count is rendered by the host
+   * page beside it. Only the newest message is announced, and only once — the
+   * ref is what stops a re-render replaying the whole transcript at the host.
+   */
+  const announcedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!onBotMessage || messages.length === 0) return;
+
+    const latest = messages[messages.length - 1];
+
+    if (latest.sender_type === "visitor" || latest.sender_type === "system") return;
+
+    const key = getMessageKey(latest);
+    if (announcedRef.current === key) return;
+
+    announcedRef.current = key;
+    onBotMessage({ content: latest.content, sender: latest.sender_name ?? "assistant" });
+  }, [messages, onBotMessage]);
 
   /**
    * Flags a reply that arrived while the widget was closed.
@@ -288,6 +455,11 @@ export function SupportWebchatWidget({
       const sessionResponse = await api.post(`/public/support-bot/${botSlug}/session`, {
         session_id: sessionId || undefined,
         session_token: sessionToken || undefined,
+        // The host application's claim about who this visitor is, with the
+        // signature vouching for it. Passed through untouched: whether it is
+        // believed is the server's decision, and it is the only party that
+        // holds the token the signature was made with.
+        visitor: externalIdentityRef.current ?? undefined,
       });
 
       const session = sessionResponse.data?.data ?? {};
@@ -334,6 +506,38 @@ export function SupportWebchatWidget({
       openingRef.current = false;
     }
   }, [botSlug, sessionId, sessionStorageKey, sessionToken]);
+
+  /**
+   * The assistant's presentation, fetched before anyone opens anything.
+   *
+   * This used to be read inside `openConversation`, which only runs on the
+   * first open — so the closed launcher wore the fallback colour and the
+   * fallback name until somebody clicked it. That is backwards: the launcher is
+   * the first thing a visitor sees and, for most visitors, the only thing they
+   * ever see, so it is exactly the part that has to be the tenant's own brand
+   * from the first paint.
+   *
+   * Cheap enough to do eagerly: the config endpoint is a small unauthenticated
+   * read, and it opens no conversation and spends no model capacity.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void api
+      .get(`/public/support-bot/${botSlug}/config`)
+      .then((response) => {
+        if (cancelled) return;
+        setConfig(response.data?.data ?? response.data);
+      })
+      .catch(() => {
+        // The launcher still renders on its defaults; opening it will report
+        // the failure properly rather than this doing it silently on load.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [botSlug]);
 
   useEffect(() => {
     if (isOpen && credentialsLoaded && messages.length === 0 && !unavailable) {
@@ -503,14 +707,20 @@ export function SupportWebchatWidget({
       });
 
       const replies: WidgetMessage[] = response.data?.data?.messages ?? response.data?.messages ?? [];
+      const interactionId: number | null =
+        response.data?.data?.interaction_id ?? response.data?.interaction_id ?? null;
 
       // While a person has the conversation the server returns nothing here on
       // purpose — their reply arrives over the socket, and a "no answer" filler
       // would talk over them.
       if (replies.length === 0 && withAgent) return;
 
-      setMessages((prev) =>
-        mergeUniqueMessages(
+      // Only the last reply is rateable: it is the answer, and any before it
+      // are the working out.
+      const rateableId = replies.length > 0 ? getMessageKey(replies[replies.length - 1]) : null;
+
+      setMessages((prev) => {
+        const merged = mergeUniqueMessages(
           prev,
           replies.length > 0
           ? replies
@@ -522,8 +732,18 @@ export function SupportWebchatWidget({
                   "I did not find an answer for that one. Try rephrasing it, or ask to speak to a person.",
               },
             ],
-        ),
-      );
+        );
+
+        if (interactionId === null || rateableId === null) return merged;
+
+        // Stamped after merging rather than before it. The same reply also
+        // arrives over the socket, without the rating id and often first — and
+        // the merge drops the later copy as a duplicate, taking the id with it.
+        // Applying it to whichever copy won means the thumbs appear either way.
+        return merged.map((message) =>
+          getMessageKey(message) === rateableId ? { ...message, interactionId } : message,
+        );
+      });
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } })?.response?.status;
 
@@ -603,48 +823,80 @@ export function SupportWebchatWidget({
       <div
         ref={drag.ref}
         {...drag.handleProps}
-        // Offset from the corner: the offline-queue inspector is pinned there
-        // at a higher z-index and was covering this button entirely. Inside the
-        // embed iframe there is no such neighbour, and the frame is already
-        // placed by the host page.
+        // The bottom-right corner, which is where every visitor looks for a
+        // chat widget. This used to be offset 96px inboard to dodge the
+        // offline-queue inspector, which was pinned in that corner at a higher
+        // z-index — so the assistant sat stranded in the middle of the page
+        // beside a debug button, and people could not find her. The inspector
+        // is now scoped to the signed-in application, where it belongs, and the
+        // corner is free.
         className={`${
-          embedded ? "fixed bottom-4 right-4" : drag.position ? "fixed" : "fixed bottom-6 right-24"
-        } z-50 print:hidden ${drag.dragging ? "cursor-grabbing" : ""}`}
+          embedded ? "fixed bottom-4 right-4" : drag.position ? "fixed" : "fixed bottom-6 right-6"
+        } support-bot-accessible z-50 print:hidden ${drag.dragging ? "cursor-grabbing" : ""}`}
         style={{ ...drag.style, touchAction: embedded ? undefined : "none" }}
       >
         <button
+          ref={launcherButtonRef}
           type="button"
           onClick={() => {
             // A drag that ends over the button must not also open the panel.
             if (drag.didDrag()) return;
             setIsOpen(true);
           }}
-          aria-label={config?.widget_config?.launcher_label || "Open support chat"}
-          className="group relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-black/20 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={config?.widget_config?.launcher_label || `Ask ${title}`}
+          // A honeycomb cell, not the round bubble every other site has. It is
+          // the shape the product is named after, and it is what makes the
+          // closed launcher recognisable as this assistant before it is opened.
+          className="group relative grid h-14 w-14 place-items-center shadow-lg shadow-black/20 transition-transform duration-150 hover:scale-[1.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
           style={{
-            backgroundColor: primaryColor,
+            clipPath: HEX_CLIP,
+            // The cell takes the tenant's own colour and the bee inside it
+            // carries the gold. Blending brand into gold looked like neither:
+            // a blue-branded workspace got a muddy gold-to-blue wash, and the
+            // identity has to survive whatever colour a tenant picks.
+            background: `linear-gradient(155deg, ${primaryColor} 0%, ${shade(primaryColor, -0.22)} 100%)`,
             color: primaryForeground,
           }}
         >
           {/* A quiet pulse rather than a loud one — enough to say "something is
-              here", not enough to nag at a visitor reading the page. */}
+              here", not enough to nag at a visitor reading the page. Clipped to
+              the same hexagon: a square pulse behind a hexagonal button is
+              visible on every side of it. */}
           <span
-            className="absolute inset-0 -z-10 animate-ping rounded-full opacity-20 group-hover:opacity-0"
-            style={{ backgroundColor: primaryColor, animationDuration: "2.5s" }}
+            className="absolute inset-0 -z-10 animate-ping opacity-20 group-hover:opacity-0 motion-reduce:hidden"
+            style={{
+              backgroundColor: primaryColor,
+              clipPath: HEX_CLIP,
+              animationDuration: "2.5s",
+            }}
           />
-          <MessageSquare className="h-6 w-6" aria-hidden="true" />
+          <QueenBeeMark className="h-7 w-7" title="" />
 
-          {/* The unread count replaces the plain "online" dot when something
-              is waiting: two indicators in the same corner would compete, and
-              "you have replies" is the more urgent of the two. */}
-          {unread > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-700 px-1 text-[10px] font-bold text-white">
-              {unread > 9 ? "9+" : unread}
-            </span>
-          ) : (
-            <span className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" />
-          )}
         </button>
+
+        {/* Outside the button, not inside it.
+            `clip-path` clips descendants, so an indicator pinned to a corner of
+            a hexagon is sliced in half by the shape it is sitting on. Rendered
+            as a sibling it keeps its own edges, and it is not interactive, so
+            it costs the button nothing.
+
+            The unread count replaces the plain "online" dot rather than joining
+            it: two indicators in the same corner compete, and "you have
+            replies" is the more urgent of the two. */}
+        {unread > 0 ? (
+          <span
+            role="status"
+            className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-700 px-1 text-[10px] font-bold text-white"
+          >
+            <span aria-hidden="true">{unread > 9 ? "9+" : unread}</span>
+            <span className="sr-only">{unread} unread messages</span>
+          </span>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"
+          />
+        )}
       </div>
     );
   }
@@ -656,10 +908,13 @@ export function SupportWebchatWidget({
     <aside
       aria-labelledby="support-widget-title"
       role="dialog"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setIsOpen(false);
+      }}
       className={
         embedded
-          ? "fixed inset-2 z-50 flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl"
-          : "fixed bottom-6 right-6 z-50 flex h-[min(600px,calc(100vh-6rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl print:hidden animate-in fade-in slide-in-from-bottom-4 duration-200"
+          ? "support-bot-accessible fixed inset-2 z-50 flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl"
+          : "support-bot-accessible fixed bottom-6 right-6 z-50 flex h-[min(600px,calc(100vh-6rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl print:hidden animate-in fade-in slide-in-from-bottom-4 duration-200"
       }
     >
       <header
@@ -678,7 +933,7 @@ export function SupportWebchatWidget({
 
         <div className="relative flex items-center gap-2.5">
           <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-            <Bot className="h-4.5 w-4.5" />
+            <QueenBeeMark className="h-5 w-5" title="" />
             <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-400" />
           </div>
           <div className="leading-tight">
@@ -738,12 +993,11 @@ export function SupportWebchatWidget({
               className="flex max-w-[92%] items-end gap-1.5 animate-in fade-in slide-in-from-bottom-1 duration-150"
             >
               {message.sender_type !== "system" && (
-                <div
-                  className="mb-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: primaryColor, color: primaryForeground }}
-                >
-                  <Bot className="h-3.5 w-3.5" />
-                </div>
+                <QueenBeeAvatar
+                  color={primaryColor}
+                  foreground={primaryForeground}
+                  className="mb-0.5 h-6 w-6"
+                />
               )}
               <div>
                 <div
@@ -761,6 +1015,15 @@ export function SupportWebchatWidget({
                     <Headphones className="h-3 w-3" /> A member of our team has joined.
                   </p>
                 )}
+
+                {message.sender_type === "bot" && typeof message.interactionId === "number" && (
+                  <VisitorVerdict
+                    botSlug={botSlug}
+                    sessionId={sessionId}
+                    sessionToken={sessionToken}
+                    interactionId={message.interactionId}
+                  />
+                )}
               </div>
             </div>
           ),
@@ -768,17 +1031,13 @@ export function SupportWebchatWidget({
 
         {loading && (
           <div className="flex items-center gap-1.5">
-            <div
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-              style={{ backgroundColor: primaryColor, color: primaryForeground }}
-            >
-              <Bot className="h-3.5 w-3.5" />
-            </div>
+            <QueenBeeAvatar color={primaryColor} foreground={primaryForeground} />
             {/* Three bouncing dots read as "someone is composing a reply" at a
                 glance, where "Typing…" text is easy to skim past — and with a
                 self-hosted model sometimes taking tens of seconds, that glance
                 is what keeps the wait from feeling broken. */}
             <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-muted px-3 py-2.5 shadow-sm">
+              <span className="sr-only">Assistant is typing</span>
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.3s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.15s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50" />
@@ -881,7 +1140,7 @@ export function SupportWebchatWidget({
             <button
               type="button"
               onClick={resumeAssistant}
-              className="w-full text-center text-[11px] text-muted-foreground underline-offset-2 transition hover:underline"
+              className="min-h-11 w-full text-center text-[11px] text-muted-foreground underline-offset-2 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Back to the assistant
             </button>
@@ -961,6 +1220,7 @@ export function SupportWebchatWidget({
           Message
         </label>
         <Input
+          ref={messageInputRef}
           id="support-widget-message"
           value={inputValue}
           onChange={(event) => {
@@ -968,7 +1228,7 @@ export function SupportWebchatWidget({
             pingTyping();
           }}
           placeholder={config?.widget_config?.placeholder || "Type your message…"}
-          className="h-11 min-w-0 flex-1 rounded-full border-muted-foreground/20 bg-muted/40 px-4 text-xs shadow-none focus-visible:ring-1"
+          className="h-11 min-w-0 flex-1 rounded-full bg-muted/40 px-4 text-xs shadow-none"
           disabled={loading || unavailable}
         />
         {/* Always reachable, not just when a notice happens to be showing —
@@ -1009,12 +1269,82 @@ export function SupportWebchatWidget({
           className="h-11 w-11 shrink-0 rounded-full shadow-sm transition hover:opacity-90"
           style={{ backgroundColor: primaryColor, color: primaryForeground }}
           disabled={loading || unavailable || !inputValue.trim()}
-        >
           aria-label="Send message"
+        >
           <Send className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
     </aside>
+  );
+}
+
+/**
+ * Was that answer any good?
+ *
+ * The only judgement in the system that does not come from the machine, and so
+ * the only thing that can tell a fluent wrong answer from a right one. One tap,
+ * no form: on a public widget anything more is a control nobody uses.
+ *
+ * The rating travels with the session token, so it can only ever be attached to
+ * an answer given in this visitor's own conversation.
+ */
+function VisitorVerdict({
+  botSlug,
+  sessionId,
+  sessionToken,
+  interactionId,
+}: {
+  botSlug: string;
+  sessionId: string;
+  sessionToken: string;
+  interactionId: number;
+}) {
+  const [verdict, setVerdict] = useState<1 | -1 | null>(null);
+
+  const rate = async (rating: 1 | -1) => {
+    // Optimistic: the rating is advisory, and a spinner on a thumbs-up costs
+    // more attention than the signal is worth.
+    setVerdict(rating);
+
+    try {
+      await api.post(`/public/support-bot/${botSlug}/feedback`, {
+        session_id: sessionId,
+        session_token: sessionToken,
+        interaction_id: interactionId,
+        rating,
+      });
+    } catch {
+      setVerdict(null);
+    }
+  };
+
+  if (verdict !== null) {
+    return (
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        {verdict === 1 ? "Thanks." : "Thanks — we will look at this one."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-0.5">
+      <button
+        type="button"
+        aria-label="This answer helped"
+        className="grid h-11 w-11 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => void rate(1)}
+      >
+        <ThumbsUp className="h-3 w-3" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="This answer did not help"
+        className="grid h-11 w-11 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => void rate(-1)}
+      >
+        <ThumbsDown className="h-3 w-3" aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 

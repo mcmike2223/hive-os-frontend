@@ -169,18 +169,21 @@
   /* Meeting controls need visible boundaries and a full-opacity keyboard
      focus outline across both themes. These values keep the Hive palette while
      meeting the 3:1 non-text contrast floor on the conferencing workspace. */
+  .support-bot-accessible,
   .video-conferencing {
     --border: 215 16% 47%;
     --input: 215 16% 47%;
     --ring: 160 84% 29%;
   }
 
+  .dark .support-bot-accessible,
   .dark .video-conferencing {
     --border: 215 20% 65%;
     --input: 215 20% 65%;
     --ring: 158 64% 52%;
   }
 
+  .support-bot-accessible :where(a, button, input, textarea, select):focus-visible,
   .video-conferencing :where(a, button, input, textarea, select):focus-visible {
     outline: 3px solid hsl(var(--ring));
     outline-offset: 2px;

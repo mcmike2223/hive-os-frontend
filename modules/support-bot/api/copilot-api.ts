@@ -72,6 +72,10 @@ export interface CopilotPayload {
   denied?: boolean;
   failed?: boolean;
   unsupported?: boolean;
+  /** This answer was written by a person and approved, not assembled. */
+  learned?: boolean;
+  learned_answer_id?: number;
+  greeting?: boolean;
   pending_approval?: boolean;
   capabilities?: Record<string, string[]>;
   diagnosis?: string;
@@ -82,6 +86,12 @@ export interface CopilotReply {
   content: string;
   mode: CopilotMode;
   payload: CopilotPayload;
+  /**
+   * Identifies this specific answer, so a rating attaches to the thing that was
+   * said rather than to "the conversation" — which is not something anybody can
+   * act on afterwards.
+   */
+  interaction_id: number | null;
   context: { tenant_id: string; page: string | null };
 }
 
@@ -241,3 +251,124 @@ export const reindexCopilotKnowledge = async (): Promise<{
       "/copilot/settings/reindex",
     )
   ).data.data;
+
+/* -------------------------------------------------------------------------- */
+/*  Feedback and what the assistant has learned                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A reader's verdict on one answer.
+ *
+ * The only signal in the whole system that comes from outside the machine, and
+ * so the only one that can tell a fluent wrong answer from a good one. It is
+ * one tap on purpose: feedback nobody gives is worth nothing, and a form is how
+ * you get feedback nobody gives.
+ */
+export const rateCopilotAnswer = async (payload: {
+  interaction_id: number;
+  rating: 1 | -1;
+  reason?: string;
+  comment?: string;
+}): Promise<void> => {
+  await api.post("/copilot/feedback", payload);
+};
+
+export interface CopilotAssistantMetrics {
+  total: number;
+  since: string;
+  by_source: Record<string, number>;
+  by_channel: Record<string, number>;
+  /** Share of questions answered with something rather than a shrug. */
+  answered_rate: number | null;
+  /** Of the answers people rated, the share they found helpful. */
+  helpful_rate: number | null;
+  rated: number;
+  escalation_rate: number | null;
+  median_latency_ms: number | null;
+  open_gaps: number;
+}
+
+export interface CopilotGap {
+  id: number;
+  label: string;
+  question: string;
+  examples: string[];
+  occurrences: number;
+  module: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+}
+
+export interface CopilotLearnedAnswer {
+  id: number;
+  question: string;
+  variants: string[];
+  answer: string;
+  module: string | null;
+  href: string | null;
+  permissions: string[];
+  status: "pending" | "approved" | "rejected" | "retired";
+  source: string;
+  hits: number;
+  positive: number;
+  negative: number;
+  approved_at: string | null;
+  created_at: string | null;
+}
+
+export const fetchAssistantMetrics = async (days = 30): Promise<CopilotAssistantMetrics> =>
+  (
+    await api.get<{ data: CopilotAssistantMetrics }>("/support-bot/learning/metrics", {
+      params: { days },
+    })
+  ).data.data;
+
+export const fetchAssistantGaps = async (limit = 25): Promise<CopilotGap[]> =>
+  (await api.get<{ data: CopilotGap[] }>("/support-bot/learning/gaps", { params: { limit } })).data
+    .data;
+
+export const answerAssistantGap = async (
+  clusterId: number,
+  payload: { answer: string; question?: string; module?: string; href?: string; approve?: boolean },
+): Promise<CopilotLearnedAnswer> =>
+  (
+    await api.post<{ data: CopilotLearnedAnswer }>(
+      `/support-bot/learning/gaps/${clusterId}/answer`,
+      payload,
+    )
+  ).data.data;
+
+export const fetchLearnedAnswers = async (
+  status?: CopilotLearnedAnswer["status"],
+): Promise<CopilotLearnedAnswer[]> =>
+  (
+    await api.get<{ data: CopilotLearnedAnswer[] }>("/support-bot/learning/answers", {
+      params: status ? { status } : undefined,
+    })
+  ).data.data;
+
+export const teachAssistant = async (payload: {
+  question: string;
+  answer: string;
+  module?: string;
+  href?: string;
+  permissions?: string[];
+}): Promise<CopilotLearnedAnswer> =>
+  (await api.post<{ data: CopilotLearnedAnswer }>("/support-bot/learning/answers", payload)).data
+    .data;
+
+export const updateLearnedAnswer = async (
+  id: number,
+  payload: { question?: string; answer?: string; module?: string; href?: string },
+): Promise<CopilotLearnedAnswer> =>
+  (await api.patch<{ data: CopilotLearnedAnswer }>(`/support-bot/learning/answers/${id}`, payload))
+    .data.data;
+
+/** The only path by which anything taught starts being served. */
+export const approveLearnedAnswer = async (id: number): Promise<CopilotLearnedAnswer> =>
+  (await api.post<{ data: CopilotLearnedAnswer }>(`/support-bot/learning/answers/${id}/approve`))
+    .data.data;
+
+export const rejectLearnedAnswer = async (id: number): Promise<CopilotLearnedAnswer> =>
+  (await api.post<{ data: CopilotLearnedAnswer }>(`/support-bot/learning/answers/${id}/reject`))
+    .data.data;

@@ -6,7 +6,6 @@ import React from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
-  Bot,
   Check,
   Headphones,
   Loader2,
@@ -15,7 +14,8 @@ import {
   RotateCcw,
   Send,
   ShieldAlert,
-  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
   X,
 } from "lucide-react";
 
@@ -24,6 +24,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FormattedChatMessage } from "@/components/support-bot/formatted-chat-message";
+import {
+  HEX_CLIP,
+  QueenBeeAvatar,
+  QueenBeeMark,
+  QUEEN_BEE_AMBER,
+  QUEEN_BEE_GOLD,
+} from "@/components/support-bot/queen-bee";
 import { getSupportBotThreadChannelName, initPublicEcho } from "@/lib/echo";
 import { useDictation } from "@/hooks/use-dictation";
 import { useWidgetDrag } from "@/hooks/use-widget-drag";
@@ -32,6 +39,7 @@ import {
   cancelCopilotAction,
   confirmCopilotAction,
   fetchCopilotCapabilities,
+  rateCopilotAnswer,
   sendCopilotMessage,
   type CopilotReply,
   type CopilotState,
@@ -64,7 +72,7 @@ interface SupportSessionCredentials {
 const SUPPORT_SESSION_STORAGE_KEY = "hive_copilot_support_session";
 
 const GREETING =
-  "Ask me anything about Hive — I can explain a module, take you to the right page, look something up, or do it for you when you have the permission.";
+  "I know every corner of this hive. Ask me to explain a module, take you to the right page, look something up, or carry it out for you when you have the permission.";
 
 export function ErpCopilotPanel() {
   const pathname = usePathname();
@@ -328,7 +336,7 @@ export function ErpCopilotPanel() {
         // at a higher z-index and was covering this button entirely.
         className={`${
           drag.position ? "fixed" : "fixed bottom-6 right-24"
-        } z-50 print:hidden ${drag.dragging ? "cursor-grabbing" : ""}`}
+        } support-bot-accessible z-50 print:hidden ${drag.dragging ? "cursor-grabbing" : ""}`}
         style={{ ...drag.style, touchAction: "none" }}
       >
         <button
@@ -338,10 +346,17 @@ export function ErpCopilotPanel() {
             if (drag.didDrag()) return;
             setIsOpen(true);
           }}
-          aria-label="Open the Hive Copilot"
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="Ask Queen Bee"
+          // The same honeycomb launcher the public widget uses, so the
+          // assistant is recognisably one thing whether staff meet it inside
+          // the dashboard or customers meet it on a website.
+          className="relative grid h-14 w-14 place-items-center shadow-lg transition-transform duration-150 hover:scale-[1.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+          style={{
+            clipPath: HEX_CLIP,
+            background: `linear-gradient(155deg, ${QUEEN_BEE_GOLD} 0%, ${QUEEN_BEE_AMBER} 100%)`,
+          }}
         >
-          <Sparkles className="h-6 w-6" aria-hidden="true" />
+          <QueenBeeMark className="h-7 w-7" title="" />
         </button>
       </div>
     );
@@ -353,14 +368,16 @@ export function ErpCopilotPanel() {
   return (
     <aside
       aria-labelledby="erp-copilot-title"
-      className="fixed bottom-6 right-6 z-50 flex h-[min(640px,calc(100vh-6rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl print:hidden">
+      className="support-bot-accessible fixed bottom-6 right-6 z-50 flex h-[min(640px,calc(100vh-6rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl print:hidden">
       <header className="flex items-center justify-between border-b bg-muted/40 px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Bot className="h-4 w-4" />
-          </div>
+          <QueenBeeAvatar
+            color={QUEEN_BEE_AMBER}
+            foreground="#ffffff"
+            className="h-8 w-8 rounded-lg"
+          />
           <div className="leading-tight">
-            <h2 id="erp-copilot-title" className="text-sm font-semibold">Hive Copilot</h2>
+            <h2 id="erp-copilot-title" className="text-sm font-semibold">Queen Bee</h2>
             <p className="text-[11px] text-muted-foreground">
               Permission-aware · every action audited
             </p>
@@ -572,6 +589,79 @@ export function ErpCopilotPanel() {
  * Everything the server attached to an answer: a confirmation to approve, pages
  * to open, records it found, and what to ask next.
  */
+/**
+ * Was that answer any good?
+ *
+ * The only signal in the system that comes from outside the machine, and so the
+ * only one that can tell a fluent wrong answer from a right one. Kept to a
+ * single tap: feedback nobody gives is worth nothing, and a form is how you get
+ * feedback nobody gives.
+ *
+ * Deliberately absent on a greeting or a confirmation prompt — asking somebody
+ * to rate "Hello" trains them to ignore the control on the answers that matter.
+ */
+function AnswerVerdict({ reply }: { reply: CopilotReply }) {
+  const [verdict, setVerdict] = React.useState<1 | -1 | null>(null);
+  const [failed, setFailed] = React.useState(false);
+
+  const interactionId = reply.interaction_id;
+  const rateable =
+    interactionId !== null && !reply.payload.greeting && !reply.payload.confirmation;
+
+  if (!rateable) return null;
+
+  const rate = async (rating: 1 | -1) => {
+    // Shown as taken before the round trip: the rating is advisory, and a
+    // spinner on a thumbs-up is more friction than the signal is worth.
+    setVerdict(rating);
+    setFailed(false);
+
+    try {
+      await rateCopilotAnswer({ interaction_id: interactionId, rating });
+    } catch {
+      setVerdict(null);
+      setFailed(true);
+    }
+  };
+
+  if (verdict !== null) {
+    return (
+      <p className="px-1 text-[11px] text-muted-foreground">
+        {verdict === 1
+          ? "Thanks — noted."
+          : "Thanks. This goes to the team who can correct it."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 px-1">
+      <span className="text-[11px] text-muted-foreground">Did this help?</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-label="This answer helped"
+        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+        onClick={() => rate(1)}
+      >
+        <ThumbsUp className="h-3 w-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-label="This answer did not help"
+        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+        onClick={() => rate(-1)}
+      >
+        <ThumbsDown className="h-3 w-3" />
+      </Button>
+      {failed && <span className="text-[11px] text-destructive">Could not record that.</span>}
+    </div>
+  );
+}
+
 function ReplyExtras({
   reply,
   busyToken,
@@ -588,6 +678,8 @@ function ReplyExtras({
 
   return (
     <div className="space-y-2">
+      <AnswerVerdict reply={reply} />
+
       {confirmation && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
           <div className="mb-1.5 flex items-center gap-1.5">

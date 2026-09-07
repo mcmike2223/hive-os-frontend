@@ -3,6 +3,7 @@ import {
   MessageSquare,
   BookOpen,
   BarChart3,
+  GraduationCap,
 } from "lucide-react";
 import type { FrontendModuleDefinition } from "@/modules/types";
 
@@ -23,6 +24,7 @@ export const supportBotModule: FrontendModuleDefinition = {
     "/dashboard/support-bot/inbox",
     "/dashboard/support-bot/knowledge",
     "/dashboard/support-bot/analytics",
+    "/dashboard/support-bot/learning",
   ],
   navItems: [
     {
@@ -55,6 +57,14 @@ export const supportBotModule: FrontendModuleDefinition = {
       fallbackLabel: "Bot Analytics",
       href: "/dashboard/support-bot/analytics",
       icon: BarChart3,
+      permissions: ["view_support_bots", "manage_support_bots"],
+    },
+    {
+      ...common,
+      translationKey: "nav.support_bot_learning",
+      fallbackLabel: "Teach the Assistant",
+      href: "/dashboard/support-bot/learning",
+      icon: GraduationCap,
       permissions: ["view_support_bots", "manage_support_bots"],
     },
   ],

@@ -1,6 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { OfflineStatusBanner } from "@/components/offline/offline-status-banner";
@@ -74,6 +75,34 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     };
   }, [queryClient]);
 
+  const pathname = usePathname() ?? "";
+
+  /**
+   * The assistant's embed iframe renders on sites Hive does not control, and
+   * must contain the assistant and nothing else — not a status banner about
+   * Hive's own sync state, and certainly not a debug tool.
+   */
+  const isEmbedFrame = pathname.startsWith("/embed/");
+
+  /**
+   * Where the offline *queue inspector* belongs: inside the signed-in
+   * application.
+   *
+   * It is a debug panel for staff doing work that must survive a dropped
+   * connection — a POS terminal, a stock count — and all of that lives under
+   * /dashboard. It was rendering on every page instead, including the public
+   * marketing site, pinned in the bottom-right corner at z-130. The assistant's
+   * launcher sits at z-50, so it had been shunted 96px inboard to avoid being
+   * covered, which left it stranded mid-page beside a debug button where no
+   * visitor would ever look for it.
+   *
+   * The banner is deliberately not scoped the same way. It is a thin, transient
+   * "you are offline" notice rather than a persistent control, and the sign-in
+   * and LMS login pages both queue requests offline — telling somebody why
+   * their login is not going through is worth more there than tidiness.
+   */
+  const showQueueInspector = pathname.startsWith("/dashboard");
+
   if (!isRestored) {
     return <div className="h-screen w-screen bg-background" />;
   }
@@ -81,12 +110,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <OfflineRuntime />
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-[120] flex flex-col">
-        <div className="pointer-events-auto">
-          <OfflineStatusBanner />
+
+      {!isEmbedFrame && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-[120] flex flex-col">
+          <div className="pointer-events-auto">
+            <OfflineStatusBanner />
+          </div>
         </div>
-      </div>
-      <OfflineQueueInspector />
+      )}
+
+      {showQueueInspector && <OfflineQueueInspector />}
+
       {children}
     </QueryClientProvider>
   );
