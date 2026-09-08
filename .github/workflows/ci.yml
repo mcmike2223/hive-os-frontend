@@ -47,7 +47,7 @@ jobs:
   waiter-pos-e2e:
     name: Waiter POS browser acceptance
     runs-on: ubuntu-22.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     permissions:
       contents: read
     env:
@@ -58,6 +58,9 @@ jobs:
       HIVE_E2E_REVERB_HOST: localhost
       HIVE_E2E_REVERB_PORT: "9095"
       HIVE_E2E_REVERB_SCHEME: http
+      # The acceptance server compiles tenant routes on demand. Running the
+      # journeys serially avoids cold-route navigation timeouts in CI.
+      HIVE_E2E_WORKERS: "1"
       # Compose interpolates every service before applying the requested
       # service selection. These are disposable values for this isolated CI
       # stack, not production credentials.
