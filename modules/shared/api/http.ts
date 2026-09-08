@@ -3,6 +3,26 @@ import { clearHiveSession } from "@/lib/auth-sync";
 import { getEchoSocketId } from "@/lib/echo";
 import { getAccessToken, getBackendApiRoot, getTenantHeaders } from "@/lib/runtime-context";
 
+// Derived from the router: these are the only first path segments served
+// exclusively by Route::domain(<central domain>) groups. "tenant" (singular) is
+// deliberately absent - those routes are tenant-scoped - so the segment is
+// compared exactly rather than by prefix.
+const CENTRAL_ONLY_SEGMENTS = new Set([
+  "tenants",
+  "check-tenant",
+  "realtime",
+  "test-export-logo",
+]);
+
+const isCentralOnlyEndpoint = (url?: string): boolean => {
+  if (!url) return false;
+
+  const path = url.split("?")[0].replace(/^\/+/, "");
+  const segment = path.replace(/^api\/v1\//, "").split("/")[0];
+
+  return CENTRAL_ONLY_SEGMENTS.has(segment);
+};
+
 export const api = axios.create({
   headers: {
     Accept: "application/json",
@@ -22,7 +42,15 @@ api.interceptors.request.use((config) => {
 
     config.baseURL = backendUrl;
 
-    Object.assign(config.headers, getTenantHeaders());
+    // Central command endpoints are registered only against the central domain:
+    // they read the central database and authenticate against the central token
+    // table. Sending tenant context at them makes an impersonating admin's own
+    // token stop resolving, which the response interceptor below reads as a dead
+    // session and ejects to sign-in. Every other endpoint is registered on both
+    // the central domain and the tenant catch-all, so it must keep the header.
+    if (!isCentralOnlyEndpoint(config.url)) {
+      Object.assign(config.headers, getTenantHeaders());
+    }
 
     // Laravel's `toOthers()` contract depends on this header. Supplying the
     // active Reverb socket prevents the initiating tab from applying its own
